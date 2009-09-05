@@ -1,0 +1,92 @@
+# translation of ru.po to Russian
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Yuri Kozlov <kozlov.y@gmail.com>, 2008.
+# Yuri Kozlov <yuray@komyakino.ru>, 2009.
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6 4.2.8-1\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2009-05-10 10:16+0400\n"
+"Last-Translator: Yuri Kozlov <yuray@komyakino.ru>\n"
+"Language-Team: Russian <debian-l10n-russian@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms:  nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n%"
+"10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Shorewall6 не перезапускается автоматически"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall6 не будет автоматически перезапущен после обновления, так как "
+"изменение в файлах настроек вызовет перебои в работе сети."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Вы должны самостоятельно проверить файлы настроек Shorewall6 и выполнить "
+"перезапуск командой 'invoke-rc.d shorewall6 restart'."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Перезапустить Shorewall6?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"Чтобы исключить риск отказа и перебоев в работе сети, перед перезапуском "
+"межсетевого экрана файлы настройки нужно аккуратно проверить."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Укажите, хотите ли вы перезапустить Shorewall6 прямо сейчас."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Обнаружена неправильная настройка Shorewall6"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 настроен для перезапуска при обновлениях."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Однако, текущая настройка Shorewall6 неправильна, и поэтому перезапуск "
+"завершится неудачно. Вы должны исправить настройку программы, а затем "
+"перезапустить её с помощью команды 'invoke-rc.d shorewall6 restart'."

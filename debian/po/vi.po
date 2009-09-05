@@ -1,0 +1,127 @@
+# Vietnamese translation for Shorewall.
+# Copyright © 2008 Free Software Foundation, Inc.
+# Clytie Siddall <clytie@riverland.net.au>, 2005-2008.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6 4.0.10-3\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2008-05-21 18:19+0930\n"
+"Last-Translator: Clytie Siddall <clytie@riverland.net.au>\n"
+"Language-Team: Vietnamese <vi-VN@googlegroups.com>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=1; plural=0;\n"
+"X-Generator: LocFactoryEditor 1.7b3\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+#, fuzzy
+#| msgid "No automatic restart for Shorewall"
+msgid "No automatic restart for Shorewall6"
+msgstr "Shorewall sẽ không tự động khởi chạy"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+#, fuzzy
+#| msgid ""
+#| "Shorewall will not be restarted automatically after being upgraded, to "
+#| "prevent changes in configuration files causing network outages."
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall sẽ không tự động khởi chạy sau khi được cập nhật, để tránh tập tin "
+"cấu hình bị thay đổi gây ra mạng dừng chạy."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+#, fuzzy
+#| msgid ""
+#| "You should check Shorewall's configuration files and restart it with "
+#| "'invoke-rc.d shorewall6 restart'."
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Bạn nên kiểm tra các tập tin cấu hình của Shorewall, rồi khởi chạy nó bằng "
+"lệnh « invoke-rc.d shorewall6 restart »."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+#, fuzzy
+#| msgid "Restart Shorewall?"
+msgid "Restart Shorewall6?"
+msgstr "Khởi chạy lại Shorewall ?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+#, fuzzy
+#| msgid ""
+#| "To avoid the risk of failures and network outages these files should be "
+#| "checked carefully before the firewall is restarted."
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"Để tránh tiến trình không chạy thành công và mạng dừng chạy, bạn nên kiểm "
+"tra cẩn thận các tập tin này, trước khi khởi chạy lại bức tường lửa."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+#, fuzzy
+#| msgid "Please choose whether you want to restart Shorewall immediately."
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Hãy chọn có nên khởi chạy lại Shorewall ngay lập tức hay không."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+#, fuzzy
+#| msgid "Invalid Shorewall configuration detected"
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Phát hiện được một cấu hình Shorewall không hợp lệ"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+#, fuzzy
+#| msgid "Shorewall is configured to restart on upgrades."
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Phần mềm Shorewall được cấu hình để khởi chạy một khi nâng cấp."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+#, fuzzy
+#| msgid ""
+#| "However, the current configuration for Shorewall is invalid and it will "
+#| "fail to restart. You should fix the program's configuration, then restart "
+#| "it with 'invoke-rc.d shorewall6 restart'."
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Tuy nhiên, cấu hình Shorewall hiện thời không phải là hợp lệ nên nó sẽ không "
+"khởi chạy được. Bạn nên sửa chữa cấu hình của chương trình, rồi khởi chạy nó "
+"dùng câu lệnh « invoke-rc.d shorewall6 restart »."
+
+# msgid ""
+# This is a major release of Shorewall that introduces some changes in the 
+# configuration files. The major changes are listed below.
+#~ msgid ""
+#~ "This release of Shorewall introduces some changes in the configuration "
+#~ "files - see /usr/share/doc/shorewall6/releasenotes.txt.gz."
+#~ msgstr ""
+#~ "Bản phát hành Shorewall này giới thiếu một số thay đổi trong các tập tin "
+#~ "cấu hình — xem Ghi chú Phát hành (/usr/share/doc/shorewall6/releasenotes."
+#~ "txt.gz)."

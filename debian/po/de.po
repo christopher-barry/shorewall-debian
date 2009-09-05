@@ -1,0 +1,102 @@
+# translation of shorewall6_4.2.10-1_de.po to German
+#
+#    Translators, if you are not familiar with the PO format, gettext
+#    documentation is worth reading, especially sections dedicated to
+#    this format, e.g. by running:
+#         info -n '(gettext)PO Files'
+#         info -n '(gettext)Header Entry'
+#    Some information specific to po-debconf are available at
+#            /usr/share/doc/po-debconf/README-trans
+#         or http://www.debian.org/intl/l10n/po-debconf/README-trans#
+#    Developers do not need to manually edit POT or PO files.
+#
+# Erik Schanze <eriks@debian.org>, 2004-2009.
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6_4.2.10-1_de\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2009-09-04 23:23+0200\n"
+"Last-Translator: Erik Schanze <eriks@debian.org>\n"
+"Language-Team: German <debian-l10n-german@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms:  nplurals=2; plural=(n != 1);\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Kein automatischer Neustart von Shorewall6"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall6 wird nach der Aktualisierung nicht automatisch "
+"neu gestartet, damit Änderungen in den Konfigurationdateien "
+"keine Netzwerkunterbrechung verursachen."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Sie sollten Shorewall6's Konfigurationsdateien überprüfen und das Programm mit "
+"dem Kommando 'invoke-rc.d shorewall6 restart' neu starten."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Shorewall6 neu starten?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"Diese Dateien sollten sorgfältig überprüft werden, bevor die "
+"Firewall neu gestartet wird, um das Risiko von Fehlern und "
+"Netzwerkunterbrechungen zu minimieren."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Bitte stimmen Sie zu, wenn Sie Shorewall6 jetzt neu starten wollen."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Ungültige Einstellungen bei Shorewall6 gefunden"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 ist eingerichtet, nach Aktualisierungen neu zu starten."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Die aktuellen Einstellungen von Shorewall6 sind ungültig und "
+"sein Neustart wird fehlschlagen. Sie sollten Shorewall6's "
+"Einstellungen berichtigen und das Programm mit dem "
+"Kommando 'invoke-rc.d shorewall6 restart' neu starten."
+

@@ -1,0 +1,85 @@
+#!/usr/bin/make -f
+#
+# Shorewall firewall (http://www.shorewall.net)
+# debianized version
+
+include /usr/share/quilt/quilt.make
+
+# shorewall version
+export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+VMAJOR:=$(shell echo $(V) |cut -f 1 -d .)
+VMINOR:=$(shell echo $(V) |cut -f 2 -d .)
+VPATCH:=$(shell echo $(V) |cut -f 3 -d .)
+NEXTPATCH:=$(shell expr $(VPATCH) + 1 2>/dev/null || expr `echo $(VPATCH) | cut -f 1 -d - ` + 1)
+
+SRWL=$(CURDIR)/debian/shorewall6
+
+build: build-stamp debian/po/templates.pot
+build-stamp: $(QUILT_STAMPFN)
+	dh_testdir
+# 	there's nothing to compile ;-)
+	touch build-stamp
+
+debian/po/templates.pot: debian/shorewall6.templates
+	@debconf-updatepo
+#	@podebconf-report-po
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	debconf-updatepo
+# 	clean the build directory
+	rm -rf $(SRWL)
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
+		> debian/shorewall6.substvars
+
+	dh_install
+
+	install -m 644 debian/shorewall6.lintian $(SRWL)/usr/share/lintian/overrides/shorewall6
+
+# 	Temporary zones are only available to root
+	chmod 750 $(SRWL)/var/lib/shorewall6
+# 	As well as configuration files
+	chmod 755 $(SRWL)/etc/shorewall6
+	chmod 640 $(SRWL)/etc/shorewall6/*
+	chmod 644 $(SRWL)/etc/shorewall6/shorewall6.conf
+	chmod 644 $(SRWL)/etc/shorewall6/Makefile
+# 	set version number
+	echo $V > $(SRWL)/usr/share/shorewall6/version
+#  global configuration has to be fully readable
+	chmod 644 $(SRWL)/usr/share/shorewall6/*
+#  must be executable
+	chmod 755 $(SRWL)/usr/share/shorewall6/wait4ifup
+# remove useless license file from /usr/share/doc/shorewall6/examples
+	rm $(SRWL)/usr/share/doc/shorewall6/examples/LICENSE
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs releasenotes.txt
+# 	examples are installed through shorewall6.install
+	dh_installman manpages/*
+	dh_installchangelogs changelog.txt
+	dh_installlogrotate -pshorewall6 --name=shorewall6
+	dh_installinit -pshorewall6 --name=shorewall6 --no-start -u"start 40 S . stop 89 0 6 ."
+	dh_installdebconf
+	dh_compress -Xusr/share/doc/shorewall6/default-config
+	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall6
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb -v
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+
+.PHONY: build clean binary-indep binary-arch binary install unpatch

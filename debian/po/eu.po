@@ -1,0 +1,96 @@
+# translation of shorewall6-eu.po to Euskara
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#
+# Piarres Beobide <pi@beobide.net>, 2008.
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6-eu\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2008-05-20 23:26+0200\n"
+"Last-Translator: Piarres Beobide <pi@beobide.net>\n"
+"Language-Team: Euskara <debian-l10n-basque@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Shorewall6 ez da automatikoki berrabiaraziko"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall6 ez da automatikoki berrabiaraziko bertsio-berritu ondoren, sare "
+"isolamenduak sor ditzakeen konfigurazio aldaketak saihesteko."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Shorewall6 konfigurazioa gainbegiratu eta berau 'invoke-rc.d shorewall6 "
+"restart' erabiliaz berrabiarazi beharko zen."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Shorewall6 berrabiarazi?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"Errore eta sare isolamendu arriskua saihesteko konfigurazio fitxategiak "
+"kontu handiaz egiaztatu beharko lirateke suebakia berrabiarazi aurretik."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Mesedez hautatu Shorewall6 orain berrabiarazi nahi duzun ala ez."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Okerreko Shorewall6 konfigurazioa atzeman da"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 bertsio-berritzean berrabiarazteko konfiguraturik dago."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Hala uneko Shorewall6 konfigurazioa baliogabea da eta huts egingo du "
+"berrabiarazten bada. Programaren konfigurazioa konpondu beharko duzu eta "
+"ondoren 'invoke-rc.d shorewall6 restart' bidez berrabiarazi."
+
+#~ msgid ""
+#~ "This release of Shorewall introduces some changes in the configuration "
+#~ "files - see /usr/share/doc/shorewall6/releasenotes.txt.gz."
+#~ msgstr ""
+#~ "Shorewall bertsio honek zenbait aldaketa ditu konfigurazio fitxategietan "
+#~ "- ikusi /usr/share/doc/shorewall6/releasenotes.txt.gz."

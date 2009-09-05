@@ -1,0 +1,7 @@
+sbin
+etc/shorewall6
+usr/share/shorewall6
+var/lib/shorewall6
+usr/share/doc/shorewall6/default-config
+usr/share/doc/shorewall6/examples
+usr/share/lintian/overrides

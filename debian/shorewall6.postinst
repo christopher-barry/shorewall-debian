@@ -1,0 +1,62 @@
+#!/bin/sh -e
+
+. /usr/share/debconf/confmodule 
+
+
+case "$1" in
+    configure)
+        db_reset shorewall6/dont_restart || true
+        db_reset shorewall6/major_release || true
+        db_go
+
+# Prompt the user about possible changes in new major release (this
+# section was previously in configure script)
+        
+        restart="true"
+
+        # if we are upgrading from version < 3.4 warns the user
+        if [ "$2" ] && dpkg --compare-versions "$2" lt "3.4"
+        then
+            db_input critical shorewall6/major_release || true
+            db_go 
+            
+            db_get shorewall6/major_release || true
+            if [ "$RET" = "false" ]
+            then
+                restart="false"
+                db_input critical shorewall6/dont_restart || true
+                db_go 
+            fi
+        fi
+
+        if [ -f "/etc/default/shorewall6" ]
+        then
+            . /etc/default/shorewall6
+        fi
+
+        if [ "$restart" = "true" ] && [ "$startup" = "1" ]
+        then 
+            if /sbin/shorewall6 check
+            then
+                if [ -x "/usr/sbin/invoke-rc.d" ]
+                then
+                    invoke-rc.d shorewall6 restart
+                else
+                    /etc/init.d/shorewall6 restart
+                fi
+            else
+                db_input critical shorewall6/invalid_config || true
+            fi
+        fi
+        ;;
+    
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 0
+        ;;
+esac
+
+#DEBHELPER#

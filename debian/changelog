@@ -1,0 +1,49 @@
+shorewall6 (4.4.1-1) unstable; urgency=low
+
+  * New upstream release
+  * Update to Standards-Version 3.8.3 (no changes)
+  * Translation updates
+    + Czech (Closes: #534792)
+    + Portuguese (Closes: #536571)
+    + Basque (Closes: #539900)
+    + German (Closes: #545095)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 04 Sep 2009 21:38:47 -0400
+
+shorewall6 (4.2.10-1) unstable; urgency=low
+
+  * New upstream release (Closes: #532384)
+  * Update to Standards-Version 3.8.2 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 20 Jun 2009 20:34:13 -0400
+
+shorewall6 (4.2.9-1) unstable; urgency=low
+
+  * New upstream release.
+  * Translation updates:
+    + Russian (Closes: #527999)
+    + Spanish (Closes: #528075)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 16 May 2009 20:08:57 -0400
+
+shorewall6 (4.2.8-1) unstable; urgency=low
+
+  * New upstream release
+  * Translation updates:
+    + French (Closes: #522092)
+    + Swedish (Closes: #522981)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 16 Apr 2009 21:54:30 -0400
+
+shorewall6 (4.2.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Update to Standards-Version 3.8.1 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 28 Mar 2009 22:18:17 -0400
+
+shorewall6 (4.2.6-1) unstable; urgency=low
+
+  * Initial release (Closes: #518869)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 08 Mar 2009 20:40:07 -0400

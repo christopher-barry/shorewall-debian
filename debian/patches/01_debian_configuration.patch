@@ -1,0 +1,21 @@
+# Set Debian configuration defaults.
+--- shorewall6-4.2.6.orig/shorewall6.conf
++++ shorewall6-4.2.6/shorewall6.conf
+@@ -18,7 +18,7 @@
+ #		       S T A R T U P   E N A B L E D
+ ###############################################################################
+ 
+-STARTUP_ENABLED=No
++STARTUP_ENABLED=Yes
+ 
+ ###############################################################################
+ #		              V E R B O S I T Y
+@@ -62,7 +62,7 @@
+ 
+ SHOREWALL_SHELL=/bin/sh
+ 
+-SUBSYSLOCK=/var/lock/subsys/shorewall
++SUBSYSLOCK=""
+ 
+ MODULESDIR=
+ 

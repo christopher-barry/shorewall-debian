@@ -1,0 +1,120 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2008-05-31 23:22+0300\n"
+"Last-Translator: Sami Kallio <xaicawa@yahoo.com>\n"
+"Language-Team: Finnish <debian-l10n-finnish@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+#, fuzzy
+#| msgid "No automatic restart for Shorewall"
+msgid "No automatic restart for Shorewall6"
+msgstr "Ei automaattista Shorewallin uudelleenkäynnistystä"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+#, fuzzy
+#| msgid ""
+#| "Shorewall will not be restarted automatically after being upgraded, to "
+#| "prevent changes in configuration files causing network outages."
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewallia ei käynnistetä automaattisesti uudelleen päivityksen jälkeen, "
+"jotta muutokset asetustiedostoissa eivät aiheuttaisi katkoja "
+"verkkoyhteyksissä."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+#, fuzzy
+#| msgid ""
+#| "You should check Shorewall's configuration files and restart it with "
+#| "'invoke-rc.d shorewall6 restart'."
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Shorewallin asetustiedostot tulisi tarkistaa ja käynnistää se uudelleen "
+"ajamalla komento ”invoke-rc.d shorewall6 restart”."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+#, fuzzy
+#| msgid "Restart Shorewall?"
+msgid "Restart Shorewall6?"
+msgstr "Käynnistetäänkö Shorewall uudelleen?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+#, fuzzy
+#| msgid ""
+#| "To avoid the risk of failures and network outages these files should be "
+#| "checked carefully before the firewall is restarted."
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"Nämä tiedostot tulisi tarkistaa huolellisesti ennen kuin palomuuri "
+"käynnistetään uudelleen verkkoyhteyksien katkojen välttämiseksi."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+#, fuzzy
+#| msgid "Please choose whether you want to restart Shorewall immediately."
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Valitse haluatko, että Shorewall käynnistetään uudelleen heti."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+#, fuzzy
+#| msgid "Invalid Shorewall configuration detected"
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Virheellinen Shorewall-asetus havaittu"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+#, fuzzy
+#| msgid "Shorewall is configured to restart on upgrades."
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall on asetettu käynnistymään uudelleen päivitysten jälkeen."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+#, fuzzy
+#| msgid ""
+#| "However, the current configuration for Shorewall is invalid and it will "
+#| "fail to restart. You should fix the program's configuration, then restart "
+#| "it with 'invoke-rc.d shorewall6 restart'."
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Tämänhetkiset Shorewall-asetukset ovat virheellisiä ja tästä johtuen sen "
+"uudelleenkäynnistys ei tule onnistumaan. Sinun tulisi korjata virheelliset "
+"asetukset ja tämän jälkeen käynnistää Shorewall uudelleen komennolla ”invoke-"
+"rc.d shorewall6 restart”."
+
+#~ msgid ""
+#~ "This release of Shorewall introduces some changes in the configuration "
+#~ "files - see /usr/share/doc/shorewall6/releasenotes.txt.gz."
+#~ msgstr ""
+#~ "Shorewallin tämä versio aiheuttaa joitain muutoksia asetustiedostoihin. "
+#~ "Katso /usr/share/doc/shorewall6/releasenotes.txt.gz."

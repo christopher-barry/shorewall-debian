@@ -1,0 +1,100 @@
+# Translation of shorewall6 debconf templates to French
+# Copyright (C) 2005-2007 Christian Perrier <bubulle@debian.org>
+# This file is distributed under the same license as the shorewall6 package.
+#
+# Christian Perrier <bubulle@debian.org>, 2005-2007, 2008.
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2008-05-20 22:38+0200\n"
+"Last-Translator: Christian Perrier <bubulle@debian.org>\n"
+"Language-Team: French <debian-l10n-french@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: KBabel 1.11.4\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Pas de redémarrage automatique de Shorewall6"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall6 ne sera pas redémarré automatiquement après la mise à jour, afin "
+"d'éviter des coupures complètes du réseau à cause des changements affectant "
+"les fichiers de configuration."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Vous devriez vérifier les fichiers de configuration de Shorewall6 puis le "
+"redémarrer avec la commande « invoke-rc.d shorewall6 restart »."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Faut-il redémarrer Shorewall6 ?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"Afin d'éviter des erreurs et la perte d'accès réseau, vous devriez "
+"soigneusement vérifier les fichiers de configuration avant de redémarrer le "
+"pare-feu."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Veuillez choisir si vous souhaitez redémarrer Shorewall6 immédiatement."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Configuration non valable pour Shorewall6"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 est configuré pour redémarrer lors des mises à jour."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Cependant, la configuration actuelle du programme n'est pas valable et il ne "
+"redémarrera pas correctement. Vous devriez corriger la configuration du "
+"programme et le redémarrer avec la commande « invoke-rc.d shorewall6 "
+"restart »."
+
+#~ msgid ""
+#~ "This release of Shorewall introduces some changes in the configuration "
+#~ "files - see /usr/share/doc/shorewall6/releasenotes.txt.gz."
+#~ msgstr ""
+#~ "Cette version de Shorewall apporte certaines modifications aux fichiers "
+#~ "de configuration. Vous devriez consulter le fichier /usr/share/doc/"
+#~ "shorewall-common/releasenotes.txt.gz."
