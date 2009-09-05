@@ -1,0 +1,3 @@
+shorewall6-lite: non-standard-dir-perm var/lib/shorewall6-lite/ 0750 != 0755
+shorewall6-lite: script-not-executable ./usr/share/shorewall6-lite/lib.base
+shorewall6-lite: script-not-executable ./usr/share/shorewall6-lite/lib.cli

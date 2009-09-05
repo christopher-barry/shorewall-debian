@@ -1,0 +1,38 @@
+shorewall6-lite (4.4.1-1) unstable; urgency=low
+
+  * New upstream release
+  * Update to Standards-Version 3.8.3 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 04 Sep 2009 21:15:04 -0400
+
+shorewall6-lite (4.2.10-1) unstable; urgency=low
+
+  * New upstream release
+  * Update to Standards-Version 3.8.2 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 20 Jun 2009 20:34:14 -0400
+
+shorewall6-lite (4.2.9-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 16 May 2009 20:08:59 -0400
+
+shorewall6-lite (4.2.8-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 16 Apr 2009 21:54:44 -0400
+
+shorewall6-lite (4.2.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Update to Standards-Version 3.8.1 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 28 Mar 2009 22:18:18 -0400
+
+shorewall6-lite (4.2.6-1) unstable; urgency=low
+
+  * Initial release (Closes: #518872)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 09 Mar 2009 08:48:34 -0400
