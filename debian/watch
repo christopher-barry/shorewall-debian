@@ -1,0 +1,3 @@
+version=3
+
+http://sf.net/shorewall/shorewall-lite-(4[\d.]+)\.(?:tar(?:\.gz|\.bz2)?|tgz|zip)

@@ -1,0 +1,13 @@
+Upstream-Source: http://www.shorewall.net
+
+Files: *
+Copyright: (c) 1999-2009 Thomas M. Eastep <teastep@shorewall.net>
+License: GPL-2
+ On Debian systems, the complete text of the GNU General Public License,
+ version 2, can be found in /usr/share/common-licenses/GPL-2.
+
+Files: debian/*
+Copyright: (c) 2007-2009 Roberto C. Sanchez <roberto@connexer.com>
+Copyright: (c) 2006-2007 Lorenzo Martignoni <martignlo@debian.org>
+License: GPL-2
+
