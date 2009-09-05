@@ -1,0 +1,13 @@
+Upstream-Source: http://www.shorewall.net
+
+Files: *
+Copyright: (c) 1999-2009 Thomas M. Eastep <teastep@shorewall.net>
+License: GFDL-1.2
+ On Debian systems, the complete text of the GNU Free Documentation License,
+ version 1.2, can be found in /usr/share/common-licenses/GFDL-1.2.
+
+Files: debian/*
+Copyright: (c) 2007-2009 Roberto C. Sanchez <roberto@connexer.com>
+Copyright: (c) 2001-2007 Lorenzo Martignoni <martignlo@debian.org>
+License: GPL-2
+

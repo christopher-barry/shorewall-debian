@@ -1,0 +1,21 @@
+Source: shorewall-doc
+Section: doc
+Priority: optional
+Maintainer: Roberto C. Sanchez <roberto@connexer.com>
+Homepage: http://www.shorewall.net
+Build-Depends: debhelper (>= 5)
+Build-Depends-Indep: docbook-xsl, docbook-xml, xsltproc
+Standards-Version: 3.8.3
+Vcs-Browser: http://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/debian;a=tree
+Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
+
+Package: shorewall-doc
+Architecture: all
+Suggests: shorewall
+Description: documentation for Shoreline Firewall (Shorewall)
+ Shorewall is an iptables based firewall that can be used on a dedicated
+ firewall system, a multi-function masquerade gateway/server or on a standalone
+ Linux system.  
+ .
+ This package contains the shorewall HTML documentation.
+
