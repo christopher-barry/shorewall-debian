@@ -1,0 +1,3 @@
+# The three transitional packages have identical descriptions
+shorewall source: duplicate-short-description
+shorewall source: duplicate-long-description

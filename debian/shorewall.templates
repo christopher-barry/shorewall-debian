@@ -1,0 +1,38 @@
+# These templates have been reviewed by the debian-l10n-english
+# team
+#
+# If modifications/additions/rewording are needed, please ask
+# debian-l10n-english@lists.debian.org for advice.
+#
+# Even minor modifications require translation updates and such
+# changes should be coordinated with translators and reviewers.
+
+Template: shorewall/dont_restart
+Type: note
+_Description: No automatic restart for Shorewall
+ Shorewall will not be restarted automatically after being upgraded,
+ to prevent changes in configuration files causing network outages.
+ .
+ You should check Shorewall's configuration files and restart it with
+ 'invoke-rc.d shorewall restart'.
+
+Template: shorewall/major_release
+Type: boolean
+_Description: Restart Shorewall?
+ This release of Shorewall introduces some changes in the
+ configuration files - see
+ /usr/share/doc/shorewall/releasenotes.txt.gz.
+ .
+ To avoid the risk of failures and network outages these files should
+ be checked carefully before the firewall is restarted.
+ .
+ Please choose whether you want to restart Shorewall immediately.
+
+Template: shorewall/invalid_config
+Type: error
+_Description: Invalid Shorewall configuration detected
+ Shorewall is configured to restart on upgrades.
+ .
+ However, the current configuration for Shorewall is invalid and it
+ will fail to restart. You should fix the program's configuration,
+ then restart it with 'invoke-rc.d shorewall restart'.

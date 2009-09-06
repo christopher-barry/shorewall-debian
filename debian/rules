@@ -1,0 +1,76 @@
+#!/usr/bin/make -f
+#
+# Shorewall firewall (http://www.shorewall.net)
+# debianized version
+
+include /usr/share/quilt/quilt.make
+
+# shorewall version
+export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+
+SRWL=$(CURDIR)/debian/shorewall
+
+build: build-stamp debian/po/templates.pot
+build-stamp: $(QUILT_STAMPFN)
+	dh_testdir
+# 	there's nothing to compile ;-)
+	touch build-stamp
+
+debian/po/templates.pot: debian/shorewall.templates
+	@debconf-updatepo
+#	@podebconf-report-po
+
+clean: unpatch
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	debconf-updatepo
+# 	clean the build directory
+	rm -rf $(SRWL)
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+
+	dh_install
+
+	install -m 644 debian/shorewall.lintian $(SRWL)/usr/share/lintian/overrides/shorewall
+
+# 	Temporary zones are only available to root
+	chmod 750 $(SRWL)/var/lib/shorewall
+# 	As well as configuration files
+	chmod 755 $(SRWL)/etc/shorewall
+	chmod 640 $(SRWL)/etc/shorewall/*
+	chmod 644 $(SRWL)/etc/shorewall/shorewall.conf
+	chmod 644 $(SRWL)/etc/shorewall/Makefile
+# 	set version number
+	echo $V > $(SRWL)/usr/share/shorewall/version
+#  global configuration has to be fully readable
+	chmod 644 $(SRWL)/usr/share/shorewall/*
+#  must be executable
+	chmod 755 $(SRWL)/usr/share/shorewall/wait4ifup
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs -A releasenotes.txt debian/NEWS.Debian
+	dh_installman manpages/*
+	dh_installchangelogs changelog.txt
+	dh_installlogrotate
+	dh_installinit --no-start -u"start 40 S . stop 89 0 6 ."
+	dh_installdebconf
+	dh_compress -Xusr/share/doc/shorewall/default-config
+	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb -v
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+
+.PHONY: build clean binary-indep binary-arch binary install unpatch

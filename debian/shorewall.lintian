@@ -1,0 +1,10 @@
+shorewall: manpage-has-errors-from-man
+# db-input is postponed in postinst because the user needs to be able to access
+# some files that are installed on the system in order to answer the question
+shorewall: postinst-uses-db-input
+# we want to protect sensible files
+shorewall: non-standard-dir-perm var/lib/shorewall/ 0750 != 0755
+shorewall: script-not-executable ./usr/share/shorewall/lib.base
+shorewall: script-not-executable ./usr/share/shorewall/lib.cli
+# It is necessary to specify /sbin/shorewall
+shorewall: command-with-path-in-maintainer-script

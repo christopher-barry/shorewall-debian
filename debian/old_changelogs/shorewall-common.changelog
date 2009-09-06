@@ -1,0 +1,217 @@
+shorewall-common (4.2.10-1) unstable; urgency=low
+
+  * New upstream release
+  * Update to Standards-Version 3.8.2 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 20 Jun 2009 20:34:11 -0400
+
+shorewall-common (4.2.9-1) unstable; urgency=low
+
+  * New upstream release.
+    + Explicitly document IMPLICIT_CONTINUE changes (Closes: #525814)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 16 May 2009 20:08:44 -0400
+
+shorewall-common (4.2.8-1) unstable; urgency=low
+
+  * New upstream release
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 16 Apr 2009 21:53:10 -0400
+
+shorewall-common (4.2.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Make sure files introduced with 4.2.x actually get installed
+  * Relax iptables dependency
+  * Update to Standards-Version 3.8.1 (no changes)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 28 Mar 2009 22:18:15 -0400
+
+shorewall-common (4.2.6-1) unstable; urgency=low
+
+  * New upstream release
+    (Closes: #514610, #504630, #514136, #305060, #308077, #309849, #394750)
+    + Remove dependency on dash
+  * New debconf translation
+    + Japanese, thanks to Hideki Yamane (Closes: #510733)
+  * Update README.Debian, init script and defaults file
+  * Switch from dpatch to quilt
+  * Now that lenny is stable, drop shorewall transitional package
+  * Make lintian happy again
+  * Update copyright years
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 09 Mar 2009 10:44:47 -0400
+
+shorewall-common (4.0.15-1) unstable; urgency=low
+
+  * New upstream release
+  * Remove patches which were merged upstream
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 19 Dec 2008 14:09:58 -0500
+
+shorewall-common (4.0.14-4) unstable; urgency=low
+
+  * Reenable application of debian/patches/01_debian_configuration
+    (Closes: #504520)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 04 Nov 2008 16:41:35 -0500
+
+shorewall-common (4.0.14-3) unstable; urgency=medium
+
+  * Patch for point release (4.0.14.2)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 30 Oct 2008 21:01:22 -0400
+
+shorewall-common (4.0.14-2) unstable; urgency=low
+
+  * Patch for point release (4.0.14.1)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 13 Oct 2008 15:26:00 -0400
+
+shorewall-common (4.0.14-1) unstable; urgency=low
+
+  * New upstream release
+  * Update copyright file to new proposed format
+  * Add README.source to comply with Standards-Version 3.8.0
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 23 Sep 2008 07:46:26 -0400
+
+shorewall-common (4.0.13-1) unstable; urgency=low
+
+  * New upstream release
+  * [Debconf translation updates]
+    - Swedish. (Closes: #491784)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 26 Jul 2008 14:37:41 -0400
+
+shorewall-common (4.0.12-1) unstable; urgency=low
+
+  * New upstream release.
+  * README.Debian: Correct location of default config (Closes: #485854).
+  * Updated to Standards-Version 3.8.0 (no changes).
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 29 Jun 2008 23:12:00 -0400
+
+shorewall-common (4.0.11-3) unstable; urgency=low
+
+  * Fix syntax error in postinst (Closes: #484304).
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 03 Jun 2008 15:41:50 -0400
+
+shorewall-common (4.0.11-2) unstable; urgency=low
+
+  * [Debconf translation updates]
+    - Brazilian Portugese.
+  * Properly check exit status of 'shorewall check' in postinst
+    (Closes: #484114).
+  * Only run run check if shorewall is enabled.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 02 Jun 2008 22:08:56 -0400
+
+shorewall-common (4.0.11-1) unstable; urgency=low
+
+  * New upstream release.
+  * Validate configuration before restart on upgrade. (Closes: #200573)
+  * [Debconf translation updates]
+    - Galician. (Closes: #482105)
+    - Spanish. (Closes: #482109)
+    - Basque. (Closes: #482128)
+    - Vietnamese. (Closes: #482171)
+    - Czech. (Closes: #482426)
+    - Dutch. (Closes: #483007)
+    - French. (Closes: #483109)
+    - Portugese. (Closes: #483598)
+    - German. (Closes: #483608)
+    - Russian. (Closes: #483694)
+    - Finnish.
+  * Update debconf dependency at lintian's suggestion.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 31 May 2008 21:02:06 -0400
+
+shorewall-common (4.0.10-2) unstable; urgency=low
+
+  * Incorporate patch for upstream point release (4.0.10.1).
+  * Change /bin/sh -> /bin/dash in several files because of "bashisms".
+    (Closes: #468699)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 20 Apr 2008 00:04:13 -0400
+
+shorewall-common (4.0.10-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 30 Mar 2008 09:49:01 -0400
+
+shorewall-common (4.0.9-2) unstable; urgency=low
+
+  * Remove package conflicts (Closes: #468244)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 08 Mar 2008 23:43:14 -0500
+
+shorewall-common (4.0.9-1) unstable; urgency=low
+
+  * New upstream release.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 23 Feb 2008 12:03:27 -0500
+
+shorewall-common (4.0.8-1) unstable; urgency=low
+
+  * New upstream release.
+  * Debconf templates and debian/control reviewed by the debian-l10n-
+    english team as part of the Smith review project. (Closes: #457024)
+  * [Debconf translation updates]
+    - Spanish; Castilian. (Closes: #457693)
+    - Portuguese. (Closes: #458222)
+    - Finnish. (Closes: #458256)
+    - Galician. (Closes: #458530)
+    - French. (Closes: #458570)
+    - Korean. (Closes: #458588)
+    - Vietnamese. (Closes: #459001)
+    - Russian. (Closes: #459310)
+    - Czech. (Closes: #459329)
+    - German. (Closes: #459375)
+    - Dutch. (Closes: #459540)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 25 Jan 2008 19:52:53 -0500
+
+shorewall-common (4.0.7-2) unstable; urgency=low
+
+  * Update Portugese translation (Closes: #458222)
+  * Added Finnish translation (Closes: 458256)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Dec 2007 16:49:28 -0500
+
+shorewall-common (4.0.7-1) unstable; urgency=low
+
+  * New upstream release
+  * Bumped Standard to version 3.7.3 (no changes)
+  * Updated Spanish translation (Closes: #429951, #457693)
+  * Fix lintian warning from missing description in patch script
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 26 Dec 2007 23:36:17 -0500
+
+shorewall-common (4.0.6-1) unstable; urgency=low
+
+  * New upstream release
+  * debian/control: Eliminate obsolete suggestions (Closes: #449258)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 23 Nov 2007 12:38:55 -0500
+
+shorewall-common (4.0.5-2) experimental; urgency=low
+
+  * debian/rules: Fix computation of next version for release candidates
+  * debian/control: Add a Replaces for shorewall
+  * debian/copyright: Fix statement that package is GPL2+ to say GPL2 only and
+    add note about LGPL example files
+  * debian/control: Add Vcs-Browser and Vcs-Svn tags
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 29 Oct 2007 18:57:24 -0400
+
+shorewall-common (4.0.5-1) experimental; urgency=low
+
+  * Initial release (Closes: #446657, #436071, #436072, #336088)
+  * Include watch file (Closes: #436073)
+  * Add timestamps to log files (Closes: #430653)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 21 Oct 2007 12:50:19 -0400
+

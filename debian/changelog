@@ -1,0 +1,8 @@
+shorewall (4.4.1.2-1) unstable; urgency=low
+
+  * New upstream release
+    + Merges shorewall-common, shorewall-shell and shorewall-perl together
+  * Update to Standards-Version 3.8.3 (no changes)
+  * Add dependency on bc (Closes: #537116)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 06 Sep 2009 08:52:01 -0400

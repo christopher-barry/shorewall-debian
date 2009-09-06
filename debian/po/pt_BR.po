@@ -1,0 +1,103 @@
+# shorewall Brazilian Portuguese translation
+# Copyright (C) 2008 shorewall's COPYRIGHT HOLDER
+# This file is distributed under the same license as the shorewall package.
+# Eder L. Marques (frolic) <frolic@debian-ce.org>, 2008.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall 4.0.10-3\n"
+"Report-Msgid-Bugs-To: shorewall@packages.debian.org\n"
+"POT-Creation-Date: 2008-05-20 14:37-0400\n"
+"PO-Revision-Date: 2008-05-27 16:16-0300\n"
+"Last-Translator: Eder L. Marques (frolic) <frolic@debian-ce.org>\n"
+"Language-Team: l10n Portuguese <debian-l10n-portuguese@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"pt_BR utf-8\n"
+"X-Generator: KBabel 1.11.4\n"
+"Plural-Forms:  nplurals=2; plural=(n > 1);\n"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid "No automatic restart for Shorewall"
+msgstr "Sem reinicialização automática para o Shorewall"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid ""
+"Shorewall will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"O shorewall não será reinicializado automaticamente após ser atualizado, "
+"para prevenir que mudanças nos arquivos de configuração causem "
+"indisponibilidade da rede."
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid ""
+"You should check Shorewall's configuration files and restart it with 'invoke-"
+"rc.d shorewall restart'."
+msgstr ""
+"Você deve checar os arquivos de configuração do Shorewall e reinicializá-lo "
+"com 'invoke-rc.d shorewall restart'. "
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Restart Shorewall?"
+msgstr "Reinicializar o Shorewall?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid ""
+"This release of Shorewall introduces some changes in the configuration files "
+"- see /usr/share/doc/shorewall/releasenotes.txt.gz."
+msgstr ""
+"Esta versão do Shorewall introduz algumas mudanças nos arquivos de "
+"configuração - veja /usr/share/doc/shorewall/releasenotes.txt.gz."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages these files should be "
+"checked carefully before the firewall is restarted."
+msgstr ""
+"Para evitar o risco de falhas e indisponibilidade da rede esses arquivos "
+"deveriam ser checados cuidadosamente antes do firewall ser reinicializado."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Please choose whether you want to restart Shorewall immediately."
+msgstr ""
+"Por favor, escolha se você quer reinicializar o Shorewall imediatamente."
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Invalid Shorewall configuration detected"
+msgstr "Configuração inválida do Shorewall detectada"
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Shorewall is configured to restart on upgrades."
+msgstr "O Shorewall é configurado para reinicializar em atualizações."
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid ""
+"However, the current configuration for Shorewall is invalid and it will fail "
+"to restart. You should fix the program's configuration, then restart it with "
+"'invoke-rc.d shorewall restart'."
+msgstr ""
+"Contudo, a configuração atual do Shorewall é inválida e ele irá falhar em "
+"reinicializar. Você deve corrigir a configuração do programa, e então "
+"reinicializá-lo com 'invoke-rc.d shorewall restart'."

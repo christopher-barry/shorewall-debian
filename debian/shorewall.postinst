@@ -1,0 +1,58 @@
+#!/bin/sh -e
+
+. /usr/share/debconf/confmodule 
+
+
+case "$1" in
+    configure)
+        db_reset shorewall/dont_restart || true
+        db_reset shorewall/major_release || true
+        db_go
+
+        if [ ! -d /var/lib/shorewall ]
+        then
+            mkdir -p /var/lib/shorewall
+        fi
+
+        # The init script was moved from shorewall-common to shorewall, but
+        # the shorewall-common postrm tries to remove the symlinks, which
+        # cannot happen since /etc/init.d/shorewall now exists in the
+        # shorewall package.
+        if [ -f "/var/lib/dpkg/info/shorewall-common.postrm" ]
+        then
+            rm -f /var/lib/dpkg/info/shorewall-common.postrm
+        fi
+
+        restart="true"
+
+        if [ -f "/etc/default/shorewall" ]
+        then
+            . /etc/default/shorewall
+        fi
+
+        if [ "$restart" = "true" ] && [ "$startup" = "1" ]
+        then 
+            if /sbin/shorewall check
+            then
+                if [ -x "/usr/sbin/invoke-rc.d" ]
+                then
+                    invoke-rc.d shorewall restart
+                else
+                    /etc/init.d/shorewall restart
+                fi
+            else
+                db_input critical shorewall/invalid_config || true
+            fi
+        fi
+        ;;
+    
+    abort-upgrade|abort-remove|abort-deconfigure)
+        ;;
+        
+    *)
+        echo "postinst called with unknown argument \`$1'" >&2
+        exit 0
+        ;;
+esac
+
+#DEBHELPER#

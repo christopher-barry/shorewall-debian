@@ -1,0 +1,41 @@
+Author: Lorenzo Martignoni <lorenzo.martignoni@poste.it>
+Description: Customize the shorewall.conf configuration file to be more like what is
+expected by Debian users.
+--- shorewall-4.4.1.2.orig/configfiles/shorewall.conf
++++ shorewall-4.4.1.2/configfiles/shorewall.conf
+@@ -18,7 +18,7 @@
+ #		       S T A R T U P   E N A B L E D
+ ###############################################################################
+ 
+-STARTUP_ENABLED=No
++STARTUP_ENABLED=Yes
+ 
+ ###############################################################################
+ #		              V E R B O S I T Y
+@@ -72,7 +72,7 @@
+ 
+ SHOREWALL_SHELL=/bin/sh
+ 
+-SUBSYSLOCK=/var/lock/subsys/shorewall
++SUBSYSLOCK=""
+ 
+ MODULESDIR=
+ 
+@@ -105,7 +105,7 @@
+ #			F I R E W A L L	  O P T I O N S
+ ###############################################################################
+ 
+-IP_FORWARDING=On
++IP_FORWARDING=Keep
+ 
+ ADD_IP_ALIASES=Yes
+ 
+@@ -123,7 +123,7 @@
+ 
+ CLAMPMSS=No
+ 
+-ROUTE_FILTER=No
++ROUTE_FILTER=Yes
+ 
+ DETECT_DNAT_IPADDRS=No
+ 

@@ -1,0 +1,96 @@
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall\n"
+"Report-Msgid-Bugs-To: shorewall@packages.debian.org\n"
+"POT-Creation-Date: 2008-05-20 14:37-0400\n"
+"PO-Revision-Date: 2008-05-31 23:22+0300\n"
+"Last-Translator: Sami Kallio <xaicawa@yahoo.com>\n"
+"Language-Team: Finnish <debian-l10n-finnish@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid "No automatic restart for Shorewall"
+msgstr "Ei automaattista Shorewallin uudelleenkäynnistystä"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid ""
+"Shorewall will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewallia ei käynnistetä automaattisesti uudelleen päivityksen jälkeen, "
+"jotta muutokset asetustiedostoissa eivät aiheuttaisi katkoja "
+"verkkoyhteyksissä."
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid ""
+"You should check Shorewall's configuration files and restart it with 'invoke-"
+"rc.d shorewall restart'."
+msgstr ""
+"Shorewallin asetustiedostot tulisi tarkistaa ja käynnistää se uudelleen "
+"ajamalla komento ”invoke-rc.d shorewall restart”."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Restart Shorewall?"
+msgstr "Käynnistetäänkö Shorewall uudelleen?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid ""
+"This release of Shorewall introduces some changes in the configuration files "
+"- see /usr/share/doc/shorewall/releasenotes.txt.gz."
+msgstr ""
+"Shorewallin tämä versio aiheuttaa joitain muutoksia asetustiedostoihin. "
+"Katso /usr/share/doc/shorewall/releasenotes.txt.gz."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages these files should be "
+"checked carefully before the firewall is restarted."
+msgstr ""
+"Nämä tiedostot tulisi tarkistaa huolellisesti ennen kuin palomuuri "
+"käynnistetään uudelleen verkkoyhteyksien katkojen välttämiseksi."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Please choose whether you want to restart Shorewall immediately."
+msgstr "Valitse haluatko, että Shorewall käynnistetään uudelleen heti."
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Invalid Shorewall configuration detected"
+msgstr "Virheellinen Shorewall-asetus havaittu"
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Shorewall is configured to restart on upgrades."
+msgstr "Shorewall on asetettu käynnistymään uudelleen päivitysten jälkeen."
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid ""
+"However, the current configuration for Shorewall is invalid and it will fail "
+"to restart. You should fix the program's configuration, then restart it with "
+"'invoke-rc.d shorewall restart'."
+msgstr ""
+"Tämänhetkiset Shorewall-asetukset ovat virheellisiä ja tästä johtuen sen "
+"uudelleenkäynnistys ei tule onnistumaan. Sinun tulisi korjata virheelliset "
+"asetukset ja tämän jälkeen käynnistää Shorewall uudelleen komennolla ”invoke-"
+"rc.d shorewall restart”."

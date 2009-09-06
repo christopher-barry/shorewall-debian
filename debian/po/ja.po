@@ -1,0 +1,97 @@
+# Copyright (C) 2008 Roberto C. Sanchez <roberto@connexer.com>
+# This file is distributed under the same license as the shorewall package.
+# Hideki Yamane (Debian-JP) <henrich@debian.or.jp>, 2008.
+# 
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall 4.0.15-1\n"
+"Report-Msgid-Bugs-To: shorewall@packages.debian.org\n"
+"POT-Creation-Date: 2008-05-20 14:37-0400\n"
+"PO-Revision-Date: 2008-12-28 22:26+0900\n"
+"Last-Translator: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>\n"
+"Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid "No automatic restart for Shorewall"
+msgstr "Shorewall を自動的に再起動しないようにする"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid ""
+"Shorewall will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"設定ファイルでの変更によってネットワーク接続ができなくなるのを防ぐため、アッ"
+"プグレード後に自動的には Shorewall を再起動しないようにします。"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid ""
+"You should check Shorewall's configuration files and restart it with 'invoke-"
+"rc.d shorewall restart'."
+msgstr ""
+"Shorewall の設定ファイルをチェックして、'invoke-rc.d shorewall restart' とし"
+"て再起動をする必要があります。"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Restart Shorewall?"
+msgstr "Shorewall を再起動しますか?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid ""
+"This release of Shorewall introduces some changes in the configuration files "
+"- see /usr/share/doc/shorewall/releasenotes.txt.gz."
+msgstr ""
+"Shorewall の今回のリリースでは設定ファイルに若干の変更を行っています。/usr/"
+"share/doc/shorewall/releasenotes.txt.gz を参照してください。"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages these files should be "
+"checked carefully before the firewall is restarted."
+msgstr ""
+"失敗してネットワークが切断されるリスクを咲けるため、ファイアウォールが再起動"
+"される前に念入りにこれらのファイルをチェックした方が良いでしょう。"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Please choose whether you want to restart Shorewall immediately."
+msgstr "今すぐ Shorewall を再起動するかどうかを選んでください。"
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Invalid Shorewall configuration detected"
+msgstr "Shorewall の設定が正しくなっていないのを検知しました"
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Shorewall is configured to restart on upgrades."
+msgstr "Shorewall はアップグレードの際に再起動するように設定されました"
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid ""
+"However, the current configuration for Shorewall is invalid and it will fail "
+"to restart. You should fix the program's configuration, then restart it with "
+"'invoke-rc.d shorewall restart'."
+msgstr ""
+"しかしながら、Shorewall の現在の設定は正しいものではないので再起動に失敗しま"
+"す。プログラムの設定を修正してから、'invoke-rc.d shorewall restart' として再"
+"起動を実行してください。"
