@@ -1,0 +1,100 @@
+.\"     Title: shorewall-tos
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL\-TOS" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+tos \- Shorewall Type of Service rules file
+.SH "SYNOPSIS"
+.HP 19
+\fB/etc/shorewall/tos\fR
+.SH "DESCRIPTION"
+.PP
+This file defines rules for setting Type Of Service (TOS)
+.PP
+The columns in the file are as follows\&.
+.PP
+\fBSOURCE\fR \- {\fBall\fR|\fIaddress\fR]|\fBall\fR:\fIaddress\fR|\fB$FW\fR}
+.RS 4
+If
+\fBall\fR, may optionally be followed by ":" and an IP address, a MAC address, a subnet specification or the name of an interface\&.
+.sp
+Example: all:192\&.168\&.2\&.3
+.sp
+MAC addresses must be prefixed with "~" and use "\-" as a separator\&.
+.sp
+Example: ~00\-A0\-C9\-15\-39\-78
+.RE
+.PP
+\fBDEST\fR \- {\fBall\fR|\fIaddress\fR]|\fBall\fR:\fIaddress\fR}
+.RS 4
+Example: 192\&.168\&.2\&.3
+.RE
+.PP
+\fBPROTOCOL\fR \- \fIproto\-name\-or\-number\fR
+.RS 4
+Protocol name or number\&.
+.RE
+.PP
+\fBSOURCE PORT(S)\fR \- {\-|\fIport\fR|\fIlowport\fR\fB:\fR\fIhighport\fR}
+.RS 4
+Source port or port range\&. If all ports, use "\-"\&.
+.RE
+.PP
+\fBDEST PORT(S)\fR \- {\-|\fIport\fR|\fIlowport\fR\fB:\fR\fIhighport\fR}
+.RS 4
+Destination port or port range\&. If all ports, use "\-"
+.RE
+.PP
+\fBTOS\fR \- \fItos\fR
+.RS 4
+Must be one of the following;
+.sp
+.RS 4
+.nf
+        \fBtos\-minimize\-delay\fR (16)
+        \fBtos\-maximize\-throughput\fR (8)
+        \fBtos\-maximize\-reliability\fR (4)
+        \fBtos\-minimize\-cost\fR (2)
+        \fBtos\-normal\-service\fR (0)
+.fi
+.RE
+.RE
+.PP
+\fBMARK\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
+.RS 4
+If you don\'t want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
+.PP
+!
+.RS 4
+Inverts the test (not equal)
+.RE
+.PP
+\fIvalue\fR
+.RS 4
+Value of the packet or connection mark\&.
+.RE
+.PP
+\fImask\fR
+.RS 4
+A mask to be applied to the mark before testing\&.
+.RE
+.PP
+\fB:C\fR
+.RS 4
+Designates a connection mark\&. If omitted, the packet mark\'s value is tested\&.
+.RE
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall/tos
+.SH "SEE ALSO"
+.PP
+shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tunnels(5), shorewall\-zones(5)

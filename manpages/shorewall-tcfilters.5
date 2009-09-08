@@ -1,0 +1,158 @@
+.\"     Title: shorewall-tcfilters
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL\-TCFILTERS" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+tcfilters \- Shorewall u32 classifier rules file
+.SH "SYNOPSIS"
+.HP 25
+\fB/etc/shorewall/tcfilters\fR
+.SH "DESCRIPTION"
+.PP
+Entries in this file cause packets to be classified for traffic shaping\&.
+.PP
+The columns in the file are as follows\&.
+.PP
+\fBCLASS\fR \- \fIinterface\fR\fB:\fR\fIclass\fR
+.RS 4
+The name or number of an
+interface
+defined in
+\fIshorewall\-tcdevices\fR\&[1](5) followed by a
+\fIclass\fR
+number defined for that interface in
+\fIshorewall\-tcclasses\fR\&[2](5)\&.
+.RE
+.PP
+\fBSOURCE\fR \- {\fB\-\fR|\fIaddress\fR}
+.RS 4
+Source of the packet\&. May be a host or network
+\fIaddress\fR\&. DNS names are not allowed\&.
+.RE
+.PP
+\fBDEST\fR \- {\fB\-\fR|\fIaddress\fR}}
+.RS 4
+Destination of the packet\&. Comma separated list of IP addresses and/or subnets\&. If your kernel and iptables include iprange match support, IP address ranges are also allowed\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:192\&.168\&.1\&.0/24)\&. If the
+\fBMARK\fR
+column specificies a classification of the form
+\fImajor\fR:\fIminor\fR
+then this column may also contain an interface name\&.
+.sp
+You may exclude certain hosts from the set already defined through use of an
+\fIexclusion\fR
+(see
+\fIshorewall\-exclusion\fR\&[3](5))\&.
+.RE
+.PP
+\fBPROTO\fR \- {\fB\-\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
+.RS 4
+Protocol\&.
+.RE
+.PP
+\fBDEST PORT\fR (Optional) \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
+.RS 4
+Destination Ports\&. A Port name (from services(5)) or a
+\fIport number\fR; if the protocol is
+\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&.
+.RE
+.PP
+\fBSOURCE PORT\fR (Optional) \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
+.RS 4
+Source port\&.
+.RE
+.PP
+\fBTOS\fR (Optional) \- [\fB\-\fR|\fItos\fR]
+.RS 4
+Specifies the value of the TOS field\&. The
+\fItos\fR
+value can be any of the following:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fBtos\-minimize\-delay\fR
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fBtos\-maximuze\-throughput\fR
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fBtos\-maximize\-reliability\fR
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fBtos\-minimize\-cost\fR
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fBtos\-normal\-service\fR
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fIhex\-number\fR
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\fIhex\-number\fR/\fIhex\-number\fR
+.RE
+.IP "" 4
+The
+\fIhex\-number\fRs must be exactly two digits (e\&.g\&., 0x04)x\&.
+.RE
+.PP
+\fBLENGTH\fR (Optional) \- [\fB\-\fR|\fInumber\fR]
+.RS 4
+Must be a power of 2 between 32 and 8192 inclusive\&. Packets with a total length that is strictly less than the specified
+\fInumber\fR
+will match the rule\&.
+.RE
+.SH "EXAMPLE"
+.PP
+Example 1:
+.RS 4
+Place all ICMP echo traffic on interface 1 in class 10\&.
+.sp
+.RS 4
+.nf
+       #CLASS    SOURCE    DEST         PROTO   DEST 
+       #                                        PORT
+       1:10      0\&.0\&.0\&.0/0 0\&.0\&.0\&.0/0    icmp    echo\-request
+       1:10      0\&.0\&.0\&.0/0 0\&.0\&.0\&.0/0    icmp    echo\-reply
+.fi
+.RE
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall/tcfilters
+.SH "SEE ALSO"
+.PP
+\fIhttp://shorewall\&.net/traffic_shaping\&.htm\fR
+.PP
+\fIhttp://shorewall\&.net/MultiISP\&.html\fR
+.PP
+\fIhttp://shorewall\&.net/PacketMarking\&.html\fR
+.PP
+shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-ecn(5), shorewall\-exclusion(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall-tcdevices
+.RS 4
+\%shorewall-tcdevices.html
+.RE
+.IP " 2." 4
+shorewall-tcclasses
+.RS 4
+\%shorewall-tcclasses.html
+.RE
+.IP " 3." 4
+shorewall-exclusion
+.RS 4
+\%shorewall-exclusion.html
+.RE

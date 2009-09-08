@@ -1,0 +1,55 @@
+.\"     Title: shorewall-modules
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL\-MODULES" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+modules \- Shorewall file
+.SH "SYNOPSIS"
+.HP 29
+\fB/usr/share/shorewall/modules\fR
+.SH "DESCRIPTION"
+.PP
+This file specifies which kernel modules Shorewall will load before trying to determine your iptables/kernel\'s capabilities\&. Each record in the file has the following format:
+.HP 11
+\fBloadmodule\fR \fImodulename\fR [\fImoduleoption\fR...]
+.PP
+The
+\fImodulename\fR
+names a kernel module (without suffix)\&. Shorewall will search for modules based on your MODULESDIR and MODULE_SUFFIX settings in
+\fIshorewall\&.conf\fR\&[1](8)\&. The
+\fImoduleoption\fRs are passed to modprobe (if installed) or to insmod\&.
+.PP
+The /usr/share/shorewall/modules file contains a large number of modules\&. Users are encouraged to copy the file to /etc/shorewall/modules and modify the copy to load only the modules required\&..sp
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+Note
+.PP
+If you build monolithic kernels and have not installed module\-init\-tools, then create an empty /etc/shorewall/modules file; that will prevent Shorewall from trying to load modules at all\&.
+
+.SH "EXAMPLE"
+.PP
+loadmodule ip_conntrack_ftp ports=21,221
+.SH "FILES"
+.PP
+/usr/share/shorewall/modules
+.PP
+/etc/shorewall/modules
+.SH "SEE ALSO"
+.PP
+shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall.conf
+.RS 4
+\%shorewall.conf.html
+.RE

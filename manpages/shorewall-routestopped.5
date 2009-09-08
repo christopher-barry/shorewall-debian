@@ -1,0 +1,148 @@
+.\"     Title: shorewall-routestopped
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL\-ROUTESTOP" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+routestopped \- The Shorewall file that governs what traffic flows through the firewall while it is in the 'stopped' state.
+.SH "SYNOPSIS"
+.HP 28
+\fB/etc/shorewall/routestopped\fR
+.SH "DESCRIPTION"
+.PP
+This file is used to define the hosts that are accessible when the firewall is stopped or is being stopped\&.
+.sp
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+Warning
+.PP
+Changes to this file do not take effect until after the next
+\fBshorewall start\fR
+or
+\fBshorewall restart\fR
+command\&.
+.PP
+The columns in the file are as follows\&.
+.PP
+\fBINTERFACE\fR \- \fIinterface\fR
+.RS 4
+Interface through which host(s) communicate with the firewall
+.RE
+.PP
+\fBHOST(S)\fR (Optional) \- [\fB\-\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.]
+.RS 4
+Comma\-separated list of IP/subnet addresses\&. If your kernel and iptables include iprange match support, IP address ranges are also allowed\&.
+.sp
+If left empty or supplied as "\-", 0\&.0\&.0\&.0/0 is assumed\&.
+.RE
+.PP
+\fBOPTIONS\fR (Optional) \- [\fB\-\fR|\fIoption\fR[\fB,\fR\fIoption\fR]\&.\&.\&.]
+.RS 4
+A comma\-separated list of options\&. The order of the options is not important but the list can contain no embedded whitespace\&. The currently\-supported options are:
+.PP
+\fBrouteback\fR
+.RS 4
+Set up a rule to ACCEPT traffic from these hosts back to themselves\&.
+.RE
+.PP
+\fBsource\fR
+.RS 4
+Allow traffic from these hosts to ANY destination\&. Without this option or the
+\fBdest\fR
+option, only traffic from this host to other listed hosts (and the firewall) is allowed\&. If
+\fBsource\fR
+is specified then
+\fBrouteback\fR
+is redundant\&.
+.RE
+.PP
+\fBdest\fR
+.RS 4
+Allow traffic to these hosts from ANY source\&. Without this option or the
+\fBsource\fR
+option, only traffic from this host to other listed hosts (and the firewall) is allowed\&. If
+\fBdest\fR
+is specified then
+\fBrouteback\fR
+is redundant\&.
+.RE
+.PP
+notrack
+.RS 4
+The traffic will be exempted from conntection tracking\&.
+.RE
+.RE
+.PP
+PROTO (Optional) \(en \fIprotocol\-name\-or\-number\fR
+.RS 4
+Protocol\&.
+.RE
+.PP
+DEST PORT(S) (Optional) \(en \fIservice\-name/port\-number\-list\fR
+.RS 4
+A comma\-separated list of port numbers and/or service names from
+\fI/etc/services\fR\&. May also include port ranges of the form
+\fIlow\-port\fR:\fIhigh\-port\fR
+if your kernel and iptables include port range support\&.
+.RE
+.PP
+SOURCE PORT(S) (Optional) \(en \fIservice\-name/port\-number\-list\fR
+.RS 4
+A comma\-separated list of port numbers and/or service names from
+\fI/etc/services\fR\&. May also include port ranges of the form
+\fIlow\-port\fR:\fIhigh\-port\fR
+if your kernel and iptables include port range support\&.
+.RE
+.sp
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+Note
+.PP
+The
+\fBsource\fR
+and
+\fBdest\fR
+options work best when used in conjunction with ADMINISABSENTMINDED=Yes in
+\fIshorewall\&.conf\fR\&[1](5)\&.
+.SH "EXAMPLE"
+.PP
+Example 1:
+.RS 4
+.sp
+.RS 4
+.nf
+        #INTERFACE      HOST(S)                 OPTIONS         PROTO          DEST       SOURCE
+        #                                                                      PORT(S)    PORT(S)
+        eth2            192\&.168\&.1\&.0/24
+        eth0            192\&.0\&.2\&.44
+        br0             \-                       routeback
+        eth3            \-                       source
+        eth4            \-                       notrack        41
+.fi
+.RE
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall/routestopped
+.SH "SEE ALSO"
+.PP
+\fIhttp://shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR
+.PP
+shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall.conf
+.RS 4
+\%shorewall.conf.html
+.RE

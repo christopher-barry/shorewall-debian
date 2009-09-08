@@ -1,0 +1,224 @@
+.\"     Title: shorewall-accounting
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL\-ACCOUNTIN" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+accounting \- Shorewall Accounting file
+.SH "SYNOPSIS"
+.HP 26
+\fB/etc/shorewall/accounting\fR
+.SH "DESCRIPTION"
+.PP
+Accounting rules exist simply to count packets and bytes in categories that you define in this file\&. You may display these rules and their packet and byte counters using the
+\fBshorewall show accounting\fR
+command\&.
+.PP
+The columns in the file are as follows\&.
+.PP
+\fBACTION\fR \- {\fBCOUNT\fR|\fBDONE\fR|\fIchain\fR[:\fBCOUNT\fR]}
+.RS 4
+What to do when a matching packet is found\&.
+.PP
+\fBCOUNT\fR
+.RS 4
+Simply count the match and continue with the next rule
+.RE
+.PP
+\fBDONE\fR
+.RS 4
+Count the match and don\'t attempt to match any other accounting rules in the chain specified in the
+\fBCHAIN\fR
+column\&.
+.RE
+.PP
+\fIchain\fR[\fB:\fR\fBCOUNT\fR]
+.RS 4
+Where
+\fIchain\fR
+is the name of a chain; Shorewall will create the chain automatically if it doesn\'t already exist\&. Causes a jump to that chain to be added to the chain specified in the CHAIN column\&. If
+\fB:COUNT\fR
+is included, a counting rule matching this entry will be added to
+\fIchain\fR
+.RE
+.PP
+COMMENT
+.RS 4
+The remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
+.RE
+.RE
+.PP
+\fBCHAIN\fR \- {\fB\-\fR|\fIchain\fR}
+.RS 4
+The name of a
+\fIchain\fR\&. If specified as
+\fB\-\fR
+the
+\fBaccounting\fR
+chain is assumed\&. This is the chain where the accounting rule is added\&. The
+\fIchain\fR
+will be created if it doesn\'t already exist\&.
+.RE
+.PP
+\fBSOURCE\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fIaddress\fR|\fIaddress\fR}
+.RS 4
+Packet Source\&.
+.sp
+The name of an
+\fIinterface\fR, an
+\fIaddress\fR
+(host or net) or an
+\fIinterface\fR
+name followed by ":" and a host or net
+\fIaddress\fR\&.
+.RE
+.PP
+\fBDESTINATION\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fIaddress\fR|\fIaddress\fR}
+.RS 4
+Packet Destination\&.
+.sp
+Format same as
+\fBSOURCE\fR
+column\&.
+.RE
+.PP
+\fBPROTOCOL\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIprotocol\-name\fR|\fIprotocol\-number\fR|\fBipp2p\fR[\fB:\fR{\fBudp\fR|\fBall\fR}]}
+.RS 4
+A
+\fIprotocol\-name\fR
+(from protocols(5)), a
+\fIprotocol\-number\fR,
+\fBipp2p\fR,
+\fBipp2p:udp\fR
+or
+\fBipp2p:all\fR
+.RE
+.PP
+\fBDEST PORT(S)\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIipp2p\-option\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+.RS 4
+Destination Port number\&. Service name from services(5) or
+\fIport number\fR\&. May only be specified if the protocol is
+\fBtcp\fR
+or
+\fBudp\fR
+(6 or 17)\&.
+.sp
+You may place a comma\-separated list of port names or numbers in this column if your kernel and iptables include multiport match support\&.
+.sp
+If the PROTOCOL is
+\fBipp2p\fR
+then this column must contain an
+\fIipp2p\-option\fR
+("iptables \-m ipp2p \-\-help") without the leading "\-\-"\&. If no option is given in this column,
+\fBipp2p\fR
+is assumed\&.
+.RE
+.PP
+\fBSOURCE PORT(S)\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+.RS 4
+Service name from services(5) or
+\fIport number\fR\&. May only be specified if the protocol is TCP or UDP (6 or 17)\&.
+.sp
+You may place a comma\-separated list of port numbers in this column if your kernel and iptables include multiport match support\&.
+.RE
+.PP
+\fBUSER/GROUP\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
+.RS 4
+This column may only be non\-empty if the
+\fBCHAIN\fR
+is
+\fBOUTPUT\fR\&.
+.sp
+When this column is non\-empty, the rule applies only if the program generating the output is running under the effective
+\fIuser\fR
+and/or
+\fIgroup\fR
+specified (or is NOT running under that id if "!" is given)\&.
+.sp
+Examples:
+.PP
+joe
+.RS 4
+program must be run by joe
+.RE
+.PP
+:kids
+.RS 4
+program must be run by a member of the \'kids\' group
+.RE
+.PP
+!:kids
+.RS 4
+program must not be run by a member of the \'kids\' group
+.RE
+.PP
++upnpd
+.RS 4
+#program named upnpd
+.sp
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+Important
+The ability to specify a program name was removed from Netfilter in kernel version 2\&.6\&.14\&.
+.RE
+.RE
+.PP
+\fBMARK\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
+.RS 4
+Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
+.sp
+If you don\'t want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
+.PP
+!
+.RS 4
+Inverts the test (not equal)
+.RE
+.PP
+\fIvalue\fR
+.RS 4
+Value of the packet or connection mark\&.
+.RE
+.PP
+\fImask\fR
+.RS 4
+A mask to be applied to the mark before testing\&.
+.RE
+.PP
+\fB:C\fR
+.RS 4
+Designates a connection mark\&. If omitted, the packet mark\'s value is tested\&.
+.RE
+.RE
+.PP
+In all of the above columns except
+\fBACTION\fR
+and
+\fBCHAIN\fR, the values
+\fB\-\fR,
+\fBany\fR
+and
+\fBall\fR
+may be used as wildcards\&. Omitted trailing columns are also treated as wildcards\&.
+.SH "FILES"
+.PP
+/etc/shorewall/accounting
+.SH "SEE ALSO"
+.PP
+\fIhttp://shorewall\&.net/Accounting\&.html \fR\&[1]
+.PP
+shorewall(8), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+http://shorewall.net/Accounting.html
+.RS 4
+\%http://shorewall.net/Accounting.html
+.RE
