@@ -1,0 +1,98 @@
+.\"     Title: shorewall6-notrack
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL6\-NOTRACK" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+notrack \- shorewall6 notrack file
+.SH "SYNOPSIS"
+.HP 24
+\fB/etc/shorewall6/notrack\fR
+.SH "DESCRIPTION"
+.PP
+The notrack file is used to exempt certain traffic from Netfilter connection tracking\&. Traffic matching entries in this fill will not be tracked\&.
+.PP
+The columns in the file are as follows\&.
+.PP
+SOURCE \(en \fIzone\fR[:\fIinterface\fR][:\fIaddress\-list\fR]
+.RS 4
+where
+\fIzone\fR
+is the name of a zone,
+\fIinterface\fR
+is an interface to that zone, and
+\fIaddress\-list\fR
+is a comma\-separated list of addresses (may contain exclusion \- see
+\fIshorewall6\-exclusion\fR\&[1]
+(5))\&.
+.RE
+.PP
+DEST \(en [\fIinterface\fR|\fIaddress\-list\fR]
+.RS 4
+where
+\fIaddress\-list\fR
+is a comma\-separated list of addresses (may contain exclusion \- see
+\fIshorewall6\-exclusion\fR\&[1]
+(5))\&. If an interface is given:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'It must be up and configured with an IPv6 address when Shorewall is started or restarted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'All routes out of the interface must be configured when Shorewall is started or restarted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Default routes out of the interface will result in a warning message and will be ignored\&.
+.RE
+.RE
+.PP
+PROTO \(en \fIprotocol\-name\-or\-number\fR
+.RS 4
+A protocol name from
+\fI/etc/protocols\fR
+or a protocol number\&.
+.RE
+.PP
+DEST PORT(S) \- port\-number/service\-name\-list
+.RS 4
+A comma\-separated list of port numbers and/or service names from
+\fI/etc/services\fR\&. May also include port ranges of the form
+\fIlow\-port\fR:\fIhigh\-port\fR
+if your kernel and iptables include port range support\&.
+.RE
+.PP
+SOURCE PORT(S) \- port\-number/service\-name\-list
+.RS 4
+A comma\-separated list of port numbers and/or service names from
+\fI/etc/services\fR\&. May also include port ranges of the form
+\fIlow\-port\fR:\fIhigh\-port\fR
+if your kernel and iptables include port range support\&.
+.RE
+.PP
+USER/GROUP \(en [\fIuser\fR][:\fIgroup\fR]
+.RS 4
+May only be specified if the SOURCE
+\fIzone\fR
+is $FW\&. Specifies the effective user id and or group id of the process sending the traffic\&.
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall6/notrack
+.SH "SEE ALSO"
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-ipsec(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-proxyarp(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall6-exclusion
+.RS 4
+\%shorewall-exclusion.html
+.RE

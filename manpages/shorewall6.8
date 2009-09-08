@@ -1,0 +1,659 @@
+.\"     Title: shorewall6
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL6" "8" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
+.SH "SYNOPSIS"
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcheck\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fIdirectory\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBclear\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcompile\fR [\fB\-e\fR] [\fB\-d\fR] [\fIdirectory\fR] [\fIpathname\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdrop\fR \fIaddress\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBdump\fR [\fB\-x\fR] [\fB\-m\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBexport\fR [\fIdirectory1\fR] [\fIuser\fR@]\fIsystem\fR[\fB:\fR\fIdirectory2\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBforget\fR [\fIfilename\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBhelp\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBiptrace\fR \fIiptables\ match\ expression\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fIdirectory\fR] \fIsystem\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogdrop\fR \fIaddress\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBlogwatch\fR [\fB\-m\fR] [\fIrefresh\-interval\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogreject\fR \fIaddress\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBnoiptrace\fR \fIiptables\ match\ expression\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrefresh\fR\ [\fIchain\fR...] 
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreject\fR \fIaddress\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBreload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fIdirectory\fR] \fIsystem\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreset\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fIdirectory\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsafe\-restart\fR [\fB\-d\fR] [\fIdirectory\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBsafe\-start\fR [\fB\-d\fR] [\fIdirectory\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsave\fR [\fIfilename\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-x\fR] [\fB\-t\fR\ {\fBfilter\fR|\fBmangle\fR|\fBraw\fR}] [[\fBchain\fR]\ \fIchain\fR...]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-f\fR] \fBcapabilities\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR {\fBactions|classifiers|connections|config|filters|macros|zones\fR}
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR \fBtc\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-m\fR] \fBlog\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR] [\fIdirectory\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBstatus\fR
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBtry\fR \fIdirectory\fR [\fItimeout\fR]
+.HP 11
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBversion\fR\ [\fB\-a\fR] 
+.SH "DESCRIPTION"
+.PP
+The shorewall6 utility is used to control the Shoreline Firewall 6 (Shorewall6)\&.
+.SH "OPTIONS"
+.PP
+The
+\fBtrace\fR
+and
+\fBdebug\fR
+options are used for debugging\&. See
+\fIhttp://www\&.shorewall\&.net/starting_and_stopping\&.htm#Trace\fR\&.
+.PP
+The nolock
+\fBoption\fR
+prevents the command from attempting to acquire the Shorewall6 lockfile\&. It is useful if you need to include
+\fBshorewall6\fR
+commands in
+\fI/etc/shorewall6/started\fR\&.
+.PP
+The
+\fIoptions\fR
+control the amount of output that the command produces\&. They consist of a sequence of the letters
+\fBv\fR
+and
+\fBq\fR\&. If the options are omitted, the amount of output is determined by the setting of the VERBOSITY parameter in
+\fIshorewall6\&.conf\fR\&[1](5)\&. Each
+\fBv\fR
+adds one to the effective verbosity and each
+\fBq\fR
+subtracts one from the effective VERBOSITY\&. Anternately,
+\fBv\fR
+may be followed immediately with one of \-1,0,1,2 to specify a specify VERBOSITY\&. There may be no white space between
+\fBv\fR
+and the VERBOSITY\&.
+.PP
+The
+\fIoptions\fR
+may also include the letter
+\fBt\fR
+which causes all progress messages to be timestamped\&.
+.SH "COMMANDS"
+.PP
+The available commands are listed below\&.
+.PP
+\fBallow\fR
+.RS 4
+Re\-enables receipt of packets from hosts previously blacklisted by a
+\fBdrop\fR,
+\fBlogdrop\fR,
+\fBreject\fR, or
+\fBlogreject\fR
+command\&.
+.RE
+.PP
+\fBcheck\fR
+.RS 4
+Compiles the configuraton in the specified
+\fIdirectory\fR
+and discards the compiled output script\&. If no
+\fIdirectory\fR
+is given, then /etc/shorewall6 is assumed\&.
+.sp
+The
+\fB\-e\fR
+option causes the compiler to look for a file named capabilities\&. This file is produced using the command
+\fBshorewall6\-lite show \-f capabilities > capabilities\fR
+on a system with Shorewall6 Lite installed\&.
+.sp
+The
+\fB\-d\fR
+option causes the compiler to be run under control of the Perl debugger\&.
+.sp
+The
+\fB\-p\fR
+option causes the compiler to be profiled via the Perl
+\fB\-wd:DProf\fR
+command\-line option\&.
+.RE
+.PP
+\fBclear\fR
+.RS 4
+Clear will remove all rules and chains installed by Shorewall6\&. The firewall is then wide open and unprotected\&. Existing connections are untouched\&. Clear is often used to see if the firewall is causing connection problems\&.
+.RE
+.PP
+\fBcompile\fR
+.RS 4
+Compiles the current configuration into the executable file
+\fIpathname\fR\&. If a directory is supplied, Shorewall6 will look in that directory first for configuration files\&. If the
+\fIpathname\fR
+is omitted, the file firewall in the VARDIR (normally
+\fI/var/lib/shorewall/\fR) is assumed\&. A
+\fIpathname\fR
+of \'\-\' causes the compiler to send the generated script to it\'s standard output file\&. Note that \'\-v\-1\' is usually specified in this case (e\&.g\&.,
+\fBshorewall6 \-v\-1 compile \-\- \-\fR) to suppress the \'Compiling\&.\&.\&.\' message normally generated by
+\fI/sbin/shorewall6\fR\&.
+.sp
+When \-e is specified, the compilation is being performed on a system other than where the compiled script will run\&. This option disables certain configuration options that require the script to be compiled where it is to be run\&. The use of \-e requires the presense of a configuration file named
+\fIcapabilities\fR
+which may be produced using the command
+\fBshorewall6\-lite show \-f capabilities > capabilities\fR
+on a system with Shorewall6 Lite installed
+.sp
+The
+\fB\-d\fR
+option causes the compiler to be run under control of the Perl debugger\&.
+.sp
+The
+\fB\-p\fR
+option causes the compiler to be profiled via the Perl
+\fB\-wd:DProf\fR
+command\-line option\&.
+.RE
+.PP
+\fBdrop\fR
+.RS 4
+Causes traffic from the listed
+\fIaddress\fRes to be silently dropped\&.
+.RE
+.PP
+\fBdump\fR
+.RS 4
+Produces a verbose report about the firewall configuration for the purpose of problem analysis\&.
+.sp
+The
+\fB\-x\fR
+option causes actual packet and byte counts to be displayed\&. Without that option, these counts are abbreviated\&. The
+\fB\-m\fR
+option causes any MAC addresses included in Shorewall6 log messages to be displayed\&.
+.RE
+.PP
+\fBexport\fR
+.RS 4
+If
+\fIdirectory1\fR
+is omitted, the current working directory is assumed\&.
+.sp
+Allows a non\-root user to compile a shorewall6 script and stage it on a system (provided that the user has access to the system via ssh)\&. The command is equivalent to:
+.sp
+.RS 4
+.nf
+    \fB/sbin/shorewall6 compile \-e\fR \fIdirectory1\fR \fIdirectory1\fR\fB/firewall &&\e\fR
+    \fBscp\fR directory1\fB/firewall\fR \fIdirectory1\fR\fB/firewall\&.conf\fR [\fIuser\fR@]\fBsystem\fR:[\fIdirectory2\fR]
+.fi
+.RE
+In other words, the configuration in the specified (or defaulted) directory is compiled to a file called firewall in that directory\&. If compilation succeeds, then firewall and firewall\&.conf are copied to
+\fIsystem\fR
+using scp\&.
+.RE
+.PP
+\fBforget\fR
+.RS 4
+Deletes /var/lib/shorewall6/\fIfilenam\fRe and /var/lib/shorewall6/save\&. If no
+\fIfilename\fR
+is given then the file specified by RESTOREFILE in
+\fIshorewall6\&.conf\fR\&[1](5) is assumed\&.
+.RE
+.PP
+\fBhelp\fR
+.RS 4
+Displays a syntax summary\&.
+.RE
+.PP
+\fBiptrace\fR
+.RS 4
+This is a low\-level debugging command that causes iptables TRACE log records to be created\&. See ip6tables(8) for details\&.
+.sp
+The
+\fIip6tables match expression\fR
+must be one or more matches that may appear in both the raw table OUTPUT and raw table PREROUTING chains\&.
+.sp
+The trace records are written to the kernel\'s log buffer with faciility = kernel and priority = warning, and they are routed from there by your logging daemon (syslogd, rsyslog, syslog\-ng, \&.\&.\&.) \-\- Shorewall has no control over where the messages go; consult your logging daemon\'s documentation\&.
+.RE
+.PP
+\fBload\fR
+.RS 4
+If
+\fIdirectory\fR
+is omitted, the current working directory is assumed\&. Allows a non\-root user to compile a shorewall6 script and install it on a system (provided that the user has root access to the system via ssh)\&. The command is equivalent to:
+.sp
+.RS 4
+.nf
+    \fB/sbin/shorewall6 compile \-e\fR \fI\fIdirectory\fR\fR \fIdirectory\fR\fB/firewall &&\e\fR
+    \fBscp\fR \fIdirectory\fR\fB/firewall\fR \fIdirectory\fR\fB/firewall\&.conf\fR \fBroot@\fR\fIsystem\fR\fB:/var/lib/shorewall6\-lite/ &&\e\fR
+    \fBssh root@\fR\fIsystem\fR \fB\'/sbin/shorewall6\-lite start\'\fR
+.fi
+.RE
+In other words, the configuration in the specified (or defaulted) directory is compiled to a file called firewall in that directory\&. If compilation succeeds, then firewall is copied to
+\fIsystem\fR
+using scp\&. If the copy succeeds, Shorewall6 Lite on
+\fIsystem\fR
+is started via ssh\&.
+.sp
+If
+\fB\-s\fR
+is specified and the
+\fBstart\fR
+command succeeds, then the remote Shorewall6\-lite configuration is saved by executing
+\fBshorewall6\-lite save\fR
+via ssh\&.
+.sp
+if
+\fB\-c\fR
+is included, the command
+\fBshorewall6\-lite show capabilities \-f > /var/lib/shorewall6\-lite/capabilities\fR
+is executed via ssh then the generated file is copied to
+\fIdirectory\fR
+using scp\&. This step is performed before the configuration is compiled\&.
+.sp
+If
+\fB\-r\fR
+is included, it specifies that the root user on
+\fIsystem\fR
+is named
+\fIroot\-user\-name\fR
+rather than "root"\&.
+.RE
+.PP
+\fBlogdrop\fR
+.RS 4
+Causes traffic from the listed
+\fIaddress\fRes to be logged then discarded\&. Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL setting in
+\fIshorewall6\&.conf\fR\&[1]
+(5)\&.
+.RE
+.PP
+\fBlogwatch\fR
+.RS 4
+Monitors the log file specified by the LOGFILE option in
+\fIshorewall6\&.conf\fR\&[1](5) and produces an audible alarm when new Shorewall6 messages are logged\&. The
+\fB\-m\fR
+option causes the MAC address of each packet source to be displayed if that information is available\&. The
+\fIrefresh\-interval\fR
+specifies the time in seconds between screen refreshes\&. You can enter a negative number by preceding the number with "\-\-" (e\&.g\&.,
+\fBshorewall6 logwatch \-\- \-30\fR)\&. In this case, when a packet count changes, you will be prompted to hit any key to resume screen refreshes\&.
+.RE
+.PP
+\fBlogreject\fR
+.RS 4
+Causes traffic from the listed
+\fIaddress\fRes to be logged then rejected\&. Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL setting in
+\fIshorewall6\&.conf\fR\&[1]
+(5)\&.
+.RE
+.PP
+\fBnoiptrace\fR
+.RS 4
+This is a low\-level debugging command that cancels a trace started by a preceding
+\fBiptrace\fR
+command\&.
+.sp
+The
+\fIiptables match expression\fR
+must be one given in the
+\fBiptrace\fR
+command being cancelled\&.
+.RE
+.PP
+\fBrefresh\fR
+.RS 4
+All steps performed by
+\fBrestart\fR
+are performed by
+\fBrefresh\fR
+with the exception that
+\fBrefresh\fR
+only recreates the chains specified in the command while
+\fBrestart\fR
+recreates the entire Netfilter ruleset\&.When no chain name is given to the
+\fBrefresh\fR
+command, the mangle table is refreshed along with the blacklist chain (if any)\&. This allows you to modify
+\fI/etc/shorewall6/tcrules\fRand install the changes using
+\fBrefresh\fR\&.
+.sp
+The listed chains are assumed to be in the filter table\&. You can refresh chains in other tables by prefixing the chain name with the table name followed by ":" (e\&.g\&., nat:net_dnat)\&. Chain names which follow are assumed to be in that table until the end of the list or until an entry in the list names another table\&. Built\-in chains such as FORWARD may not be refreshed\&.
+.sp
+Example:
+.sp
+.RS 4
+.nf
+\fBshorewall6 refresh net2fw nat:net_dnat\fR #Refresh the \'net2loc\' chain in the filter table and the \'net_dnat\' chain in the nat table
+.fi
+.RE
+.RE
+.PP
+\fBreload\fR
+.RS 4
+If
+\fIdirectory\fR
+is omitted, the current working directory is assumed\&. Allows a non\-root user to compile a shorewall6 script and install it on a system (provided that the user has root access to the system via ssh)\&. The command is equivalent to:
+.sp
+.RS 4
+.nf
+    \fB/sbin/shorewall6 compile \-e\fR \fIdirectory\fR \fIdirectory\fR\fB/firewall &&\e\fR
+    \fBscp\fR \fIdirectory\fR\fB/firewall\fR \fIdirectory\fR\fB/firewall\&.conf\fR \fBroot@\fR\fIsystem\fR\fB:/var/lib/shorewall6\-lite/ &&\e\fR
+    \fBssh root@\fR\fIsystem\fR \fB\'/sbin/shorewall6\-lite restart\'\fR
+.fi
+.RE
+In other words, the configuration in the specified (or defaulted) directory is compiled to a file called firewall in that directory\&. If compilation succeeds, then firewall is copied to
+\fIsystem\fR
+using scp\&. If the copy succeeds, Shorewall6 Lite on
+\fIsystem\fR
+is restarted via ssh\&.
+.sp
+If
+\fB\-s\fR
+is specified and the
+\fBrestart\fR
+command succeeds, then the remote Shorewall6\-lite configuration is saved by executing
+\fBshorewall6\-lite save\fR
+via ssh\&.
+.sp
+if
+\fB\-c\fR
+is included, the command
+\fBshorewall6\-lite show capabilities \-f > /var/lib/shorewall6\-lite/capabilities\fR
+is executed via ssh then the generated file is copied to
+\fIdirectory\fR
+using scp\&. This step is performed before the configuration is compiled\&.
+.sp
+If
+\fB\-r\fR
+is included, it specifies that the root user on
+\fIsystem\fR
+is named
+\fIroot\-user\-name\fR
+rather than "root"\&.
+.RE
+.PP
+\fBreset [\fR\fB\fIchain\fR\fR\fB, \&.\&.\&.]\fR
+.RS 4
+Resets the packet and byte counters in the specified
+\fIchain\fR(s)\&. If no
+\fIchain\fR
+is specified, all the packet and byte counters in the firewall are reset\&.
+.RE
+.PP
+\fBrestart\fR
+.RS 4
+Restart is similar to
+\fBshorewall6 start\fR
+except that it assumes that the firewall is already started\&. Existing connections are maintained\&. If a
+\fIdirectory\fR
+is included in the command, Shorewall6 will look in that
+\fIdirectory\fR
+first for configuration files\&.
+.sp
+The
+\fB\-n\fR
+option causes Shorewall6 to avoid updating the routing table(s)\&.
+.sp
+The
+\fB\-f\fR
+option suppresses the compilation step and simply reused the compiled script which last started/restarted Shorewall6\&.
+.RE
+.PP
+\fBrestore\fR
+.RS 4
+Restore Shorewall6 to a state saved using the
+\fBshorewall6 save\fR
+command\&. Existing connections are maintained\&. The
+\fIfilename\fR
+names a restore file in /var/lib/shorewall6 created using
+\fBshorewall6 save\fR; if no
+\fIfilename\fR
+is given then Shorewall6 will be restored from the file specified by the RESTOREFILE option in
+\fIshorewall6\&.conf\fR\&[1](5)\&.
+.RE
+.PP
+\fBsafe\-restart\fR
+.RS 4
+Only allowed if Shorewall6 is running\&. The current configuration is saved in /var/lib/shorewall6/safe\-restart (see the save command below) then a
+\fBshorewall6 restart\fR
+is done\&. You will then be prompted asking if you want to accept the new configuration or not\&. If you answer "n" or if you fail to answer within 60 seconds (such as when your new configuration has disabled communication with your terminal), the configuration is restored from the saved configuration\&. If a directory is given, then Shorewall6 will look in that directory first when opening configuration files\&.
+.RE
+.PP
+\fBsafe\-start\fR
+.RS 4
+Shorewall6 is started normally\&. You will then be prompted asking if everything went all right\&. If you answer "n" or if you fail to answer within 60 seconds (such as when your new configuration has disabled communication with your terminal), a shorewall6 clear is performed for you\&. If a directory is given, then Shorewall6 will look in that directory first when opening configuration files\&.
+.RE
+.PP
+\fBsave\fR
+.RS 4
+The dynamic blacklist is stored in /var/lib/shorewall6/save\&. The state of the firewall is stored in /var/lib/shorewall6/\fIfilename\fR
+for use by the
+\fBshorewall6 restore\fR
+and
+\fBshorewall6 \-f start\fR
+commands\&. If
+\fIfilename\fR
+is not given then the state is saved in the file specified by the RESTOREFILE option in
+\fIshorewall6\&.conf\fR\&[1](5)\&.
+.RE
+.PP
+\fBshow\fR
+.RS 4
+The show command can have a number of different arguments:
+.PP
+\fBactions\fR
+.RS 4
+Produces a report about the available actions (built\-in, standard and user\-defined)\&.
+.RE
+.PP
+\fBcapabilities\fR
+.RS 4
+Displays your kernel/ip6tables capabilities\&. The
+\fB\-f\fR
+option causes the display to be formatted as a capabilities file for use with
+\fBcompile \-e\fR\&.
+.RE
+.PP
+[ [ \fBchain\fR ] \fIchain\fR\&.\&.\&. ]
+.RS 4
+The rules in each
+\fIchain\fR
+are displayed using the
+\fBip6tables \-L\fR
+\fIchain\fR
+\fB\-n \-v\fR
+command\&. If no
+\fIchain\fR
+is given, all of the chains in the filter table are displayed\&. The
+\fB\-x\fR
+option is passed directly through to ip6tables and causes actual packet and byte counts to be displayed\&. Without this option, those counts are abbreviated\&. The
+\fB\-t\fR
+option specifies the Netfilter table to display\&. The default is
+\fBfilter\fR\&.
+.sp
+If the
+\fBt\fR
+option and the
+\fBchain\fR
+keyword are both omitted and any of the listed
+\fIchain\fRs do not exist, a usage message is displayed\&.
+.RE
+.PP
+\fBclassifiers|filters\fR
+.RS 4
+Displays information about the packet classifiers defined on the system as a result of traffic shaping configuration\&.
+.RE
+.PP
+\fBconfig\fR
+.RS 4
+Dispays distribution\-specific defaults\&.
+.RE
+.PP
+\fBconnections\fR
+.RS 4
+Displays the IP connections currently being tracked by the firewall\&.
+.RE
+.PP
+\fBlog\fR
+.RS 4
+Displays the last 20 Shorewall6 messages from the log file specified by the LOGFILE option in
+\fIshorewall6\&.conf\fR\&[1](5)\&. The
+\fB\-m\fR
+option causes the MAC address of each packet source to be displayed if that information is available\&.
+.RE
+.PP
+\fBmacros\fR
+.RS 4
+Displays information about each macro defined on the firewall system\&.
+.RE
+.PP
+\fBmangle\fR
+.RS 4
+Displays the Netfilter mangle table using the command
+\fBip6tables \-t mangle \-L \-n \-v\fR\&.The
+\fB\-x\fR
+option is passed directly through to ip6tables and causes actual packet and byte counts to be displayed\&. Without this option, those counts are abbreviated\&.
+.RE
+.PP
+\fBnat\fR
+.RS 4
+Displays the Netfilter nat table using the command
+\fBip6tables \-t nat \-L \-n \-v\fR\&.The
+\fB\-x\fR
+option is passed directly through to ip6tables and causes actual packet and byte counts to be displayed\&. Without this option, those counts are abbreviated\&.
+.RE
+.PP
+\fBtc\fR
+.RS 4
+Displays information about queuing disciplines, classes and filters\&.
+.RE
+.PP
+\fBzones\fR
+.RS 4
+Displays the current composition of the Shorewall6 zones on the system\&.
+.RE
+.RE
+.PP
+\fBstart\fR
+.RS 4
+Start shorewall6\&. Existing connections through shorewall6 managed interfaces are untouched\&. New connections will be allowed only if they are allowed by the firewall rules or policies\&. If a
+\fIdirectory\fR
+is included in the command, Shorewall6 will look in that
+\fIdirectory\fR
+first for configuration files\&. If
+\fB\-f\fR
+is specified, the saved configuration specified by the RESTOREFILE option in
+\fIshorewall6\&.conf\fR\&[1](5) will be restored if that saved configuration exists and has been modified more recently than the files in /etc/shorewall6\&. When
+\fB\-f\fR
+is given, a
+\fIdirectory\fR
+may not be specified\&.
+.sp
+The
+\fB\-n\fR
+option causes Shorewall6 to avoid updating the routing table(s)\&.
+.RE
+.PP
+\fBstop\fR
+.RS 4
+Stops the firewall\&. All existing connections, except those listed in
+\fIshorewall6\-routestopped\fR\&[2](5) or permitted by the ADMINISABSENTMINDED option in
+\fIshorewall6\&.conf\fR\&[1](5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
+\fIshorewall6\-routestopped\fR\&[2](5) or by ADMINISABSENTMINDED\&.
+.RE
+.PP
+\fBstatus\fR
+.RS 4
+Produces a short report about the state of the Shorewall6\-configured firewall\&.
+.RE
+.PP
+\fBtry\fR
+.RS 4
+If Shorewall6 is started then the firewall state is saved to a temporary saved configuration (\fI/var/lib/shorewall6/\&.try\fR)\&. Next, if Shorewall6 is currently started then a
+\fBrestart\fR
+command is issued; otherwise, a
+\fBstart\fR
+command is performed\&. if an error occurs during the compliation phase of the
+\fBrestart\fR
+or
+\fBstart\fR, the command terminates without changing the Shorewall6 state\&. If an error occurs during the
+\fBrestart\fR
+phase, then a
+\fBshorewall6 restore\fR
+is performed using the saved configuration\&. If an error occurs during the
+\fBstart\fR
+phase, then Shorewall6 is cleared\&. If the
+\fBstart\fR/\fBrestart\fR
+succeeds and a
+\fItimeout\fR
+is specified then a
+\fBclear\fR
+or
+\fBrestore\fR
+is performed after
+\fItimeout\fR
+seconds\&.
+.RE
+.PP
+\fBversion\fR
+.RS 4
+Displays Shorewall6\'s version\&. If the
+\fB\-a\fR
+option is included, the version of Shorewall will also be displayed\&.
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall6/
+.SH "SEE ALSO"
+.PP
+\fIhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR
+.PP
+shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall6.conf
+.RS 4
+\%shorewall6.conf.html
+.RE
+.IP " 2." 4
+shorewall6-routestopped
+.RS 4
+\%shorewall6-routestopped.html
+.RE

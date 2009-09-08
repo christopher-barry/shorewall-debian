@@ -1,0 +1,189 @@
+.\"     Title: shorewall6-providers
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL6\-PROVIDER" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+providers \- Shorewall6 Providers file
+.SH "SYNOPSIS"
+.HP 26
+\fB/etc/shorewall6/providers\fR
+.SH "DESCRIPTION"
+.PP
+This file is used to define additional routing tables\&. You will want to define an additional table if:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'You have connections to more than one ISP or multiple connections to the same ISP
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'You run Squid as a transparent proxy on a host other than the firewall\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'You have other requirements for policy routing\&.
+.RE
+.PP
+Each entry in the file defines a single routing table\&.
+.PP
+If you wish to omit a column entry but want to include an entry in the next column, use "\-" for the omitted entry\&.
+.PP
+The columns in the file are as follows\&.
+.PP
+\fBNAME\fR \- \fIname\fR
+.RS 4
+The provider
+\fIname\fR\&. Must be a valid shell variable name\&. The names \'local\', \'main\', \'default\' and \'unspec\' are reserved and may not be used as provider names\&.
+.RE
+.PP
+\fBNUMBER\fR \- \fInumber\fR
+.RS 4
+The provider number \-\- a number between 1 and 15\&. Each provider must be assigned a unique value\&.
+.RE
+.PP
+\fBMARK\fR (Optional) \- \fIvalue\fR
+.RS 4
+A FWMARK
+\fIvalue\fR
+used in your
+\fIshorewall6\-tcrules(5)\fR\&[1]
+file to direct packets to this provider\&.
+.sp
+If HIGH_ROUTE_MARKS=Yes in
+\fIshorewall6\&.conf(5)\fR\&[2], then the value must be a multiple of 256 between 256 and 65280 or their hexadecimal equivalents (0x0100 and 0xff00 with the low\-order byte of the value being zero)\&. Otherwise, the value must be between 1 and 255\&. Each provider must be assigned a unique mark value\&. This column may be omitted if you don\'t use packet marking to direct connections to a particular provider and you don\'t specify
+\fBtrack\fR
+in the OPTIONS column\&.
+.RE
+.PP
+\fBDUPLICATE\fR \- \fIrouting\-table\-name\fR
+.RS 4
+The name of an existing table to duplicate to create this routing table\&. May be
+\fBmain\fR
+or the name of a previously listed provider\&. You may select only certain entries from the table to copy by using the COPY column below\&.
+.RE
+.PP
+\fBINTERFACE\fR \- \fIinterface\fR
+.RS 4
+The name of the network interface to the provider\&. Must be listed in
+\fIshorewall6\-interfaces(5)\fR\&[3]\&.
+.RE
+.PP
+\fBGATEWAY\fR \- {\fB\-\fR|\fIaddress\fR|\fBdetect\fR}
+.RS 4
+The IP address of the provider\'s gateway router\&.
+.sp
+You can enter "detect" here and Shorewall6 will attempt to detect the gateway automatically\&.
+.sp
+For PPP devices, you may omit this column\&.
+.RE
+.PP
+\fBOPTIONS\fR (Optional) \- [\fB\-\fR|\fIoption\fR[\fB,\fR\fIoption\fR]\&.\&.\&.]
+.RS 4
+A comma\-separated list selected from the following\&. The order of the options is not significant but the list may contain no embedded whitespace\&.
+.PP
+\fBtrack\fR
+.RS 4
+If specified, inbound connections on this interface are to be tracked so that responses may be routed back out this same interface\&.
+.sp
+You want to specify
+\fBtrack\fR
+if internet hosts will be connecting to local servers through this provider\&.
+.RE
+.PP
+\fBloose\fR
+.RS 4
+Shorewall6 normally adds a routing rule for each IP address on an interface which forces traffic whose source is that IP address to be sent using the routing table for that interface\&. Setting
+\fBloose\fR
+prevents creation of such rules on this interface\&.
+.RE
+.PP
+\fBoptional\fR
+.RS 4
+If the interface named in the INTERFACE column is not up and configured with an IPv4 address then ignore this provider\&. If not specified, the value of the
+\fBoptional\fR
+option for the INTERFACE in
+\fIshorewall6\-interfaces(5)\fR\&[3]
+is assumed\&.
+.RE
+.PP
+src=\fIsource\-address\fR
+.RS 4
+Specifies the source address to use when routing to this provider and none is known (the local client has bound to the 0 address)\&. May not be specified when an
+\fIaddress\fR
+is given in the INTERFACE column\&. If this option is not used, Shorewall6 substitutes the primary IP address on the interface named in the INTERFACE column\&.
+.RE
+.PP
+mtu=\fInumber\fR
+.RS 4
+Specifies the MTU when forwarding through this provider\&. If not given, the MTU of the interface named in the INTERFACE column is assumed\&.
+.RE
+.RE
+.PP
+\fBCOPY\fR \- [{\fBnone\fR|\fIinterface\fR\fB[,\fR\fIinterface\fR]\&.\&.\&.}]
+.RS 4
+A comma\-separated list of other interfaces on your firewall\&. Wildcards specified using an asterisk ("*") are permitted (e\&.g\&., tun* )\&. Usually used only when DUPLICATE is
+\fBmain\fR\&. Only copy routes through INTERFACE and through interfaces listed here\&. If you only wish to copy routes through INTERFACE, enter
+\fBnone\fR
+in this column\&.
+.RE
+.SH "EXAMPLES"
+.PP
+Example 1:
+.RS 4
+You run squid in your DMZ on IP address 2002:ce7c:92b4:1::2\&. Your DMZ interface is eth2
+.sp
+.RS 4
+.nf
+        #NAME   NUMBER  MARK DUPLICATE  INTERFACE GATEWAY              OPTIONS
+        Squid   1       1    \-          eth2      2002:ce7c:92b4:1::2  \-
+.fi
+.RE
+.RE
+.PP
+Example 2:
+.RS 4
+eth0 connects to ISP 1\&. The ISP\'s gateway router has IP address 2001:ce7c:92b4:1::2\&.
+.sp
+eth1 connects to ISP 2\&. The ISP\'s gateway router has IP address 2001:d64c:83c9:12::8b\&.
+.sp
+eth2 connects to a local network\&.
+.sp
+.RS 4
+.nf
+        #NAME NUMBER MARK DUPLICATE INTERFACE GATEWAY               OPTIONS    COPY
+        ISP1  1       1    main      eth0     2001:ce7c:92b4:1::2   track      eth2
+        ISP2  2       2    main      eth1     2001:d64c:83c9:12::8b track      eth2
+.fi
+.RE
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall6/providers
+.SH "SEE ALSO"
+.PP
+\fIhttp://shorewall\&.net/MultiISP\&.html\fR
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall6-tcrules(5)
+.RS 4
+\%shorewall6-tcrules.html
+.RE
+.IP " 2." 4
+shorewall6.conf(5)
+.RS 4
+\%shorewall6.conf.html
+.RE
+.IP " 3." 4
+shorewall6-interfaces(5)
+.RS 4
+\%shorewall6-interfaces.html
+.RE

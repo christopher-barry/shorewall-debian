@@ -1,0 +1,37 @@
+.\"     Title: shorewall6-exclusion
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 09/03/2009
+.\"    Manual: 
+.\"    Source: 
+.\"
+.TH "SHOREWALL6\-EXCLUSIO" "5" "09/03/2009" "" ""
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.SH "NAME"
+exclusion \- Exclude a set of hosts from a definition in a shorewall6 configuration file.
+.SH "SYNOPSIS"
+.HP 1
+\fB!\fR\fIaddress\-or\-range\fR[,\fIaddress\-or\-range\fR]...
+.SH "DESCRIPTION"
+.PP
+Exclusion is used when you wish to exclude one or more addresses from a definition\&. An exclaimation point is followed by a comma\-separated list of addresses\&. The addresses may be single host addresses (e\&.g\&., fe80::2a0:ccff:fedb:31c4) or they may be network addresses in CIDR format (e\&.g\&., fe80::2a0:ccff:fedb:31c4/64)\&. If your kernel and ip6tables include iprange support, you may also specify ranges of ip addresses of the form
+\fIlowaddress\fR\-\fIhighaddress\fR
+.PP
+No embedded whitespace is allowed\&.
+.PP
+Exclusion can appear after a list of addresses and/or address ranges\&. In that case, the final list of address is formed by taking the first list and then removing the addresses defined in the exclusion\&.
+.SH "FILES"
+.PP
+/etc/shorewall6/hosts
+.PP
+/etc/shorewall6/masq
+.PP
+/etc/shorewall6/rules
+.PP
+/etc/shorewall6/tcrules
+.SH "SEE ALSO"
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall\-zones(5)
