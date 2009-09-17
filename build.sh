@@ -48,7 +48,7 @@ print_help() {
   echo -e "    -l"
   echo -e "        List available packages and exit"
   echo -e ""
-  echo -e "    -o"
+  echo -e "    -o \"<options>\""
   echo -e "        options to pass to the build program (must be enclosed in quotes)"
   echo -e ""
   echo -e "    -p \"<package(s)>\""
