@@ -113,7 +113,7 @@ done
 
 # Check for required programs
 
-[ -z "$BUILD_PROG" ] && BUILD_PROG="/usr/bin/pdebuild --use-pdebuild-internal"
+[ -z "$BUILD_PROG" ] && BUILD_PROG="/usr/bin/pdebuild" && BUILD_PROG_OPTS="--use-pdebuild-internal $BUILD_PROG_OPTS"
 
 [ -z "$VERBOSE" ] || echo "Checking for required programs ..."
 for i in /usr/bin/git-buildpackage /usr/bin/pristine-tar "$BUILD_PROG" ; do
