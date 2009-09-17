@@ -1,0 +1,36 @@
+Shorewall Debian packaging README:
+----------------------------------
+
+There are five (5) Shorewall packages released by upstream:
+  shorewall
+  shorewall-lite
+  shorewall6
+  shorewall6-lite
+  shorewall-doc
+
+Each of the above packages released by upstream corresponds to a Debian
+package of the same name.  In order to keep from managing a separate git
+repository for each package, they are all contained in branches of this
+repository:
+
+* master
+  pristine-tar
+  shorewall-doc/master
+  shorewall-doc/upstream
+  shorewall-lite/master
+  shorewall-lite/upstream
+  shorewall/master
+  shorewall/upstream
+  shorewall6-lite/master
+  shorewall6-lite/upstream
+  shorewall6/master
+  shorewall6/upstream
+
+This branch is designed to be used with the git-buildpackage program, and so,
+each master branch is the Debian package branch, while each upstream branch
+is the unmodified upstream source.  The pristine-tar program is also used to
+create the tarball from the pristine-tar branch.
+
+To build one or more of the packages, please use the build.sh script found in
+this directory.
+
