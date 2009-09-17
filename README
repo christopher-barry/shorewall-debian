@@ -26,10 +26,17 @@ repository:
   shorewall6/master
   shorewall6/upstream
 
-This branch is designed to be used with the git-buildpackage program, and so,
-each master branch is the Debian package branch, while each upstream branch
-is the unmodified upstream source.  The pristine-tar program is also used to
-create the tarball from the pristine-tar branch.
+This repository is designed to be used with the git-buildpackage program,
+and so, each master branch is the Debian package branch, while each upstream
+branch is the unmodified upstream source.  The pristine-tar program is also
+used to create the tarball from the pristine-tar branch.
+
+When you first clone the repository, the only local branch you will have is
+the master branch.  In order to get copies of the other branches (so that
+git-buildpackage will work for you), you will need to execute this (only
+once):
+
+git branch --track pristine-tar origin/pristine-tar ; for i in `git branch -a |grep shorewall |cut -f3 -d' ' |cut -f2 -d'/' |sort -u ` ; do git branch --track $i/master origin/$i/master ; git branch --track $i/upstream origin/$i/upstream ; done
 
 To build one or more of the packages, please use the build.sh script found in
 this directory.
