@@ -46,6 +46,7 @@ install: build
 	chmod 640 $(SRWL)/etc/shorewall/*
 	chmod 644 $(SRWL)/etc/shorewall/shorewall.conf
 	chmod 644 $(SRWL)/etc/shorewall/Makefile
+	chmod 755 $(SRWL)/usr/share/shorewall/compiler.pl
 # 	set version number
 	echo $V > $(SRWL)/usr/share/shorewall/version
 #  global configuration has to be fully readable

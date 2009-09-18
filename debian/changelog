@@ -1,3 +1,9 @@
+shorewall (4.4.1.2-2) unstable; urgency=low
+
+  * Make Shorewall Perl compiler executable (Closes: #546750)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 18 Sep 2009 18:16:32 -0400
+
 shorewall (4.4.1.2-1) unstable; urgency=low
 
   * New upstream release
