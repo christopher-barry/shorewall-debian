@@ -149,3 +149,5 @@ git-checkout master
 # Tag
 # git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-tag --git-tag-only --git-debian-tag=shorewall/debian/4.4.1.2-2
 
+# Upload
+# git-push --mirror ssh://el_cubano@shorewall.git.sourceforge.net/gitroot/shorewall/debian
