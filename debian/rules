@@ -46,7 +46,6 @@ install: build
 	chmod 640 $(SRWL)/etc/shorewall/*
 	chmod 644 $(SRWL)/etc/shorewall/shorewall.conf
 	chmod 644 $(SRWL)/etc/shorewall/Makefile
-	chmod 755 $(SRWL)/usr/share/shorewall/compiler.pl
 # 	set version number
 	echo $V > $(SRWL)/usr/share/shorewall/version
 #  global configuration has to be fully readable
@@ -65,6 +64,9 @@ binary-indep: build install
 	dh_installdebconf
 	dh_compress -Xusr/share/doc/shorewall/default-config
 	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall
+	# For some inexplicable reason, this is the only way to get persistence
+	chmod 755 $(SRWL)/usr/share/shorewall/compiler.pl
+	chmod 755 $(SRWL)/usr/share/shorewall/Shorewall
 	dh_installdeb
 	dh_gencontrol
 	dh_md5sums
