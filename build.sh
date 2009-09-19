@@ -125,8 +125,6 @@ done
 
 for i in $PKGS_TO_BUILD ; do
   [ -z "$VERBOSE" ] || echo "Building package $i"
-  # git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area
-  # pdebuild --configfile /etc/pbuilder/pbuilderrc-$DISTRO --buildsourceroot fakeroot --pbuilderroot sudo --buildresult /var/lib/chroot/pbuilder-$DISTRO/results --use-pdebuild-internal "$@"
   BUILD_CMD="git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-export-dir=../build-area --git-builder=$BUILD_PROG $BUILD_PROG_OPTS"
   [ -z "$VERBOSE" ] || echo "Issuing command:"
   [ -z "$VERBOSE" ] || echo "   $BUILD_CMD"
@@ -139,4 +137,15 @@ done
 git-checkout master
 
 [ -z "$VERBOSE" ] || echo "Package build complete."
+
+###############################################################################
+# Command lines
+###############################################################################
+
+# Build
+# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area
+# pdebuild --configfile /etc/pbuilder/pbuilderrc-$DISTRO --buildsourceroot fakeroot --pbuilderroot sudo --buildresult /var/lib/chroot/pbuilder-$DISTRO/results --use-pdebuild-internal "$@"
+
+# Tag
+# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-tag --git-tag-only --git-debian-tag=shorewall/debian/4.4.1.2-2
 
