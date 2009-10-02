@@ -125,7 +125,7 @@ done
 
 for i in $PKGS_TO_BUILD ; do
   [ -z "$VERBOSE" ] || echo "Building package $i"
-  BUILD_CMD="git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-export-dir=../build-area --git-builder=$BUILD_PROG $BUILD_PROG_OPTS"
+  BUILD_CMD="git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-export-dir=../build-area --git-pristine-tar --git-builder=$BUILD_PROG $BUILD_PROG_OPTS"
   [ -z "$VERBOSE" ] || echo "Issuing command:"
   [ -z "$VERBOSE" ] || echo "   $BUILD_CMD"
   git-checkout $i/master
@@ -143,7 +143,7 @@ git-checkout master
 ###############################################################################
 
 # Build
-# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area
+# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area --git-pristine-tar
 # pdebuild --configfile /etc/pbuilder/pbuilderrc-$DISTRO --buildsourceroot fakeroot --pbuilderroot sudo --buildresult /var/lib/chroot/pbuilder-$DISTRO/results --use-pdebuild-internal "$@"
 
 # Tag
