@@ -36,7 +36,7 @@ the master branch.  In order to get copies of the other branches (so that
 git-buildpackage will work for you), you will need to execute this (only
 once):
 
-git branch --track pristine-tar origin/pristine-tar ; for i in `git branch -a |grep shorewall |cut -f3 -d' ' |cut -f2 -d'/' |sort -u ` ; do git branch --track $i/master origin/$i/master ; git branch --track $i/upstream origin/$i/upstream ; done
+git branch --track pristine-tar origin/pristine-tar ; for i in `git branch -r |grep shorewall |cut -f3 -d' ' |cut -f2 -d'/' |sort -u ` ; do git branch --track $i/master origin/$i/master ; git branch --track $i/upstream origin/$i/upstream ; done
 
 To build one or more of the packages, please use the build.sh script found in
 this directory.
