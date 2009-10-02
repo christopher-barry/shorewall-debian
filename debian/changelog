@@ -1,8 +1,9 @@
 shorewall-lite (4.4.2-1) unstable; urgency=low
 
   * New Upstream Version
+  * Override lintian warning about init script
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 02 Oct 2009 13:09:37 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 02 Oct 2009 13:59:45 -0400
 
 shorewall-lite (4.4.1-1) unstable; urgency=low
 
