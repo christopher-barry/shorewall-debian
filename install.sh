@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.1.2
+VERSION=4.4.2
 
 usage() # $1 = exit status
 {
@@ -453,6 +453,15 @@ if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall/blacklist ]; then
     echo "Blacklist file installed as ${PREFIX}/etc/shorewall/blacklist"
 fi
 #
+# Install the findgw file
+#
+run_install $OWNERSHIP -m 0644 configfiles/findgw ${PREFIX}/usr/share/shorewall/configfiles/findgw
+
+if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall/findgw ]; then
+    run_install $OWNERSHIP -m 0600 configfiles/findgw ${PREFIX}/etc/shorewall/findgw
+    echo "Find GW file installed as ${PREFIX}/etc/shorewall/findgw"
+fi
+#
 # Delete the Routes file
 #
 delete_file ${PREFIX}/etc/shorewall/routes
@@ -782,6 +791,11 @@ done
 cd ..
 
 echo "Man Pages Installed"
+
+if [ -z "$PREFIX" ]; then
+    rm -rf /usr/share/shorewall-perl
+    rm -rf /usr/share/shorewall-shell
+fi
 
 if [ -z "$PREFIX" -a -n "$first_install" -a -z "$CYGWIN" ]; then
     if [ -n "$DEBIAN" ]; then

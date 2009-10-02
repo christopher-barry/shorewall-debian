@@ -1,11 +1,11 @@
 .\"     Title: shorewall.conf
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2009
+.\"      Date: 10/02/2009
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\&.CONF" "5" "09/03/2009" "" ""
+.TH "SHOREWALL\&.CONF" "5" "10/02/2009" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -595,6 +595,11 @@ When a new connection arrives from a \'maclist\' interface, the packet passes th
 If MACLIST_TTL is not specified or is specified as empty (e\&.g, MACLIST_TTL="" or is specified as zero then \'maclist\' lookups will not be cached)\&.
 .RE
 .PP
+\fBMAPOLDACTIONS=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+This option is included for compatibility with old Shorewall configuration\&. New installs should always have MAPOLDACTIONS=No\&.
+.RE
+.PP
 \fBMARK_IN_FORWARD_CHAIN=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 If your kernel has a FORWARD chain in the mangle table, you may set MARK_IN_FORWARD_CHAIN=Yes to cause the marking specified in the tcrules file to occur in that chain rather than in the PREROUTING chain\&. This permits you to mark inbound traffic based on its destination address when DNAT is in use\&. To determine if your kernel has a FORWARD chain in the mangle table, use the
@@ -667,18 +672,7 @@ Determines the order in which Shorewall searches directories for executable file
 .PP
 \fBPKTTYPE=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-Normally Shorewall attempts to use the iptables packet type match extension to determine broadcast and multicast packets\&.
-.sp
-.RS 4
-\h'-04' 1.\h'+02'This can cause a message to appear during shorewall start (modprobe: cant locate module ipt_pkttype)\&.
-.RE
-.sp
-.RS 4
-\h'-04' 2.\h'+02'Some users have found problems with the packet match extension with the result that their firewall log is flooded with messages relating to broadcast packets\&.
-.RE
-.IP "" 4
-
-If you are experiencing either of these problems, setting PKTTYPE=No will prevent Shorewall from trying to use the packet type match extension and to use IP address matching to determine which packets are broadcasts or multicasts\&.
+This option is included for compatibility with older Shorewall releases\&. Its setting has no effect\&.
 .RE
 .PP
 \fBRCP_COMMAND="\fR\fIcommand\fR\fB"\fR

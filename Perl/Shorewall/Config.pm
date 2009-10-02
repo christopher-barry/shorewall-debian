@@ -127,7 +127,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_object
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_2';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -242,6 +242,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 LOGMARK_TARGET  => 'LOGMARK Target',
 		 IPMARK_TARGET   => 'IPMARK Target',
 		 PERSISTENT_SNAT => 'Persistent SNAT',
+		 OLD_HL_MATCH    => 'Old Hash Limit Match',
 		 CAPVERSION      => 'Capability Version',
 	       );
 #
@@ -327,8 +328,8 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.1.2",
-		    CAPVERSION => 40401 ,
+		    VERSION => "4.4.2",
+		    CAPVERSION => 40402 ,
 		  );
 
     #
@@ -566,7 +567,7 @@ sub initialize( $ ) {
 			 NONE    => '',
 			 NFLOG   => 'NFLOG',
 		         LOGMARK => 'LOGMARK' );
-	}
+    }
     #
     # From parsing the capabilities file
     #
@@ -614,6 +615,7 @@ sub initialize( $ ) {
 	       IPMARK_TARGET => undef,
 	       LOG_TARGET => 1,         # Assume that we have it.
 	       PERSISTENT_SNAT => undef,
+	       OLD_HL_MATCH => undef,
 	       CAPVERSION => undef,
 	       );
     #
@@ -1592,11 +1594,16 @@ sub read_a_line() {
 	    #
 	    s/^\s*// if $currentline =~ /[,:]$/;
 	    #
+	    # If this isn't a continued line, remove trailing comments. Note that
+	    # the result may now end in '\'.
+	    #
+	    s/\s*#.*$// unless /\\$/;
+	    #
 	    # Continuation
 	    #
 	    chop $currentline, next if substr( ( $currentline .= $_ ), -1, 1 ) eq '\\';
 	    #
-	    # Remove Trailing Comments -- result might be a blank line
+	    # Now remove concatinated comments
 	    #
 	    $currentline =~ s/#.*$//;
 	    #
@@ -2022,6 +2029,15 @@ sub determine_capabilities( $ ) {
     $capabilities{ENHANCED_REJECT} = qt1( "$iptables -A $sillyname -j REJECT --reject-with icmp6-admt-prohibited" );
     $capabilities{COMMENTS}        = qt1( qq($iptables -A $sillyname -j ACCEPT -m comment --comment "This is a comment" ) );
 
+    $capabilities{HASHLIMIT_MATCH} = qt1( "$iptables -A $sillyname -m hashlimit --hashlimit-upto 3/min --hashlimit-burst 3 --hashlimit-name $sillyname --hashlimit-mode srcip -j ACCEPT" );
+
+    if ( $capabilities{HASHLIMIT_MATCH} ) {
+	$capabilities{OLD_HL_MATCH} = '';
+    } else {
+	$capabilities{OLD_HL_MATCH} = qt1( "$iptables -A $sillyname -m hashlimit --hashlimit 3/min --hashlimit-burst 3 --hashlimit-name $sillyname --hashlimit-mode srcip -j ACCEPT" );
+	$capabilities{HASHLIMIT_MATCH} = $capabilities{OLD_HL_MATCH};
+    }
+
     if  ( $capabilities{MANGLE_ENABLED} ) {
 	qt1( "$iptables -t mangle -N $sillyname" );
 
@@ -2066,7 +2082,6 @@ sub determine_capabilities( $ ) {
     $capabilities{USEPKTTYPE}      = qt1( "$iptables -A $sillyname -m pkttype --pkt-type broadcast -j ACCEPT" );
     $capabilities{ADDRTYPE}        = qt1( "$iptables -A $sillyname -m addrtype --src-type BROADCAST -j ACCEPT" );
     $capabilities{TCPMSS_MATCH}    = qt1( "$iptables -A $sillyname -p tcp --tcp-flags SYN,RST SYN -m tcpmss --mss 1000:1500 -j ACCEPT" );
-    $capabilities{HASHLIMIT_MATCH} = qt1( "$iptables -A $sillyname -m hashlimit --hashlimit 4 --hashlimit-burst 5 --hashlimit-name fooX1234 --hashlimit-mode dstip -j ACCEPT" );
     $capabilities{NFQUEUE_TARGET}  = qt1( "$iptables -A $sillyname -j NFQUEUE --queue-num 4" );
     $capabilities{REALM_MATCH}     = qt1( "$iptables -A $sillyname -m realm --realm 1" );
     $capabilities{HELPER_MATCH}    = qt1( "$iptables -A $sillyname -m helper --helper \"ftp\"" );
@@ -2246,6 +2261,14 @@ sub unsupported_yes_no( $ ) {
     fatal_error "$option=Yes is not supported by Shorewall $globals{VERSION}" if $config{$option};
 }
 
+sub unsupported_yes_no_warning( $ ) {
+    my $option = shift;
+
+    default_yes_no $option, '';
+
+    warning_message "$option=Yes is not supported by Shorewall $globals{VERSION}" if $config{$option};
+}
+
 #
 # - Read the shorewall.conf file
 # - Read the capabilities file, if any
@@ -2345,14 +2368,14 @@ sub get_configuration( $ ) {
     default_yes_no 'BLACKLISTNEWONLY'           , '';
     default_yes_no 'DISABLE_IPV6'               , '';
 
-    unsupported_yes_no 'DYNAMIC_ZONES';
-    unsupported_yes_no 'BRIDGING';
-    unsupported_yes_no 'SAVE_IPSETS';
-    unsupported_yes_no 'MAPOLDACTIONS';
-    unsupported_yes_no 'RFC1918_STRICT';
+    unsupported_yes_no_warning 'DYNAMIC_ZONES';
+    unsupported_yes_no         'BRIDGING';
+    unsupported_yes_no_warning 'SAVE_IPSETS';
+    unsupported_yes_no_warning 'RFC1918_STRICT';
 
     default_yes_no 'STARTUP_ENABLED'            , 'Yes';
     default_yes_no 'DELAYBLACKLISTLOAD'         , '';
+    default_yes_no 'MAPOLDACTIONS'              , 'Yes';
 
     warning_message 'DELAYBLACKLISTLOAD=Yes is not supported by Shorewall ' . $globals{VERSION} if $config{DELAYBLACKLISTLOAD};
 

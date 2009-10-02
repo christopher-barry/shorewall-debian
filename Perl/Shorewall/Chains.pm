@@ -74,7 +74,6 @@ our %EXPORT_TAGS = (
 				       initialize_chain_table
 				       add_commands
 				       move_rules
-				       move_rules1
 				       insert_rule1
 				       purge_jump
 				       add_tunnel_rule
@@ -166,7 +165,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_2';
 
 #
 # Chain Table
@@ -247,6 +246,7 @@ use constant { NO_RESTRICT        => 0,   # FORWARD chain rule     - Both -i and
 our $iprangematch;
 our $chainseq;
 our $idiotcount;
+our $idiotcount1;
 
 our $global_variables;
 
@@ -272,11 +272,11 @@ our %interfacegateways;     # Gateway of default route out of the interface
 our @builtins = qw(PREROUTING INPUT FORWARD OUTPUT POSTROUTING);
 
 #
-# Mode of the generator.
+# Mode of the emitter.
 #
-use constant { NULL_MODE => 0 ,   # Generating neither shell commands nor iptables-restore input
-	       CAT_MODE  => 1 ,   # Generating iptables-restore input
-	       CMD_MODE  => 2 };  # Generating shell commands.
+use constant { NULL_MODE => 0 ,   # Emitting neither shell commands nor iptables-restore input
+	       CAT_MODE  => 1 ,   # Emitting iptables-restore input
+	       CMD_MODE  => 2 };  # Emitting shell commands.
 
 our $mode;
 
@@ -356,6 +356,7 @@ sub initialize( $ ) {
 
     $global_variables   = 0;
     $idiotcount         = 0;
+    $idiotcount1        = 0;
 
 }
 
@@ -423,19 +424,16 @@ sub add_commands ( $$;@ ) {
 }
 
 sub push_rule( $$ ) {
-    my ($chainref, $rule) = @_;
+    my $chainref = $_[0];
+    my $rule     = join( ' ',  '-A',  $chainref->{name} , $_[1]);
 
     $rule .= qq( -m comment --comment "$comment") if $comment;
 
     if ( $chainref->{cmdlevel} ) {
 	$rule =~ s/"/\\"/g; #Must preserve quotes in the rule
-	add_commands $chainref , qq(echo "-A $chainref->{name} $rule" >&3);
+	add_commands $chainref , qq(echo "$rule" >&3);
     } else {
-	#
-	# We omit the chain name for now -- this makes it easier to move rules from one
-	# chain to another
-	#
-	push @{$chainref->{rules}}, join( ' ', '-A' , $rule );
+	push @{$chainref->{rules}}, $rule;
 	$chainref->{referenced} = 1;
     }
 }
@@ -607,7 +605,7 @@ sub insert_rule1($$$)
 
     $rule .= "-m comment --comment \"$comment\"" if $comment;
 
-    splice( @{$chainref->{rules}}, $number, 0,  join( ' ', '-A', $rule ) );
+    splice( @{$chainref->{rules}}, $number, 0,  join( ' ', '-A', $chainref->{name}, $rule ) );
 
     $iprangematch = 0;
 
@@ -637,36 +635,18 @@ sub add_tunnel_rule( $$ ) {
 # forward chain. Shorewall::Rules::generate_matrix() may decide to move those rules to
 # a zone-oriented chain, hence this function.
 #
-# The source chain must not have any run-time code included in its rules.
-#
 sub move_rules( $$ ) {
     my ($chain1, $chain2 ) = @_;
 
     if ( $chain1->{referenced} ) {
 	my @rules = @{$chain1->{rules}};
+	my $name  = $chain1->{name};
+	#
+	# We allow '+' in chain names and '+' is an RE meta-character. Escape it.
+	#
+	$name =~ s/\+/\\+/;
 
-	assert( /^-A/ ) for @rules;
-
-	splice @{$chain2->{rules}}, 0, 0, @rules;
-
-	$chain2->{referenced} = 1;
-	$chain1->{referenced} = 0;
-	$chain1->{rules}      = [];
-    }
-}
-
-#
-# Like above except it returns 0 if it can't move the rules
-#
-sub move_rules1( $$ ) {
-    my ($chain1, $chain2 ) = @_;
-
-    if ( $chain1->{referenced} ) {
-	my @rules = @{$chain1->{rules}};
-
-	for ( @rules ) {
-	    return 0 unless /^-A/;
-	}
+	( s/\-([AI]) $name /-$1 $chain2->{name} / ) for @rules;
 
 	splice @{$chain2->{rules}}, 0, 0, @rules;
 
@@ -674,8 +654,6 @@ sub move_rules1( $$ ) {
 	$chain1->{referenced} = 0;
 	$chain1->{rules}      = [];
     }
-
-    1;
 }
 
 #
@@ -940,15 +918,17 @@ sub ensure_filter_chain( $$ )
 
     my $chainref = ensure_chain 'filter', $chain;
 
-    if ( $populate and ! $chainref->{referenced} ) {
-	if ( $section eq 'NEW' or $section eq 'DONE' ) {
-	    finish_chain_section $chainref , 'ESTABLISHED,RELATED';
-	} elsif ( $section eq 'RELATED' ) {
-	    finish_chain_section $chainref , 'ESTABLISHED';
+    unless ( $chainref->{referenced} ) {
+	if ( $populate ) {
+	    if ( $section eq 'NEW' or $section eq 'DONE' ) {
+		finish_chain_section $chainref , 'ESTABLISHED,RELATED';
+	    } elsif ( $section eq 'RELATED' ) {
+		finish_chain_section $chainref , 'ESTABLISHED';
+	    }
 	}
-    }
 
-    $chainref->{referenced} = 1;
+	$chainref->{referenced} = 1;
+    }
 
     $chainref;
 }
@@ -965,9 +945,25 @@ sub ensure_accounting_chain( $  )
     if ( $chainref ) {
 	fatal_error "Non-accounting chain ($chain) used in accounting rule" unless $chainref->{accounting};
     } else {
-	$chainref = new_chain 'filter' , $chain unless $chainref;
+	$chainref = new_chain 'filter' , $chain;
 	$chainref->{accounting} = 1;
 	$chainref->{referenced} = 1;
+
+	if ( $chain ne 'accounting' ) {
+	    my $file = find_file $chain;
+
+	    if ( -f $file ) {
+		progress_message "Processing $file...";
+
+		my ( $level, $tag ) = ( '', '' );
+
+		unless ( my $return = eval `cat $file` ) {
+		    fatal_error "Couldn't parse $file: $@" if $@;
+		    fatal_error "Couldn't do $file: $!"    unless defined $return;
+		    fatal_error "Couldn't run $file"       unless $return;
+		}
+	    }
+	}
     }
 
     $chainref;
@@ -1042,7 +1038,6 @@ sub ensure_manual_chain($) {
 # Add all builtin chains to the chain table -- it is separate from initialize() because it depends on capabilities and configuration.
 # The function also initializes the target table with the pre-defined targets available for the specfied address family.
 #
-#
 sub initialize_chain_table()
 {
     if ( $family == F_IPV4 ) {
@@ -1069,15 +1064,6 @@ sub initialize_chain_table()
 		    'QUEUE!'          => STANDARD,
 		    'NFQUEUE'         => STANDARD + NFQ,
 		    'NFQUEUE!'        => STANDARD + NFQ,
-		    'dropBcast'       => BUILTIN  + ACTION,
-		    'allowBcast'      => BUILTIN  + ACTION,
-		    'dropNotSyn'      => BUILTIN  + ACTION,
-		    'rejNotSyn'       => BUILTIN  + ACTION,
-		    'dropInvalid'     => BUILTIN  + ACTION,
-		    'allowInvalid'    => BUILTIN  + ACTION,
-		    'allowinUPnP'     => BUILTIN  + ACTION,
-		    'forwardUPnP'     => BUILTIN  + ACTION,
-		    'Limit'           => BUILTIN  + ACTION,
 		   );
 
 	for my $chain qw(OUTPUT PREROUTING) {
@@ -1119,12 +1105,6 @@ sub initialize_chain_table()
 		    'QUEUE!'          => STANDARD,
 		    'NFQUEUE'         => STANDARD + NFQ,
 		    'NFQUEUE!'        => STANDARD + NFQ,
-		    'dropBcast'       => BUILTIN  + ACTION,
-		    'allowBcast'      => BUILTIN  + ACTION,
-		    'dropNotSyn'      => BUILTIN  + ACTION,
-		    'rejNotSyn'       => BUILTIN  + ACTION,
-		    'dropInvalid'     => BUILTIN  + ACTION,
-		    'allowInvalid'    => BUILTIN  + ACTION,
 		   );
 
 	for my $chain qw(OUTPUT PREROUTING) {
@@ -1551,12 +1531,14 @@ sub do_ratelimit( $$ ) {
 	require_capability 'HASHLIMIT_MATCH', 'Per-ip rate limiting' , 's';
 
 	my $limit = "-m hashlimit ";
+	my $match = $capabilities{OLD_HL_MATCH} ? 'hashlimit' : 'hashlimit-upto';
+
 	if ( $rate =~ /^[sd]:((\w*):)?(\d+(\/(sec|min|hour|day))?):(\d+)$/ ) {
-	    $limit .= "--hashlimit-upto $3 --hashlimit-burst $6 --hashlimit-name ";
+	    $limit .= "--hashlimit $3 --hashlimit-burst $6 --hashlimit-name ";
 	    $limit .= $2 ? $2 : 'shorewall';
 	    $limit .= ' --hashlimit-mode ';
 	} elsif ( $rate =~ /^[sd]:((\w*):)?(\d+(\/(sec|min|hour|day))?)$/ ) {
-	    $limit .= "--hashlimit-upto $3 --hashlimit-name ";
+	    $limit .= "--$match $3 --hashlimit-name ";
 	    $limit .= $2 ? $2 : 'shorewall';
 	    $limit .= ' --hashlimit-mode ';
 	} else {
@@ -2481,7 +2463,12 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    # An interface in the SOURCE column of a masq file
 	    #
 	    fatal_error "Bridge ports may not appear in the SOURCE column of this file" if port_to_bridge( $iiface );
-	    warning_message qq(Using an interface as the masq SOURCE requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount++;
+
+	    if ( $chainref->{table} eq 'nat' ) {
+		warning_message qq(Using an interface as the masq SOURCE requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount++;
+	    } else {
+		warning_message qq(Using an interface as the SOURCE in a T: rule requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount1++;
+	    }
 
 	    push_command $chainref, join( '', 'for source in ', get_interface_nets( $iiface) , '; do' ), 'done';
 
@@ -2839,14 +2826,15 @@ sub expand_rule( $$$$$$$$$$;$ )
 }
 
 #
-# The following code generates the input to iptables-restore
+# The following code generates the input to iptables-restore from the contents of the
+# @rules arrays in the chain table entries.
 #
 # We always write the iptables-restore input into a file then pass the
 # file to iptables-restore. That way, if things go wrong, the user (and Shorewall support)
 # has (have) something to look at to determine the error
 #
 # We may have to generate part of the input at run-time. The rules array in each chain
-# table entry may contain rules (begin with '-A') or shell source. We alternate between
+# table entry may contain both rules (begin with '-A') or shell source. We alternate between
 # writing the rules ('-A') into the temporary file to be passed to iptables-restore
 # (CAT_MODE) and and writing shell source into the generated script (CMD_MODE).
 #
@@ -2866,33 +2854,31 @@ sub enter_cmd_mode() {
 #
 # Emits the passed rule (input to iptables-restore) or command
 #
-sub emitr( $$ ) {
-    my ( $name, $rule ) = @_;
-
-    if ( $rule && substr( $rule, 0, 2 ) eq '-A' ) {
-	#
-	# A rule
-	#
-	enter_cat_mode unless $mode == CAT_MODE;
-	emit_unindented join( ' ', '-A', $name, substr( $rule, 3 ) );
-    } else {
-	#
-	# A command
-	#
-	enter_cmd_mode unless $mode == CMD_MODE;
-	emit $rule;
+sub emitr( $ ) {
+    if ( my $rule = $_[0] ) {
+	if ( substr( $rule, 0, 2 ) eq '-A' ) {
+	    #
+	    # A rule
+	    #
+	    enter_cat_mode unless $mode == CAT_MODE;
+	    emit_unindented $rule;
+	} else {
+	    #
+	    # A command
+	    #
+	    enter_cmd_mode unless $mode == CMD_MODE;
+	    emit $rule;
+	}
     }
 }
 
 #
 # Simple version that only handles rules
 #
-sub emitr1( $$ ) {
-    my ( $name, $rule ) = @_;
+sub emitr1( $ ) {
+    my $rule = $_[0];
 
-    assert( substr( $rule, 0, 2 ) eq '-A' );
-
-    emit_unindented join( ' ', '-A', $name, substr( $rule, 3 ) );
+    emit_unindented $rule;
 }
 
 #
@@ -2968,7 +2954,7 @@ sub create_netfilter_load( $ ) {
 	# Then emit the rules
 	#
 	for my $chainref ( @chains ) {
-	    emitr $chainref->{name}, $_ for ( grep defined $_, @{$chainref->{rules}} );
+	    emitr $_ for ( grep defined $_, @{$chainref->{rules}} );
 	}
 	#
 	# Commit the changes to the table
@@ -3077,7 +3063,7 @@ sub create_chainlist_reload($) {
 		#
 		# Emit the chain rules
 		#
-		emitr $chain, $_ for ( grep defined $_, @rules );
+		emitr $_ for ( grep defined $_, @rules );
 	    }
 	    #
 	    # Commit the changes to the table
@@ -3182,7 +3168,7 @@ sub create_stop_load( $ ) {
 	# Then emit the rules
 	#
 	for my $chainref ( @chains ) {
-	    emitr1 $chainref->{name}, $_ for @{$chainref->{rules}};
+	    emitr1 $_ for @{$chainref->{rules}};
 	}
 	#
 	# Commit the changes to the table

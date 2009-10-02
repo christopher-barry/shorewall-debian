@@ -40,11 +40,12 @@ our @EXPORT = qw( process_tos
 		  add_common_rules
 		  setup_mac_lists
 		  process_rules
+		  process_routestopped
 		  generate_matrix
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_2';
 
 #
 # Set to one if we find a SECTION
@@ -776,6 +777,9 @@ sub setup_mac_lists( $ ) {
 	    }
 	}
     } else {
+	#
+	# Phase II
+	#
 	for my $interface ( @maclist_interfaces ) {
 	    my $chainref = $chain_table{$table}{( $ttl ? macrecent_target $interface : mac_chain $interface )};
 	    my $chain    = $chainref->{name};
@@ -848,12 +852,13 @@ sub process_macro ( $$$$$$$$$$$$$$$ ) {
 
     while ( read_a_line ) {
 
-	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser );
+	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark, $mconnlimit, $mtime);
 
 	if ( $format == 1 ) {
-	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser, $morigdest ) = split_line1 1, 9, 'macro file', $macro_commands;
+	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser ) = split_line1 1, 8, 'macro file', $macro_commands;
+	    ( $morigdest, $mmark, $mconnlimit, $mtime ) = qw/- - - -/;
 	} else {
-	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser ) = split_line1 1, 9, 'macro file', $macro_commands;
+	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark, $mconnlimit, $mtime ) = split_line1 1, 12, 'macro file', $macro_commands;
 	}
 
 	if ( $mtarget eq 'COMMENT' ) {
@@ -866,8 +871,6 @@ sub process_macro ( $$$$$$$$$$$$$$$ ) {
 	    $format = $msource;
 	    next;
 	}
-
-	fatal_error "Invalid macro file entry (too many columns)" if $morigdest ne '-' && $format == 1;
 
 	$mtarget = merge_levels $target, $mtarget;
 
@@ -914,15 +917,15 @@ sub process_macro ( $$$$$$$$$$$$$$$ ) {
 		      $mtarget,
 		      $msource,
 		      $mdest,
-		      merge_macro_column( $mproto,    $proto ) ,
-		      merge_macro_column( $mports,    $ports ) ,
-		      merge_macro_column( $msports,   $sports ) ,
-		      merge_macro_column( $morigdest, $origdest ) ,
-		      merge_macro_column( $mrate,     $rate ) ,
-		      merge_macro_column( $muser,     $user ) ,
-		      $mark,
-		      $connlimit,
-		      $time,
+		      merge_macro_column( $mproto,     $proto ) ,
+		      merge_macro_column( $mports,     $ports ) ,
+		      merge_macro_column( $msports,    $sports ) ,
+		      merge_macro_column( $morigdest,  $origdest ) ,
+		      merge_macro_column( $mrate,      $rate ) ,
+		      merge_macro_column( $muser,      $user ) ,
+		      merge_macro_column( $mmark,      $mark ) ,
+		      merge_macro_column( $mconnlimit, $connlimit) ,
+		      merge_macro_column( $mtime,      $time ),
 		      $wildcard
 		     );
 
@@ -958,6 +961,10 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
     # Determine the validity of the action
     #
     my $actiontype = $targets{$basictarget} || find_macro( $basictarget );
+
+    if ( $config{ MAPOLDACTIONS } ) {
+	( $basictarget, $actiontype , $param ) = map_old_actions( $basictarget ) unless ( $actiontype || $param );
+    }
 
     fatal_error "Unknown action ($action)" unless $actiontype;
 

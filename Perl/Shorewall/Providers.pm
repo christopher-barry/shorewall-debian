@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_providers @routemarked_interfaces handle_stickiness handle_optional_interfaces );
 our @EXPORT_OK = qw( initialize lookup_provider );
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_2';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -455,10 +455,10 @@ sub add_a_provider( ) {
 	emit '';
 	if ( $gateway ) {
 	    emit qq(run_ip route replace default via $gateway src $address dev $interface table ) . DEFAULT_TABLE . qq( dev $interface metric $number);
-	    emit qq(echo "qt \$IP route del default via $gateway table ) . DEFAULT_TABLE . qq(" >> \${VARDIR}/undo_routing);
+	    emit qq(echo "qt \$IP -$family route del default via $gateway table ) . DEFAULT_TABLE . qq(" >> \${VARDIR}/undo_routing);
 	} else {
 	    emit qq(run_ip route add default table ) . DEFAULT_TABLE . qq( dev $interface metric $number);
-	    emit qq(echo "qt \$IP route del default dev $interface table ) . DEFAULT_TABLE . qq(" >> \${VARDIR}/undo_routing);
+	    emit qq(echo "qt \$IP -$family route del default dev $interface table ) . DEFAULT_TABLE . qq(" >> \${VARDIR}/undo_routing);
 	}
     }
 
@@ -864,12 +864,12 @@ sub handle_stickiness( $ ) {
 			$rule1 =~ s/-j sticky/-m mark --mark $mark\/$mask -m recent --name $list --set/;
 		    }
 
-		    $rule1 =~ s/-A //;
+		    $rule1 =~ s/-A tcpre //;
 
 		    add_rule $chainref, $rule1;
 
 		    if ( $rule2 ) {
-			$rule2 =~ s/-A //;
+			$rule2 =~ s/-A tcpre //;
 			add_rule $chainref, $rule2;
 		    }
 
@@ -896,12 +896,12 @@ sub handle_stickiness( $ ) {
 			$rule1 =~ s/-j sticko/-m mark --mark $mark -m recent --name $list --rdest --set/;
 		    }
 
-		    $rule1 =~ s/-A //;
+		    $rule1 =~ s/-A tcout //;
 
 		    add_rule $chainref, $rule1;
 
 		    if ( $rule2 ) {
-			$rule2 =~ s/-A //;
+			$rule2 =~ s/-A tcout //;
 			add_rule $chainref, $rule2;
 		    }
 

@@ -1,12 +1,36 @@
-Changes in Shorewall 4.4.1.2
+Changes in Shorewall 4.4.2
 
-1)  Re-initialize chain table before generating 'stop_firewall()'
+1)  BUGFIX: Correct detection of Persistent SNAT support
 
-Changes in Shorewall 4.4.1.1
+2)  BUGFIX: Fix chain table initialization
 
-1)  Fixed detection of Persistent SNAT
+3)  BUGFIX: Validate routestopped file on 'check'
 
-2)  Fix compiler initialization fiasco.
+4)  Let the Actions module add the builtin actions to
+    %Shorewall::Chains::targets. Much better modularization that way.
+
+5)  Some changes to make Lenny->Squeeze less painful.
+
+6)  Allow comments at the end of continued lines.
+
+7)  Call process_routestopped() during 'check' rather than
+    'compile_stop_firewall()'.
+
+8)  Don't look for an extension script for built-in actions.
+
+9)  Apply Jesse Shrieve's patch for SNAT range.
+
+10) Add -<family> to 'ip route del default' command.
+
+11) Add three new columns to macro body.
+
+12) Change 'wait4ifup' so that it requires no PATH
+
+13) Allow extension scripts for accounting chains.
+
+14) Allow per-ip LIMIT to work on ancient iptables releases.
+
+15) Add 'MARK' column to action body.
 
 Changes in Shorewall 4.4.1
 
@@ -57,7 +81,7 @@ Changes in Shorewall 4.4.0
 
 5)  Fix 'upnpclient' with required interfaces.
 
-5)  Fix provider number in masq file.
+6)  Fix provider number in masq file.
 
 Changes in Shorewall 4.4.0-RC2
 
