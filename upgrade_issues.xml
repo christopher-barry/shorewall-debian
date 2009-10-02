@@ -148,7 +148,8 @@
         starts/restarts</para>
 
         <para>To avoid this warning, replace interface names by the
-        corresponding network addresses (e.g., 192.168.144.0/24).</para>
+        corresponding netwok(s) in CIDR format (e.g.,
+        192.168.144.0/24).</para>
       </listitem>
 
       <listitem>
@@ -164,12 +165,6 @@
         defined in <filename>/etc/shorewall/tcdevices</filename> and if you
         use class IDs in <filename>/etc/shorewall/tcrules</filename>. You will
         need to renumber the class IDs for devices 10 and greater.</para>
-      </listitem>
-
-      <listitem>
-        <para>Jozsef Kadlecsik has removed the set binding capability from
-        ipset 3.1. As a consequence, Shorewall 4.3 no longer supports set
-        binding.</para>
       </listitem>
 
       <listitem>
@@ -206,6 +201,9 @@
         against the parent zone rules.</para>
       </listitem>
     </orderedlist>
+
+    <para>Be sure to check the latest 4.4 Release Notes linked from the <ulink
+    url="index.htm">home page</ulink>.</para>
   </section>
 
   <section>
@@ -865,7 +863,7 @@ all             all             REJECT:MyReject info</programlisting>
         BOGON_LOG_LEVEL option have been eliminated.</para>
       </listitem>
 
-      <listitem>
+      <listitem id="MAPOLDACTIONS">
         <para>Most of the standard actions have been replaced by parameterized
         macros (see below). So for example, the action.AllowSMTP and
         action.DropSMTP have been removed an a parameterized macro macro.SMTP

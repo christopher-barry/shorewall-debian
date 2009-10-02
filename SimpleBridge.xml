@@ -93,6 +93,12 @@
     bridge-specific changes are restricted to the
     <filename>/etc/shorewall/interfaces</filename> file.</para>
 
+    <note>
+      <para>Older configurations that specify an interface name in the SOURCE
+      column of <filename>/etc/shorewall/masq</filename> will also need to
+      change that file.</para>
+    </note>
+
     <para>This example illustrates the bridging of two Ethernet devices but
     the types of the devices really isn't important. What is shown here would
     apply equally to bridging an Ethernet device to an <ulink
@@ -138,5 +144,11 @@ loc            <emphasis role="bold">br0</emphasis>             10.0.1.255     <
 net            eth0            detect         ...
 loc            <emphasis role="bold">br0</emphasis>             10.0.1.255     <emphasis
           role="bold">routeback,bridge</emphasis>,...</programlisting></para>
+
+    <para>Your entry in <filename>/etc/shorewall/masq</filename> should be
+    unchanged:</para>
+
+    <programlisting>#INTERFACE     SOURCE          ADDRESS
+eth0           10.0.1.0/24     ...            # 10.0.1.0/24 is the local network on LAN A and LAN B</programlisting>
   </section>
 </article>

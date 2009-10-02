@@ -235,7 +235,7 @@
 
               <listitem>
                 <para>Use mark values &gt; 255 for provider marks in this
-                column. </para>
+                column.</para>
 
                 <itemizedlist>
                   <listitem>
@@ -423,11 +423,21 @@
                 <term>loose</term>
 
                 <listitem>
-                  <para>Do not include routing rules that force traffic whose
+                  <para>Do not generate routing rules that force traffic whose
                   source IP is an address of the INTERFACE to be routed to
                   this provider. Useful for defining providers that are to be
                   used only when the appropriate packet mark is
                   applied.</para>
+
+                  <para>Shorewall makes no attempt to consolidate the routing
+                  rules added when <emphasis role="bold">loose</emphasis> is
+                  not specified. So, if you have multiple IP addresses on a
+                  provider interface, you may be able to replace the rules
+                  that Shorewall generates with one or two rules in
+                  <filename>/etc/shorewall/route_rules</filename>. In that
+                  case, you can specify <emphasis role="bold">loose</emphasis>
+                  to suppress Shorewall's rule generation. See the <link
+                  linkend="Complete">example</link> below.</para>
                 </listitem>
               </varlistentry>
 
@@ -1454,7 +1464,7 @@ defaults {
   warn_email=teastep@shorewall.net
   check_arp=0
   sourceip=
-  ttl=64
+  ttl=0
 }
 
 include /etc/lsm/shorewall.conf</programlisting>

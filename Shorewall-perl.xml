@@ -143,7 +143,7 @@
           </itemizedlist>
         </listitem>
 
-        <listitem>
+        <listitem id="Extensions">
           <para>With the shell-based compiler, extension scripts were copied
           into the compiled script and executed at run-time. In many cases,
           this approach doesn't work with Shorewall Perl because (almost) the
@@ -153,67 +153,79 @@
           extension scripts from earlier versions will no longer work.</para>
 
           <para>The following table summarizes when the various extension
-          scripts are run:<informaltable align="left" frame="none">
-              <tgroup cols="3">
-                <tbody>
-                  <row>
-                    <entry><emphasis role="bold">Compile-time (Must be written
-                    in Perl)</emphasis></entry>
+          scripts are run:</para>
 
-                    <entry><emphasis role="bold">Run-time</emphasis></entry>
+          <informaltable align="left" frame="none">
+            <tgroup cols="3">
+              <tbody>
+                <row>
+                  <entry><emphasis role="bold">Compile-time (Must be written
+                  in Perl)</emphasis></entry>
 
-                    <entry><emphasis role="bold">Eliminated</emphasis></entry>
-                  </row>
+                  <entry><emphasis role="bold">Run-time</emphasis></entry>
 
-                  <row>
-                    <entry>initdone</entry>
+                  <entry><emphasis role="bold">Eliminated</emphasis></entry>
+                </row>
 
-                    <entry>clear</entry>
+                <row>
+                  <entry>initdone</entry>
 
-                    <entry>continue</entry>
-                  </row>
+                  <entry>clear</entry>
 
-                  <row>
-                    <entry>maclog</entry>
+                  <entry>continue</entry>
+                </row>
 
-                    <entry>start</entry>
-                  </row>
+                <row>
+                  <entry>maclog</entry>
 
-                  <row>
-                    <entry>Per-chain (including those associated with
-                    actions)</entry>
+                  <entry>init</entry>
 
-                    <entry>started</entry>
+                  <entry></entry>
+                </row>
 
-                    <entry></entry>
-                  </row>
+                <row>
+                  <entry>Per-chain (including those associated with
+                  actions)</entry>
 
-                  <row>
-                    <entry></entry>
+                  <entry>start</entry>
 
-                    <entry>stop</entry>
+                  <entry></entry>
+                </row>
 
-                    <entry></entry>
-                  </row>
+                <row>
+                  <entry></entry>
 
-                  <row>
-                    <entry></entry>
+                  <entry>started</entry>
 
-                    <entry>stopped</entry>
+                  <entry></entry>
+                </row>
 
-                    <entry></entry>
-                  </row>
+                <row>
+                  <entry></entry>
 
-                  <row>
-                    <entry></entry>
+                  <entry>stop</entry>
 
-                    <entry>tcclear</entry>
+                  <entry></entry>
+                </row>
 
-                    <entry></entry>
-                  </row>
-                </tbody>
-              </tgroup>
-            </informaltable></para>
+                <row>
+                  <entry></entry>
+
+                  <entry>stopped</entry>
+
+                  <entry></entry>
+                </row>
+
+                <row>
+                  <entry></entry>
+
+                  <entry>tcclear</entry>
+
+                  <entry></entry>
+                </row>
+              </tbody>
+            </tgroup>
+          </informaltable>
 
           <para>Compile-time extension scripts are executed using the Perl
           'eval `cat &lt;file&gt;`' mechanism. Be sure that each script
@@ -343,7 +355,7 @@ insert_rule $filter_table-&gt;{OUTPUT},     1, "-p udp --sport 1701 -j ACCEPT";
           the tos file released with Shorewall 1.4 and earlier.</para>
         </listitem>
 
-        <listitem>
+        <listitem id="SAVE_IPSETS">
           <para>Shorewall-perl insists that ipset names begin with a letter
           and be composed of alphanumeric characters and underscores (_). When
           used in a Shorewall configuration file, the name must be preceded by
@@ -547,7 +559,8 @@ DNAT-              net                192.168.1.3      tcp          21</programl
           starts/restarts</para>
 
           <para>To avoid this warning, replace interface names by the
-          corresponding network addresses (e.g., 192.168.144.0/24).</para>
+          corresponding network() in CIDR format (e.g.,
+          192.168.144.0/24).</para>
         </listitem>
       </orderedlist>
     </section>
