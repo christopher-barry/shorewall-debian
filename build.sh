@@ -125,7 +125,7 @@ done
 
 for i in $PKGS_TO_BUILD ; do
   [ -z "$VERBOSE" ] || echo "Building package $i"
-  BUILD_CMD="git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-export-dir=../build-area --git-pristine-tar --git-builder=$BUILD_PROG $BUILD_PROG_OPTS"
+  BUILD_CMD="git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-export-dir=../build-area --git-pristine-tar --git-verbose --git-builder=$BUILD_PROG $BUILD_PROG_OPTS"
   [ -z "$VERBOSE" ] || echo "Issuing command:"
   [ -z "$VERBOSE" ] || echo "   $BUILD_CMD"
   git-checkout $i/master
