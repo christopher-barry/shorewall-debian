@@ -142,12 +142,16 @@ git-checkout master
 # Command lines
 ###############################################################################
 
+# New upstream tarball
+# git-import-orig --sign-tags --upstream-branch=shorewall-doc/upstream --debian-branch=shorewall-doc/master --verbose --pristine-tar --upstream-tag=shorewall-doc/upstream/4.4.2 --upstream-version=4.4.2 /network/scratch/roberto/tmp/shorewall-4.4.2/shorewall-doc_4.4.2.orig.tar.gz
+
 # Build
 # git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area --git-pristine-tar
 # pdebuild --configfile /etc/pbuilder/pbuilderrc-$DISTRO --buildsourceroot fakeroot --pbuilderroot sudo --buildresult /var/lib/chroot/pbuilder-$DISTRO/results --use-pdebuild-internal "$@"
 
 # Tag
-# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-tag --git-tag-only --git-debian-tag=shorewall/debian/4.4.1.2-2
+# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-tag --git-tag-only --git-debian-tag=shorewall/debian/4.4.1.2-2 --git-sign-tags
+# for i in shorewall shorewall-lite shorewall6 shorewall6-lite shorewall-doc ; do git-checkout $i/master ; git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-tag --git-tag-only --git-debian-tag=$i/debian/4.4.2-1 --git-sign-tags ; done
 
 # Upload
 # git-push --mirror ssh://el_cubano@shorewall.git.sourceforge.net/gitroot/shorewall/debian
