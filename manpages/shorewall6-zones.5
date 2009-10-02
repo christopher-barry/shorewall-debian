@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-zones
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2009
+.\"      Date: 10/02/2009
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-ZONES" "5" "09/03/2009" "" ""
+.TH "SHOREWALL6\-ZONES" "5" "10/02/2009" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -88,7 +88,7 @@ This is the standard Shorewall6 zone type and is the default if you leave this c
 \fIshorewall6\-hosts\fR\&[4](5)\&.
 .RE
 .PP
-\fBipsec\fR
+\fBipsec\fR (or \fBipsec6\fR)
 .RS 4
 Communication with all zone hosts is encrypted\&. Your kernel and ip6tables must include policy match support\&.
 .RE
@@ -98,7 +98,7 @@ Communication with all zone hosts is encrypted\&. Your kernel and ip6tables must
 Designates the firewall itself\&. You must have exactly one \'firewall\' zone\&. No options are permitted with a \'firewall\' zone\&. The name that you enter in the ZONE column will be stored in the shell variable $FW which you may use in other configuration files to designate the firewall zone\&.
 .RE
 .PP
-bport (or bport6)
+\fBbport\fR (or \fBbport6\fR)
 .RS 4
 The zone is associated with one or more ports on a single bridge\&.
 .RE
