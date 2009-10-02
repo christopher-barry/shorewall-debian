@@ -7,6 +7,6 @@ shorewall6: non-standard-dir-perm var/lib/shorewall6/ 0750 != 0755
 shorewall6: script-not-executable ./usr/share/shorewall6/lib.base
 shorewall6: script-not-executable ./usr/share/shorewall6/lib.cli
 # Shorewall needs to continue in runlevel 1 because networking may still be up
-shorewall6: init.d-script-possible-missing-stop /etc/init.d/shorewall6 1
+shorewall6: init.d-script-possible-missing-stop /etc/init.d/shorewall6
 # The administrator will not replace /sbin/shorewall with a local copy
 shorewall6: command-with-path-in-maintainer-script postinst:39 /sbin/shorewall6
