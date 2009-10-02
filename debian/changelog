@@ -1,8 +1,9 @@
 shorewall6 (4.4.2-1) unstable; urgency=low
 
   * New Upstream Version (Closes: #538134)
+  * Override lintian warning about init script
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 02 Oct 2009 13:06:41 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 02 Oct 2009 13:57:20 -0400
 
 shorewall6 (4.4.1-1) unstable; urgency=low
 
