@@ -9,4 +9,4 @@ shorewall: script-not-executable ./usr/share/shorewall/lib.cli
 # It is necessary to specify /sbin/shorewall
 shorewall: command-with-path-in-maintainer-script
 # Shorewall needs to continue in runlevel 1 because networking may still be up
-shorewall: init.d-script-possible-missing-stop /etc/init.d/shorewall 1
+shorewall: init.d-script-possible-missing-stop /etc/init.d/shorewall
