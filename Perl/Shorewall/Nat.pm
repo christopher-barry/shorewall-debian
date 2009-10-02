@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_2';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -239,7 +239,11 @@ sub process_one_masq( )
 			if ( $addr =~ /^.*\..*\..*\./ ) {
 			    $target = '-j SNAT ';
 			    my ($ipaddr, $rest) = split ':', $addr;
-			    validate_address $ipaddr, 0;
+			    if ( $ipaddr =~ /^(.+)-(.+)$/ ) {
+				validate_range( $1, $2 );
+			    } else {
+				validate_address $ipaddr, 0;
+			    }
 			    $addrlist .= "--to-source $addr ";
 			    $exceptionrule = do_proto( $proto, '', '' ) if $addr =~ /:/;
 			} else {

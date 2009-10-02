@@ -47,6 +47,7 @@ our @EXPORT = qw( merge_levels
 		  substitute_param
 		  merge_macro_source_dest
 		  merge_macro_column
+		  map_old_actions
 
 		  %usedactions
 		  %default_actions
@@ -56,7 +57,7 @@ our @EXPORT = qw( merge_levels
 		  $macro_commands
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_2';
 
 #
 #  Used Actions. Each action that is actually used has an entry with value 1.
@@ -85,6 +86,8 @@ our %macros;
 
 our $family;
 
+our @builtins;
+
 #
 # Commands that can be embedded in a macro file and how many total tokens on the line (0 => unlimited).
 #
@@ -111,6 +114,12 @@ sub initialize( $ ) {
     %actions         = ();
     %logactionchains = ();
     %macros          = ();
+
+    if ( $family == F_IPV4 ) {
+	@builtins = qw/dropBcast allowBcast dropNotSyn rejNotSyn dropInvalid allowInvalid allowinUPnP forwardUPnP Limit/;
+    } else {
+	@builtins = qw/dropBcast allowBcast dropNotSyn rejNotSyn dropInvalid allowInvalid/;
+    }
 }
 
 #
@@ -265,6 +274,34 @@ sub add_requiredby ( $$ ) {
 }
 
 #
+# Map pre-3.0 actions to the corresponding Macro invocation
+#
+
+sub find_old_action ( $$$ ) {
+    my ( $target, $macro, $param ) = @_;
+
+    if ( my $actiontype = find_macro( $macro ) ) {
+	( $macro, $actiontype , $param );
+    } else {
+	( $target, 0, '' );
+    }
+}
+
+sub map_old_actions( $ ) {
+    my $target = shift;
+
+    if ( $target =~ /^Allow(.*)$/ ) {
+	find_old_action( $target, $1, 'ACCEPT' );
+    } elsif ( $target =~ /^Drop(.*)$/ ) {
+	find_old_action( $target, $1, 'DROP' );
+    } elsif ( $target = /^Reject(.*)$/ ) {
+	find_old_action( $target, $1, 'REJECT' );
+    } else {
+	( $target, 0, '' );
+    }
+}
+
+#
 # Create and record a log action chain -- Log action chains have names
 # that are formed from the action name by prepending a "%" and appending
 # a 1- or 2-digit sequence number. In the functions that follow,
@@ -302,7 +339,7 @@ sub createlogactionchain( $$ ) {
 
     fatal_error "Too many invocations of Action $action" if $actionref->{actchain} > 99;
 
-    unless ( $targets{$action} & STANDARD ) {
+    unless ( $targets{$action} & BUILTIN ) {
 
 	my $file = find_file $chain;
 
@@ -328,7 +365,7 @@ sub createsimpleactionchain( $ ) {
 
     $logactionchains{"$action:none"} = $chainref;
 
-    unless ( $targets{$action} & STANDARD ) {
+    unless ( $targets{$action} & BUILTIN ) {
 
 	my $file = find_file $action;
 
@@ -413,8 +450,9 @@ sub process_macro1 ( $$ ) {
 #
 # The functions process_actions1-3() implement the three phases of action processing.
 #
-# The first phase (process_actions1) occurs before the rules file is processed. ${SHAREDIR}/actions.std
-# and ${CONFDIR}/actions are scanned (in that order) and for each action:
+# The first phase (process_actions1) occurs before the rules file is processed. The builtin-actions are added
+# to the target table (%Shorewall::Chains::targets) and actions table, then ${SHAREDIR}/actions.std and
+# ${CONFDIR}/actions are scanned (in that order). For each action:
 #
 #      a) The related action definition file is located and scanned.
 #      b) Forward and unresolved action references are trapped as errors.
@@ -476,10 +514,10 @@ sub process_action1 ( $$ ) {
 sub process_actions1() {
 
     progress_message2 "Preprocessing Action Files...";
-
-    for my $act ( grep $targets{$_} & ACTION , keys %targets ) {
-	new_action $act;
-    }
+    #
+    # Add built-in actions to the target table and create those actions
+    #
+    $targets{$_} = ACTION + BUILTIN, new_action( $_ ) for @builtins;
 
     for my $file ( qw/actions.std actions/ ) {
 	open_file $file;
@@ -515,7 +553,7 @@ sub process_actions1() {
 
 	    while ( read_a_line ) {
 
-		my ($wholetarget, $source, $dest, $proto, $ports, $sports, $rate, $users ) = split_line 1, 8, 'action file';
+		my ($wholetarget, $source, $dest, $proto, $ports, $sports, $rate, $users, $mark ) = split_line 1, 9, 'action file';
 
 		process_action1( $action, $wholetarget );
 
@@ -552,8 +590,8 @@ sub process_actions2 () {
 #
 # This function is called to process each rule generated from an action file.
 #
-sub process_action( $$$$$$$$$$ ) {
-    my ($chainref, $actionname, $target, $source, $dest, $proto, $ports, $sports, $rate, $user ) = @_;
+sub process_action( $$$$$$$$$$$ ) {
+    my ($chainref, $actionname, $target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) = @_;
 
     my ( $action , $level ) = split_action $target;
 
@@ -571,7 +609,7 @@ sub process_action( $$$$$$$$$$ ) {
 
     expand_rule ( $chainref ,
 		  NO_RESTRICT ,
-		  do_proto( $proto, $ports, $sports ) . do_ratelimit( $rate, $action ) . do_user $user ,
+		  do_proto( $proto, $ports, $sports ) . do_ratelimit( $rate, $action ) . do_user $user . do_test( $mark, 0xFF ) ,
 		  $source ,
 		  $dest ,
 		  '', #Original Dest
@@ -584,8 +622,8 @@ sub process_action( $$$$$$$$$$ ) {
 #
 # Expand Macro in action files.
 #
-sub process_macro3( $$$$$$$$$$$ ) {
-    my ( $macro, $param, $chainref, $action, $source, $dest, $proto, $ports, $sports, $rate, $user ) = @_;
+sub process_macro3( $$$$$$$$$$$$ ) {
+    my ( $macro, $param, $chainref, $action, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) = @_;
 
     my $nocomment = no_comment;
 
@@ -601,12 +639,14 @@ sub process_macro3( $$$$$$$$$$$ ) {
 
     while ( read_a_line ) {
 
-	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser );
+	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark );
 
 	if ( $format == 1 ) {
-	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser, $morigdest ) = split_line1 1, 9, 'macro file', $macro_commands;
+	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser ) = split_line1 1, 8, 'macro file', $macro_commands;
+	    $morigdest = '-';
+	    $mmark     = '-';
 	} else {
-	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser ) = split_line1 1, 9, 'macro file', $macro_commands;
+	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark ) = split_line1 1, 10, 'macro file', $macro_commands;
 	}
 
 	if ( $mtarget eq 'COMMENT' ) {
@@ -619,8 +659,6 @@ sub process_macro3( $$$$$$$$$$$ ) {
 	    $format = $msource;
 	    next;
 	}
-
-	fatal_error "Invalid macro file entry (too many columns)" if $morigdest ne '-' && $format == 1;
 
 	if ( $mtarget =~ /^PARAM:?/ ) {
 	    fatal_error 'PARAM requires that a parameter be supplied in macro invocation' unless $param;
@@ -662,8 +700,9 @@ sub process_macro3( $$$$$$$$$$$ ) {
 	$msports = merge_macro_column $msports, $sports;
 	$mrate   = merge_macro_column $mrate,   $rate;
 	$muser   = merge_macro_column $muser,   $user;
+	$mmark   = merge_macro_column $mmark,   $mark;
 
-	process_action $chainref, $action, $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser;
+	process_action $chainref, $action, $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser, $mark;
     }
 
     pop_open;
@@ -688,7 +727,7 @@ sub process_action3( $$$$$ ) {
 
     while ( read_a_line ) {
 
-	my ($target, $source, $dest, $proto, $ports, $sports, $rate, $user ) = split_line1 1, 8, 'action file';
+	my ($target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) = split_line1 1, 9, 'action file';
 
 	if ( $target eq 'COMMENT' ) {
 	    process_comment;
@@ -712,9 +751,9 @@ sub process_action3( $$$$$ ) {
 	}
 
 	if ( $action2type == MACRO ) {
-	    process_macro3( $action2, $param, $chainref, $action, $source, $dest, $proto, $ports, $sports, $rate, $user );
+	    process_macro3( $action2, $param, $chainref, $action, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark );
 	} else {
-	    process_action $chainref, $action, $target2, $source, $dest, $proto, $ports, $sports, $rate, $user;
+	    process_action $chainref, $action, $target2, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark;
 	}
     }
 
