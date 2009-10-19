@@ -1,4 +1,4 @@
-Shorewall 4.4.2
+Shorewall 4.4.2 Patch Release 3.
 
 ----------------------------------------------------------------------------
                R E L E A S E  4 . 4  H I G H L I G H T S
@@ -170,6 +170,36 @@ Shorewall 4.4.2
     then it may have no additional members in /etc/shorewall/hosts.
 
 ----------------------------------------------------------------------------
+        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 . 3
+----------------------------------------------------------------------------
+
+1)  If aliases were added and RETAIN_ALIASES=No in shorewall.conf, then
+    an internal error was generated.
+
+2)  Previously, the generated script set its global IP configuration
+    variables, even when those variables were not required to execute the
+    requested command.  If detection of an IP address, route,
+    etc. failed, the command could needlessly fail. Now, these
+    variables are only set when their values are needed to correctly
+    execute the specified command.
+
+3)  Nested zones did not work correctly in some cases where the parent
+    zone was defined with a wild-card interface name (one ending in '+').
+
+----------------------------------------------------------------------------
+        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 . 2
+----------------------------------------------------------------------------
+
+1)  'routeback' in /etc/shorewall/routestopped was ineffective.
+
+----------------------------------------------------------------------------
+        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 . 1
+----------------------------------------------------------------------------
+
+1)  'shorewall check' produced an internal error if 'routeback' was
+    specified in /etc/shorewall/routestopped.
+
+----------------------------------------------------------------------------
           P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2
 ----------------------------------------------------------------------------
 
@@ -184,7 +214,7 @@ Shorewall 4.4.2
     /etc/shorewall/routestopped.
 
 4)  In earlier versions, if a file with the same name as a built-in
-    action were present in the CONFIG_PATH, then the compiler would
+    action was present in the CONFIG_PATH, then the compiler would
     process that file like it was an extension script.
 
     The compiler now ignores the presence of such files.
@@ -192,7 +222,7 @@ Shorewall 4.4.2
 5)  Several configuration issues which previously produced an error or
     warning are now handled differently.
 
-    a)  MAPOLDACTIONS=Yes and MAPOLDACTIOSN= in shorewall.conf are now
+    a)  MAPOLDACTIONS=Yes and MAPOLDACTIONS= in shorewall.conf are now
         handled as they were by the old shell-based compiler. That is,
         they cause pre-3.0 built-in actions to be mapped automatically
         to the corresponding macro invocation.
@@ -207,8 +237,8 @@ Shorewall 4.4.2
         a warning.
 
 6)  Previously, it was not possible to specify an IP address range in
-    ADDRESS column of /etc/shorewall/masq. Thanks go to Jessee Shrieve
-    for the patch.
+    the ADDRESS column of /etc/shorewall/masq. Thanks go to Jessee
+    Shrieve for the patch.
 
 7)  The 'wait4ifup' script included for Debian compatibility now runs
     correctly with no PATH.
