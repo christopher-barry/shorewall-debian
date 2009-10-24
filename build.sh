@@ -143,7 +143,7 @@ git-checkout master
 ###############################################################################
 
 # New upstream tarball
-# git-import-orig --sign-tags --upstream-branch=shorewall-doc/upstream --debian-branch=shorewall-doc/master --verbose --pristine-tar --upstream-tag=shorewall-doc/upstream/4.4.2 --upstream-version=4.4.2 /network/scratch/roberto/tmp/shorewall-4.4.2/shorewall-doc_4.4.2.orig.tar.gz
+# git-import-orig --sign-tags --upstream-branch=shorewall/upstream --debian-branch=shorewall/master --verbose --pristine-tar --upstream-tag=shorewall/upstream/4.4.2 --upstream-version=4.4.2 /network/scratch/roberto/tmp/shorewall-4.4.2/shorewall_4.4.2.orig.tar.gz
 
 # Build
 # git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area --git-pristine-tar
