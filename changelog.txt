@@ -1,3 +1,35 @@
+Changes in Shorewall 4.4.3
+
+1)  Move Debian INITLOG initialization to /etc/default/shorewall
+
+2)  Fix 'routeback' in /etc/shorewall/routestopped.
+
+3)  Rename 'object' to 'script' in compiler and config modules.
+
+4)  Correct RETAIN_ALIASES=No.
+
+5)  Fix detection of IP config.
+
+6)  Fix nested zones.
+
+7)  Move all function declarations from prog.footer to prog.header
+
+8)  Remove superfluous variables from generated script
+
+9)  Make 'track' the default.
+
+10)  Add TRACK_PROVIDERS option.
+
+11)  Fix IPv6 address parsing bug.
+
+12)  Add hack to work around iproute IPv6 bug in route handling
+
+13)  Correct messages issued when an optional provider is not usable.
+
+14)  Fix optional interfaces.
+
+15)  Add 'limit' option to tcclasses.
+
 Changes in Shorewall 4.4.2
 
 1)  BUGFIX: Correct detection of Persistent SNAT support
