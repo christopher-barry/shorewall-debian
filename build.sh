@@ -143,15 +143,15 @@ git-checkout master
 ###############################################################################
 
 # New upstream tarball
-# git-import-orig --sign-tags --upstream-branch=shorewall/upstream --debian-branch=shorewall/master --verbose --pristine-tar --upstream-tag=shorewall/upstream/4.4.2 --upstream-version=4.4.2 /network/scratch/roberto/tmp/shorewall-4.4.2/shorewall_4.4.2.orig.tar.gz
+# export PKG=shorewall ; export VER=4.4.3 ; git-import-orig --sign-tags --upstream-branch=${PKG}/upstream --debian-branch=${PKG}/master --verbose --pristine-tar --upstream-tag=${PKG}/upstream/${VER} --upstream-version=${VER} /network/scratch/roberto/tmp/shorewall/${PKG}_${VER}.orig.tar.gz ; unset PKG ; unset VER
 
 # Build
-# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area --git-pristine-tar
+# export PKG=shorewall ; git-buildpackage --git-upstream-branch=${PKG}/upstream --git-debian-branch=${PKG}/master --git-builder="~/bin/my-pdebuild.sh" --git-export-dir=../build-area --git-pristine-tar ; unset PKG
 # pdebuild --configfile /etc/pbuilder/pbuilderrc-$DISTRO --buildsourceroot fakeroot --pbuilderroot sudo --buildresult /var/lib/chroot/pbuilder-$DISTRO/results --use-pdebuild-internal "$@"
 
 # Tag
-# git-buildpackage --git-upstream-branch=shorewall/upstream --git-debian-branch=shorewall/master --git-tag --git-tag-only --git-debian-tag=shorewall/debian/4.4.1.2-2 --git-sign-tags
-# for i in shorewall shorewall-lite shorewall6 shorewall6-lite shorewall-doc ; do git-checkout $i/master ; git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-tag --git-tag-only --git-debian-tag=$i/debian/4.4.2-1 --git-sign-tags ; done
+# export PKG=shorewall ; export DEBVER=4.4.3-1 git-buildpackage --git-upstream-branch=${PKG}/upstream --git-debian-branch=${PKG}/master --git-tag --git-tag-only --git-debian-tag=${PKG}/debian/${DEBVER} --git-sign-tags ; unset PKG ; unset DEBVER
+# export DEBVER=4.4.3-1 ; for i in shorewall shorewall-lite shorewall6 shorewall6-lite shorewall-doc ; do git-checkout $i/master ; git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-tag --git-tag-only --git-debian-tag=$i/debian/${DEBVER} --git-sign-tags ; done ; unset DEBVER
 
 # Upload
 # git-push --mirror ssh://el_cubano@shorewall.git.sourceforge.net/gitroot/shorewall/debian
