@@ -151,7 +151,7 @@ git-checkout master
 
 # Tag
 # export PKG=shorewall ; export DEBVER=4.4.3-1 ; git-buildpackage --git-upstream-branch=${PKG}/upstream --git-debian-branch=${PKG}/master --git-tag --git-tag-only --git-debian-tag=${PKG}/debian/${DEBVER} --git-sign-tags ; unset PKG ; unset DEBVER
-# export DEBVER=4.4.3-1 ; for i in shorewall shorewall-lite shorewall6 shorewall6-lite shorewall-doc ; do git-checkout $i/master ; git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-tag --git-tag-only --git-debian-tag=$i/debian/${DEBVER} --git-sign-tags ; done ; unset DEBVER
+# export DEBVER=4.4.3-1 ; for i in shorewall shorewall-lite shorewall6 shorewall6-lite shorewall-doc ; do git-checkout $i/master ; git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-tag --git-tag-only --git-debian-tag=$i/debian/${DEBVER} --git-sign-tags ; done ; git-checkout master ; unset DEBVER
 
 # Upload
 # git-push --mirror ssh://el_cubano@shorewall.git.sourceforge.net/gitroot/shorewall/debian
