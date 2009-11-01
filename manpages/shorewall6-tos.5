@@ -1,19 +1,27 @@
+'\" t
 .\"     Title: shorewall6-tos
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 10/02/2009
-.\"    Manual: 
-.\"    Source: 
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
+.\"      Date: 11/01/2009
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
 .\"
-.TH "SHOREWALL6\-TOS" "5" "10/02/2009" "" ""
+.TH "SHOREWALL6\-TOS" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 tos \- Shorewall6 Type of Service rules file
 .SH "SYNOPSIS"
-.HP 20
+.HP \w'\fB/etc/shorewall6/tos\fR\ 'u
 \fB/etc/shorewall6/tos\fR
 .SH "DESCRIPTION"
 .PP
@@ -57,7 +65,9 @@ Destination port or port range\&. If all ports, use "\-"
 .RS 4
 Must be one of the following;
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
         \fBtos\-minimize\-delay\fR (16)
         \fBtos\-maximize\-throughput\fR (8)
@@ -65,7 +75,9 @@ Must be one of the following;
         \fBtos\-minimize\-cost\fR (2)
         \fBtos\-normal\-service\fR (0)
 .fi
+.if n \{\
 .RE
+.\}
 .RE
 .PP
 \fBMARK\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
