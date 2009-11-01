@@ -150,7 +150,7 @@ git-checkout master
 # pdebuild --configfile /etc/pbuilder/pbuilderrc-$DISTRO --buildsourceroot fakeroot --pbuilderroot sudo --buildresult /var/lib/chroot/pbuilder-$DISTRO/results --use-pdebuild-internal "$@"
 
 # Tag
-# export PKG=shorewall ; export DEBVER=4.4.3-1 git-buildpackage --git-upstream-branch=${PKG}/upstream --git-debian-branch=${PKG}/master --git-tag --git-tag-only --git-debian-tag=${PKG}/debian/${DEBVER} --git-sign-tags ; unset PKG ; unset DEBVER
+# export PKG=shorewall ; export DEBVER=4.4.3-1 ; git-buildpackage --git-upstream-branch=${PKG}/upstream --git-debian-branch=${PKG}/master --git-tag --git-tag-only --git-debian-tag=${PKG}/debian/${DEBVER} --git-sign-tags ; unset PKG ; unset DEBVER
 # export DEBVER=4.4.3-1 ; for i in shorewall shorewall-lite shorewall6 shorewall6-lite shorewall-doc ; do git-checkout $i/master ; git-buildpackage --git-upstream-branch=$i/upstream --git-debian-branch=$i/master --git-tag --git-tag-only --git-debian-tag=$i/debian/${DEBVER} --git-sign-tags ; done ; unset DEBVER
 
 # Upload
