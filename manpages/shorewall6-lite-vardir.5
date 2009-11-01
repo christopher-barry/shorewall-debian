@@ -1,24 +1,32 @@
+'\" t
 .\"     Title: shorewall6-lite-vardir
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 10/02/2009
-.\"    Manual: 
-.\"    Source: 
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
+.\"      Date: 11/01/2009
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
 .\"
-.TH "SHOREWALL6\-LITE\-VA" "5" "10/02/2009" "" ""
+.TH "SHOREWALL6\-LITE\-VA" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 vardir \- Shorewall6 Lite file
 .SH "SYNOPSIS"
-.HP 28
+.HP \w'\fB/etc/shorewall6\-lite/vardir\fR\ 'u
 \fB/etc/shorewall6\-lite/vardir\fR
 .SH "DESCRIPTION"
 .PP
 This file does not exist by default\&. You may create the file if you want to change the directory used by Shorewall6 Lite to store state information, including compiled firewall scripts\&. By default, the directory used is
-\fI/var/lib/shorewall6\-lite/\fR\&.
+/var/lib/shorewall6\-lite/\&.
 .PP
 The file contains a single variable assignment:
 .PP
@@ -27,7 +35,7 @@ The file contains a single variable assignment:
 where
 \fIdirectory\fR
 is the name of a directory\&. If you add this file, you should copy the files from
-\fI/var/lib/shorewall6\-lite\fR
+/var/lib/shorewall6\-lite
 to the new directory before performing a
 \fBshorewall6\-lite restart\fR\&.
 .SH "EXAMPLE"
