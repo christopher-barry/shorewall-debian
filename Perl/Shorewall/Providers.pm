@@ -142,11 +142,15 @@ sub setup_route_marking() {
 
 sub copy_table( $$$ ) {
     my ( $duplicate, $number, $realm ) = @_;
+    #
+    # Hack to work around problem in iproute
+    #
+    my $filter = $family == F_IPV6 ? q(sed 's/ via :: / /' | ) : '';
 
     if ( $realm ) {
 	emit  ( "\$IP -$family route show table $duplicate | sed -r 's/ realm [[:alnum:]_]+//' | while read net route; do" )
     } else {
-	emit  ( "\$IP -$family route show table $duplicate | while read net route; do" )
+	emit  ( "\$IP -$family route show table $duplicate | ${filter}while read net route; do" )
     }
 
     emit ( '    case $net in',
@@ -162,11 +166,15 @@ sub copy_table( $$$ ) {
 
 sub copy_and_edit_table( $$$$ ) {
     my ( $duplicate, $number, $copy, $realm) = @_;
+    #
+    # Hack to work around problem in iproute
+    #    
+    my $filter = $family == F_IPV6 ? q(sed 's/ via :: / /' | ) : '';
 
     if ( $realm ) {
 	emit  ( "\$IP -$family route show table $duplicate | sed -r 's/ realm [[:alnum:]_]+//' | while read net route; do" )
     } else {
-	emit  ( "\$IP -$family route show table $duplicate | while read net route; do" )
+	emit  ( "\$IP -$family route show table $duplicate | ${filter}while read net route; do" )
     }
 
     emit (  '    case $net in',
@@ -316,12 +324,15 @@ sub add_a_provider( ) {
 
     }
 
-    my ( $loose, $track, $balance , $default, $default_balance, $optional, $mtu ) = (0,0,0,0,$config{USE_DEFAULT_RT} ? 1 : 0,interface_is_optional( $interface ), '' );
+    my ( $loose, $track,                   $balance , $default, $default_balance,                $optional,                           $mtu ) = 
+	(0,      $config{TRACK_PROVIDERS}, 0 ,        0,        $config{USE_DEFAULT_RT} ? 1 : 0, interface_is_optional( $interface ), '' );
 
     unless ( $options eq '-' ) {
 	for my $option ( split_list $options, 'option' ) {
 	    if ( $option eq 'track' ) {
 		$track = 1;
+	    } elsif ( $option eq 'notrack' ) {
+		$track = 0;
 	    } elsif ( $option =~ /^balance=(\d+)$/ ) {
 		fatal_error q('balance' is not available in IPv6) if $family == F_IPV6;
 		$balance = $1;
@@ -494,9 +505,9 @@ sub add_a_provider( ) {
 
     if ( $optional ) {
 	if ( $shared ) {
-	    emit ( "    error_message \"WARNING: Interface $interface is not usable -- Provider $table ($number) not Added\"" );
-	} else {
 	    emit ( "    error_message \"WARNING: Gateway $gateway is not reachable -- Provider $table ($number) not Added\"" );
+	} else {
+	    emit ( "    error_message \"WARNING: Interface $interface is not usable -- Provider $table ($number) not Added\"" );
 	}
     } else {
 	if ( $shared ) {
@@ -781,9 +792,11 @@ sub lookup_provider( $ ) {
 }
 
 #
-# This function is called by the compiler when it is generating the initialize() function.
+# This function is called by the compiler when it is generating the detect_configuration() function.
 # The function emits code to set the ..._IS_USABLE interface variables appropriately for the
 # optional interfaces
+#
+# Returns true if there were optional interfaces
 #
 sub handle_optional_interfaces() {
 
@@ -819,6 +832,8 @@ sub handle_optional_interfaces() {
 		  "    ${base}_IS_USABLE=" ,
 		  'fi' );
 	}
+
+	1;
     }
 }
 

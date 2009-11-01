@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_2';
+our $VERSION = '4.4_3';
 
 #
 # Set to one if we find a SECTION
@@ -330,13 +330,14 @@ sub process_routestopped() {
 	}
 
 	unless ( $options eq '-' ) {
-	    my $chainref = $filter_table->{FORWARD};
 
 	    for my $option (split /,/, $options ) {
 		if ( $option eq 'routeback' ) {
 		    if ( $routeback ) {
 			warning_message "Duplicate 'routeback' option ignored";
 		    } else {
+			my $chainref = $filter_table->{FORWARD};
+
 			$routeback = 1;
 
 			for my $host ( split /,/, $hosts ) {
@@ -1620,7 +1621,7 @@ sub add_interface_jumps {
 
 # Generate the rules matrix.
 #
-# Stealing a comment from the Burroughs B6700 MCP Operating System source, generate_matrix makes a sow's ear out of a silk purse.
+# Stealing a comment from the Burroughs B6700 MCP Operating System source, "generate_matrix makes a sow's ear out of a silk purse".
 #
 # The biggest disadvantage of the zone-policy-rule model used by Shorewall is that it doesn't scale well as the number of zones increases (Order N**2 where N = number of zones).
 # A major goal of the rewrite of the compiler in Perl was to restrict those scaling effects to this function and the rules that it generates.
@@ -1679,13 +1680,20 @@ sub generate_matrix() {
     # Special processing for complex configurations
     #
     for my $zone ( @zones ) {
-	my $zoneref    = find_zone( $zone );
+	my $zoneref = find_zone( $zone );
 
 	next if @zones <= 2 && ! $zoneref->{options}{complex};
-
+	#
+	# Complex zone and we have more than one non-firewall zone -- create a zone forwarding chain
+	#
 	my $frwd_ref = new_standard_chain zone_forward_chain( $zone );
 
 	if ( $capabilities{POLICY_MATCH} ) {
+	    #
+	    # Because policy match only matches an 'in' or an 'out' policy (but not both), we have to place the
+	    # '--pol ipsec --dir in' rules at the front of the (interface) forwarding chains. Otherwise, decrypted packets
+	    # can match '--pol none --dir out' rules and send the packets down the wrong rules chain.
+	    #
 	    my $type       = $zoneref->{type};
 	    my $source_ref = ( $zoneref->{hosts}{ipsec} ) || {};
 
@@ -1892,7 +1900,6 @@ sub generate_matrix() {
 	if ( $config{OPTIMIZE} > 0 ) {
 	    my @temp_zones;
 
-	  ZONE1:
 	    for my $zone1 ( @zones )  {
 		my $zone1ref = find_zone( $zone1 );
 		my $policy = $filter_table->{"${zone}2${zone1}"}->{policy};
@@ -1942,7 +1949,6 @@ sub generate_matrix() {
 	# We now loop through the destination zones creating jumps to the rules chain for each source/dest combination.
 	# @dest_zones is the list of destination zones that we need to handle from this source zone
 	#
-      ZONE1:
 	for my $zone1 ( @dest_zones ) {
 	    my $zone1ref = find_zone( $zone1 );
 	    my $policy   = $filter_table->{"${zone}2${zone1}"}->{policy};
@@ -1956,11 +1962,11 @@ sub generate_matrix() {
 	    my $num_ifaces = 0;
 
 	    if ( $zone eq $zone1 ) {
-		next ZONE1 if ( $num_ifaces = scalar( keys ( %{$zoneref->{interfaces}} ) ) ) < 2 && ! $zoneref->{options}{in_out}{routeback};
+		next if ( $num_ifaces = scalar( keys ( %{$zoneref->{interfaces}} ) ) ) < 2 && ! $zoneref->{options}{in_out}{routeback};
 	    }
 
 	    if ( $zone1ref->{type} == BPORT ) {
-		next ZONE1 unless $zoneref->{bridge} eq $zone1ref->{bridge};
+		next unless $zoneref->{bridge} eq $zone1ref->{bridge};
 	    }
 
 	    my $chainref    = $filter_table->{$chain};

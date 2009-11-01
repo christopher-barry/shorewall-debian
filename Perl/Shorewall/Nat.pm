@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_2';
+our $VERSION = '4.4_3';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -481,12 +481,13 @@ sub setup_netmap() {
 
 sub add_addresses () {
     if ( @addresses_to_add ) {
+	my @addrs = @addresses_to_add;
 	my $arg = '';
 	my $addresses = 0;
 
-	while ( @addresses_to_add ) {
-	    my $addr      = shift @addresses_to_add;
-	    my $interface = shift @addresses_to_add;
+	while ( @addrs ) {
+	    my $addr      = shift @addrs;
+	    my $interface = shift @addrs;
 	    $arg = "$arg $addr $interface";
 	    unless ( $config{RETAIN_ALIASES} ) {
 		emit '' unless $addresses++;

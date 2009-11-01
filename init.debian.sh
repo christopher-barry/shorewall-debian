@@ -15,13 +15,11 @@
 SRWL=/sbin/shorewall
 SRWL_OPTS="-tvv"
 WAIT_FOR_IFUP=/usr/share/shorewall/wait4ifup
-# Note, set INITLOG to /dev/null if you want to
-# use Shorewall's STARTUP_LOG feature.
-INITLOG=/var/log/shorewall-init.log
+test -n ${INITLOG:=/var/log/shorewall-init.log}
 
 test -x $SRWL || exit 0
 test -x $WAIT_FOR_IFUP || exit 0
-test -n $INITLOG || {
+test -n "$INITLOG" || {
 	echo "INITLOG cannot be empty, please configure $0" ; 
 	exit 1;
 }
@@ -49,7 +47,7 @@ not_configured () {
 	then
 		echo ""
 		echo "Please read about Debian specific customization in"
-		echo "/usr/share/doc/shorewall-common/README.Debian.gz."
+		echo "/usr/share/doc/shorewall/README.Debian.gz."
 	fi
 	echo "#################"
 	exit 0
