@@ -1,19 +1,27 @@
+'\" t
 .\"     Title: shorewall6-interfaces
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 10/02/2009
-.\"    Manual: 
-.\"    Source: 
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
+.\"      Date: 11/01/2009
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "10/02/2009" "" ""
+.TH "SHOREWALL6\-INTERFAC" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 interfaces \- shorewall6 interfaces file
 .SH "SYNOPSIS"
-.HP 27
+.HP \w'\fB/etc/shorewall6/interfaces\fR\ 'u
 \fB/etc/shorewall6/interfaces\fR
 .SH "DESCRIPTION"
 .PP
@@ -26,30 +34,34 @@ The columns in the file are as follows\&.
 Zone for this interface\&. Must match the name of a zone declared in /etc/shorewall6/zones\&. You may not list the firewall zone in this column\&.
 .sp
 If the interface serves multiple zones that will be defined in the
-\fIshorewall6\-hosts\fR\&[1](5) file, you should place "\-" in this column\&.
+\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[1]\d\s+2(5) file, you should place "\-" in this column\&.
 .sp
 If there are multiple interfaces to the same zone, you must list them in separate entries\&.
 .sp
 Example:
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
 #ZONE   INTERFACE       BROADCAST
 loc     eth1            \-
 loc     eth2            \-
 .fi
+.if n \{\
 .RE
+.\}
 .RE
 .PP
 \fBINTERFACE\fR \- \fIinterface\fR\fB[:\fR\fIport\fR\fB]\fR
 .RS 4
 Name of interface\&. Each interface may be listed only once in this file\&. You may NOT specify the name of a "virtual" interface (e\&.g\&., eth0:0) here; see
-\fIhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR
+\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]
 .sp
 You may use wildcards here by specifying a prefix followed by the plus sign ("+")\&. For example, if you want to make an entry that applies to all PPP interfaces, use \'ppp+\'; that would match ppp0, ppp1, ppp2, \&...
 .sp
 Care must be exercised when using wildcards where there is another zone that uses a matching specific interface\&. See
-\fIshorewall6\-nesting\fR\&[2](5) for a discussion of this problem\&.
+\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[2]\d\s+2(5) for a discussion of this problem\&.
 .sp
 Shorewall6 allows \'+\' as an interface name\&.
 .sp
@@ -79,7 +91,7 @@ A comma\-separated list of options from the following list\&. The order in which
 \fBblacklist\fR
 .RS 4
 Check packets arriving on this interface against the
-\fIshorewall6\-blacklist\fR\&[3](5) file\&.
+\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[3]\d\s+2(5) file\&.
 .RE
 .PP
 \fBbridge\fR
@@ -107,15 +119,29 @@ When
 is specified for an interface, shorewall6 will be silent when:
 .sp
 .RS 4
-\h'-04'\(bu\h'+03'a
-\fI/proc/sys/net/ipv6/conf/\fR
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+a
+/proc/sys/net/ipv6/conf/
 entry for the interface cannot be modified\&.
 .RE
 .sp
 .RS 4
-\h'-04'\(bu\h'+03'The first global IPv6 address of the interface cannot be obtained\&.
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The first global IPv6 address of the interface cannot be obtained\&.
 .RE
-.IP "" 4
+.RS 4
 .RE
 .PP
 \fBrouteback\fR
@@ -130,15 +156,23 @@ If this option is not specified for an interface, then source\-routed packets wi
 Only those interfaces with the
 \fBsourceroute\fR
 option will have their setting changes; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
+.if n \{\
 .sp
+.\}
+.RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
 .nr an-break-flag 1
 .br
-Note
+.ps +1
+\fBNote\fR
+.ps -1
+.br
 This option does not work with a wild\-card
 \fIinterface\fR
 name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
+.sp .5v
+.RE
 .RE
 .PP
 \fBtcpflags\fR
@@ -167,14 +201,18 @@ Suppose you have eth0 connected to a DSL modem and eth1 connected to your local 
 .sp
 Your entries for this setup would look like:
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
 #ZONE   INTERFACE UNICAST        OPTIONS
 net     eth0      \-
 loc     eth1      \-
 dmz     eth2      \-
 .fi
+.if n \{\
 .RE
+.\}
 .RE
 .SH "FILES"
 .PP
@@ -186,15 +224,15 @@ shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-bl
 .IP " 1." 4
 shorewall6-hosts
 .RS 4
-\%shorewall6-hosts.html
+\%http://www.shorewall.net/manpages6/shorewall6-hosts.html
 .RE
 .IP " 2." 4
 shorewall6-nesting
 .RS 4
-\%shorewall6-nesting.html
+\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
 .RE
 .IP " 3." 4
 shorewall6-blacklist
 .RS 4
-\%shorewall6-blacklist.html
+\%http://www.shorewall.net/manpages6/shorewall6-blacklist.html
 .RE
