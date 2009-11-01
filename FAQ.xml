@@ -520,6 +520,10 @@ eth0:66.249.93.111  0.0.0.0/0   206.124.146.176  tcp          993</programlistin
         <programlisting>#ACTION         SOURCE        DEST        PROTO        DEST
 #                                                      PORT(S)
 REDIRECT        net           22          tcp          9022</programlisting>
+
+        <para>Note that the above rule will also allow connections from the
+        net on TCP port 22. If you don't want that, see <link
+        linkend="faq1e">FAQ 1e</link>.</para>
       </section>
     </section>
 
@@ -534,7 +538,13 @@ REDIRECT        net           22          tcp          9022</programlisting>
       to go the opposite direction from SNAT/MASQUERADE. So if you masquerade
       or use SNAT from your local network to the Internet then you will need
       to use DNAT rules to allow connections from the Internet to your local
-      network. You also want to use DNAT rules when you intentionally want to
+      network.<note>
+          <para>If you use both 1:1 NAT and SNAT/MASQUERADE, those connections
+          that are subject to 1:1 NAT should use ACCEPT rather than DNAT.
+          Note, however, that DNAT can be used to override 1:1 NAT so as to
+          redirect a connection to a different internal system or port than
+          would be the case using 1:1 NAT.</para>
+        </note> You also want to use DNAT rules when you intentionally want to
       rewrite the destination IP address or port number. In all other cases,
       you use ACCEPT unless you need to hijack connections as they go through
       your firewall and handle them on the firewall box itself; in that case,
@@ -2544,30 +2554,53 @@ REJECT    fw            net:216.239.39.99    all</programlisting>Given that
       <command>shorewall[-lite] show capabilities</command> command at a root
       prompt.</para>
 
-      <programlisting>gateway:~# shorewall show capabilities
-Loading /usr/share/shorewall/functions...
-Processing /etc/shorewall/params ...
-Processing /etc/shorewall/shorewall.conf...
-Loading Modules...
+      <programlisting>gateway:~# <command>shorewall show capabilities</command>
 Shorewall has detected the following iptables/netfilter capabilities:
    NAT: Available
    Packet Mangling: Available
    Multi-port Match: Available
    Extended Multi-port Match: Available
    Connection Tracking Match: Available
+   Extended Connection Tracking Match Support: Available
+   Old Connection Tracking Match Syntax: Not available
    Packet Type Match: Available
    Policy Match: Available
    Physdev Match: Available
+   Physdev-is-bridged Support: Available
+   Packet length Match: Available
    IP range Match: Available
    Recent Match: Available
    Owner Match: Available
    Ipset Match: Available
-   ROUTE Target: Available
-   Extended MARK Target: Available
    CONNMARK Target: Available
+   Extended CONNMARK Target: Available
    Connmark Match: Available
+   Extended Connmark Match: Available
    Raw Table: Available
-gateway:~#</programlisting>
+   IPP2P Match: Available
+   Old IPP2P Match Syntax: Not available
+   CLASSIFY Target: Available
+   Extended REJECT: Available
+   Repeat match: Available
+   MARK Target: Available
+   Extended MARK Target: Available
+   Mangle FORWARD Chain: Available
+   Comments: Available
+   Address Type Match: Available
+   TCPMSS Match: Available
+   Hashlimit Match: Available
+   Old Hashlimit Match: Not available
+   NFQUEUE Target: Available
+   Realm Match: Available
+   Helper Match: Available
+   Connlimit Match: Available
+   Time Match: Available
+   Goto Support: Available
+   LOGMARK Target: Available
+   IPMARK Target: Available
+   LOG Target: Available
+   Persistent SNAT: Available
+gateway:~# </programlisting>
     </section>
 
     <section id="faq19">
