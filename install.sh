@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.2.4
+VERSION=4.4.3
 
 usage() # $1 = exit status
 {
@@ -176,7 +176,7 @@ else
     fi
 
     if [ -z "$CYGWIN" ]; then
-	if [ -d /etc/apt -a -e /usr/bin/dpkg ]; then
+	if [ -f /etc/debian_version ]; then
 	    DEBIAN=yes
 	elif [ -f /etc/slackware-version ] ; then
 	    echo "installing Slackware specific configuration..."
