@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 11/01/2009
+.\"      Date: 11/21/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "11/21/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -358,7 +358,9 @@ and a
 \fIminor\fR
 value, the set of values must be unique\&. That is, the same numeric value cannot be used as both a
 \fImajor\fR
-and a <minor> number for the same interface unless class nesting occurs (which is not currently possible with Shorewall)\&. You should keep this in mind when deciding how to map IP addresses to class IDs\&.
+and a
+\fIminor\fR
+number for the same interface unless class nesting occurs (which is not currently possible with Shorewall)\&. You should keep this in mind when deciding how to map IP addresses to class IDs\&.
 .sp
 For example, suppose that your internal network is 192\&.168\&.1\&.0/29 (host IP addresses 192\&.168\&.1\&.1 \- 192\&.168\&.1\&.6)\&. Your first notion might be to use IPMARK(src,0xFF,0x10000) so as to produce class IDs 1:1 through 1:6\&. But 1:1 is an invalid class ID since the
 \fImajor\fR
@@ -483,7 +485,8 @@ requires ipp2p match support in your kernel and iptables\&.
 Destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
 \fIport range\fRs; if the protocol is
-\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&.
+\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&.
 .sp
 If the protocol is
 \fBipp2p\fR, this column is interpreted as an ipp2p option without the leading "\-\-" (example

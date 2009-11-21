@@ -1,4 +1,4 @@
-Shorewall 4.4.3
+Shorewall 4.4.4
 
 ----------------------------------------------------------------------------
                R E L E A S E  4 . 4  H I G H L I G H T S
@@ -174,41 +174,41 @@ Shorewall 4.4.3
     'notrack' for the provider.
 
 ----------------------------------------------------------------------------
-          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 3
+          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 4
 ----------------------------------------------------------------------------
 
-1.  Previously, if 'routeback' was specified in /etc/shorewall/routestopped:
+1)  In some simple one-interface configurations, the following Perl
+    run-time error messages were issued:
 
-    a) 'shorewall check' produced an internal error
-    b) The 'routeback' option didn't work
+      Generating Rule Matrix...
+      Use of uninitialized value in concatenation (.) or string at
+      /usr/share/shorewall/Shorewall/Chains.pm line 649.
+      Use of uninitialized value in concatenation (.) or string at
+      /usr/share/shorewall/Shorewall/Chains.pm line 649.
+      Creating iptables-restore input...
 
-2)  If an alias IP address was added and RETAIN_ALIASES=No in
-    shorewall.conf, then a compiler internal error resulted.
+2)  The Shorewall operations log (specified by STARTUP_LOG) is now
+    secured 0600.
 
-3)  Previously, the generated script would try to detect the values
-    for all run-time variables (such as IP addresses), regardless of
-    what command was being executed. Now, this information is only
-    detected when it is needed.
+3)  Previously, the compiler generated an incorrect test for interface
+    availability in the generated code for adding route rules. The
+    result was that the rules were always added, regardless of the
+    state of the provider's interface. Now, the rules are only added
+    when the interface is available.
 
-4)  Nested zones where the parent zone was defined by a wildcard
-    interface (name ends with +) in /etc/shorewall/interfaces did
-    not work correctly in some cases.
+4)  When TC_WIDE_MARKS=Yes and class numbers are not explicitly
+    specified in /etc/shorewall/tcclasses, duplicate class numbers
+    result. A typical error message is:
 
-5)  IPv4 addresses embedded in IPv6 (e.g., ::192.168.1.5) were
-    incorrectly reported as invalid.
+    	    ERROR: Command "tc class add dev eth3 parent 1:1 classid
+    	    1:1 htb rate 1024kbit ceil 100000kbit prio 1 quantum 1500"
+    	    Failed
 
-6)  Under certain circumstances, optional providers were not detected
-    as being usable.
+    Note that the class ID of the class being added is a duplicate of
+    the parent's class ID.
 
-    Additionally, the messages issued when an optional provider was not
-    usable were confusing; the message intended to be issued when the
-    provider shared an interface ("WARNING: Gateway <gateway> is not
-    reachable -- Provider <name> (<number>) not Added") was being
-    issued when the provider did not share an interface. Similarly, the
-    message intended to be issued when the provider did not share an
-    interface ("WARNING: Interface <interface> is not usable --
-    Provider <name> (<number>) not Added") was being issued when the
-    provider did share an interface.
+    Also, when TC_WIDE_MARKS=Yes, values > 255 in the MARK column of
+    /etc/shorewall/tcclasses were rejected.
 
 ----------------------------------------------------------------------------
              K N O W N   P R O B L E M S   R E M A I N I N G
@@ -217,37 +217,103 @@ Shorewall 4.4.3
 None.
 
 ----------------------------------------------------------------------------
-                N E W   F E A T U R E S   I N   4 . 4 . 3
+                N E W   F E A T U R E S   I N   4 . 4 . 4
 ----------------------------------------------------------------------------
 
-1)  On Debian systems, a default installation will now set
-    INITLOG=/dev/null in /etc/default/shorewall. In all configurations,
-    the default values for the log variables are changed to:
+1)  The Shorewall packages now include a logrotate configuration file.
 
-    	STARTUP_LOG=/var/log/shorewall-init.log
-	LOG_VERBOSITY=2
+2)  The limit of 15 entries in a port list has been relaxed in
+    /etc/shorewall/routestopped.
 
-    The effect is much the same as the old defaults, with the exception 
-    that:
+3)  The following seemingly valid configuration produces a fatal
+    error reporting "Duplicate interface name (p+)"
 
-	a) Start, stop, etc. commands issued through /sbin/shorewall
-	   will be logged.
-	b) Logging will occur at maximum verbosity.
-	c) Log entries will be date/time stamped.
+    /etc/shorewall/zones:
 
-    On non-Debian systems, new installs will now log all Shorewall 
-    commands to /var/log/shorewall-init.log.
+       #ZONE		TYPE	
+       fw		firewall
+       world		ipv4
+       z1:world		bport4
+       z2:world		bport4
 
-2)  A new TRACK_PROVIDERS option has been added in shorewall.conf.
-    The value of this option becomes the default for the 'track'
-    provider option in /etc/shorewall/providers.
+    /etc/shorewall/interfaces:
 
-3)  A new 'limit' option has been added to
-    /etc/shorewall/tcclasses. This option specifies the number of
-    packets that are allowed to be queued within the class. Packets
-    exceeding this limit are dropped. The default value is 127 which is
-    the value that earlier versions of Shorewall used.  The option is
-    ignored with a warning if the 'pfifo' option has been specified.
+       #ZONE		INTERFACE	BROADCAST	OPTIONS
+       world		br0		-		bridge
+       world		br1		-		bridge
+       z1		br0:p+
+       z2		br1:p+
+
+    This error occurs because the Shorewall implementation requires
+    that each bridge port must have a unique name.
+
+    To work around this problem, a new 'physical' interface option has
+    been created. The above configuration may be defined using the
+    following in /etc/shorewall/interfaces:
+
+       #ZONE		INTERFACE	BROADCAST	OPTIONS
+       world		br0		-		bridge
+       world		br1		-		bridge
+       z1		br0:x+		-		physical=p+
+       z2		br1:y+		-		physical=p+
+
+    In this configuration, 'x+' is the logical name for ports p+ on
+    bridge br0 while 'y+' is the logical name for ports p+ on bridge
+    br1.
+
+    If you need to refer to a particular port on br1 (for example
+    p1023), you write it as y1023; Shorewall will translate that name
+    to p1023 when needed.
+
+    It is allowed to have a physical name ending in '+' with a logical
+    name that does not end with '+'. The reverse is not allowed; if the
+    logical name ends in '+' then the physical name must also end in
+    '+'.
+
+    This feature is not restricted to bridge ports. Beginning with this
+    release, the interface name in the INTERFACE column can be
+    considered a logical name for the interface, and the actual
+    interface name is specified using the 'physical' option. If no
+    'physical' option is present, then the physical name is assumed to
+    be the same as the logical name. As before, the logical interface
+    name is used throughout the rest of the configuration to refer to
+    the interface.
+
+4)  Previously, Shorewall has used the character '2' to form the name
+    of chains involving zones and/or the word 'all' (e.g., fw2net,
+    all2all). When zones names are given numeric suffixes, these
+    generated names are hard to read (e.g., foo1232bar). To make these
+    names clearer, a ZONE2ZONE option has been added.
+
+    ZONE2ZONE has a default value of "2" but can also be given the
+    value "-" (e.g., ZONE2ZONE="-") which causes Shorewall to separate
+    the two parts of the name with a hyphen (e.g., foo123-bar).
+
+5)  Only one instance of the following warning is now generated;
+    previously, one instance of a similar warning was generated for
+    each COMMENT encountered.
+
+	COMMENTs ignored -- require comment support in iptables/Netfilter
+
+6)  The shorewall and shorewall6 utilities now support a 'show
+    policies' command. Once Shorewall or Shorewall6 has been restarted
+    using a script generated by this version, the 'show policies'
+    command will list each pair of zones and give the applicable
+    policy. If the policy is enforced in a chain, the name of the chain
+    is given.
+
+    Example:
+
+	net 	=>	loc	DROP using chain net2all
+
+    Note that implicit intrazone ACCEPT policies are not displayed for
+    zones associated with a single network where that network
+    doesn't specify 'routeback'.
+
+7)  The 'show' and 'dump' commands now support an '-l' option which
+    causes chain displays to include the rule number of each rule.
+
+    (Type 'iptables -h' and look for '--line-number')
 
 ----------------------------------------------------------------------------
                 N E W   F E A T U R E S   I N   4 . 4 . 0
@@ -259,7 +325,7 @@ None.
     The new packages are:
 
     - Shorewall.   Includes the former Shorewall-common and
-                   Shorewall-perl packages. Has everything needed
+                   Shorewall-perl packages. Includes everything needed
                    to create an IPv4 firewall.
 
 		   Shorewall-shell is no longer available.
@@ -1079,3 +1145,73 @@ None.
 
     As usual, the variable $chainref will contain a reference to the
     chain's table entry.
+
+----------------------------------------------------------------------------
+          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 3
+----------------------------------------------------------------------------
+
+1.  Previously, if 'routeback' was specified in /etc/shorewall/routestopped:
+
+    a) 'shorewall check' produced an internal error
+    b) The 'routeback' option didn't work
+
+2)  If an alias IP address was added and RETAIN_ALIASES=No in
+    shorewall.conf, then a compiler internal error resulted.
+
+3)  Previously, the generated script would try to detect the values
+    for all run-time variables (such as IP addresses), regardless of
+    what command was being executed. Now, this information is only
+    detected when it is needed.
+
+4)  Nested zones where the parent zone was defined by a wildcard
+    interface (name ends with +) in /etc/shorewall/interfaces did
+    not work correctly in some cases.
+
+5)  IPv4 addresses embedded in IPv6 (e.g., ::192.168.1.5) were
+    incorrectly reported as invalid.
+
+6)  Under certain circumstances, optional providers were not detected
+    as being usable.
+
+    Additionally, the messages issued when an optional provider was not
+    usable were confusing; the message intended to be issued when the
+    provider shared an interface ("WARNING: Gateway <gateway> is not
+    reachable -- Provider <name> (<number>) not Added") was being
+    issued when the provider did not share an interface. Similarly, the
+    message intended to be issued when the provider did not share an
+    interface ("WARNING: Interface <interface> is not usable --
+    Provider <name> (<number>) not Added") was being issued when the
+    provider did share an interface.
+
+----------------------------------------------------------------------------
+                N E W   F E A T U R E S   I N   4 . 4 . 3
+----------------------------------------------------------------------------
+
+1)  On Debian systems, a default installation will now set
+    INITLOG=/dev/null in /etc/default/shorewall. In all configurations,
+    the default values for the log variables are changed to:
+
+    	STARTUP_LOG=/var/log/shorewall-init.log
+	LOG_VERBOSITY=2
+
+    The effect is much the same as the old defaults, with the exception 
+    that:
+
+	a) Start, stop, etc. commands issued through /sbin/shorewall
+	   will be logged.
+	b) Logging will occur at maximum verbosity.
+	c) Log entries will be date/time stamped.
+
+    On non-Debian systems, new installs will now log all Shorewall 
+    commands to /var/log/shorewall-init.log.
+
+2)  A new TRACK_PROVIDERS option has been added in shorewall.conf.
+    The value of this option becomes the default for the 'track'
+    provider option in /etc/shorewall/providers.
+
+3)  A new 'limit' option has been added to
+    /etc/shorewall/tcclasses. This option specifies the number of
+    packets that are allowed to be queued within the class. Packets
+    exceeding this limit are dropped. The default value is 127 which is
+    the value that earlier versions of Shorewall used.  The option is
+    ignored with a warning if the 'pfifo' option has been specified.

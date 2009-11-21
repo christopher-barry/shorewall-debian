@@ -127,7 +127,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_3';
+our $VERSION = '4.4_4';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -327,7 +327,7 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.3",
+		    VERSION => "4.4.4",
 		    CAPVERSION => 40402 ,
 		  );
 
@@ -440,6 +440,7 @@ sub initialize( $ ) {
 	      AUTOMAKE => undef ,
 	      WIDE_TC_MARKS => undef,
 	      TRACK_PROVIDERS => undef,
+	      ZONE2ZONE => undef,
 	      #
 	      # Packet Disposition
 	      #
@@ -547,6 +548,7 @@ sub initialize( $ ) {
 	      AUTOMAKE => undef ,
 	      WIDE_TC_MARKS => undef,
 	      TRACK_PROVIDERS => undef,
+	      ZONE2ZONE => undef,
 	      #
 	      # Packet Disposition
 	      #
@@ -2408,9 +2410,17 @@ sub get_configuration( $ ) {
     default_yes_no 'WIDE_TC_MARKS'              , '';
     default_yes_no 'TRACK_PROVIDERS'            , '';
 
+    my $val;
+
+    if ( defined ( $val = $config{ZONE2ZONE} ) ) {
+	fatal_error "Invalid ZONE2ZONE value ( $val )" unless $val =~ /^[2-]$/;
+    } else {
+	$config{ZONE2ZONE} = '2';
+    }
+
     $capabilities{XCONNMARK} = '' unless $capabilities{XCONNMARK_MATCH} and $capabilities{XMARK};
 
-    default 'BLACKLIST_DISPOSITION'             , 'DROP';
+    default 'BLACKLIST_DISPOSITION'    , 'DROP';
 
     default_log_level 'BLACKLIST_LOGLEVEL',  '';
     default_log_level 'MACLIST_LOG_LEVEL',   '';
@@ -2421,8 +2431,6 @@ sub get_configuration( $ ) {
 
     default_log_level 'SMURF_LOG_LEVEL',     '';
     default_log_level 'LOGALLNEW',           '';
-
-    my $val;
 
     $globals{MACLIST_TARGET} = 'reject';
 

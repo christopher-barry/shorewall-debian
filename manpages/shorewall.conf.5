@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 11/01/2009
+.\"      Date: 11/21/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "11/21/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -1150,6 +1150,11 @@ If not specified, then 2 is assumed\&.
 \fBWIDE_TC_MARKS=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 When set to No (the default), traffic shaping marks are 8 bytes wide (possible values are 1\-255)\&. When WIDE_TC_MARKS=Yes, traffic shaping marks are 14 bytes wide (values 1\-16383)\&. The setting of WIDE_TC_MARKS also has an effect on the HIGH_ROUTE_MARKS option (see above)\&.
+.RE
+.PP
+\fBZONE2ZONE\fR={\fB2\fR|\fB\-\fR}
+.RS 4
+Added in Shorewall 4\&.4\&.4\&. This option determines how Shorewall constructs chain names involving zone names and/or \'all\'\&. The default is \'2\' (e\&.g\&., fw2net)\&.
 .RE
 .SH "FILES"
 .PP

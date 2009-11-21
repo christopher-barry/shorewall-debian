@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_3';
+our $VERSION = '4.4_4';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -195,7 +195,7 @@ sub process_one_masq( )
 	fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
 	unless ( $interfaceref->{root} ) {
-	    $rule .= "-o $interface ";
+	    $rule .= match_dest_dev( $interface );
 	    $interface = $interfaceref->{name};
 	}
 
@@ -367,8 +367,8 @@ sub do_one_nat( $$$$$ )
     fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
     unless ( $interfaceref->{root} ) {
-	$rulein  = "-i $interface ";
-	$ruleout = "-o $interface ";
+	$rulein  = match_source_dev $interface;
+	$ruleout = match_dest_dev $interface;
 	$interface = $interfaceref->{name};
     }
 
@@ -460,8 +460,8 @@ sub setup_netmap() {
 	    fatal_error "Unknown interface ($interface)" unless my $interfaceref = find_interface( $interface );
 
 	    unless ( $interfaceref->{root} ) {
-		$rulein  = "-i $interface ";
-		$ruleout = "-o $interface ";
+		$rulein  = match_source_dev $interface;
+		$ruleout = match_dest_dev $interface;
 		$interface = $interfaceref->{name};
 	    }
 
