@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.3
+VERSION=4.4.4
 
 usage() # $1 = exit status
 {
@@ -220,6 +220,11 @@ mkdir -p ${PREFIX}/var/lib/shorewall-lite
 chmod 755 ${PREFIX}/etc/shorewall-lite
 chmod 755 ${PREFIX}/usr/share/shorewall-lite
 
+if [ -n "$PREFIX" ]; then
+    mkdir -p ${PREFIX}/etc/logrotate.d
+    chmod 755 ${PREFIX}/etc/logrotate.d
+fi
+
 #
 # Install the config file
 #
@@ -303,6 +308,12 @@ done
 cd ..
 
 echo "Man Pages Installed"
+
+if [ -d ${PREFIX}/etc/logrotate.d ]; then
+    run_install $OWNERSHIP -m 0644 logrotate ${PREFIX}/etc/logrotate.d/shorewall-lite
+    echo "Logrotate file installed as ${PREFIX}/etc/logrotate.d/shorewall-lite"
+fi
+
 
 #
 # Create the version file
