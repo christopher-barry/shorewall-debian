@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 11/01/2009
+.\"      Date: 11/21/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-RULES" "5" "11/21/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -466,7 +466,8 @@ plus the SYN flag must be set and the RST,ACK and FIN flags must be reset\&.
 \fBDEST PORT(S) \fR(Optional) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
 Destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
-\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&.
+\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&.
 .sp
 If the protocol is
 \fBipp2p\fR, this column is interpreted as an ipp2p option without the leading "\-\-" (example
