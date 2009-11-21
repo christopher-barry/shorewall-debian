@@ -85,6 +85,7 @@ our %EXPORT_TAGS = (
 				       decr_cmd_level
 				       chain_base
 				       forward_chain
+				       rules_chain
 				       zone_forward_chain
 				       use_forward_chain
 				       input_chain
@@ -146,6 +147,7 @@ our %EXPORT_TAGS = (
 				       addnatjump
 				       set_chain_variables
 				       mark_firewall_not_started
+				       mark_firewall6_not_started
 				       get_interface_address
 				       get_interface_addresses
 				       get_interface_bcasts
@@ -165,7 +167,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_2';
+our $VERSION = '4.4_4';
 
 #
 # Chain Table
@@ -247,6 +249,7 @@ our $iprangematch;
 our $chainseq;
 our $idiotcount;
 our $idiotcount1;
+our $warningcount;
 
 our $global_variables;
 
@@ -357,6 +360,7 @@ sub initialize( $ ) {
     $global_variables   = 0;
     $idiotcount         = 0;
     $idiotcount1        = 0;
+    $warningcount       = 0;
 
 }
 
@@ -368,7 +372,7 @@ sub process_comment() {
 	( $comment = $currentline ) =~ s/^\s*COMMENT\s*//;
 	$comment =~ s/\s*$//;
     } else {
-	warning_message "COMMENT ignored -- requires comment support in iptables/Netfilter";
+	warning_message "COMMENTs ignored -- require comment support in iptables/Netfilter" unless $warningcount++;
     }
 }
 
@@ -639,16 +643,15 @@ sub move_rules( $$ ) {
     my ($chain1, $chain2 ) = @_;
 
     if ( $chain1->{referenced} ) {
-	my @rules = @{$chain1->{rules}};
 	my $name  = $chain1->{name};
 	#
 	# We allow '+' in chain names and '+' is an RE meta-character. Escape it.
 	#
 	$name =~ s/\+/\\+/;
 
-	( s/\-([AI]) $name /-$1 $chain2->{name} / ) for @rules;
+	( s/\-([AI]) $name /-$1 $chain2->{name} / ) for @{$chain1->{rules}};
 
-	splice @{$chain2->{rules}}, 0, 0, @rules;
+	splice @{$chain2->{rules}}, 0, 0, @{$chain1->{rules}};
 
 	$chain2->{referenced} = 1;
 	$chain1->{referenced} = 0;
@@ -666,6 +669,13 @@ sub chain_base($) {
     $chain =~ tr/[.\-%@]/_/;
     $chain =~ s/\+$//;
     $chain;
+}
+
+#
+# Name of canonical chain
+#
+sub rules_chain ($$) {
+    join "$config{ZONE2ZONE}", @_;
 }
 
 #
@@ -757,7 +767,7 @@ sub use_input_chain($) {
     #
     # Use the '<zone>2fw' chain if it is referenced.
     #
-    $chainref = $filter_table->{join( '' , $zone , '2' , firewall_zone )};
+    $chainref = $filter_table->{rules_chain( $zone, firewall_zone )};
 
     ! ( $chainref->{referenced} || $chainref->{is_policy} )
 }
@@ -801,7 +811,7 @@ sub use_output_chain($) {
     #
     # Use the 'fw2<zone>' chain if it is referenced.
     #
-    $chainref = $filter_table->{join( '', firewall_zone , '2', $interfaceref->{zone} )};
+    $chainref = $filter_table->{rules_chain( firewall_zone , $interfaceref->{zone} )};
 
     ! ( $chainref->{referenced} || $chainref->{is_policy} )
 }
@@ -811,7 +821,7 @@ sub use_output_chain($) {
 #
 sub masq_chain($)
 {
-     $_[0] . '_masq';
+    $_[0] . '_masq';
 }
 
 #
@@ -1173,7 +1183,7 @@ sub finish_section ( $ ) {
 
     for my $zone ( all_zones ) {
 	for my $zone1 ( all_zones ) {
-	    my $chainref = $chain_table{'filter'}{"${zone}2${zone1}"};
+	    my $chainref = $chain_table{'filter'}{rules_chain( $zone, $zone1 )};
 	    finish_chain_section $chainref, $sections if $chainref->{referenced};
 	}
     }
@@ -1200,12 +1210,12 @@ sub set_mss( $$$ ) {
 
     for my $z ( all_zones ) {
 	if ( $direction eq '_in' ) {
-	    set_mss1 "${zone}2${z}" , $mss;
+	    set_mss1 rules_chain( ${zone}, ${z} ) , $mss;
 	} elsif ( $direction eq '_out' ) {
-	    set_mss1 "${z}2${zone}", $mss;
+	    set_mss1 rules_chain( ${z}, ${zone} ) , $mss;
 	} else {
-	    set_mss1 "${z}2${zone}", $mss;
-	    set_mss1 "${zone}2${z}", $mss;
+	    set_mss1 rules_chain( ${z}, ${zone} ) , $mss;
+	    set_mss1 rules_chain( ${zone}, ${z} ) , $mss;
 	}
     }
 }
@@ -1725,6 +1735,7 @@ sub match_source_dev( $ ) {
     my $interface = shift;
     return '' if $interface eq '+';
     my $interfaceref =  known_interface( $interface );
+    $interface = $interfaceref->{physical} if $interfaceref;
     if ( $interfaceref && $interfaceref->{options}{port} ) {
 	"-i $interfaceref->{bridge} -m physdev --physdev-in $interface ";
     } else {
@@ -1739,6 +1750,7 @@ sub match_dest_dev( $ ) {
     my $interface = shift;
     return '' if $interface eq '+';
     my $interfaceref =  known_interface( $interface );
+    $interface = $interfaceref->{physical} if $interfaceref;
     if ( $interfaceref && $interfaceref->{options}{port} ) {
 	if ( $capabilities{PHYSDEV_BRIDGE} ) {
 	    "-o $interfaceref->{bridge} -m physdev --physdev-is-bridged --physdev-out $interface ";
@@ -2114,7 +2126,11 @@ sub set_chain_variables() {
 # Emit code that marks the firewall as not started.
 #
 sub mark_firewall_not_started() {
-    emit ( 'qt1 $IPTABLES -L shorewall -n && qt1 $IPTABLES -F shorewall && qt1 $IPTABLES -X shorewall' );
+    if ( $family == F_IPV4 ) {
+	emit ( 'qt1 $IPTABLES -L shorewall -n && qt1 $IPTABLES -F shorewall && qt1 $IPTABLES -X shorewall' );
+    } else {
+	emit ( 'qt1 $IPTABLES6 -L shorewall -n && qt1 $IPTABLES6 -F shorewall && qt1 $IPTABLES6 -X shorewall' );
+    }
 }
 
 ####################################################################################################################
@@ -2134,10 +2150,11 @@ sub interface_address( $ ) {
 # Record that the ruleset requires the first IP address on the passed interface
 #
 sub get_interface_address ( $ ) {
-    my ( $interface ) = $_[0];
+    my ( $logical ) = $_[0];
 
+    my $interface = get_physical( $logical );
     my $variable = interface_address( $interface );
-    my $function = interface_is_optional( $interface ) ? 'find_first_interface_address_if_any' : 'find_first_interface_address';
+    my $function = interface_is_optional( $logical ) ? 'find_first_interface_address_if_any' : 'find_first_interface_address';
 
     $global_variables |= ALL_COMMANDS;
 
@@ -2158,7 +2175,7 @@ sub interface_bcasts( $ ) {
 # Record that the ruleset requires the broadcast addresses on the passed interface
 #
 sub get_interface_bcasts ( $ ) {
-    my ( $interface ) = $_[0];
+    my ( $interface ) = get_physical $_[0];
 
     my $variable = interface_bcasts( $interface );
 
@@ -2181,7 +2198,7 @@ sub interface_acasts( $ ) {
 # Record that the ruleset requires the anycast addresses on the passed interface
 #
 sub get_interface_acasts ( $ ) {
-    my ( $interface ) = $_[0];
+    my ( $interface ) = get_physical $_[0];
 
     $global_variables |= NOT_RESTORE;
 
@@ -2204,15 +2221,16 @@ sub interface_gateway( $ ) {
 # Record that the ruleset requires the gateway address on the passed interface
 #
 sub get_interface_gateway ( $ ) {
-    my ( $interface ) = $_[0];
+    my ( $logical ) = $_[0];
 
+    my $interface = get_physical $logical;
     my $variable = interface_gateway( $interface );
 
     my $routine = $config{USE_DEFAULT_RT} ? 'detect_dynamic_gateway' : 'detect_gateway';
 
     $global_variables |= ALL_COMMANDS;
 
-    if ( interface_is_optional $interface ) {
+    if ( interface_is_optional $logical ) {
 	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface)\n);
     } else {
 	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface)
@@ -2235,13 +2253,14 @@ sub interface_addresses( $ ) {
 # Record that the ruleset requires the IP addresses on the passed interface
 #
 sub get_interface_addresses ( $ ) {
-    my ( $interface ) = $_[0];
+    my ( $logical ) = $_[0];
 
+    my $interface = get_physical( $logical );
     my $variable = interface_addresses( $interface );
 
     $global_variables |= NOT_RESTORE;
 
-    if ( interface_is_optional $interface ) {
+    if ( interface_is_optional $logical ) {
 	$interfaceaddrs{$interface} = qq($variable=\$(find_interface_addresses $interface)\n);
     } else {
 	$interfaceaddrs{$interface} = qq($variable=\$(find_interface_addresses $interface)
@@ -2264,13 +2283,14 @@ sub interface_nets( $ ) {
 # Record that the ruleset requires the networks routed out of the passed interface
 #
 sub get_interface_nets ( $ ) {
-    my ( $interface ) = $_[0];
+    my ( $logical ) = $_[0];
 
+    my $interface = get_physical( $logical );
     my $variable = interface_nets( $interface );
 
     $global_variables |= ALL_COMMANDS;
 
-    if ( interface_is_optional $interface ) {
+    if ( interface_is_optional $logical ) {
 	$interfacenets{$interface} = qq($variable=\$(get_routed_networks $interface)\n);
     } else {
 	$interfacenets{$interface} = qq($variable=\$(get_routed_networks $interface)
@@ -2294,13 +2314,14 @@ sub interface_mac( $$ ) {
 # Record the fact that the ruleset requires MAC address of the passed gateway IP routed out of the passed interface for the passed provider number
 #
 sub get_interface_mac( $$$ ) {
-    my ( $ipaddr, $interface , $table ) = @_;
+    my ( $ipaddr, $logical , $table ) = @_;
 
+    my $interface = get_physical( $logical );
     my $variable = interface_mac( $interface , $table );
 
     $global_variables |= NOT_RESTORE;
 
-    if ( interface_is_optional $interface ) {
+    if ( interface_is_optional $logical ) {
 	$interfacemacs{$table} = qq($variable=\$(find_mac $ipaddr $interface)\n);
     } else {
 	$interfacemacs{$table} = qq($variable=\$(find_mac $ipaddr $interface)
@@ -2873,15 +2894,6 @@ sub emitr( $ ) {
 }
 
 #
-# Simple version that only handles rules
-#
-sub emitr1( $ ) {
-    my $rule = $_[0];
-
-    emit_unindented $rule;
-}
-
-#
 # Generate the netfilter input
 #
 sub create_netfilter_load( $ ) {
@@ -3168,7 +3180,7 @@ sub create_stop_load( $ ) {
 	# Then emit the rules
 	#
 	for my $chainref ( @chains ) {
-	    emitr1 $_ for @{$chainref->{rules}};
+	    emit_unindented $_ for @{$chainref->{rules}};
 	}
 	#
 	# Commit the changes to the table

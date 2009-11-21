@@ -43,7 +43,7 @@ use Shorewall::Raw;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler EXPORT TIMESTAMP DEBUG );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_3';
+our $VERSION = '4.4_4';
 
 our $export;
 
@@ -421,23 +421,10 @@ sub generate_script_3($) {
 	emit "disable_ipv6\n" if $config{DISABLE_IPV6};
 
     } else {
-	emit ( '#',
-	       '# Recent kernels are difficult to configure -- we see state match omitted a lot so we check for it here',
-	       '#',
-	       'qt1 $IP6TABLES -N foox1234',
-	       'qt1 $IP6TABLES -A foox1234 -m state --state ESTABLISHED,RELATED -j ACCEPT',
-	       'result=$?',
-	       'qt1 $IP6TABLES -F foox1234',
-	       'qt1 $IP6TABLES -X foox1234',
-	       '[ $result = 0 ] || startup_error "Your kernel/ip6tables do not include state match support. No version of Shorewall6 will run on this system"',
+	emit ( '[ "$COMMAND" = refresh ] && run_refresh_exit || run_init_exit', 
 	       '' );
-
-	emit ( '[ "$COMMAND" = refresh ] && run_refresh_exit || run_init_exit',
-		   '',
-	       'qt1 $IP6TABLES -L shorewall -n && qt1 $IP6TABLES -F shorewall && qt1 $IP6TABLES -X shorewall',
-	       ''
-	     );
-
+	mark_firewall_not_started;
+	emit '';
     }
 
     emit qq(delete_tc1\n) if $config{CLEAR_TC};
@@ -457,6 +444,10 @@ sub generate_script_3($) {
 
     emit 'cat > ${VARDIR}/zones << __EOF__';
     dump_zone_contents;
+    emit_unindented '__EOF__';
+
+    emit 'cat > ${VARDIR}/policies << __EOF__';
+    save_policies;
     emit_unindented '__EOF__';
 
     pop_indent;
@@ -704,7 +695,7 @@ sub compiler {
     #
     setup_proxy_arp;
     #
-    # Handle MSS setings in the zones file
+    # Handle MSS settings in the zones file
     #
     setup_zone_mss;
 

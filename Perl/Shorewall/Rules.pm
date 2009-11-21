@@ -24,6 +24,7 @@
 #
 package Shorewall::Rules;
 require Exporter;
+
 use Shorewall::Config qw(:DEFAULT :internal);
 use Shorewall::IPAddrs;
 use Shorewall::Zones;
@@ -45,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_3';
+our $VERSION = '4.4_4';
 
 #
 # Set to one if we find a SECTION
@@ -198,8 +199,8 @@ sub setup_ecn()
 	    for my $interface ( @interfaces ) {
 		my $chainref = ensure_chain 'mangle', ecn_chain( $interface );
 
-		add_jump $mangle_table->{POSTROUTING} , $chainref, 0, "-p tcp -o $interface ";
-		add_jump $mangle_table->{OUTPUT},       $chainref, 0, "-p tcp -o $interface ";
+		add_jump $mangle_table->{POSTROUTING} , $chainref, 0, "-p tcp " . match_dest_dev( $interface );
+		add_jump $mangle_table->{OUTPUT},       $chainref, 0, "-p tcp " . match_dest_dev( $interface );
 	    }
 
 	    for my $host ( @hosts ) {
@@ -341,10 +342,11 @@ sub process_routestopped() {
 			$routeback = 1;
 
 			for my $host ( split /,/, $hosts ) {
-			    my $source = match_source_net $host;
-			    my $dest   = match_dest_net   $host;
-
-			    add_rule $chainref , "-i $interface -o $interface $source $dest -j ACCEPT";
+			    add_rule( $chainref , 
+				      match_source_dev( $interface ) . 
+				      match_dest_dev( $interface ) .
+				      match_source_net( $host ) .
+				      match_dest_net( $host ) );
 			    clearrule;
 			}
 		    }
@@ -378,24 +380,24 @@ sub process_routestopped() {
 	my $desti   = match_dest_dev $interface;
 	my $rule    = shift @rule;
 
-	add_rule $filter_table->{INPUT},  "$sourcei $source $rule -j ACCEPT";
-	add_rule $filter_table->{OUTPUT}, "$desti $dest $rule -j ACCEPT" unless $config{ADMINISABSENTMINDED};
+	add_rule $filter_table->{INPUT},  "$sourcei $source $rule -j ACCEPT", 1;
+	add_rule $filter_table->{OUTPUT}, "$desti $dest $rule -j ACCEPT", 1 unless $config{ADMINISABSENTMINDED};
 
 	my $matched = 0;
 
 	if ( $source{$host} ) {
-	    add_rule $filter_table->{FORWARD}, "$sourcei $source $rule -j ACCEPT";
+	    add_rule $filter_table->{FORWARD}, "$sourcei $source $rule -j ACCEPT", 1;
 	    $matched = 1;
 	}
 
 	if ( $dest{$host} ) {
-	    add_rule $filter_table->{FORWARD}, "$desti $dest $rule -j ACCEPT";
+	    add_rule $filter_table->{FORWARD}, "$desti $dest $rule -j ACCEPT", 1;
 	    $matched = 1;
 	}
 
 	if ( $notrack{$host} ) {
-	    add_rule $raw_table->{PREROUTING}, "$sourcei $source $rule -j NOTRACK";
-	    add_rule $raw_table->{OUTPUT},     "$desti $dest $rule -j NOTRACK";
+	    add_rule $raw_table->{PREROUTING}, "$sourcei $source $rule -j NOTRACK", 1;
+	    add_rule $raw_table->{OUTPUT},     "$desti $dest $rule -j NOTRACK", 1;
 	}
 
 	unless ( $matched ) {
@@ -404,7 +406,7 @@ sub process_routestopped() {
 		    my ( $interface1, $h1 , $seq1 ) = split /\|/, $host1;
 		    my $dest1 = match_dest_net $h1;
 		    my $desti1 = match_dest_dev $interface1;
-		    add_rule $filter_table->{FORWARD}, "$sourcei $desti1 $source $dest1 $rule -j ACCEPT";
+		    add_rule $filter_table->{FORWARD}, "$sourcei $desti1 $source $dest1 $rule -j ACCEPT", 1;
 		    clearrule;
 		}
 	    }
@@ -550,7 +552,11 @@ sub add_common_rules() {
 		add_rule $filter_table->{$chain} , "-p udp --dport $ports -j ACCEPT";
 	    }
 
-	    add_rule $filter_table->{forward_chain $interface} , "-p udp -o $interface --dport $ports -j ACCEPT" if get_interface_option( $interface, 'bridge' );
+	    add_rule( $filter_table->{forward_chain $interface} , 
+		      "-p udp " .
+		      match_dest_dev( $interface ) .
+		      "--dport $ports -j ACCEPT" )
+		if get_interface_option( $interface, 'bridge' );
 	}
     }
 
@@ -634,10 +640,10 @@ sub add_common_rules() {
 		if ( interface_is_optional $interface ) {
 		    add_commands( $chainref,
 				  qq(if [ -n "\$${base}_IS_USABLE" -a -n "$variable" ]; then) ,
-				  qq(    echo -A $chainref->{name} -i $interface -s $variable -p udp -j ACCEPT >&3) ,
+				  qq(    echo -A $chainref->{name} ) . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) ,
 				  qq(fi) );
 		} else {
-		    add_commands( $chainref, qq(echo -A $chainref->{name} -i $interface -s $variable -p udp -j ACCEPT >&3) );
+		    add_commands( $chainref, qq(echo -A $chainref->{name} ) . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) );
 		}
 	    }
 	}
@@ -1126,7 +1132,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 	    }
 	}
 
-	$chain    = "${sourcezone}2${destzone}";
+	$chain    = rules_chain( ${sourcezone}, ${destzone} );
 	$chainref = ensure_chain 'filter', $chain;
 	$policy   = $chainref->{policy};
 
@@ -1323,7 +1329,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 		    # Static NAT is defined on this interface
 		    #
 		    $chn = new_chain( 'nat', newnonatchain ) unless $chn;
-		    add_jump $chn, $nat_table->{$ichain}, 0, @interfaces > 1 ? "-i $_ " : '';
+		    add_jump $chn, $nat_table->{$ichain}, 0, @interfaces > 1 ? match_source_dev( $_ )  : '';
 		}
 	    }
 
@@ -1374,7 +1380,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 	    #
 	    # And move the rules from the nonat chain to the zone dnat chain
 	    #
-	    add_rule( $nonat_chain, "-j $tgt" ) unless move_rules ( $chn, $nonat_chain );
+	    move_rules ( $chn, $nonat_chain );
 	}
     }
 
@@ -1613,7 +1619,7 @@ sub add_interface_jumps {
     # Loopback
     #
     my $fw = firewall_zone;
-    my $chainref = $filter_table->{"${fw}2${fw}"};
+    my $chainref = $filter_table->{rules_chain( ${fw}, ${fw} )};
 
     add_rule $filter_table->{OUTPUT} , "-o lo -j " . ($chainref->{referenced} ? "$chainref->{name}" : 'ACCEPT' );
     add_rule $filter_table->{INPUT} , '-i lo -j ACCEPT';
@@ -1637,7 +1643,7 @@ sub generate_matrix() {
     #
     sub rules_target( $$ ) {
 	my ( $zone, $zone1 ) = @_;
-	my $chain = "${zone}2${zone1}";
+	my $chain = rules_chain( ${zone}, ${zone1} );
 	my $chainref = $filter_table->{$chain};
 
 	return $chain   if $chainref && $chainref->{referenced};
@@ -1770,7 +1776,7 @@ sub generate_matrix() {
 
 	    if ( $parenthasnat || $parenthasnotrack ) {
 		for my $zone1 ( all_zones ) {
-		    if ( $filter_table->{"${zone}2${zone1}"}->{policy} eq 'CONTINUE' ) {
+		    if ( $filter_table->{rules_chain( ${zone}, ${zone1} )}->{policy} eq 'CONTINUE' ) {
 			#
 			# This zone has a continue policy to another zone. We must
 			# send packets from this zone through the parent's DNAT/REDIRECT/NOTRACK chain.
@@ -1902,9 +1908,9 @@ sub generate_matrix() {
 
 	    for my $zone1 ( @zones )  {
 		my $zone1ref = find_zone( $zone1 );
-		my $policy = $filter_table->{"${zone}2${zone1}"}->{policy};
+		my $policy = $filter_table->{rules_chain( ${zone}, ${zone1} )}->{policy};
 
-		next if $policy  eq 'NONE';
+		next if $policy eq 'NONE';
 
 		my $chain = rules_target $zone, $zone1;
 
@@ -1918,7 +1924,7 @@ sub generate_matrix() {
 		    next unless $zoneref->{bridge} eq $zone1ref->{bridge};
 		}
 
-		if ( $chain =~ /2all$/ ) {
+		if ( $chain =~ /(2all|-all)$/ ) {
 		    if ( $chain ne $last_chain ) {
 			$last_chain = $chain;
 			push @dest_zones, @temp_zones;
@@ -1951,9 +1957,8 @@ sub generate_matrix() {
 	#
 	for my $zone1 ( @dest_zones ) {
 	    my $zone1ref = find_zone( $zone1 );
-	    my $policy   = $filter_table->{"${zone}2${zone1}"}->{policy};
 
-	    next if $policy  eq 'NONE';
+	    next if $filter_table->{rules_chain( ${zone}, ${zone1} )}->{policy}  eq 'NONE';
 
 	    my $chain = rules_target $zone, $zone1;
 
@@ -1969,15 +1974,15 @@ sub generate_matrix() {
 		next unless $zoneref->{bridge} eq $zone1ref->{bridge};
 	    }
 
-	    my $chainref    = $filter_table->{$chain};
-
-	    my $dest_hosts_ref = $zone1ref->{hosts};
+	    my $chainref = $filter_table->{$chain}; #Will be null if $chain is a Netfilter Built-in target like ACCEPT
 
 	    if ( $frwd_ref ) {
-		for my $typeref ( values %$dest_hosts_ref ) {
+		#
+		# Simple case -- the source zone has it's own forwarding chain
+		#
+		for my $typeref ( values %{$zone1ref->{hosts}} ) {
 		    for my $interface ( sort { interface_number( $a ) <=> interface_number( $b ) } keys %$typeref ) {
-			my $arrayref = $typeref->{$interface};
-			for my $hostref ( @$arrayref ) {
+			for my $hostref ( @{$typeref->{$interface}} ) {
 			    next if $hostref->{options}{sourceonly};
 			    if ( $zone ne $zone1 || $num_ifaces > 1 || $hostref->{options}{routeback} ) {
 				my $ipsec_out_match = match_ipsec_out $zone1 , $hostref;
@@ -1989,26 +1994,35 @@ sub generate_matrix() {
 		    }
 		}
 	    } else {
+		#
+		# More compilcated case. If the interface is associated with a single simple zone, we try to combine the interface's forwarding chain with the rules chain
+		#
 		for my $typeref ( values %$source_hosts_ref ) {
 		    for my $interface ( keys %$typeref ) {
-			my $arrayref = $typeref->{$interface};
 			my $chain3ref;
 			my $match_source_dev = '';
+			my $forwardchainref = $filter_table->{forward_chain $interface};
 
-			if ( use_forward_chain $interface ) {
-			    $chain3ref = $filter_table->{forward_chain $interface};
+			if ( use_forward_chain $interface || ( @{$forwardchainref->{rules} } && ! $chainref ) ) {
+			    #
+			    # Either we must use the interface's forwarding chain or that chain has rules and we have nowhere to move them
+			    #
+			    $chain3ref = $forwardchainref;
 			    add_jump $filter_table->{FORWARD} , $chain3ref, 0 , match_source_dev( $interface ) unless $forward_jump_added{$interface}++;
 			} else {
+			    #
+			    # Don't use the interface's forward chain -- move any rules in that chain to this rules chain
+			    #
 			    $chain3ref  = $filter_table->{FORWARD};
 			    $match_source_dev = match_source_dev $interface;
-			    move_rules $filter_table->{forward_chain $interface}, $chainref;
+			    move_rules $forwardchainref, $chainref;
 			}
 
-			for my $hostref ( @$arrayref ) {
+			for my $hostref ( @{$typeref->{$interface}} ) {
 			    next if $hostref->{options}{destonly};
 			    my $excl3ref = source_exclusion( $hostref->{exclusions}, $chain3ref );
 			    for my $net ( @{$hostref->{hosts}} ) {
-				for my $type1ref ( values %$dest_hosts_ref ) {
+				for my $type1ref ( values %{$zone1ref->{hosts}} ) {
 				    for my $interface1 ( keys %$type1ref ) {
 					my $array1ref = $type1ref->{$interface1};
 					for my $host1ref ( @$array1ref ) {
@@ -2040,13 +2054,13 @@ sub generate_matrix() {
 		    }
 		}
 	    }
-	    #
-	    #                                      E N D   F O R W A R D I N G
-	    #
-	    # Now add an unconditional jump to the last unique policy-only chain determined above, if any
-	    #
-	    add_jump $frwd_ref , $last_chain, 1 if $last_chain;
 	}
+	#
+	#                                      E N D   F O R W A R D I N G
+	#
+	# Now add an unconditional jump to the last unique policy-only chain determined above, if any
+	#
+	add_jump $frwd_ref , $last_chain, 1 if $frwd_ref && $last_chain;
     }
 
     add_interface_jumps @interfaces unless $interface_jumps_added;
@@ -2116,10 +2130,12 @@ sub setup_mss( ) {
 	for ( @$interfaces ) {
 	    my $mss      = get_interface_option( $_, 'mss' );
 	    my $mssmatch = $capabilities{TCPMSS_MATCH} ? "-m tcpmss --mss $mss: " : '';
-	    add_rule $chainref, "-o $_ -p tcp --tcp-flags SYN,RST SYN ${mssmatch}${out_match}-j TCPMSS --set-mss $mss";
-	    add_rule $chainref, "-o $_ -j RETURN" if $clampmss;
-	    add_rule $chainref, "-i $_ -p tcp --tcp-flags SYN,RST SYN ${mssmatch}${in_match}-j TCPMSS --set-mss $mss";
-	    add_rule $chainref, "-i $_ -j RETURN" if $clampmss;
+	    my $source   = match_source_dev $_;
+	    my $dest     = match_dest_dev $_;
+	    add_rule $chainref, "${dest}-p tcp --tcp-flags SYN,RST SYN ${mssmatch}${out_match}-j TCPMSS --set-mss $mss";
+	    add_rule $chainref, "${dest}-j RETURN" if $clampmss;
+	    add_rule $chainref, "${source}-p tcp --tcp-flags SYN,RST SYN ${mssmatch}${in_match}-j TCPMSS --set-mss $mss";
+	    add_rule $chainref, "${source}-j RETURN" if $clampmss;
 	}
     }
 
@@ -2276,12 +2292,12 @@ EOF
 	my $ports = $family == F_IPV4 ? '67:68' : '546:547';
 
 	for my $interface ( @$interfaces ) {
-	    add_rule $input,  "-p udp -i $interface --dport $ports -j ACCEPT";
-	    add_rule $output, "-p udp -o $interface --dport $ports -j ACCEPT" unless $config{ADMINISABSENTMINDED};
+	    add_rule $input,  "-p udp " . match_source_dev( $interface ) . "--dport $ports -j ACCEPT";
+	    add_rule $output, "-p udp " . match_dest_dev( $interface )   . "--dport $ports -j ACCEPT" unless $config{ADMINISABSENTMINDED};
 	    #
 	    # This might be a bridge
 	    #
-	    add_rule $forward, "-p udp -i $interface -o $interface --dport $ports -j ACCEPT";
+	    add_rule $forward, "-p udp " . match_source_dev( $interface ) . match_dest_dev( $interface ) . "--dport $ports -j ACCEPT";
 	}
     }
 
@@ -2300,7 +2316,7 @@ EOF
 	}
     } else {
 	for my $interface ( all_bridges ) {
-	    emit "do_iptables -A FORWARD -p 58 -i $interface -o $interface -j ACCEPT";
+	    emit "do_iptables -A FORWARD -p 58 " . match_source_interface( $interface ) . match_dest_interface( $interface ) . "-j ACCEPT";
 	}
 
 	if ( $config{IP_FORWARDING} eq 'on' ) {

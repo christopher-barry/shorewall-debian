@@ -2,12 +2,12 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 11/01/2009
+.\"      Date: 11/21/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "11/01/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-INTERFACE" "5" "11/21/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -55,8 +55,10 @@ loc     eth2            \-
 .PP
 \fBINTERFACE\fR \- \fIinterface\fR\fB[:\fR\fIport\fR\fB]\fR
 .RS 4
-Name of interface\&. Each interface may be listed only once in this file\&. You may NOT specify the name of a "virtual" interface (e\&.g\&., eth0:0) here; see
-\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]
+Logical name of interface\&. Each interface may be listed only once in this file\&. You may NOT specify the name of a "virtual" interface (e\&.g\&., eth0:0) here; see
+\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]\&. If the
+\fBphysical\fR
+option is not specified, then the logical name is also the name of the actual interface\&.
 .sp
 You may use wildcards here by specifying a prefix followed by the plus sign ("+")\&. For example, if you want to make an entry that applies to all PPP interfaces, use \'ppp+\'; that would match ppp0, ppp1, ppp2, \&...
 .sp
@@ -432,6 +434,24 @@ and
 operations will instantiate a ruleset that does not support that interface, even if it is available at the time of the restore/start\&.
 .sp .5v
 .RE
+.RE
+.PP
+physical=\fB\fIname\fR\fR
+.RS 4
+Added in Shorewall 4\&.4\&.4\&. When specified, the interface or port name in the INTERFACE column is a logical name that refers to the name given in this option\&. It is useful when you want to specify the same wildcard port name on two or more bridges\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\m[]\&.
+.sp
+If the
+\fIinterface\fR
+name is a wildcard name (ends with \'+\'), then the physical
+\fIname\fR
+must also end in \'+\'\&.
+.sp
+If
+\fBphysical\fR
+is not specified, then it\'s value defaults to the
+\fIinterface\fR
+name\&.
 .RE
 .PP
 \fBproxyarp[={0|1}]\fR

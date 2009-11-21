@@ -32,9 +32,9 @@ use Shorewall::Actions;
 use strict;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( validate_policy apply_policy_rules complete_standard_chain setup_syn_flood_chains );
+our @EXPORT = qw( validate_policy apply_policy_rules complete_standard_chain setup_syn_flood_chains save_policies );
 our @EXPORT_OK = qw(  );
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_4';
 
 # @policy_chains is a list of references to policy chains in the filter table
 
@@ -68,7 +68,7 @@ sub new_policy_chain($$$$)
 {
     my ($source, $dest, $policy, $optional) = @_;
 
-    my $chainref = new_chain( 'filter', "${source}2${dest}" );
+    my $chainref = new_chain( 'filter', rules_chain( ${source}, ${dest} ) );
 
     convert_to_policy_chain( $chainref, $source, $dest, $policy, $optional );
 
@@ -119,7 +119,7 @@ use constant { OPTIONAL => 1 };
 
 sub add_or_modify_policy_chain( $$ ) {
     my ( $zone, $zone1 ) = @_;
-    my $chain    = "${zone}2${zone1}";
+    my $chain    = rules_chain( ${zone}, ${zone1} );
     my $chainref = $filter_table->{$chain};
 
     if ( $chainref ) {
@@ -211,7 +211,7 @@ sub process_a_policy() {
 	}
     }
 
-    my $chain = "${client}2${server}";
+    my $chain = rules_chain( ${client}, ${server} );
     my $chainref;
 
     if ( defined $filter_table->{$chain} ) {
@@ -252,19 +252,19 @@ sub process_a_policy() {
 	if ( $serverwild ) {
 	    for my $zone ( @zonelist ) {
 		for my $zone1 ( @zonelist ) {
-		    set_policy_chain $client, $server, "${zone}2${zone1}", $chainref, $policy;
+		    set_policy_chain $client, $server, rules_chain( ${zone}, ${zone1} ), $chainref, $policy;
 		    print_policy $zone, $zone1, $policy, $chain;
 		}
 	    }
 	} else {
 	    for my $zone ( all_zones ) {
-		set_policy_chain $client, $server, "${zone}2${server}", $chainref, $policy;
+		set_policy_chain $client, $server, rules_chain( ${zone}, ${server} ), $chainref, $policy;
 		print_policy $zone, $server, $policy, $chain;
 	    }
 	}
     } elsif ( $serverwild ) {
 	for my $zone ( @zonelist ) {
-	    set_policy_chain $client, $server, "${client}2${zone}", $chainref, $policy;
+	    set_policy_chain $client, $server, rules_chain( ${client}, ${zone} ), $chainref, $policy;
 	    print_policy $client, $zone, $policy, $chain;
 	}
 
@@ -272,6 +272,21 @@ sub process_a_policy() {
 	print_policy $client, $server, $policy, $chain;
     }
 }
+
+sub save_policies() {
+    for my $zone1 ( all_zones ) {
+	for my $zone2 ( all_zones ) {
+	    my $chainref  = $filter_table->{ rules_chain( $zone1, $zone2 ) };
+	    my $policyref = $filter_table->{ $chainref->{policychain} };
+
+	    if ( $policyref->{referenced} ) {
+		emit_unindented "$zone1 \t=>\t$zone2\t" . $policyref->{policy} . ' using chain ' . $policyref->{name};
+	    } elsif ( $zone1 ne $zone2 ) {
+		emit_unindented "$zone1 \t=>\t$zone2\t" . $policyref->{policy};
+	    }
+	}
+    }
+}	    
 
 sub validate_policy()
 {
@@ -334,7 +349,7 @@ sub validate_policy()
 
     for $zone ( all_zones ) {
 	for my $zone1 ( all_zones ) {
-	    fatal_error "No policy defined from zone $zone to zone $zone1" unless $filter_table->{"${zone}2${zone1}"}{policy};
+	    fatal_error "No policy defined from zone $zone to zone $zone1" unless $filter_table->{rules_chain( ${zone}, ${zone1} )}{policy};
 	}
     }
 }
@@ -409,7 +424,7 @@ sub apply_policy_rules() {
 		ensure_filter_chain $name, 1;
 	    }
 
-	    if ( $name =~ /^all2|2all$/ ) {
+	    if ( $name =~ /^all[-2]|[-2]all$/ ) {
 		run_user_exit $chainref;
 		policy_rules $chainref , $policy, $loglevel , $default, $config{MULTICAST};
 	    }
@@ -418,7 +433,7 @@ sub apply_policy_rules() {
 
     for my $zone ( all_zones ) {
 	for my $zone1 ( all_zones ) {
-	    my $chainref = $filter_table->{"${zone}2${zone1}"};
+	    my $chainref = $filter_table->{rules_chain( ${zone}, ${zone1} )};
 
 	    if ( $chainref->{referenced} ) {
 		run_user_exit $chainref;
@@ -444,7 +459,7 @@ sub complete_standard_chain ( $$$$ ) {
 
     run_user_exit $stdchainref;
 
-    my $ruleschainref = $filter_table->{"${zone}2${zone2}"} || $filter_table->{all2all};
+    my $ruleschainref = $filter_table->{rules_chain( ${zone}, ${zone2} ) } || $filter_table->{rules_chain( 'all', 'all' ) };
     my ( $policy, $loglevel, $defaultaction ) = ( $default , 6, $config{$default . '_DEFAULT'} );
     my $policychainref;
 

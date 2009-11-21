@@ -60,6 +60,8 @@ our @EXPORT = qw( NOTHING
 		  interface_number
 		  find_interface
 		  known_interface
+		  get_physical
+		  physical_name
 		  have_bridges
 		  port_to_bridge
 		  source_port_to_bridge
@@ -73,7 +75,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_4';
 
 #
 # IPSEC Option types
@@ -135,7 +137,8 @@ our %reservedName = ( all => 1,
 #
 #     %interfaces { <interface1> => { name        => <name of interface>
 #                                     root        => <name without trailing '+'>
-#                                     options     => { <option1> = <val1> ,
+#                                     options     => { port => undef|1
+#                                                      <option1> = <val1> ,          #See %validinterfaceoptions
 #                                                      ...
 #                                                    }
 #                                     zone        => <zone name>
@@ -143,6 +146,7 @@ our %reservedName = ( all => 1,
 #                                     bridge      => <bridge>
 #                                     broadcasts  => 'none', 'detect' or [ <addr1>, <addr2>, ... ]
 #                                     number      => <ordinal position in the interfaces file>
+#                                     physical    => <physical interface name>
 #                                   }
 #                 }
 #
@@ -150,6 +154,7 @@ our @interfaces;
 our %interfaces;
 our @bport_zones;
 our %ipsets;
+our %physical;
 our $family;
 
 use constant { FIREWALL => 1,
@@ -163,6 +168,8 @@ use constant { SIMPLE_IF_OPTION   => 1,
 	       NUMERIC_IF_OPTION  => 4,
 	       OBSOLETE_IF_OPTION => 5,
 	       IPLIST_IF_OPTION   => 6,
+	       STRING_IF_OPTION   => 7,
+
 	       MASK_IF_OPTION     => 7,
 
 	       IF_OPTION_ZONEONLY => 8,
@@ -193,6 +200,7 @@ sub initialize( $ ) {
     %interfaces = ();
     @bport_zones = ();
     %ipsets = ();
+    %physical = ();
 
     if ( $family == F_IPV4 ) {
 	%validinterfaceoptions = (arp_filter  => BINARY_IF_OPTION,
@@ -215,6 +223,7 @@ sub initialize( $ ) {
 				  upnp        => SIMPLE_IF_OPTION,
 				  upnpclient  => SIMPLE_IF_OPTION,
 				  mss         => NUMERIC_IF_OPTION,
+				  physical    => STRING_IF_OPTION + IF_OPTION_HOST,
 				 );
 	%validhostoptions = (
 			     blacklist => 1,
@@ -240,6 +249,7 @@ sub initialize( $ ) {
 				    tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    mss         => NUMERIC_IF_OPTION,
 				    forward     => NUMERIC_IF_OPTION,
+				    physical    => STRING_IF_OPTION + IF_OPTION_HOST,
 				 );
 	%validhostoptions = (
 			     blacklist => 1,
@@ -496,17 +506,19 @@ sub zone_report()
 		my $interfaceref = $hostref->{$type};
 
 		for my $interface ( sort keys %$interfaceref ) {
+		    my $iref     = $interfaces{$interface};
 		    my $arrayref = $interfaceref->{$interface};
 		    for my $groupref ( @$arrayref ) {
 			my $hosts      = $groupref->{hosts};
-			my $exclusions = join ',', @{$groupref->{exclusions}};
 			if ( $hosts ) {
-			    my $grouplist = join ',', ( @$hosts );
+			    my $grouplist  = join ',', ( @$hosts );
+			    my $exclusions = join ',', @{$groupref->{exclusions}};
 			    $grouplist = join '!', ( $grouplist, $exclusions) if $exclusions;
+		
 			    if ( $family == F_IPV4 ) {
-				progress_message_nocompress "      $interface:$grouplist";
+				progress_message_nocompress "      $iref->{physical}:$grouplist";
 			    } else {
-				progress_message_nocompress "      $interface:<$grouplist>";
+				progress_message_nocompress "      $iref->{physical}:<$grouplist>";
 			    }
 			    $printed = 1;
 			}
@@ -524,6 +536,9 @@ sub zone_report()
     }
 }
 
+#
+# This function is called to create the contents of the ${VARDIR}/zones file
+#
 sub dump_zone_contents()
 {
     my @xlate;
@@ -550,20 +565,21 @@ sub dump_zone_contents()
 		my $interfaceref = $hostref->{$type};
 
 		for my $interface ( sort keys %$interfaceref ) {
+		    my $iref     = $interfaces{$interface};
 		    my $arrayref = $interfaceref->{$interface};
 		    for my $groupref ( @$arrayref ) {
 			my $hosts     = $groupref->{hosts};
-			my $exclusions = join ',', @{$groupref->{exclusions}};
 
 			if ( $hosts ) {
-			    my $grouplist = join ',', ( @$hosts );
+			    my $grouplist  = join ',', ( @$hosts );
+			    my $exclusions = join ',', @{$groupref->{exclusions}};
 
 			    $grouplist = join '!', ( $grouplist, $exclusions ) if $exclusions;
 
 			    if ( $family == F_IPV4 ) {
-				$entry .= " $interface:$grouplist";
+				$entry .= " $iref->{physical}:$grouplist";
 			    } else {
-				$entry .= " $interface:<$grouplist>";
+				$entry .= " $iref->{physical}:<$grouplist>";
 			    }
 			}
 		    }
@@ -708,8 +724,8 @@ sub firewall_zone() {
 #
 sub process_interface( $ ) {
     my $nextinum = $_[0];
-    my $nets;
-    my ($zone, $originalinterface, $networks, $options ) = split_line 2, 4, 'interfaces file';
+    my $netsref = '';
+    my ($zone, $originalinterface, $bcasts, $options ) = split_line 2, 4, 'interfaces file';
     my $zoneref;
     my $bridge = '';
 
@@ -722,18 +738,21 @@ sub process_interface( $ ) {
 	fatal_error "Firewall zone not allowed in ZONE column of interface record" if $zoneref->{type} == FIREWALL;
     }
 
-    $networks = '' if $networks eq '-';
+    $bcasts = '' if $bcasts eq '-';
     $options  = '' if $options  eq '-';
 
     my ($interface, $port, $extra) = split /:/ , $originalinterface, 3;
 
     fatal_error "Invalid INTERFACE ($originalinterface)" if ! $interface || defined $extra;
 
-    if ( defined $port ) {
+    if ( defined $port && $port ne '' ) {
 	fatal_error qq("Virtual" interfaces are not supported -- see http://www.shorewall.net/Shorewall_and_Aliased_Interfaces.html) if $port =~ /^\d+$/;
 	require_capability( 'PHYSDEV_MATCH', 'Bridge Ports', '');
 	fatal_error "Your iptables is not recent enough to support bridge ports" unless $capabilities{KLUDGEFREE};
+
+	fatal_error "Invalid Interface Name ($interface:$port)" unless $port =~ /^[\w.@%-]+\+?$/;
 	fatal_error "Duplicate Interface ($port)" if $interfaces{$port};
+
 	fatal_error "$interface is not a defined bridge" unless $interfaces{$interface} && $interfaces{$interface}{options}{bridge};
 	fatal_error "Bridge Ports may only be associated with 'bport' zones" if $zone && $zoneref->{type} != BPORT;
 
@@ -744,10 +763,6 @@ sub process_interface( $ ) {
 		$zoneref->{bridge} = $interface;
 	    }
 	}
-
-	next if $port eq '';
-
-	fatal_error "Invalid Interface Name ($interface:$port)" unless $port =~ /^[\w.@%-]+\+?$/;
 
 	$bridge = $interface;
 	$interface = $port;
@@ -767,10 +782,11 @@ sub process_interface( $ ) {
 	$root = $interface;
     }
 
+    my $physical = $interface;
     my $broadcasts;
 
-    unless ( $networks eq '' || $networks eq 'detect' ) {
-	my @broadcasts = split_list $networks, 'address';
+    unless ( $bcasts eq '' || $bcasts eq 'detect' ) {
+	my @broadcasts = split_list $bcasts, 'address';
 
 	for my $address ( @broadcasts ) {
 	    fatal_error 'Invalid BROADCAST address' unless $address =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/;
@@ -814,12 +830,12 @@ sub process_interface( $ ) {
 		$hostoptions{$option} = 1 if $hostopt;
 	    } elsif ( $type == BINARY_IF_OPTION ) {
 		$value = 1 unless defined $value;
-		fatal_error "Option value for $option must be 0 or 1" unless ( $value eq '0' || $value eq '1' );
-		fatal_error "The $option option may not be used with a wild-card interface name" if $wildcard;
+		fatal_error "Option value for '$option' must be 0 or 1" unless ( $value eq '0' || $value eq '1' );
+		fatal_error "The '$option' option may not be used with a wild-card interface name" if $wildcard;
 		$options{$option} = $value;
 		$hostoptions{$option} = $value if $hostopt;
 	    } elsif ( $type == ENUM_IF_OPTION ) {
-		fatal_error "The $option option may not be used with a wild-card interface name" if $wildcard;
+		fatal_error "The '$option' option may not be used with a wild-card interface name" if $wildcard;
 		if ( $option eq 'arp_ignore' ) {
 		    if ( defined $value ) {
 			if ( $value =~ /^[1-3,8]$/ ) {
@@ -834,15 +850,13 @@ sub process_interface( $ ) {
 		    assert( 0 );
 		}
 	    } elsif ( $type == NUMERIC_IF_OPTION ) {
-		fatal_error "The $option option requires a value" unless defined $value;
+		fatal_error "The '$option' option requires a value" unless defined $value;
 		my $numval = numeric_value $value;
 		fatal_error "Invalid value ($value) for option $option" unless defined $numval;
 		$options{$option} = $numval;
 		$hostoptions{$option} = $numval if $hostopt;
 	    } elsif ( $type == IPLIST_IF_OPTION ) {
-		fatal_error "The $option option requires a value" unless defined $value;
-		fatal_error q("nets=" may not be specified for a multi-zone interface) unless $zone;
-		fatal_error "Duplicate $option option" if $nets;
+		fatal_error "The '$option' option requires a value" unless defined $value;
 		#
 		# Remove parentheses from address list if present
 		#
@@ -852,25 +866,52 @@ sub process_interface( $ ) {
 		#
 		$value = join ',' , ALLIP , $value if $value =~ /^!/;
 
-		if ( $value eq 'dynamic' ) {
-		    require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
-		    $value = "+${zone}_${interface}";
-		    $hostoptions{dynamic} = 1;
-		    $ipsets{"${zone}_${interface}"} = 1;
+		if ( $option eq 'nets' ) {
+		    fatal_error q("nets=" may not be specified for a multi-zone interface) unless $zone;
+		    fatal_error "Duplicate $option option" if $netsref;
+		    if ( $value eq 'dynamic' ) {
+			require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
+			$hostoptions{dynamic} = 1;
+			#
+			# Defer remaining processing until we have the final physical interface name
+			#
+			$netsref = 'dynamic';
+		    } else {
+			$hostoptions{multicast} = 1;
+			#
+			# Convert into a Perl array reference
+			#
+			$netsref = [ split_list $value, 'address' ];
+		    }
+		    #
+		    # Assume 'broadcast'
+		    #
+		    $hostoptions{broadcast} = 1;
 		} else {
-		    $hostoptions{multicast} = 1;
+		    assert(0);
 		}
-		#
-		# Convert into a Perl array reference
-		#
-		$nets = [ split_list $value, 'address' ];
-		#
-		# Assume 'broadcast'
-		#
-		$hostoptions{broadcast} = 1;
+	    } elsif ( $type == STRING_IF_OPTION ) {
+		fatal_error "The '$option' option requires a value" unless defined $value;
+
+		if ( $option eq 'physical' ) {
+		    fatal_error "Invalid Physical interface name ($value)" unless $value =~ /^[\w.@%-]+\+?$/;
+
+		    fatal_error "Duplicate physical interface name ($value)" if ( $physical{$value} && ! $port );
+
+		    fatal_error "The type of 'physical' name ($value) doesn't match the type of interface name ($interface)" if $wildcard && ! $value =~ /\+$/;
+		    $physical = $value;
+		} else {
+		    assert(0);
+		}
 	    } else {
 		warning_message "Support for the $option interface option has been removed from Shorewall";
 	    }
+	}
+
+	if ( $netsref eq 'dynamic' ) {
+	    my $ipset = "${zone}_" . chain_base $physical;
+	    $netsref = [ "+$ipset" ];
+	    $ipsets{$ipset} = 1;
 	}
 
 	$zoneref->{options}{in_out}{routeback} = 1 if $zoneref && $options{routeback};
@@ -884,19 +925,20 @@ sub process_interface( $ ) {
 
     }
 
-    $interfaces{$interface} = { name       => $interface ,
-				bridge     => $bridge ,
-				nets       => 0 ,
-				number     => $nextinum ,
-				root       => $root ,
-				broadcasts => $broadcasts ,
-				options    => \%options ,
-			        zone       => ''
-			      };
+    $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
+						       bridge     => $bridge ,
+						       nets       => 0 ,
+						       number     => $nextinum ,
+						       root       => $root ,
+						       broadcasts => $broadcasts ,
+						       options    => \%options ,
+						       zone       => '',
+						       physical   => $physical
+						     };
 
     if ( $zone ) {
-	$nets ||= [ allip ];
-	add_group_to_zone( $zone, $zoneref->{type}, $interface, $nets, $hostoptionsref );
+	$netsref ||= [ allip ];
+	add_group_to_zone( $zone, $zoneref->{type}, $interface, $netsref, $hostoptionsref );
 	add_group_to_zone( $zone, 
 			   $zoneref->{type}, 
 			   $interface, 
@@ -950,6 +992,20 @@ sub validate_interfaces_file( $ ) {
 }
 
 #
+# Map the passed name to the corresponding physical name in the passed interface
+#
+sub map_physical( $$ ) {
+    my ( $name, $interfaceref ) = @_;
+    my $physical = $interfaceref->{physical};
+    
+    return $physical if $name eq $interfaceref->{name};
+
+    $physical =~ s/\+$//;
+
+    $physical . substr( $name, length  $interfaceref->{root} );
+}  
+
+#
 # Returns true if passed interface matches an entry in /etc/shorewall/interfaces
 #
 # If the passed name matches a wildcard, a entry for the name is added in %interfaces to speed up validation of other references to that name.
@@ -963,13 +1019,17 @@ sub known_interface($)
 
     for my $i ( @interfaces ) {
 	$interfaceref = $interfaces{$i};
-	my $val = $interfaceref->{root};
-	next if $val eq $i;
-	if ( substr( $interface, 0, length $val ) eq $val ) {
+	my $root = $interfaceref->{root};
+	if ( $i ne $root && substr( $interface, 0, length $root ) eq $root ) {
 	    #
-	    # Cache this result for future reference. We set the 'name' to the name of the entry that appears in /etc/shorewall/interfaces.
+	    # Cache this result for future reference. We set the 'name' to the name of the entry that appears in /etc/shorewall/interfaces and we do not set the root;
 	    #
-	    return $interfaces{$interface} = { options => $interfaceref->{options}, bridge => $interfaceref->{bridge} , name => $i , number => $interfaceref->{number} };
+	    return $interfaces{$interface} = { options  => $interfaceref->{options}, 
+					       bridge   => $interfaceref->{bridge} , 
+					       name     => $i , 
+					       number   => $interfaceref->{number} ,
+					       physical => map_physical( $interface, $interfaceref )
+					     };
 	}
     }
 
@@ -1007,6 +1067,23 @@ sub find_interface( $ ) {
     fatal_error "Unknown Interface ($interface)" unless $interfaceref;
 
     $interfaceref;
+}
+
+#
+# Returns the physical interface associated with the passed logical name
+#
+sub get_physical( $ ) {
+    $interfaces{ $_[0] }->{physical};
+}
+
+#
+# This one doesn't insist that the passed name be the name of a configured interface
+#
+sub physical_name( $ ) {
+    my $device = shift;
+    my $devref = known_interface $device;
+
+    $devref ? $devref->{physical} : $device;
 }
 
 #
@@ -1049,7 +1126,11 @@ sub find_interfaces_by_option( $ ) {
     my @ints = ();
 
     for my $interface ( @interfaces ) {
-	my $optionsref = $interfaces{$interface}{options};
+	my $interfaceref = $interfaces{$interface};
+	
+	next unless $interfaceref->{root};
+
+	my $optionsref = $interfaceref->{options};
 	if ( $optionsref && defined $optionsref->{$option} ) {
 	    push @ints , $interface
 	}
@@ -1160,9 +1241,10 @@ sub process_host( ) {
 
     if ( $hosts eq 'dynamic' ) {
 	require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
-	$hosts = "+${zone}_${interface}";
+	my $physical = physical_name $interface;
+	$hosts = "+${zone}_${physical}";
 	$optionsref->{dynamic} = 1;
-	$ipsets{"${zone}_${interface}"} = 1;
+	$ipsets{"${zone}_${physical}"} = 1;
 
     }
 

@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_1';
+our $VERSION = '4.4_4';
 
 our %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -153,7 +153,7 @@ our @deferred_rules;
 #
 # TCDevices Table
 #
-# %tcdevices { <interface> -> {in_bandwidth  => <value> ,
+# %tcdevices { <interface> => {in_bandwidth  => <value> ,
 #                              out_bandwidth => <value> ,
 #                              number        => <number>,
 #                              classify      => 0|1
@@ -531,6 +531,7 @@ sub validate_tc_device( ) {
 			    qdisc         => $qdisc,
 			    guarantee     => 0,
 			    name          => $device,
+			    physical      => physical_name $device
 			  } ,
 
     push @tcdevices, $device;
@@ -647,15 +648,15 @@ sub validate_tc_class( ) {
 	if ( $devref->{classify} ) {
 	    warning_message "INTERFACE $device has the 'classify' option - MARK value ($mark) ignored";
 	} else {
-	    fatal_error "Invalid Mark ($mark)" unless $mark =~ /^([0-9]+|0x[0-9a-fA-F]+)$/ && numeric_value( $mark ) <= 0xff;
-
 	    $markval = numeric_value( $mark );
 	    fatal_error "Invalid MARK ($markval)" unless defined $markval;
+
+	    fatal_error "Invalid Mark ($mark)" unless $markval <= ( $config{WIDE_TC_MARKS} ? 0xffff : 0xff );
 
 	    if ( $classnumber ) {
 		fatal_error "Duplicate Class NUMBER ($classnumber)" if $tcref->{$classnumber};
 	    } else {
-		$classnumber = $config{WIDE_TC_MARKS} ? $tcref->{nextclass}++ : hex_value( $devnum . $markval );
+		$classnumber = $config{WIDE_TC_MARKS} ? $devref->{nextclass}++ : hex_value( $devnum . $markval );
 		fatal_error "Duplicate MARK ($mark)" if $tcref->{$classnumber};
 	    }
 	}
@@ -831,7 +832,7 @@ sub process_tc_filter( ) {
     fatal_error "Unknown CLASS ($devclass)"                  unless $tcref && $tcref->{occurs};
     fatal_error "Filters may not specify an occurring CLASS" if $tcref->{occurs} > 1;
 
-    my $rule = "filter add dev $device protocol ip parent $devnum:0 prio 10 u32";
+    my $rule = "filter add dev $devref->{physical} protocol ip parent $devnum:0 prio 10 u32";
 
     if ( $source ne '-' ) {
 	my ( $net , $mask ) = decompose_net( $source );
@@ -902,7 +903,7 @@ sub process_tc_filter( ) {
 	    $lasttnum = $tnum;
 	    $lastrule = $rule;
 
-	    emit( "\nrun_tc filter add dev $device parent $devnum:0 protocol ip prio 10 handle $tnum: u32 divisor 1" );
+	    emit( "\nrun_tc filter add dev $devref->{physical} parent $devnum:0 protocol ip prio 10 handle $tnum: u32 divisor 1" );
 	}
 	#
 	# And link to it using the current contents of $rule
@@ -912,7 +913,7 @@ sub process_tc_filter( ) {
 	#
 	# The rule to match the port(s) will be inserted into the new table
 	#
-	$rule     = "filter add dev $device protocol ip parent $devnum:0 prio 10 u32 ht $tnum:0";
+	$rule     = "filter add dev $devref->{physical} protocol ip parent $devnum:0 prio 10 u32 ht $tnum:0";
 
 	if ( $portlist eq '-' ) {
 	    fatal_error "Only TCP, UDP and SCTP may specify SOURCE PORT"
@@ -1039,11 +1040,14 @@ sub setup_traffic_shaping() {
     }
 
     for my $device ( @tcdevices ) {
-	my $dev     = chain_base( $device );
 	my $devref  = $tcdevices{$device};
 	my $defmark = in_hexp ( $devref->{default} || 0 );
 	my $devnum  = in_hexp $devref->{number};
 	my $r2q     = int calculate_r2q $devref->{out_bandwidth};
+
+	$device = physical_name $device;
+
+	my $dev = chain_base( $device );
 
 	emit "if interface_is_up $device; then";
 
@@ -1127,11 +1131,13 @@ sub setup_traffic_shaping() {
 	my $classid  = join( ':', in_hexp $devicenumber, $classnum);
 	my $rate     = "$tcref->{rate}kbit";
 	my $quantum  = calculate_quantum $rate, calculate_r2q( $devref->{out_bandwidth} );
+
+	$classids{$classid}=$device;
+	$device = physical_name $device;
+
 	my $dev      = chain_base $device;
 	my $priority = $tcref->{priority} << 8;
 	my $parent   = in_hexp $tcref->{parent};
-
-	$classids{$classid}=$device;
 
 	if ( $lastdevice ne $device ) {
 	    if ( $lastdevice ) {
@@ -1220,7 +1226,7 @@ sub setup_tc() {
 	    $mark_part = $config{HIGH_ROUTE_MARKS} ? $config{WIDE_TC_MARKS} ? '-m mark --mark 0/0xFF0000' : '-m mark --mark 0/0xFF00' : '-m mark --mark 0/0xFF';
 
 	    for my $interface ( @routemarked_interfaces ) {
-		add_rule $mangle_table->{PREROUTING} , "-i $interface -j tcpre";
+		add_rule $mangle_table->{PREROUTING} , match_source_dev( $interface ) . "-j tcpre";
 	    }
 	}
 
