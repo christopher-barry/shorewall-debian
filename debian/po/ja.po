@@ -1,0 +1,88 @@
+# Copyright (C) 2009 Roberto C. Sanchez <roberto@connexer.com>
+# This file is distributed under the same license as nbd package.
+# Hideki Yamane (Debian-JP) <henrich@debian.or.jp>, 2009.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6 4.4.3-1\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2009-11-11 14:32+0900\n"
+"Last-Translator: Hideki Yamane (Debian-JP) <henrich@debian.or.jp>\n"
+"Language-Team: Japanese <debian-japanese@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Shorewall6 は自動的に再起動されません"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall6 は、設定ファイルの変更によってネットワークの停止を引き起こすのを"
+"避けるため、アップグレード後に自動的には再起動しません。"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Shorewall6 の設定ファイルを確認し、'invoke-rc.d shorewall6 restart' として"
+"再起動を行う必要があります。"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Shorewall6 を再起動しますか?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"失敗とネットワークの停止のリスクを避けるため、ファイアウォールを再起動する前に"
+"設定ファイルは注意深く確認する必要があります。"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "すぐに Shorewall6 を再起動するかどうかを選んでください。"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Shorewall6 設定の誤りを発見しました"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 はアップグレード時に再起動するように設定されています。"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"しかし、Shorewall6 の現在の設定は正しくなく、再起動に失敗するでしょう。"
+"プログラムの設定を修正してから 'invoke-rc.d shorewall6 restart' として再起動"
+"する必要があります。"
+

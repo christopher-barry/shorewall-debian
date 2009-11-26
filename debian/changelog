@@ -1,3 +1,9 @@
+shorewall6 (4.4.4-2) unstable; urgency=low
+
+  * Add Japanese debconf translation, thanks to Hideki Yamane (Closes: #558053)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 26 Nov 2009 08:24:06 -0500
+
 shorewall6 (4.4.4-1) unstable; urgency=low
 
   * New Upstream Version
