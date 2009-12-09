@@ -169,9 +169,27 @@ Shorewall 4.4.4 Patch Release 1
     now, if the zone has <interface>:0.0.0.0/0 (even with exclusions),
     then it may have no additional members in /etc/shorewall/hosts.
 
-13) Because the 'track' provider option is so useful, it is now the
-    default. If, for some reason, you don't want 'track' then specify
-    'notrack' for the provider.
+---------------------------------------------------------------------------
+        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 4 . 2
+----------------------------------------------------------------------------
+
+1)  Previously, DNS names were not accepted in some contexts by
+    Shorewall6.
+
+2)  Validation of IPv6 addresses has been improved and now catches more
+    invalid addresses.
+
+3)  Previously, port 0 was accepted in all contexts with the result
+    that iptables-restore errors could occur. Port 0 is now flagged as
+    an error.
+
+----------------------------------------------------------------------------
+        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 4 . 2
+----------------------------------------------------------------------------
+
+1)  The Shorewall6-lite shorecap program was including the wrong
+    library. Also, Shorewall6 is determining the availablity of the
+    mangle table before it ensures that ip6tables is installed. 
 
 ----------------------------------------------------------------------------
         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 4 . 1
