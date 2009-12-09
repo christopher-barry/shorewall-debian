@@ -6,6 +6,7 @@
 include /usr/share/quilt/quilt.make
 
 # shorewall version
+export VFULL=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
 export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "=" | cut -f 1-3 -d "."`
 VMAJOR:=$(shell echo $(V) |cut -f 1 -d .)
 VMINOR:=$(shell echo $(V) |cut -f 2 -d .)
@@ -53,7 +54,7 @@ install: build
 	chmod 644 $(SRWL)/etc/shorewall6/shorewall6.conf
 	chmod 644 $(SRWL)/etc/shorewall6/Makefile
 # 	set version number
-	echo $V > $(SRWL)/usr/share/shorewall6/version
+	echo $(VFULL) > $(SRWL)/usr/share/shorewall6/version
 #  global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall6/*
 #  must be executable
