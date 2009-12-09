@@ -1,3 +1,9 @@
+shorewall6 (4.4.4.2-2) unstable; urgency=low
+
+  * Fix computation of dependencies
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 08 Dec 2009 21:56:23 -0500
+
 shorewall6 (4.4.4.2-1) unstable; urgency=low
 
   * New Upstream Version
