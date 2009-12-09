@@ -39,8 +39,10 @@ install: build
 	dh_testroot
 	dh_clean -k
 	dh_installdirs
+	echo 'shorewall:current=$(VMAJOR).$(VMINOR).$(VPATCH)~' \
+		>> debian/shorewall6.substvars
 	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
-		> debian/shorewall6.substvars
+		>> debian/shorewall6.substvars
 
 	dh_install
 
