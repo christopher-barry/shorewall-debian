@@ -167,7 +167,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_4';
+our $VERSION = '4.4_5';
 
 #
 # Chain Table
@@ -420,9 +420,7 @@ sub add_commands ( $$;@ ) {
     my $chainref    = shift @_;
     my $indentation = '    ' x $chainref->{cmdlevel};
 
-    for ( @_ ) {
-	push @{$chainref->{rules}}, join ('', $indentation , $_ );
-    }
+    push @{$chainref->{rules}}, join ('', $indentation , $_ ) for @_;
 
     $chainref->{referenced} = 1;
 }
@@ -2753,10 +2751,8 @@ sub expand_rule( $$$$$$$$$$;$ )
 	add_rule( $echainref, $exceptionrule . $target, 1 ) unless $disposition eq 'LOG';
     } else {
 	#
-	# No exclusions -- save original chain
+	# No exclusions
 	#
-	my $savechainref = $chainref;
-
 	for my $onet ( mysplit $onets ) {
 	    $onet = match_orig_dest $onet;
 	    for my $inet ( mysplit $inets ) {
@@ -2765,11 +2761,6 @@ sub expand_rule( $$$$$$$$$$;$ )
 		$source_match = match_source_net( $inet, $restriction ) if $capabilities{KLUDGEFREE};
 
 		for my $dnet ( mysplit $dnets ) {
-		    #
-		    # Restore original Chain
-		    #
-		    $chainref = $savechainref;
-
 		    $source_match  = match_source_net( $inet, $restriction ) unless $capabilities{KLUDGEFREE};
 		    my $dest_match = match_dest_net( $dnet );
 		    my $predicates = join( '', $rule, $source_match, $dest_match, $onet );
@@ -2790,7 +2781,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 				#
 				log_rule_limit(
 					       $loglevel ,
-					       $chainref = $logchainref ,
+					       $logchainref ,
 					       $chain ,
 					       $disposition ,
 					       '',
@@ -2798,7 +2789,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 					       'add',
 					       '' );
 
-				add_rule( $chainref, $exceptionrule . $target );
+				add_rule( $logchainref, $exceptionrule . $target );
 			    } else {
 				log_rule_limit(
 					       $loglevel ,

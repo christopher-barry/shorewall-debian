@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_4';
+our $VERSION = '4.4_5';
 
 #
 # Set to one if we find a SECTION
@@ -949,7 +949,7 @@ sub process_macro ( $$$$$$$$$$$$$$$ ) {
 
 }
 #
-# Once a rule has been expanded via wildcards (source and/or dest zone == 'all'), it is processed by this function. If
+# Once a rule has been expanded via wildcards (source and/or dest zone eq 'all'), it is processed by this function. If
 # the target is a macro, the macro is expanded and this function is called recursively for each rule in the expansion.
 #
 sub process_rule1 ( $$$$$$$$$$$$$ ) {
@@ -960,10 +960,6 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
     my $actionchainref;
     my $optimize = $wildcard ? ( $basictarget =~ /!$/ ? 0 : $config{OPTIMIZE} ) : 0;
 
-    unless ( defined $param ) {
-	( $basictarget, $param ) = ( $1, $2 ) if $action =~ /^(\w+)[(](.*)[)]$/;
-    }
-
     $param = '' unless defined $param;
 
     #
@@ -972,7 +968,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
     my $actiontype = $targets{$basictarget} || find_macro( $basictarget );
 
     if ( $config{ MAPOLDACTIONS } ) {
-	( $basictarget, $actiontype , $param ) = map_old_actions( $basictarget ) unless ( $actiontype || $param );
+	( $basictarget, $actiontype , $param ) = map_old_actions( $basictarget ) unless $actiontype || $param;
     }
 
     fatal_error "Unknown action ($action)" unless $actiontype;
@@ -1092,7 +1088,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 	    $destref = defined_zone( $destzone );
 
 	    if ( $destref ) {
-		warning_message "Destination zone ($destzone) ignored";
+		warning_message "The destination zone ($destzone) is ignored in $log_action rules";
 	    } else {
 		$dest = join ':', $destzone, $dest;
 		$destzone = '';
@@ -1133,6 +1129,9 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 	}
 
 	$chain    = rules_chain( ${sourcezone}, ${destzone} );
+	#
+	# Ensure that the chain exists but don't mark it as referenced until after optimization is checked
+	#
 	$chainref = ensure_chain 'filter', $chain;
 	$policy   = $chainref->{policy};
 
@@ -1237,10 +1236,10 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 		    $origdest = ALLIP;
 		}
 	    }
-	} else {
-	    fatal_error "A server must be specified in the DEST column in $action rules" if $server eq '';
-
-	    if ( $server =~ /^(.+)-(.+)$/ ) {
+	} else {            
+	    if ( $server eq '' ) {
+		fatal_error "A server and/or port must be specified in the DEST column in $action rules" unless $serverport;
+	    } elsif ( $server =~ /^(.+)-(.+)$/ ) {
 		validate_range( $1, $2 );
 	    } else {
 		my @servers = validate_address $server, 1;
@@ -1249,9 +1248,13 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 
 	    if ( $action eq 'DNAT' ) {
 		$target = '-j DNAT ';
-		$serverport = ":$serverport" if $serverport;
-		for my $serv ( split /,/, $server ) {
-		    $target .= "--to-destination ${serv}${serverport} ";
+		if ( $server ) {
+		    $serverport = ":$serverport" if $serverport;
+		    for my $serv ( split /,/, $server ) {
+			$target .= "--to-destination ${serv}${serverport} ";
+		    }
+		} else {
+		    $target .= "--to-destination :$serverport ";
 		}
 	    }
 
@@ -1986,8 +1989,9 @@ sub generate_matrix() {
 			    next if $hostref->{options}{sourceonly};
 			    if ( $zone ne $zone1 || $num_ifaces > 1 || $hostref->{options}{routeback} ) {
 				my $ipsec_out_match = match_ipsec_out $zone1 , $hostref;
+				my $dest_exclusion = dest_exclusion( $hostref->{exclusions}, $chain);
 				for my $net ( @{$hostref->{hosts}} ) {
-				    add_jump $frwd_ref, dest_exclusion( $hostref->{exclusions}, $chain), 0, join( '', match_dest_dev( $interface) , match_dest_net($net), $ipsec_out_match );
+				    add_jump $frwd_ref, $dest_exclusion, 0, join( '', match_dest_dev( $interface) , match_dest_net($net), $ipsec_out_match );
 				}
 			    }
 			}
@@ -2028,6 +2032,7 @@ sub generate_matrix() {
 					for my $host1ref ( @$array1ref ) {
 					    next if $host1ref->{options}{sourceonly};
 					    my $ipsec_out_match = match_ipsec_out $zone1 , $host1ref;
+					    my $dest_exclusion  = dest_exclusion( $host1ref->{exclusions}, $chain );
 					    for my $net1 ( @{$host1ref->{hosts}} ) {
 						unless ( $interface eq $interface1 && $net eq $net1 && ! $host1ref->{options}{routeback} ) {
 						    #
@@ -2035,7 +2040,7 @@ sub generate_matrix() {
 						    #
 						    add_jump(
 							     $excl3ref ,
-							     dest_exclusion( $host1ref->{exclusions}, $chain ),
+							     $dest_exclusion,
 							     0,
 							     join( '',
 								   $match_source_dev,
