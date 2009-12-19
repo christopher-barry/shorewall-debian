@@ -1,14 +1,32 @@
-Changes in Shorewall 4.4.4.1
+Changes in Shorewall 4.4.5
 
-1)  Fix 15-port change.
+1)  Fix 15-port limit removal change.
 
 2)  Fix handling of interfaces with the 'bridge' option.
 
-3)  Disallow port 0
+3)  Generate error for port number 0
 
-4)  Improve IPv6 address validation and range checking.
+4)  Allow zone::serverport in rules DEST column.
 
-5)  Correct Shorewall6 capabilities detection.
+5)  Fix 'show policies' in Shorewall6.
+
+6)  Auto-load tc modules.
+
+7)  Allow LOGFILE=/dev/null
+
+8)  Fix shorewall6-lite/shorecap
+
+9) Fix MODULE_SUFFIX.
+
+10) Fix ENHANCED_REJECT detection for IPv4.
+
+11) Fix DONT_LOAD vs 'reload -c'
+
+12) Fix handling of SOURCE and DEST vs macros.
+
+13) Remove silly logic in expand_rule().
+
+14) Add current and limit to Conntrack Table Heading.
 
 Changes in Shorewall 4.4.4
 
