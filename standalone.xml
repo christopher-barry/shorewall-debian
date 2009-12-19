@@ -127,6 +127,10 @@
       <para>Points at which configuration changes are recommended are flagged
       with <inlinegraphic fileref="images/BD21298_.gif"
       format="GIF" />.</para>
+
+      <para>Configuration notes that are unique to Debian and it's derivatives
+      are marked with <inlinegraphic fileref="images/openlogo-nd-25.png"
+      format="GIF" />.</para>
     </section>
   </section>
 
@@ -193,6 +197,8 @@
         samples.</para>
       </listitem>
     </orderedlist>
+
+    <graphic align="left" fileref="images/openlogo-nd-25.png" />
 
     <warning>
       <para><emphasis role="bold">Note to Debian Users</emphasis></para>
@@ -447,11 +453,25 @@ root@lists:~# </programlisting>
     <ulink url="FAQ.htm#faq17">Shorewall FAQ 17</ulink>, you can usually
     resolve the problem quickly.</para>
 
-    <para>Most commonly, Netfilter messages are logged to
-    <filename>/var/log/messages</filename>. Recent
-    <trademark>SuSE/OpenSuSE</trademark> releases come preconfigured with
-    syslog-ng and log Netfilter messages to
-    <filename>/var/log/firewall</filename>.</para>
+    <para>The Netfilter log location is distribution-dependent:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Debian and its derivatives log Netfilter messages to
+        <filename>/var/log/daemon.log</filename>.</para>
+      </listitem>
+
+      <listitem>
+        <para>Recent <trademark>SuSE/OpenSuSE</trademark> releases come
+        preconfigured with syslog-ng and log netfilter messages to
+        <filename>/var/log/firewall</filename>.</para>
+      </listitem>
+
+      <listitem>
+        <para>For other distributions, Netfilter messages are most commonly
+        logged to <filename>/var/log/messages</filename>.</para>
+      </listitem>
+    </itemizedlist>
 
     <para><inlinegraphic fileref="images/BD21298_.gif" format="GIF" /></para>
 
@@ -542,7 +562,8 @@ SSH(ACCEPT) net       $FW           </programlisting>
     disabled so that your system won't try to start Shorewall before
     configuration is complete. Once you have completed configuration of your
     firewall, you must edit /etc/shorewall/shorewall.conf and set
-    STARTUP_ENABLED=Yes.</para>
+    STARTUP_ENABLED=Yes.<graphic align="left"
+    fileref="images/openlogo-nd-25.png" /></para>
 
     <important>
       <para>Users of the .deb package must edit

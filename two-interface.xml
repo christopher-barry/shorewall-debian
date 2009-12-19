@@ -130,8 +130,9 @@
       with <inlinegraphic fileref="images/BD21298_.gif"
       format="GIF" />.</para>
 
-      <para>Configuration notes that are unique to LEAF/Bering are marked with
-      <inlinegraphic fileref="images/leaflogo.gif" format="GIF" />.</para>
+      <para>Configuration notes that are unique to Debian and it's derivatives
+      are marked with <inlinegraphic fileref="images/openlogo-nd-25.png"
+      format="GIF" />.</para>
     </section>
   </section>
 
@@ -156,7 +157,8 @@
     <para>The configuration files for Shorewall are contained in the directory
     <filename class="directory">/etc/shorewall</filename> -- for simple
     setups, you will only need to deal with a few of these as described in
-    this guide.<warning>
+    this guide.<graphic align="left"
+    fileref="images/openlogo-nd-25.png" /><warning>
         <para><emphasis role="bold">Note to Debian and Ubuntu
         Users</emphasis></para>
 
@@ -418,6 +420,10 @@ root@lists:~# </programlisting>
         for all interfaces connected to the common hub/switch. <emphasis
         role="bold">Using such a setup with a production firewall is strongly
         recommended against</emphasis>.</para>
+      </warning><warning>
+        <para><emphasis role="bold">Do not configure a default route on your
+        internal interface.</emphasis> Your firewall should have exactly one
+        default route via your ISP's Router.</para>
       </warning> <inlinegraphic fileref="images/BD21298_.gif"
     format="GIF" /></para>
 
@@ -624,7 +630,7 @@ root@lists:~# </programlisting>
     column 3 (SNAT) makes the processing of outgoing packets a little more
     efficient.</para>
 
-    <para><inlinegraphic fileref="images/BD21298_.gif" format="GIF" /></para>
+    <graphic align="left" fileref="images/openlogo-nd-25.png" />
 
     <para>I<emphasis role="bold">f you are using the Debian package, please
     check your <filename>shorewall.conf</filename> file to ensure that the
@@ -634,6 +640,71 @@ root@lists:~# </programlisting>
           <para><varname>IP_FORWARDING=On</varname></para>
         </listitem>
       </itemizedlist></para>
+  </section>
+
+  <section id="Logging">
+    <title>Logging</title>
+
+    <para>Shorewall does not maintain a log itself but rather relies on your
+    <ulink url="shorewall_logging.htm">system's logging configuration</ulink>.
+    The following <ulink url="manpages/shorewall.html">commands</ulink> rely
+    on knowing where Netfilter messages are logged:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para><command>shorewall show log</command> (Displays the last 20
+        netfilter log messages)</para>
+      </listitem>
+
+      <listitem>
+        <para><command>shorewall logwatch</command> (Polls the log at a
+        settable interval</para>
+      </listitem>
+
+      <listitem>
+        <para><command>shorewall dump</command> (Produces an extensive report
+        for inclusion in Shorewall problem reports)</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>It is important that these commands work properly because when you
+    encounter connection problems when Shorewall is running, the first thing
+    that you should do is to look at the Netfilter log; with the help of
+    <ulink url="FAQ.htm#faq17">Shorewall FAQ 17</ulink>, you can usually
+    resolve the problem quickly.</para>
+
+    <para>The Netfilter log location is distribution-dependent:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>Debian and its derivatives log Netfilter messages to
+        <filename>/var/log/daemon.log</filename>.</para>
+      </listitem>
+
+      <listitem>
+        <para>Recent <trademark>SuSE/OpenSuSE</trademark> releases come
+        preconfigured with syslog-ng and log netfilter messages to
+        <filename>/var/log/firewall</filename>.</para>
+      </listitem>
+
+      <listitem>
+        <para>For other distributions, Netfilter messages are most commonly
+        logged to <filename>/var/log/messages</filename>.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para><inlinegraphic fileref="images/BD21298_.gif" format="GIF" /></para>
+
+    <para>If you are running a distribution that logs netfilter messages to a
+    log other than <filename>/var/log/messages</filename>, then modify the
+    LOGFILE setting in <filename>/etc/shorewall/shorewall.conf</filename> to
+    specify the name of your log.</para>
+
+    <important>
+      <para>The LOGFILE setting does not control where the Netfilter log is
+      maintained -- it simply tells the /sbin/<filename>shorewall</filename>
+      utility where to find the log.</para>
+    </important>
   </section>
 
   <section id="DNAT">
@@ -860,57 +931,6 @@ ACCEPT     loc       $FW     tcp       80          #Allow Weblet to work</progra
     file to add or delete other connections as required.</para>
   </section>
 
-  <section id="Logging">
-    <title>Logging</title>
-
-    <para>Shorewall does not maintain a log itself but rather relies on your
-    <ulink url="shorewall_logging.htm">system's logging configuration</ulink>.
-    The following <ulink url="manpages/shorewall.html">commands</ulink> rely
-    on knowing where Netfilter messages are logged:</para>
-
-    <itemizedlist>
-      <listitem>
-        <para><command>shorewall show log</command> (Displays the last 20
-        netfilter log messages)</para>
-      </listitem>
-
-      <listitem>
-        <para><command>shorewall logwatch</command> (Polls the log at a
-        settable interval</para>
-      </listitem>
-
-      <listitem>
-        <para><command>shorewall dump</command> (Produces an extensive report
-        for inclusion in Shorewall problem reports)</para>
-      </listitem>
-    </itemizedlist>
-
-    <para>It is important that these commands work properly because when you
-    encounter connection problems when Shorewall is running, the first thing
-    that you should do is to look at the Netfilter log; with the help of
-    <ulink url="FAQ.htm#faq17">Shorewall FAQ 17</ulink>, you can usually
-    resolve the problem quickly.</para>
-
-    <para>Most commonly, Netfilter messages are logged to
-    <filename>/var/log/messages</filename>. Recent
-    <trademark>SuSE/OpenSuSE</trademark> releases come preconfigured with
-    syslog-ng and log netfilter messages to
-    <filename>/var/log/firewall</filename>.</para>
-
-    <para><inlinegraphic fileref="images/BD21298_.gif" format="GIF" /></para>
-
-    <para>If you are running a distribution that logs netfilter messages to a
-    log other than <filename>/var/log/messages</filename>, then modify the
-    LOGFILE setting in <filename>/etc/shorewall/shorewall.conf</filename> to
-    specify the name of your log.</para>
-
-    <important>
-      <para>The LOGFILE setting does not control where the Netfilter log is
-      maintained -- it simply tells the /sbin/<filename>shorewall</filename>
-      utility where to find the log.</para>
-    </important>
-  </section>
-
   <section id="Other">
     <title>Some Things to Keep in Mind</title>
 
@@ -977,7 +997,8 @@ ACCEPT     loc       $FW     tcp       80          #Allow Weblet to work</progra
     disabled so that your system won't try to start Shorewall before
     configuration is complete. Once you have completed configuration of your
     firewall, you must edit /etc/shorewall/shorewall.conf and set
-    STARTUP_ENABLED=Yes.<important>
+    STARTUP_ENABLED=Yes.<graphic align="left"
+    fileref="images/openlogo-nd-25.png" /><important>
         <para>Users of the .deb package must edit <filename
         class="directory">/etc/default/</filename><filename>shorewall</filename>
         and set <varname>startup=1</varname>.</para>
