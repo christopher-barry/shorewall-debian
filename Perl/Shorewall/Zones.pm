@@ -178,6 +178,10 @@ use constant { SIMPLE_IF_OPTION   => 1,
 
 our %validinterfaceoptions;
 
+our %defaultinterfaceoptions = ( routefilter => 1 );
+
+our %maxoptionvalue = ( routefilter => 2, mss => 100000 );
+
 our %validhostoptions;
 
 #
@@ -217,7 +221,7 @@ sub initialize( $ ) {
 				  optional    => SIMPLE_IF_OPTION,
 				  proxyarp    => BINARY_IF_OPTION,
 				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST,
-				  routefilter => BINARY_IF_OPTION ,
+				  routefilter => NUMERIC_IF_OPTION ,
 				  sourceroute => BINARY_IF_OPTION,
 				  tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  upnp        => SIMPLE_IF_OPTION,
@@ -850,9 +854,10 @@ sub process_interface( $ ) {
 		    assert( 0 );
 		}
 	    } elsif ( $type == NUMERIC_IF_OPTION ) {
+		$value = $defaultinterfaceoptions{$option} unless defined $value;
 		fatal_error "The '$option' option requires a value" unless defined $value;
 		my $numval = numeric_value $value;
-		fatal_error "Invalid value ($value) for option $option" unless defined $numval;
+		fatal_error "Invalid value ($value) for option $option" unless defined $numval && $numval <= $maxoptionvalue{$option};
 		$options{$option} = $numval;
 		$hostoptions{$option} = $numval if $hostopt;
 	    } elsif ( $type == IPLIST_IF_OPTION ) {

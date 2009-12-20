@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 12/19/2009
+.\"      Date: 12/20/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "12/19/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "12/20/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -928,21 +928,24 @@ or
 \fBshorewall restart\fR\&.
 .RE
 .PP
-\fBROUTE_FILTER=\fR[\fBYes\fR|\fBNo\fR|Keep]
+\fBROUTE_FILTER=\fR[\fBYes\fR|1|\fBNo|0\fR|2|Keep]
 .RS 4
 If this parameter is given the value
 \fBYes\fR
 or
 \fByes\fR
-then route filtering (anti\-spoofing) is enabled on all network interfaces which are brought up while Shorewall is in the started state\&. The default value is
-\fBno\fR\&.
+or 1 then route filtering (anti\-spoofing) is enabled on all network interfaces which are brought up while Shorewall is in the started state\&. The default value is
+\fBKeep\fR\&.
 .sp
 The value
 \fBKeep\fR
 causes Shorewall to ignore the option\&. If the option is set to
-\fBYes\fR, then route filtering occurs on all interfaces\&. If the option is set to
+\fBYes\fR
+or 1, then route filtering occurs on all interfaces\&. If the option is set to
 \fBNo\fR, then route filtering is disabled on all interfaces except those specified in
 \m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2(5)\&.
+.sp
+The value 2 is only available with Shorewall 4\&.4\&.5\&.1 and later running on kernel 2\&.6\&.31 or later\&. It specifies a looser form of reverse path filtering than the value Yes (1)\&.
 .RE
 .PP
 \fBSAVE_IPSETS=\fR{\fBYes\fR|\fBNo\fR}

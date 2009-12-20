@@ -243,6 +243,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 PERSISTENT_SNAT => 'Persistent SNAT',
 		 OLD_HL_MATCH    => 'Old Hash Limit Match',
 		 CAPVERSION      => 'Capability Version',
+		 KERNELVERSION   => 'Kernel Version',
 	       );
 #
 # Directories to search for configuration files
@@ -327,8 +328,8 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.5",
-		    CAPVERSION => 40402 ,
+		    VERSION => "4.4.5.1",
+		    CAPVERSION => 40406 ,
 		  );
 
     #
@@ -1844,8 +1845,8 @@ sub check_trivalue( $$ ) {
 sub report_capability( $ ) {
     my $cap = $_[0];
     print "   $capdesc{$cap}: ";
-    if ( $cap eq 'CAPVERSION' ) {
-	my $version = $capabilities{CAPVERSION};
+    if ( $cap eq 'CAPVERSION' || $cap eq 'KERNELVERSION') {
+	my $version = $capabilities{$cap};
 	printf "%d.%d.%d\n", int( $version / 10000 ) , int ( ( $version % 10000 ) / 100 ) , int ( $version % 100 );
     } else {
 	print $capabilities{$cap} ? "Available\n" : "Not Available\n";
@@ -1945,6 +1946,19 @@ sub qt( $ ) {
 sub qt1( $ ) {
     1 while system( "@_ > /dev/null 2>&1" ) == 4;
     $? == 0;
+}
+
+#
+# Get the current kernel version
+#
+sub determine_kernelversion() {
+    my $kernelversion=`uname -r`;
+
+    if ( $kernelversion =~ /^(\d+)\.(\d+).(\d+)/ ) {
+	$capabilities{KERNELVERSION} = sprintf "%d%02d%02d", $1 , $2 , $3;
+    } else {
+	fatal_error "Inrecognized Kernel Version Format ($kernelversion)";
+    }
 }
 
 #
@@ -2106,6 +2120,8 @@ sub determine_capabilities( $ ) {
     qt1( "$iptables -X $sillyname1" );
 
     $capabilities{CAPVERSION} = $globals{CAPVERSION};
+
+    determine_kernelversion;
 }
 
 #
@@ -2221,6 +2237,11 @@ sub read_capabilities() {
     } else {
 	warning_message "Your capabilities file may not contain all of the capabilities defined by $Product version $globals{VERSION}";
     }
+
+    unless ( $capabilities{KERNELVERSION} ) {
+	warning_message "Your capabilities file does not contain a Kernel Version -- using 2.6.30";
+	$capabilities{KERNELVERSION} = 20630;
+    }
 }
 
 #
@@ -2328,7 +2349,26 @@ sub get_configuration( $ ) {
     }
 
     check_trivalue ( 'IP_FORWARDING', 'on' );
-    check_trivalue ( 'ROUTE_FILTER',  '' );    fatal_error "ROUTE_FILTER=On is not supported in IPv6" if $config{ROUTE_FILTER} eq 'on' && $family == F_IPV6;
+    
+    my $val;
+
+    if ( $capabilities{KERNELVERSION} < 20631 ) {
+	check_trivalue ( 'ROUTE_FILTER',  '' );
+    } else {
+	$val = $capabilities{ROUTE_FILTER};
+	if ( defined $val ) {
+	    if ( $val =~ /\d+/ ) {
+		fatal_error "Invalid value ($val) for ROUTE_FILTER" unless $val < 3;
+	    } else {
+		check_trivalue( 'ROUTE_FILTER', '' );
+	    }
+	}
+    }
+
+    if ( $family == F_IPV6 ) {
+	$val = $capabilities{ROUTE_FILTER};	
+	fatal_error "ROUTE_FILTER=$val is not supported in IPv6" unless $val eq 'off' || $val eq '';
+    }
 
     if ( $family == F_IPV4 ) {
 	check_trivalue ( 'LOG_MARTIANS',  'on' );
@@ -2415,8 +2455,6 @@ sub get_configuration( $ ) {
     default_yes_no 'AUTOMAKE'                   , '';
     default_yes_no 'WIDE_TC_MARKS'              , '';
     default_yes_no 'TRACK_PROVIDERS'            , '';
-
-    my $val;
 
     if ( defined ( $val = $config{ZONE2ZONE} ) ) {
 	fatal_error "Invalid ZONE2ZONE value ( $val )" unless $val =~ /^[2-]$/;
