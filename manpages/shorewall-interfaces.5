@@ -2,12 +2,12 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 12/19/2009
+.\"      Date: 12/20/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "12/19/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-INTERFACE" "5" "12/20/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -474,7 +474,7 @@ option will have their setting changed; the value assigned to the setting will b
 If specified, indicates that Shorewall should include rules that allow traffic arriving on this interface to be routed back out that same interface\&. This option is also required when you have used a wildcard in the INTERFACE column if you want to allow traffic between the interfaces that match the wildcard\&.
 .RE
 .PP
-\fBroutefilter[={0|1}]\fR
+\fBroutefilter[={0|1|2}]\fR
 .RS 4
 Turn on kernel route filtering for this interface (anti\-spoofing measure)\&.
 .sp
@@ -482,6 +482,9 @@ Only those interfaces with the
 \fBroutefilter\fR
 option will have their setting changes; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
 .sp
+The value 2 is only available with Shorewall 4\&.4\&.5\&.1 and later when the kernel version is 2\&.6\&.31 or later\&. It specifies a
+loose
+form of reverse path filtering\&.
 .if n \{\
 .sp
 .\}
