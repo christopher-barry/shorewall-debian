@@ -328,7 +328,7 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.5.1",
+		    VERSION => "4.4.5.2",
 		    CAPVERSION => 40406 ,
 		  );
 
@@ -621,6 +621,7 @@ sub initialize( $ ) {
 	       PERSISTENT_SNAT => undef,
 	       OLD_HL_MATCH => undef,
 	       CAPVERSION => undef,
+	       KERNELVERSION => undef,
 	       );
     #
     # Directories to search for configuration files
@@ -2362,6 +2363,8 @@ sub get_configuration( $ ) {
 	    } else {
 		check_trivalue( 'ROUTE_FILTER', '' );
 	    }
+	} else {
+	    check_trivalue( 'ROUTE_FILTER' , '' );
 	}
     }
 
