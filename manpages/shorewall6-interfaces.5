@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 12/19/2009
+.\"      Date: 12/24/2009
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "12/19/2009" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-INTERFAC" "5" "12/24/2009" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -101,6 +101,11 @@ Check packets arriving on this interface against the
 Designates the interface as a bridge\&.
 .RE
 .PP
+\fBforward\fR[={0|1}]
+.RS 4
+Sets the /proc/sys/net/ipv6/conf/interface/forwarding option to the specified value\&. If no value is supplied, then 1 is assumed\&.
+.RE
+.PP
 \fBmss\fR=\fInumber\fR
 .RS 4
 Causes forwarded TCP SYN packets entering or leaving on this interface to have their MSS field set to the specified
@@ -145,7 +150,7 @@ The first global IPv6 address of the interface cannot be obtained\&.
 .RE
 .RE
 .PP
-physical=\fB\fIname\fR\fR
+\fBphysical\fR=\fB\fIname\fR\fR
 .RS 4
 Added in Shorewall 4\&.4\&.4\&. When specified, the interface or port name in the INTERFACE column is a logical name that refers to the name given in this option\&. It is useful when you want to specify the same wildcard port name on two or more bridges\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\m[]\&.
@@ -170,7 +175,7 @@ If specified, indicates that shorewall6 should include rules that allow traffic 
 .PP
 \fBsourceroute[={0|1}]\fR
 .RS 4
-If this option is not specified for an interface, then source\-routed packets will not be accepted from that interface (sets /proc/sys/net/ipv6/conf//accept_source_route to 1)\&. Only set this option if you know what you are doing\&. This might represent a security risk and is not usually needed\&.
+If this option is not specified for an interface, then source\-routed packets will not be accepted from that interface (sets /proc/sys/net/ipv6/conf/\fIinterface\fR/accept_source_route to 1)\&. Only set this option if you know what you are doing\&. This might represent a security risk and is not usually needed\&.
 .sp
 Only those interfaces with the
 \fBsourceroute\fR
@@ -199,7 +204,7 @@ name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
 Packets arriving on this interface are checked for certain illegal combinations of TCP flags\&. Packets found to have such a combination of flags are handled according to the setting of TCP_FLAGS_DISPOSITION after having been logged according to the setting of TCP_FLAGS_LOG_LEVEL\&.
 .RE
 .PP
-proxyndp[={0|1}]
+\fBproxyndp\fR[={0|1}]
 .RS 4
 Sets /proc/sys/net/ipv6/conf/\fIinterface\fR/proxy_ndp\&.
 .sp
