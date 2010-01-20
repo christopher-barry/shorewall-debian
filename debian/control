@@ -11,6 +11,7 @@ Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
 
 Package: shorewall-doc
 Architecture: all
+Depends: ${misc:Depends}
 Suggests: shorewall
 Description: documentation for Shoreline Firewall (Shorewall)
  Shorewall is an iptables based firewall that can be used on a dedicated
