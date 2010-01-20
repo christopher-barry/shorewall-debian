@@ -1,4 +1,4 @@
-Shorewall 4.4.5 Patch Release 4.
+Shorewall 4.4.6
 
 ----------------------------------------------------------------------------
                R E L E A S E  4 . 4  H I G H L I G H T S
@@ -48,6 +48,11 @@ Shorewall 4.4.5 Patch Release 4.
 11) Support for netfilter's TRACE facility has been added. TRACE allows
     you to trace selected packets through Netfilter, including marking
     by tcrules. 
+
+12) You may now preview the generated ruleset by using the '-r' option
+    to the 'check' command (e.g., "shorewall check -r").
+
+13) A new simplified Traffic Shaping facility is now available.
 
 ----------------------------------------------------------------------------
                     M I G R A T I O N   I S S U E S
@@ -170,44 +175,30 @@ Shorewall 4.4.5 Patch Release 4.
     then it may have no additional members in /etc/shorewall/hosts.
 
 ----------------------------------------------------------------------------
-        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 5 . 4
+        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 6
 ----------------------------------------------------------------------------
 
-1)  With Shorewall 4.4.5.3, using a capabilities file with Shorewall6
-    will result in the following warnings during compilation:
+1)  A 'feature' of xtables-addons when applied to Debian Lenny causes
+    extra /31 networks to appear for nethash sets in the output of
+    "ipset -L" and "ipset -S". A hack has been added to prevent these
+    from being saved when Shorewall is saving IPSETS during 'stop'.
 
-       WARNING: Your capabilities file is out of date -- it does not
-          contain all of the capabilities defined by Shorewall6 version
-          4.4.5.3
+    As part of this change, the generated script is more careful about
+    verifying the existence of the correct ipset utility before using
+    it to save the contents of the sets.
 
-       WARNING: Your capabilities file does not contain a Kernel
-          Version -- using 2.6.30
-
-2)  The change in Shoreawll 4.4.5.1 broke the 'forward' interface
-    option in Shorewall6.
-
-----------------------------------------------------------------------------
-        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 5 . 3
-----------------------------------------------------------------------------
-
-1)  'shorewall6 start' on Shorewall 4.4.5.2 generates a Perl run-time
-    error. Also, handling of ROUTE_FILTER on kernel 2.6.31 and later
-    was broken.
+2)  The mDNS macro previously did not include IGMP (protocol 2) and it
+    did not specify the mDNS multicast address (224.0.0.251). These
+    omissions have been corrected.
 
 ----------------------------------------------------------------------------
-        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 5 . 2
+             K N O W N   P R O B L E M S   R E M A I N I N G
 ----------------------------------------------------------------------------
 
-1)  When using an up-to-date capabilities file with Shorewall 4.4.5.1, the
-    following warning messages were issued.
-
-       WARNING: Unknown capability (KERNELVERSION) 
-         ignored : /etc/shorewall2/capabilities (line 49)
-       WARNING: Your capabilities file does not contain a Kernel Version --
-         using 2.6.30
+None.
 
 ----------------------------------------------------------------------------
-        P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 5 . 1
+                N E W   F E A T U R E S   I N   4 . 4 . 6
 ----------------------------------------------------------------------------
 
 1)  In kernel 2.6.31, the handling of the rp_filter interface option was
@@ -232,7 +223,8 @@ Shorewall 4.4.5 Patch Release 4.
 
     b)  This means that the kernel version is now recorded in
         the capabilities file. So if you use capabilities files, you
-        need to regenerate the files with Shorewall[-lite] 4.4.5.1.
+        need to regenerate the files with Shorewall[-lite] 4.4.6 or
+        later.
 
     c)  If the capabilities file does not contain a kernel version,
         the compiler assumes version 2.6.30 (the old rp_filter
@@ -252,87 +244,64 @@ Shorewall 4.4.5 Patch Release 4.
 
     e)  The 'routefilter' interface option can have values 0,1 or 2. If
     	'routefilter' is specified without a value, the value 1 is
-    	assumed. 
+    	assumed.
 
-----------------------------------------------------------------------------
-          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 5
-----------------------------------------------------------------------------
+2)  SAVE_IPSETS=Yes has been resurrected but in a different form. With
+    this setting, the contents of your ipsets are saved during 'shorewall
+    stop' and 'shorewall save' and they are restored during 'shorewall
+    start' and 'shorewall restore'. Note that the contents may only be
+    restored during 'restore' if the firewall is currently in the
+    stopped state and there are no ipsets currently in use. In
+    particular, when 'restore' is being executed to recover from a
+    failed start/restart, the contents of the ipsets are not changed.
 
-1)  The change which removed the 15 port limitation on
-    /etc/shorewall/routestopped was incomplete. The result was that if
-    more than 15 ports were listed, an error was generated.
+    When SAVE_IPSETS=Yes, you may not include ipsets in your
+    /etc/shorewall/routestopped configuration.
 
-2)  If any interfaces had the 'bridge' option specified, compilation
-    failed with the error:
+3)  IPv6 addresses following a colon (":") may either be surrounded by
+    <..> or by the more standard [..].
 
-    Undefined subroutine &Shorewall::Rules::match_source_interface called 
-    at /usr/share/shorewall/Shorewall/Rules.pm line 2319.
+4)  A DHCPfwd macro has been added that allows unicast DHCP traffic to
+    be forwarded through the firewall. Courtesy of Tuomo Soini.
 
-3)  The compiler now flags port number 0 as an error in all
-    contexts. Previously, port 0 was allowed with the result that
-    invalid iptables-restore input could be generated in some cases.
+5)  Shorewall (/sbin/shorewall) now supports a 'show macro' command:
 
-4)  The 'show policies' command now works in Shorewall6 and
-    Shorewall6-lite.
-
-5)  Traffic shaping modules from /lib/modules/<version>/net/sched/ are
-    now correctly loaded. Previously, that directory was not
-    searched. Additionally, Shorewall6 now tries to load the cls_flow
-    module; previously, only Shorewall attempts to load that module.
-
-6)  The Shorewall6-lite shorecap program was previously including the
-    IPv4 base library rather than the IPv6 version. Also, Shorewall6
-    capability detection was determing the availablity of the mangle
-    capability before it had determined if ip6tables was installed.
-
-7)  The setting of MODULE_SUFFIX was previously ignored except when
-    compiling for export.
-
-8)  Detection of the Enhanced Reject capability in the compiler was
-    broken for IPv4 compilations.
-
-9)  The 'reload -c' command would ignore the setting of DONT_LOAD in
-    shorewall.conf. The 'reload' command without '-c' worked as
-    expected. 
-
-----------------------------------------------------------------------------
-             K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-None.
-
-----------------------------------------------------------------------------
-                N E W   F E A T U R E S   I N   4 . 4 . 5
-----------------------------------------------------------------------------
-
-1)  Shorewall now allows DNAT rules that change only the destination
-    port.
+    	      shorewall show macro <macro>
 
     Example:
 
-	DNAT	loc	net::456	udp	234
+    	      shorewall show macro LDAP
 
-    That rule will modify the destination port in UDP packets received
-    from the 'loc' zone from 456 to 234. Note that if the destination
-    is the firewall itself, then the destination port will be rewritten
-    but that no ACCEPT rule from the loc zone to the $FW zone will have
-    been created to handle the request. So such rules should probably
-    exclude the firewall's IP addresses in the ORIGINAL DEST column.
+    The command displays the contents of the macro.<macro> file.
 
-2)  Systems that do not log Netfilter messages locally can now set
-    LOGFILE=/dev/null in shorewall.conf.
+6)  You may now preview the generated ruleset by using the '-r' option
+    to the 'check' command (e.g., "shorewall check -r").
 
-3)  The 'shorewall show connections' and 'shorewall dump' commands now
-    display the current number of connections and the max supported
-    connections.
+    The output is a shell script fragment, similar to the way it
+    appears in the generated script.
 
-    Example:
+7)  It is now possible to enable a simplified traffic shaping
+    facility by setting TC_ENABLED=Simple in shorewall.conf.
 
-	shorewall show connections
-    	Shorewall 4.5.0 Connections (62 out of 65536) at gateway - Sat ...
+    See http://www.shorewall.net/simple_traffic_shaping.html for
+    details.
 
-    In that case, there were 62 current connections out of a maximum
-    number supported of 65536.
+8)  Previously, when TC_EXPERT=No, packets arriving through 'tracked'
+    provider interfaces were unconditionally passed to the PREROUTING
+    tcrules. This was done so that tcrules could reset the packet mark
+    to zero, thus allowing the packet to be routed using the 'main'
+    routing table. Using the main table allowed dynamic routes (such as
+    those added for VPNs) to be effective.
+
+    The route_rules file was created to provide a better alternative
+    to clearing the packet mark. As a consequence, passing these
+    packets to PREROUTING complicates things without providing any real
+    benefit.
+
+    Beginning with this release, when TRACK_PROVIDERS=Yes and TC_EXPERT=No,
+    packets arriving through 'tracked' interfaces will not be passed to
+    the PREROUTING rules. Since TRACK_PROVIDERS was just introduced in
+    4.4.3, this change should be transparent to most, if not all, users.
 
 ----------------------------------------------------------------------------
                 N E W   F E A T U R E S   I N   4 . 4 . 0
@@ -1452,3 +1421,77 @@ None.
     causes chain displays to include the rule number of each rule.
 
     (Type 'iptables -h' and look for '--line-number')
+
+----------------------------------------------------------------------------
+          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 5
+----------------------------------------------------------------------------
+
+1)  The change which removed the 15 port limitation on
+    /etc/shorewall/routestopped was incomplete. The result was that if
+    more than 15 ports were listed, an error was generated.
+
+2)  If any interfaces had the 'bridge' option specified, compilation
+    failed with the error:
+
+    Undefined subroutine &Shorewall::Rules::match_source_interface called 
+    at /usr/share/shorewall/Shorewall/Rules.pm line 2319.
+
+3)  The compiler now flags port number 0 as an error in all
+    contexts. Previously, port 0 was allowed with the result that
+    invalid iptables-restore input could be generated in some cases.
+
+4)  The 'show policies' command now works in Shorewall6 and
+    Shorewall6-lite.
+
+5)  Traffic shaping modules from /lib/modules/<version>/net/sched/ are
+    now correctly loaded. Previously, that directory was not
+    searched. Additionally, Shorewall6 now tries to load the cls_flow
+    module; previously, only Shorewall attempts to load that module.
+
+6)  The Shorewall6-lite shorecap program was previously including the
+    IPv4 base library rather than the IPv6 version. Also, Shorewall6
+    capability detection was determing the availablity of the mangle
+    capability before it had determined if ip6tables was installed.
+
+7)  The setting of MODULE_SUFFIX was previously ignored except when
+    compiling for export.
+
+8)  Detection of the Enhanced Reject capability in the compiler was
+    broken for IPv4 compilations.
+
+9)  The 'reload -c' command would ignore the setting of DONT_LOAD in
+    shorewall.conf. The 'reload' command without '-c' worked as
+    expected. 
+
+----------------------------------------------------------------------------
+                N E W   F E A T U R E S   I N   4 . 4 . 5
+----------------------------------------------------------------------------
+
+1)  Shorewall now allows DNAT rules that change only the destination
+    port.
+
+    Example:
+
+	DNAT	loc	net::456	udp	234
+
+    That rule will modify the destination port in UDP packets received
+    from the 'loc' zone from 456 to 234. Note that if the destination
+    is the firewall itself, then the destination port will be rewritten
+    but that no ACCEPT rule from the loc zone to the $FW zone will have
+    been created to handle the request. So such rules should probably
+    exclude the firewall's IP addresses in the ORIGINAL DEST column.
+
+2)  Systems that do not log Netfilter messages locally can now set
+    LOGFILE=/dev/null in shorewall.conf.
+
+3)  The 'shorewall show connections' and 'shorewall dump' commands now
+    display the current number of connections and the max supported
+    connections.
+
+    Example:
+
+	shorewall show connections
+    	Shorewall 4.5.0 Connections (62 out of 65536) at gateway - Sat ...
+
+    In that case, there were 62 current connections out of a maximum
+    number supported of 65536.

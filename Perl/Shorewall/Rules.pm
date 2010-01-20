@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_5';
+our $VERSION = '4.4_6';
 
 #
 # Set to one if we find a SECTION
@@ -125,7 +125,7 @@ sub process_tos() {
 	    if ( $family == F_IPV4 ) {
 		( $srczone , $source , $remainder ) = split( /:/, $src, 3 );
 		fatal_error 'Invalid SOURCE' if defined $remainder;
-	    } elsif ( $src =~ /^(.+?):<(.*)>\s*$/ ) {
+	    } elsif ( $src =~ /^(.+?):<(.*)>\s*$/ || $src =~ /^(.+?):\[(.*)\]\s*$/ ) {
 		$srczone = $1;
 		$source  = $2;
 	    } else {
@@ -146,7 +146,7 @@ sub process_tos() {
 	    expand_rule
 		$chainref ,
 		$restriction ,
-		do_proto( $proto, $ports, $sports ) . do_test( $mark , 0xFF ) ,
+		do_proto( $proto, $ports, $sports ) . do_test( $mark , $globals{TC_MASK} ) ,
 		$src ,
 		$dst ,
 		'' ,
@@ -315,7 +315,6 @@ sub process_routestopped() {
 	my ($interface, $hosts, $options , $proto, $ports, $sports ) = split_line 1, 6, 'routestopped file';
 
 	fatal_error "Unknown interface ($interface)" unless known_interface $interface;
-
 	$hosts = ALLIP unless $hosts && $hosts ne '-';
 
 	my @hosts;
@@ -325,6 +324,7 @@ sub process_routestopped() {
 	my $rule = do_proto( $proto, $ports, $sports, 0 );
 
 	for my $host ( split /,/, $hosts ) {
+	    fatal_error "Ipsets not allowed with SAVE_IPSETS=Yes" if $host =~ /^!?\+/ && $config{SAVE_IPSETS};
 	    validate_host $host, 1;
 	    push @hosts, "$interface|$host|$seq";
 	    push @rule, $rule;
@@ -1159,7 +1159,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
     #
     # Generate Fixed part of the rule
     #
-    $rule = join( '', do_proto($proto, $ports, $sports), do_ratelimit( $ratelimit, $basictarget ) , do_user( $user ) , do_test( $mark , 0xFF ) , do_connlimit( $connlimit ), do_time( $time ) );
+    $rule = join( '', do_proto($proto, $ports, $sports), do_ratelimit( $ratelimit, $basictarget ) , do_user( $user ) , do_test( $mark , $globals{TC_MASK} ) , do_connlimit( $connlimit ), do_time( $time ) );
 
     unless ( $section eq 'NEW' ) {
 	fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" if $config{FASTACCEPT};
@@ -1292,7 +1292,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 	#   - the target will be ACCEPT.
 	#
 	unless ( $actiontype & NATONLY ) {
-	    $rule = join( '', do_proto( $proto, $ports, $sports ), do_ratelimit( $ratelimit, 'ACCEPT' ), do_user $user , do_test( $mark , 0xFF ) );
+	    $rule = join( '', do_proto( $proto, $ports, $sports ), do_ratelimit( $ratelimit, 'ACCEPT' ), do_user $user , do_test( $mark , $globals{TC_MASK} ) );
 	    $loglevel = '';
 	    $dest     = $server;
 	    $action   = 'ACCEPT';
@@ -2007,7 +2007,7 @@ sub generate_matrix() {
 			my $match_source_dev = '';
 			my $forwardchainref = $filter_table->{forward_chain $interface};
 
-			if ( use_forward_chain $interface || ( @{$forwardchainref->{rules} } && ! $chainref ) ) {
+			if ( use_forward_chain( $interface ) || ( @{$forwardchainref->{rules} } && ! $chainref ) ) {
 			    #
 			    # Either we must use the interface's forwarding chain or that chain has rules and we have nowhere to move them
 			    #
@@ -2162,6 +2162,7 @@ sub compile_stop_firewall( $ ) {
 # Stop/restore the firewall after an error or because of a 'stop' or 'clear' command
 #
 stop_firewall() {
+    local hack
 EOF
 
     $output->{policy} = 'ACCEPT' if $config{ADMINISABSENTMINDED};
@@ -2190,8 +2191,8 @@ EOF
 	        restart)
 	            logger -p kern.err "ERROR:$PRODUCT restart failed"
 	            ;;
-	        restore)
-	            logger -p kern.err "ERROR:$PRODUCT restore failed"
+	        refresh)
+	            logger -p kern.err "ERROR:$PRODUCT refresh failed"
 	            ;;
             esac
 
@@ -2207,6 +2208,9 @@ EOF
 
 	        if [ -x $RESTOREPATH ]; then
 		    echo Restoring ${PRODUCT:=Shorewall}...
+                    
+                    RECOVERING=Yes
+                    export RECOVERING
 
 		    if $RESTOREPATH restore; then
 		        echo "$PRODUCT restored from $RESTOREPATH"
@@ -2341,16 +2345,38 @@ EOF
 
     my @ipsets = all_ipsets;
 
-    if ( @ipsets ) {
+    if ( @ipsets || $config{SAVE_IPSETS} ) {
 	emit <<'EOF';
 
-    if [ -n "$(mywhich ipset)" ]; then
-        if $IPSET -S > ${VARDIR}/ipsets.tmp; then
+    case $IPSET in
+        */*)
+            if [ ! -x "$IPSET" ]; then
+                error_message "ERROR: IPSET=$IPSET does not exist or is not executable - ipsets are not saved"
+                IPSET=
+            fi
+	    ;;
+	*)
+	    IPSET="$(mywhich $IPSET)"
+	    [ -n "$IPSET" ] || error_message "ERROR: The ipset utility cannot be located - ipsets are not saved"
+	    ;;
+    esac
+
+    if [ -n "$IPSET" ]; then
+        if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then
+            #
+            # The 'grep -v' is a hack for a bug in ipset's nethash implementation when xtables-addons is applied to Lenny
+            #
+            hack='| grep -v /31'
+        else
+            hack=
+        fi
+
+        if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then
             #
             # Don't save an 'empty' file
             #
             grep -q '^-N' ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save
-	fi
+        fi
     fi
 EOF
     }

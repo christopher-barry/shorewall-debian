@@ -43,7 +43,7 @@ use Shorewall::Raw;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler EXPORT TIMESTAMP DEBUG );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_4';
+our $VERSION = '4.4_6';
 
 our $export;
 
@@ -355,15 +355,17 @@ sub generate_script_3($) {
     if ( $family == F_IPV4 ) {
 	my @ipsets = all_ipsets;
 
-	if ( @ipsets ) {
+	if ( @ipsets || $config{SAVE_IPSETS} ) {
 	    emit ( '',
+		   'local hack',
+		   '',
 		   'case $IPSET in',
 		   '    */*)',
-		   '        [ -x "$IPSET" ] || fatal_error "IPSET=$IPSET does not exist or is not executable"',
+		   '        [ -x "$IPSET" ] || startup_error "IPSET=$IPSET does not exist or is not executable"',
 		   '        ;;',
 		   '    *)',
 		   '        IPSET="$(mywhich $IPSET)"',
-		   '        [ -n "$IPSET" ] || fatal_error "The ipset utility cannot be located"' ,
+		   '        [ -n "$IPSET" ] || startup_error "The ipset utility cannot be located"' ,
 		   '        ;;',
 		   'esac',
 		   '',
@@ -373,20 +375,44 @@ sub generate_script_3($) {
 		   '        $IPSET -X' ,
 		   '        $IPSET -R < ${VARDIR}/ipsets.save' ,
 		   '    fi' ,
-		   '' );
+		   'elif [ "$COMMAND" = restore -a -z "$RECOVERING" ]; then' ,
+		   '    if [ -f $(my_pathname)-ipsets ]; then' ,
+		   '        if chain_exists shorewall; then' ,
+		   '            startup_error "Cannot restore $(my_pathname)-ipsets with Shorewall running"' ,
+		   '        else' ,
+		   '            $IPSET -F' ,
+		   '            $IPSET -X' ,
+		   '            $IPSET -R < $(my_pathname)-ipsets' ,
+		   '        fi' ,
+		   '    fi' ,
+		 );
 
-	    emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
+	    if ( @ipsets ) {
+		emit '';
 
-	    emit ( '' ,
-		   'elif [ "$COMMAND" = restart ]; then' ,
-		   '' );
+		emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
 
-	    emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
+		emit ( '' ,
+		       'elif [ "$COMMAND" = restart ]; then' ,
+		       '' );
 
-	    emit ( '' ,
-		   '    if $IPSET -S > ${VARDIR}/ipsets.tmp; then' ,
-		   '        grep -q "^-N" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
-		   '    fi' );
+		emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
+
+		emit ( '' ,
+		       '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
+		       '        #',
+		       '        # The \'grep -v\' is a hack for a bug in ipset\'s nethash implementation when xtables-addons is applied to Lenny' ,
+		       '        #',
+		       '        hack=\'| grep -v /31\'' ,
+		       '    else' ,
+		       '        hack=' ,
+		       '    fi' ,
+		       '',
+		       '    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then' ,
+		       '        grep -q "^-N" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
+		       '    fi' );
+	    }
+
 	    emit ( 'fi',
 		   '' );
 	}
@@ -536,8 +562,8 @@ EOF
 #
 sub compiler {
 
-    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity ) =
-       ( '',              '',         -1,          '',          0,      '',       '',   -1 );
+    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview ) =
+       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0 );
 
     $export = 0;
     $test   = 0;
@@ -569,6 +595,7 @@ sub compiler {
 		  log           => { store => \$log },
 		  log_verbosity => { store => \$log_verbosity, validate => \&validate_verbosity } ,
 		  test          => { store => \$test },
+		  preview       => { store => \$preview },
 		);
     #
     #                               P A R A M E T E R    P R O C E S S I N G
@@ -606,7 +633,7 @@ sub compiler {
 
     require_capability( 'MULTIPORT'       , "Shorewall $globals{VERSION}" , 's' );
     require_capability( 'RECENT_MATCH'    , 'MACLIST_TTL' , 's' )           if $config{MACLIST_TTL};
-    require_capability( 'XCONNMARK'       , 'HIGH_ROUTE_MARKS=Yes' , 's' )  if $config{HIGH_ROUTE_MARKS};
+    require_capability( 'XCONNMARK'       , 'HIGH_ROUTE_MARKS=Yes' , 's' )  if $config{PROVIDER_OFFSET} > 0;
     require_capability( 'MANGLE_ENABLED'  , 'Traffic Shaping' , 's'      )  if $config{TC_ENABLED};
 
     if ( $scriptfilename ) {
@@ -793,7 +820,7 @@ sub compiler {
 
     if ( $scriptfilename ) {
 	#
-	# Generate the zone by zone matrix
+	# Compiling a script - generate the zone by zone matrix
 	#
 	generate_matrix;
 
@@ -840,6 +867,13 @@ sub compiler {
 	#
 	enable_script, generate_aux_config if $export;
     } else {
+	#
+	# Checking the configuration only
+	#
+	if ( $preview ) {
+	    generate_matrix;
+	    preview_netfilter_load;
+	}
 	#
 	# Re-initialize the chain table so that process_routestopped() has the same
 	# environment that it would when called by compile_stop_firewall().

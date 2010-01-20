@@ -1,32 +1,24 @@
-'\" t
 .\"     Title: shorewall-route_rules
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 12/24/2009
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 01/14/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL\-ROUTE_RUL" "5" "12/24/2009" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL\-ROUTE_RUL" "5" "01/14/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 route_rules \- Shorewall Routing Rules file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall/route_rules\fR\ 'u
+.HP 27
 \fB/etc/shorewall/route_rules\fR
 .SH "DESCRIPTION"
 .PP
 Entries in this file cause traffic to be routed to one of the providers listed in
-\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[1]\d\s+2(5)\&.
+\fIshorewall\-providers\fR\&[1](5)\&.
 .PP
 The columns in the file are as follows\&.
 .PP
@@ -88,44 +80,36 @@ Example 1:
 .RS 4
 You want all traffic coming in on eth1 to be routed to the ISP1 provider\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #SOURCE                 DEST            PROVIDER        PRIORITY
         eth1                    \-               ISP1            1000
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 2:
 .RS 4
 You use OpenVPN (routed setup /tunX) in combination with multiple providers\&. In this case you have to set up a rule to ensure that the OpenVPN traffic is routed back through the tunX interface(s) rather than through any of the providers\&. 10\&.8\&.0\&.0/24 is the subnet chosen in your OpenVPN configuration (server 10\&.8\&.0\&.0 255\&.255\&.255\&.0)\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
          #SOURCE                 DEST            PROVIDER        PRIORITY
          \-                       10\&.8\&.0\&.0/24     main            1000
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .SH "FILES"
 .PP
 /etc/shorewall/route_rules
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://shorewall\&.net/MultiISP\&.html\fR\m[]
+\fIhttp://shorewall\&.net/MultiISP\&.html\fR
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall-providers
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-providers.html
+\%shorewall-providers.html
 .RE

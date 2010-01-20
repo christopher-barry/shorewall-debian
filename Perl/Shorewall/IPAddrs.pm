@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -26,7 +26,7 @@
 #
 package Shorewall::IPAddrs;
 require Exporter;
-use Shorewall::Config qw( :DEFAULT split_list require_capability in_hex8 F_IPV4 F_IPV6 );
+use Shorewall::Config qw( :DEFAULT split_list require_capability in_hex8 numeric_value F_IPV4 F_IPV6 );
 use Socket;
 
 use strict;
@@ -72,7 +72,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_icmp6
 		 );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_5';
+our $VERSION = '4.4_6';
 
 #
 # Some IPv4/6 useful stuff
@@ -302,7 +302,8 @@ sub validate_port( $$ ) {
     my $value;
 
     if ( $port =~ /^(\d+)$/ ) {
-	return $port if $port && $port <= 65535;
+	$port = numeric_value $port;
+	return $port if defined $port && $port && $port <= 65535;
     } else {
 	$proto = proto_name $proto if $proto =~ /^(\d+)$/;
 	$value = getservbyname( $port, $proto );
