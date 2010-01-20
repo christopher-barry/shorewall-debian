@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -57,7 +57,7 @@ our @EXPORT = qw( merge_levels
 		  $macro_commands
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_5';
+our $VERSION = '4.4_6';
 
 #
 #  Used Actions. Each action that is actually used has an entry with value 1.
@@ -213,7 +213,7 @@ sub merge_macro_source_dest( $$ ) {
     if ( $invocation ) {
 	if ( $body ) {
 	    return $body if $invocation eq '-';
-	    return "$body:$invocation" if $invocation =~ /.*?\.*?\.|^\+|^!+|^~|^!~|~</;
+	    return "$body:$invocation" if $invocation =~ /.*?\.*?\.|^\+|^!+|^~|^!~|~<|~\[/;
 	    return "$invocation:$body";
 	}
 
@@ -609,7 +609,7 @@ sub process_action( $$$$$$$$$$$ ) {
 
     expand_rule ( $chainref ,
 		  NO_RESTRICT ,
-		  do_proto( $proto, $ports, $sports ) . do_ratelimit( $rate, $action ) . do_user $user . do_test( $mark, 0xFF ) ,
+		  do_proto( $proto, $ports, $sports ) . do_ratelimit( $rate, $action ) . do_user $user . do_test( $mark, $globals{TC_MASK} ) ,
 		  $source ,
 		  $dest ,
 		  '', #Original Dest

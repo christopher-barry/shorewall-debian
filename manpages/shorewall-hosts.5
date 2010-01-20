@@ -1,133 +1,81 @@
-'\" t
 .\"     Title: shorewall-hosts
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 12/24/2009
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 01/14/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL\-HOSTS" "5" "12/24/2009" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL\-HOSTS" "5" "01/14/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 hosts \- Shorewall file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall/hosts\fR\ 'u
+.HP 21
 \fB/etc/shorewall/hosts\fR
 .SH "DESCRIPTION"
 .PP
 This file is used to define zones in terms of subnets and/or individual IP addresses\&. Most simple setups don\'t need to (should not) place anything in this file\&.
 .PP
 The order of entries in this file is not significant in determining zone composition\&. Rather, the order that the zones are declared in
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5) determines the order in which the records in this file are interpreted\&.
-.if n \{\
+\fIshorewall\-zones\fR\&[1](5) determines the order in which the records in this file are interpreted\&.
 .sp
-.\}
-.RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
 .nr an-break-flag 1
 .br
-.ps +1
-\fBWarning\fR
-.ps -1
-.br
+Warning
 .PP
 The only time that you need this file is when you have more than one zone connected through a single interface\&.
-.sp .5v
-.RE
-.if n \{\
 .sp
-.\}
-.RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
 .nr an-break-flag 1
 .br
-.ps +1
-\fBWarning\fR
-.ps -1
-.br
+Warning
 .PP
 If you have an entry for a zone and interface in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) then do not include any entries in this file for that same (zone, interface) pair\&.
-.sp .5v
-.RE
+\fIshorewall\-interfaces\fR\&[2](5) then do not include any entries in this file for that same (zone, interface) pair\&.
 .PP
 The columns in the file are as follows\&.
 .PP
 \fBZONE\fR \- \fIzone\-name\fR
 .RS 4
 The name of a zone declared in
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. You may not list the firewall zone in this column\&.
+\fIshorewall\-zones\fR\&[1](5)\&. You may not list the firewall zone in this column\&.
 .RE
 .PP
 \fBHOST(S)\fR \- \fIinterface\fR:{[{\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.|\fB+\fR\fIipset\fR}[\fIexclusion\fR]
 .RS 4
 The name of an interface defined in the
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file followed by a colon (":") and a comma\-separated list whose elements are either:
+\fIshorewall\-interfaces\fR\&[2](5) file followed by a colon (":") and a comma\-separated list whose elements are either:
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 1.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  1." 4.2
-.\}
-The IP
+\h'-04' 1.\h'+02'The IP
 \fIaddress\fR
 of a host\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 2.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  2." 4.2
-.\}
-A network in CIDR format\&.
+\h'-04' 2.\h'+02'A network in CIDR format\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 3.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  3." 4.2
-.\}
-An IP address range of the form
+\h'-04' 3.\h'+02'An IP address range of the form
 \fIlow\&.address\fR\-\fIhigh\&.address\fR\&. Your kernel and iptables must have iprange match support\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 4.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  4." 4.2
-.\}
-The name of an
+\h'-04' 4.\h'+02'The name of an
 \fIipset\fR\&.
 .RE
-.RS 4
+.IP "" 4
 You may also exclude certain hosts through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
+\fIshorewall\-exclusion\fR\&[3](5)\&.
 .RE
 .PP
 OPTIONS (Optional) \- [\fIoption\fR[\fB,\fR\fIoption\fR]\&.\&.\&.]
@@ -137,7 +85,7 @@ A comma\-separated list of options from the following list\&. The order in which
 \fBmaclist\fR
 .RS 4
 Connection requests from these hosts are compared against the contents of
-\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[4]\d\s+2(5)\&. If this option is specified, the interface must be an ethernet NIC or equivalent and must be up before Shorewall is started\&.
+\fIshorewall\-maclist\fR\&[4](5)\&. If this option is specified, the interface must be an ethernet NIC or equivalent and must be up before Shorewall is started\&.
 .RE
 .PP
 \fBrouteback\fR
@@ -150,7 +98,7 @@ Shorewall should set up the infrastructure to pass packets from this/these addre
 This option only makes sense for ports on a bridge\&.
 .sp
 Check packets arriving on this port against the
-\m[blue]\fBshorewall\-blacklist\fR\m[]\&\s-2\u[5]\d\s+2(5) file\&.
+\fIshorewall\-blacklist\fR\&[5](5) file\&.
 .RE
 .PP
 \fBtcpflags\fR
@@ -165,13 +113,13 @@ This option only makes sense for ports on a bridge\&.
 Filter packets for smurfs (packets with a broadcast address as the source)\&.
 .sp
 Smurfs will be optionally logged based on the setting of SMURF_LOG_LEVEL in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[6]\d\s+2(5)\&. After logging, the packets are dropped\&.
+\fIshorewall\&.conf\fR\&[6](5)\&. After logging, the packets are dropped\&.
 .RE
 .PP
 \fBipsec\fR
 .RS 4
 The zone is accessed via a kernel 2\&.6 ipsec SA\&. Note that if the zone named in the ZONE column is specified as an IPSEC zone in the
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5) file then you do NOT need to specify the \'ipsec\' option here\&.
+\fIshorewall\-zones\fR\&[1](5) file then you do NOT need to specify the \'ipsec\' option here\&.
 .RE
 .PP
 \fBbroadcast\fR
@@ -179,26 +127,12 @@ The zone is accessed via a kernel 2\&.6 ipsec SA\&. Note that if the zone named 
 Used when you want to include limited broadcasts (destination IP address 255\&.255\&.255\&.255) from the firewall to this zone\&. Only necessary when:
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 1.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  1." 4.2
-.\}
-The network specified in the HOST(S) column does not include 255\&.255\&.255\&.255\&.
+\h'-04' 1.\h'+02'The network specified in the HOST(S) column does not include 255\&.255\&.255\&.255\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 2.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  2." 4.2
-.\}
-The zone does not have an entry for this interface in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+\h'-04' 2.\h'+02'The zone does not have an entry for this interface in
+\fIshorewall\-interfaces\fR\&[2](5)\&.
 .RE
 .RE
 .PP
@@ -213,16 +147,12 @@ Example 1
 .RS 4
 The firewall runs a PPTP server which creates a ppp interface for each remote client\&. The clients are assigned IP addresses in the network 192\&.168\&.3\&.0/24 and in a zone named \'vpn\'\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
 #ZONE       HOST(S)               OPTIONS
 vpn         ppp+:192\&.168\&.3\&.0/24
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .SH "FILES"
 .PP
@@ -234,30 +164,30 @@ shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blackl
 .IP " 1." 4
 shorewall-zones
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-zones.html
+\%shorewall-zones.html
 .RE
 .IP " 2." 4
 shorewall-interfaces
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-interfaces.html
+\%shorewall-interfaces.html
 .RE
 .IP " 3." 4
 shorewall-exclusion
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-exclusion.html
+\%shorewall-exclusion.html
 .RE
 .IP " 4." 4
 shorewall-maclist
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-maclist.html
+\%shorewall-maclist.html
 .RE
 .IP " 5." 4
 shorewall-blacklist
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-blacklist.html
+\%shorewall-blacklist.html
 .RE
 .IP " 6." 4
 shorewall.conf
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall.conf.html
+\%shorewall.conf.html
 .RE

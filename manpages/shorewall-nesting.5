@@ -1,42 +1,32 @@
-'\" t
 .\"     Title: shorewall-nesting
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.1 <http://docbook.sf.net/>
-.\"      Date: 12/24/2009
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 01/14/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL\-NESTING" "5" "12/24/2009" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL\-NESTING" "5" "01/14/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 nesting \- Shorewall Nested Zones
 .SH "SYNOPSIS"
-.HP \w'\ 'u
+.HP 1
 \fIchild\-zone\fR[:\fIparent\-zone\fR[,\fIparent\-zone\fR]\&.\&.\&.]
 .SH "DESCRIPTION"
 .PP
 In
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5), a zone may be declared to be a sub\-zone of one or more other zones using the above syntax\&.
+\fIshorewall\-zones\fR\&[1](5), a zone may be declared to be a sub\-zone of one or more other zones using the above syntax\&.
 .PP
 Where zones are nested, the CONTINUE policy in
-\m[blue]\fBshorewall\-policy\fR\m[]\&\s-2\u[2]\d\s+2(5) allows hosts that are within multiple zones to be managed under the rules of all of these zones\&.
+\fIshorewall\-policy\fR\&[2](5) allows hosts that are within multiple zones to be managed under the rules of all of these zones\&.
 .SH "EXAMPLE"
 .PP
-/etc/shorewall/zones:
+\fI/etc/shorewall/zones\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE    TYPE        OPTION
         fw       firewall
@@ -44,43 +34,31 @@ Where zones are nested, the CONTINUE policy in
         sam:net  ipv4
         loc      ipv4
 .fi
-.if n \{\
 .RE
-.\}
 .PP
-/etc/shorewall/interfaces:
+\fI/etc/shorewall/interfaces\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE     INTERFACE     BROADCAST     OPTIONS
         \-         eth0          detect        dhcp,norfc1918
         loc       eth1          detect
 .fi
-.if n \{\
 .RE
-.\}
 .PP
-/etc/shorewall/hosts:
+\fI/etc/shorewall/hosts\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE     HOST(S)                     OPTIONS
         net       eth0:0\&.0\&.0\&.0/0
         sam       eth0:206\&.191\&.149\&.197
 .fi
-.if n \{\
 .RE
-.\}
 .PP
-/etc/shorewall/policy:
+\fI/etc/shorewall/policy\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #SOURCE      DEST        POLICY       LOG LEVEL
         loc          net         ACCEPT
@@ -88,19 +66,15 @@ Where zones are nested, the CONTINUE policy in
         net          all         DROP         info
         all          all         REJECT       info
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 The second entry above says that when Sam is the client, connection requests should first be processed under rules where the source zone is sam and if there is no match then the connection request should be treated under rules where the source zone is net\&. It is important that this policy be listed BEFORE the next policy (net to all)\&. You can have this policy generated for you automatically by using the IMPLICIT_CONTINUE option in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
+\fIshorewall\&.conf\fR\&[3](5)\&.
 .PP
 Partial
-/etc/shorewall/rules:
+\fI/etc/shorewall/rules\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ACTION   SOURCE    DEST            PROTO    DEST PORT(S)
         \&.\&.\&.
@@ -108,15 +82,11 @@ Partial
         DNAT      net       loc:192\&.168\&.1\&.5 tcp      www
         \&.\&.\&.
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 Given these two rules, Sam can connect to the firewall\'s internet interface with ssh and the connection request will be forwarded to 192\&.168\&.1\&.3\&. Like all hosts in the net zone, Sam can connect to the firewall\'s internet interface on TCP port 80 and the connection request will be forwarded to 192\&.168\&.1\&.5\&. The order of the rules is not significant\&. Sometimes it is necessary to suppress port forwarding for a sub\-zone\&. For example, suppose that all hosts can SSH to the firewall and be forwarded to 192\&.168\&.1\&.5 EXCEPT Sam\&. When Sam connects to the firewall\'s external IP, he should be connected to the firewall itself\&. Because of the way that Netfilter is constructed, this requires two rules as follows:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ACTION   SOURCE    DEST            PROTO    DEST PORT(S)
         \&.\&.\&.
@@ -124,22 +94,18 @@ Given these two rules, Sam can connect to the firewall\'s internet interface wit
         DNAT      net       loc:192\&.168\&.1\&.3 tcp      ssh
         \&.\&.\&.
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 The first rule allows Sam SSH access to the firewall\&. The second rule says that any clients from the net zone with the exception of those in the \(lqsam\(rq zone should have their connection port forwarded to 192\&.168\&.1\&.3\&. If you need to exclude more than one zone, simply use multiple ACCEPT+ rules\&. This technique also may be used when the ACTION is REDIRECT\&.
 .PP
 Care must be taken when nesting occurs as a result of the use of wildcard interfaces (interface names ends in \'+\')\&.
 .PP
 Here\'s an example\&.
-/etc/shorewall/zones:
+\fI/etc/shorewall/zones\fR:
 .PP
-/etc/shorewall/interfaces:
+\fI/etc/shorewall/interfaces\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE    INTERFACE      BROADCAST        OPTIONS
         net      ppp0
@@ -147,48 +113,28 @@ Here\'s an example\&.
         loc      ppp+
         dmz      eth2
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 Because the net zone is declared before the loc zone, net is an implicit sub\-zone of loc and in the absence of a net\->\&.\&.\&. CONTINUE policy, traffic from the net zone will not be passed through loc\->\&.\&.\&. rules\&. But DNAT and REDIRECT rules are an exception!
 .sp
 .RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-DNAT and REDIRECT rules generate two Netfilter rules: a \'nat\' table rule that rewrites the destination IP address and/or port number, and a \'filter\' table rule that ACCEPTs the rewritten connection\&.
+\h'-04'\(bu\h'+03'DNAT and REDIRECT rules generate two Netfilter rules: a \'nat\' table rule that rewrites the destination IP address and/or port number, and a \'filter\' table rule that ACCEPTs the rewritten connection\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-Policies only affect the \'filter\' table\&.
+\h'-04'\(bu\h'+03'Policies only affect the \'filter\' table\&.
 .RE
 .PP
 As a consequence, the following rules will have unexpected behavior:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ACTION     SOURCE               DEST      PROTO        DEST
         #                                                       PORT(S)
         ACCEPT      net                  dmz       tcp          80
         REDIRECT    loc                  3128      tcp          80
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 The second rule is intended to redirect local web requests to a proxy running on the firewall and listening on TCP port 3128\&. But the \'nat\' part of that rule will cause all connection requests for TCP port 80 arriving on interface ppp+ (including ppp0!) to have their destination port rewritten to 3128\&. Hence, the web server running in the DMZ will be inaccessible from the web\&.
 .PP
@@ -200,9 +146,7 @@ pppd option to change the \'net\' interface to something other than ppp0\&. That
 .PP
 If you are running Shorewall version 4\&.1\&.4 or later, a second way is to simply make the nested zones explicit:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE    TYPE        OPTION
         fw       firewall
@@ -210,35 +154,27 @@ If you are running Shorewall version 4\&.1\&.4 or later, a second way is to simp
         net:loc  ipv4
         dmz      ipv4
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 If you take this approach, be sure to set IMPLICIT_CONTINUE=No in
-shorewall\&.conf\&.
+\fIshorewall\&.conf\fR\&.
 .PP
 When using other Shorewall versions, another way is to rewrite the DNAT rule (assume that the local zone is entirely within 192\&.168\&.2\&.0/23):
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ACTION     SOURCE                 DEST      PROTO      DEST
         #                                                       PORT(S)
         ACCEPT      net                    dmz       tcp        80
         REDIRECT    loc:192\&.168\&.2\&.0/23     3128      tcp        80
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 Another way is to restrict the definition of the loc zone:
 .PP
-/etc/shorewall/interfaces:
+\fI/etc/shorewall/interfaces\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE    INTERFACE      BROADCAST        OPTIONS
         net      ppp0
@@ -246,22 +182,16 @@ Another way is to restrict the definition of the loc zone:
         \-        ppp+
         dmz      eth2
 .fi
-.if n \{\
 .RE
-.\}
 .PP
-/etc/shorewall/hosts:
+\fI/etc/shorewall/hosts\fR:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #ZONE    HOST(S)             OPTIONS
         loc      ppp+:192\&.168\&.2\&.0/23
 .fi
-.if n \{\
 .RE
-.\}
 .SH "FILES"
 .PP
 /etc/shorewall/zones
@@ -280,15 +210,15 @@ shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blackl
 .IP " 1." 4
 shorewall-zones
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-zones.html
+\%shorewall-zones.html
 .RE
 .IP " 2." 4
 shorewall-policy
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-policy.html
+\%shorewall-policy.html
 .RE
 .IP " 3." 4
 shorewall.conf
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall.conf.html
+\%shorewall.conf.html
 .RE

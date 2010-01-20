@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -68,6 +68,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 		                       in_hex8
 		                       in_hexp
 				       emit
+				       emitstd
 				       emit_unindented
 				       save_progress_message
 				       save_progress_message_short
@@ -127,7 +128,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_5';
+our $VERSION = '4.4_6';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -226,6 +227,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 KLUDGEFREE      => 'Repeat match',
 		 MARK            => 'MARK Target',
 		 XMARK           => 'Extended Mark Target',
+		 EXMARK          => 'Extended Mark Target 2',
 		 MANGLE_FORWARD  => 'Mangle FORWARD Chain',
 		 COMMENTS        => 'Comments',
 		 ADDRTYPE        => 'Address Type Match',
@@ -328,8 +330,8 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.5.4",
-		    CAPVERSION => 40406 ,
+		    VERSION => "4.4.6",
+		    CAPVERSION => 40407 ,
 		  );
 
     #
@@ -402,6 +404,7 @@ sub initialize( $ ) {
 	      RETAIN_ALIASES => undef,
 	      TC_ENABLED => undef,
 	      TC_EXPERT => undef,
+	      TC_PRIOMAP => undef,
 	      CLEAR_TC => undef,
 	      MARK_IN_FORWARD_CHAIN => undef,
 	      CLAMPMSS => undef,
@@ -448,6 +451,13 @@ sub initialize( $ ) {
 	      MACLIST_DISPOSITION => undef,
 	      TCP_FLAGS_DISPOSITION => undef,
 	      BLACKLIST_DISPOSITION => undef,
+	      #
+	      # Mark Geometry
+	      #
+	      TC_BITS => undef,
+	      PROVIDER_BITS => undef,
+	      PROVIDER_OFFSET => undef,
+	      MASK_BITS => undef
 	    );
 
 	%validlevels = ( DEBUG   => 7,
@@ -526,6 +536,7 @@ sub initialize( $ ) {
 	      IP_FORWARDING => undef,
 	      TC_ENABLED => undef,
 	      TC_EXPERT => undef,
+	      TC_PRIOMAP => undef,
 	      CLEAR_TC => undef,
 	      MARK_IN_FORWARD_CHAIN => undef,
 	      CLAMPMSS => undef,
@@ -555,6 +566,13 @@ sub initialize( $ ) {
 	      #
 	      TCP_FLAGS_DISPOSITION => undef,
 	      BLACKLIST_DISPOSITION => undef,
+	      #
+	      # Mark Geometry
+	      #
+	      TC_BITS => undef,
+	      PROVIDER_BITS => undef,
+	      PROVIDER_OFFSET => undef,
+	      MASK_BITS => undef
 	    );
 
 	%validlevels = ( DEBUG   => 7,
@@ -604,6 +622,7 @@ sub initialize( $ ) {
 	       KLUDGEFREE => undef,
 	       MARK => undef,
 	       XMARK => undef,
+	       EXMARK => undef,
 	       MANGLE_FORWARD => undef,
 	       COMMENTS => undef,
 	       ADDRTYPE => undef,
@@ -843,6 +862,25 @@ sub emit {
 		print $script "\n" unless $lastlineblank;
 		$lastlineblank = 1;
 	    }
+	}
+    }
+}
+
+#
+# Version of emit() that writes to standard out
+#
+sub emitstd {
+    for ( @_ ) {
+	unless ( /^\s*$/ ) {
+	    my $line = $_; # This copy is necessary because the actual arguments are almost always read-only.
+	    $line =~ s/^\n// if $lastlineblank;
+	    $line =~ s/^/$indent/gm if $indent;
+	    $line =~ s/        /\t/gm;
+	    print "$line\n";
+	    $lastlineblank = ( substr( $line, -1, 1 ) eq "\n" );
+	} else {
+	    print "\n" unless $lastlineblank;
+	    $lastlineblank = 1;
 	}
     }
 }
@@ -1735,6 +1773,26 @@ sub default_yes_no_ipv4 ( $$ ) {
     warning_message "$var=Yes is ignored for IPv6" if $family == F_IPV6 && $config{$var};
 }
 
+sub numeric_option( $$$ ) {
+    my ( $option, $default, $min ) = @_;
+
+    my $value = $config{$option};
+
+    my $val = $default;
+    
+    if ( defined $value && $value ne '' ) {
+	$val = numeric_value $value;
+	fatal_error "Invalid value ($value) for '$option'" unless defined $val && $val <= 32;
+    }
+
+    $val = $min if $val < $min;
+
+    $config{$option} = $val;
+}
+
+sub make_mask( $ ) {
+    0xffffffff >> ( 32 - $_[0] );
+}   
 
 my @suffixes = qw(group range threshold nlgroup cprange qthreshold);
 
@@ -1958,7 +2016,7 @@ sub determine_kernelversion() {
     if ( $kernelversion =~ /^(\d+)\.(\d+).(\d+)/ ) {
 	$capabilities{KERNELVERSION} = sprintf "%d%02d%02d", $1 , $2 , $3;
     } else {
-	fatal_error "Inrecognized Kernel Version Format ($kernelversion)";
+	fatal_error "Unrecognized Kernel Version Format ($kernelversion)";
     }
 }
 
@@ -1977,8 +2035,8 @@ sub determine_capabilities( $ ) {
     if ( $capabilities{NAT_ENABLED} ) {
 	if ( qt1( "$iptables -t nat -N $sillyname" ) ) {
 	    $capabilities{PERSISTENT_SNAT} = qt1( "$iptables -t nat -A $sillyname -j SNAT --to-source 1.2.3.4 --persistent" );
-	    qt1( "$iptables -t NAT -F $sillyname" );
-	    qt1( "$iptables -t NAT -X $sillyname" );
+	    qt1( "$iptables -t nat -F $sillyname" );
+	    qt1( "$iptables -t nat -X $sillyname" );
 	}
     }
 
@@ -2068,6 +2126,7 @@ sub determine_capabilities( $ ) {
 	if ( qt1( "$iptables -t mangle -A $sillyname -j MARK --set-mark 1" ) ) {
 	    $capabilities{MARK}  = 1;
 	    $capabilities{XMARK} = qt1( "$iptables -t mangle -A $sillyname -j MARK --and-mark 0xFF" );
+	    $capabilities{EXMARK} = qt1( "$iptables -t mangle -A $sillyname -j MARK --set-mark 1/0xFF" );
 	}
 
 	if ( qt1( "$iptables -t mangle -A $sillyname -j CONNMARK --save-mark" ) ) {
@@ -2364,13 +2423,13 @@ sub get_configuration( $ ) {
 		check_trivalue( 'ROUTE_FILTER', '' );
 	    }
 	} else {
-	    check_trivalue( 'ROUTE_FILTER' , '' );
+	    check_trivalue( 'ROUTE_FILTER', '' );
 	}
     }
 
     if ( $family == F_IPV6 ) {
 	$val = $config{ROUTE_FILTER};	
-	fatal_error "ROUTE_FILTER=$val is not supported in IPv6" unless $val eq 'off' || $val eq '';
+	fatal_error "ROUTE_FILTER=$val is not supported in IPv6" if $val && $val ne 'off';
     }
 
     if ( $family == F_IPV4 ) {
@@ -2422,9 +2481,9 @@ sub get_configuration( $ ) {
 
     unsupported_yes_no_warning 'DYNAMIC_ZONES';
     unsupported_yes_no         'BRIDGING';
-    unsupported_yes_no_warning 'SAVE_IPSETS';
     unsupported_yes_no_warning 'RFC1918_STRICT';
 
+    default_yes_no 'SAVE_IPSETS'                , '';
     default_yes_no 'STARTUP_ENABLED'            , 'Yes';
     default_yes_no 'DELAYBLACKLISTLOAD'         , '';
     default_yes_no 'MAPOLDACTIONS'              , 'Yes';
@@ -2458,6 +2517,21 @@ sub get_configuration( $ ) {
     default_yes_no 'AUTOMAKE'                   , '';
     default_yes_no 'WIDE_TC_MARKS'              , '';
     default_yes_no 'TRACK_PROVIDERS'            , '';
+
+    numeric_option 'TC_BITS',          $config{WIDE_TC_MARKS} ? 14 : 8 , 0;
+    numeric_option 'MASK_BITS',        $config{WIDE_TC_MARKS} ? 16 : 8,  $config{TC_BITS};
+    numeric_option 'PROVIDER_BITS' ,   8, 0;
+    numeric_option 'PROVIDER_OFFSET' , $config{HIGH_ROUTE_MARKS} ? $config{WIDE_TC_MARKS} ? 16 : 8 : 0, 0;
+    
+    if ( $config{PROVIDER_OFFSET} ) {
+	$config{PROVIDER_OFFSET} = $config{MASK_BITS} if $config{PROVIDER_OFFSET} < $config{MASK_BITS};
+	fatal_error 'PROVIDER_BITS + PROVIDER_OFFSET > 32' if $config{PROVIDER_BITS} + $config{PROVIDER_OFFSET} > 32;
+    }
+
+    $globals{TC_MAX}                 = make_mask( $config{TC_BITS} );
+    $globals{TC_MASK}                = make_mask( $config{MASK_BITS} );
+    $globals{PROVIDER_MIN}           = 1 << $config{PROVIDER_OFFSET};
+    $globals{PROVIDER_MASK}          = make_mask( $config{PROVIDER_BITS} ) << $config{PROVIDER_OFFSET};
 
     if ( defined ( $val = $config{ZONE2ZONE} ) ) {
 	fatal_error "Invalid ZONE2ZONE value ( $val )" unless $val =~ /^[2-]$/;
@@ -2521,12 +2595,30 @@ sub get_configuration( $ ) {
 	$globals{TC_SCRIPT} = $file;
     } elsif ( $val eq 'internal' ) {
 	$config{TC_ENABLED} = 'Internal';
+    } elsif ( $val eq 'simple' ) {
+	$config{TC_ENABLED} = 'Simple';
     } else {
 	fatal_error "Invalid value ($config{TC_ENABLED}) for TC_ENABLED" unless $val eq 'no';
 	$config{TC_ENABLED} = '';
     }
 
-    fatal_error "TC_ENABLED=$config{TC_ENABLED} is not allowed with MANGLE_ENABLED=No" if $config{TC_ENABLED} && ! $config{MANGLE_ENABLED};
+    if ( $config{TC_ENABLED} ) {
+	fatal_error "TC_ENABLED=$config{TC_ENABLED} is not allowed with MANGLE_ENABLED=No" unless $config{MANGLE_ENABLED};
+	require_capability 'MANGLE_ENABLED', "TC_ENABLED=$config{TC_ENABLED}", 's';
+    }
+
+    if ( $val = $config{TC_PRIOMAP} ) {
+	my @priomap = split ' ',$val;
+	fatal_error "Invalid TC_PRIOMAP ($val)" unless @priomap == 16;
+	for ( @priomap ) {
+	    fatal_error "Invalid TC_PRIOMAP entry ($_)" unless /[1-3]/;
+	    $_--;
+	}
+
+	$config{TC_PRIOMAP} = join ' ', @priomap;
+    } else {
+	$config{TC_PRIOMAP} = '1 2 2 2 1 2 0 0 1 1 1 1 1 1 1 1';
+    }
 
     default 'RESTOREFILE'           , 'restore';
     default 'IPSECFILE'             , 'zones';
@@ -2544,10 +2636,9 @@ sub get_configuration( $ ) {
 	$config{$default} = 'none' if "\L$config{$default}" eq 'none';
     }
 
-    $val = $config{OPTIMIZE};
+    $val = numeric_value $config{OPTIMIZE};
 
-    fatal_error "Invalid OPTIMIZE value ($val)" unless ( $val eq '0' ) || ( $val eq '1' );
-
+    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless defined( $val ) && $val >= 0 && $val <= 1;
 
     $globals{MARKING_CHAIN} = $config{MARK_IN_FORWARD_CHAIN} ? 'tcfor' : 'tcpre';
 

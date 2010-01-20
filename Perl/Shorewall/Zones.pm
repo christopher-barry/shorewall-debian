@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -75,7 +75,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_4';
+our $VERSION = '4.4_6';
 
 #
 # IPSEC Option types
@@ -669,7 +669,7 @@ sub add_group_to_zone($$$$$)
 
     fatal_error "Duplicate Host Group ($interface:" . ALLIP . ") in zone $zone" if $allip && @$interfaceref;
 
-    $zoneref->{options}{complex} = 1 if @$interfaceref || ( @newnetworks > 1 ) || ( @exclusions );
+    $zoneref->{options}{complex} = 1 if @$interfaceref || ( @newnetworks > 1 ) || ( @exclusions ) || $options->{routeback};
 
     push @{$interfaceref}, { options => $options,
 			     hosts   => \@newnetworks,
@@ -1186,15 +1186,13 @@ sub process_host( ) {
 	} else {
 	    fatal_error "Invalid HOST(S) column contents: $hosts";
 	}
+    } elsif ( $hosts =~ /^([\w.@%-]+\+?):<(.*)>\s*$/ || $hosts =~ /^([\w.@%-]+\+?):\[(.*)\]\s*$/   ) {
+	$interface = $1;
+	$hosts = $2;
+	$zoneref->{options}{complex} = 1 if $hosts =~ /^\+/;
+	fatal_error "Unknown interface ($interface)" unless $interfaces{$interface}{root};
     } else {
-	if ( $hosts =~ /^([\w.@%-]+\+?):<(.*)>\s*$/ ) {
-	    $interface = $1;
-	    $hosts = $2;
-	    $zoneref->{options}{complex} = 1 if $hosts =~ /^\+/;
-	    fatal_error "Unknown interface ($interface)" unless $interfaces{$interface}{root};
-	} else {
-	    fatal_error "Invalid HOST(S) column contents: $hosts";
-	}
+	fatal_error "Invalid HOST(S) column contents: $hosts";
     }
 
     if ( $type == BPORT ) {
