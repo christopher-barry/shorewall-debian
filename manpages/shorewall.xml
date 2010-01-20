@@ -60,6 +60,8 @@
 
       <arg><option>-p</option></arg>
 
+      <arg><option>-r</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -497,6 +499,19 @@
 
       <arg choice="plain"><option>show</option></arg>
 
+      <arg choice="plain"><option>macro</option><arg
+      choice="plain"><replaceable>macro</replaceable></arg></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="plain"><option>show</option></arg>
+
       <arg><option>-x</option></arg>
 
       <arg choice="req"><option>mangle|nat|raw</option></arg>
@@ -707,6 +722,10 @@
           <para>The <option>-p</option> option causes the compiler to be
           profiled via the Perl <option>-wd:DProf</option> command-line
           option.</para>
+
+          <para>The <option>-r</option> option was added in Shorewall 4.5.2
+          and causes the compiler to print the generated ruleset to standard
+          out.</para>
         </listitem>
       </varlistentry>
 
@@ -1266,6 +1285,17 @@
               <listitem>
                 <para>Displays information about each macro defined on the
                 firewall system.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">macro</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.4.6. Displays the file that
+                implements the specified <replaceable>macro</replaceable>
+                (usually
+                <filename>/usr/share/shorewall/macro</filename>.<replaceable>macro</replaceable>).</para>
               </listitem>
             </varlistentry>
 

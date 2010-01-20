@@ -168,6 +168,19 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">ACCOUNTING=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. If set to Yes, Shorewall6 accounting
+          is enabled (see <ulink
+          url="shorewall6-accounting.html">shorewall6-accounting</ulink>(5)).
+          If not specified or set to the empty value, ACCOUNTING=Yes is
+          assumed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">ADMINISABSENTMINDED=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
@@ -418,7 +431,8 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           variables on the firewall system for use by your extension scripts,
           then do so in the init extension script.</para>
 
-          <para>The default is EXPORTPARAMS=Yes</para>
+          <para>The default is EXPORTPARAMS=Yes which is the recommended
+          setting unless you are running Shorewall6 Lite.</para>
         </listitem>
       </varlistentry>
 
@@ -869,6 +883,24 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis
+        role="bold">MASK_BITS</emphasis>=<emphasis>bits</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. This option specifies the number of
+          <emphasis>bits</emphasis> to use as a mask for traffic shaping marks
+          and must be greater than or equal to TC_BITS. The default value
+          depends on the setting of WIDE_TC_MARKS:</para>
+
+          <simplelist>
+            <member>WIDE_TC_MARKS=No - 8 bits.</member>
+
+            <member>WIDE_TC_MARKS=Yes - 16 bits.</member>
+          </simplelist>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">MODULE_SUFFIX=</emphasis>[<emphasis
         role="bold">"</emphasis><emphasis>extension</emphasis> ...<emphasis
         role="bold">"</emphasis>]</term>
@@ -944,6 +976,42 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         <listitem>
           <para>Determines the order in which Shorewall6 searches directories
           for executable files.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">PROVIDER_BITS</emphasis>=<emphasis>bits</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. Specifies the number of bits of the
+          packet/connection mark to use for the provider (routing) mark.
+          Provider mark values must be &gt;= 2**PROVIDER_OFFSET and less than
+          2**(PROVIDER_OFFSET + PROVIDER_BITS). The default value is 8
+          bits.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">PROVIDER_OFFSET</emphasis>=<emphasis>offset</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. Specifies the
+          <emphasis>offset</emphasis> in bits from the least significate bit
+          of the packet/connection mark where the Provider Mark value is
+          stored. The default is based on the settings of HIGH_ROUTE_MARKS and
+          WIDE_TC_MARKS:</para>
+
+          <simplelist>
+            <member>HIGH_ROUTE_MARKS=No - 0 bits.</member>
+
+            <member>HIGH_ROUTE_MARKS=Yes and WIDE_TC_MARKS=No - 8
+            bits.</member>
+
+            <member>HIGH_ROUTE_MARKS=Yes and WIDE_TC_MARKS=Yes - 16
+            bits.</member>
+          </simplelist>
         </listitem>
       </varlistentry>
 
@@ -1106,6 +1174,28 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis
+        role="bold">TC_BITS</emphasis>=<emphasis>bits</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. This option replaces WIDE_TC_MARKS
+          by allowing you to specify the number of <emphasis>bits</emphasis>
+          of the 32-bit packet/connection mark to be used for traffic shaping.
+          The default value is based on the settings of WIDE_TC_MARKS:</para>
+
+          <simplelist>
+            <member>WIDE_TC_MARKS=No - 8 bits.</member>
+
+            <member>WIDE_TC_MARKS=Yes - 14 bits.</member>
+          </simplelist>
+
+          <para>Mark values specified in <ulink
+          url="shorewall6-tcclasses.html">shorewall6-tcclasses (5)</ulink>
+          must be &lt; 2**TC_BITS.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">TC_ENABLED=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis
         role="bold">No</emphasis>|<emphasis
@@ -1152,6 +1242,24 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
       <varlistentry>
         <term><emphasis
+        role="bold">TC_PRIOMAP</emphasis>=<emphasis>map</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. Determines the mapping of a packet's
+          TOS field to priority bands. See <ulink
+          url="shorewall6-tcpri.html">shorewall6-tcpri</ulink>(5). The
+          <emphasis>map</emphasis> consists of 16 space-separated digits with
+          values 1, 2 or 3. The first entry corresponds to Linux priority 9,
+          the second to Linux priority 1, the third to Linux Priority 2, and
+          so on. See tc-prio(8) for additional information.</para>
+
+          <para>The default setting is TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2
+          2 2".</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
         role="bold">TCP_FLAGS_DISPOSITION=</emphasis>[<emphasis
         role="bold">ACCEPT</emphasis>|<emphasis
         role="bold">DROP</emphasis>|<emphasis
@@ -1178,6 +1286,39 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           checks enabled by the tcpflags interface option. The value must be a
           valid syslogd log level. If you don't want to log these packets, set
           to the empty value (e.g., TCP_FLAGS_LOG_LEVEL="").</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">TRACK_PROVIDERS=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.3. When set to Yes, causes the
+          <option>track</option> option to be assumed on all providers defined
+          in <ulink
+          url="shorewall6-providers.html">shorewall6-providers</ulink>(5). May
+          be overridden on an individual provider through use of the
+          <option>notrack</option> option. The default value is 'No'.</para>
+
+          <para>Beginning in Shorewall 4.4.6, setting this option to 'Yes'
+          also simplifies PREROUTING rules in <ulink
+          url="shorewall6-tcrules.html">shorewall6-tcrules</ulink>(5).
+          Previously, when TC_EXPERT=No, packets arriving through 'tracked'
+          provider interfaces were unconditionally passed to the PREROUTING
+          tcrules. This was done so that tcrules could reset the packet mark
+          to zero, thus allowing the packet to be routed using the 'main'
+          routing table. Using the main table allowed dynamic routes (such as
+          those added for VPNs) to be effective. The <ulink
+          url="shorewall6-route_rules.html">shorewall6-route_rules</ulink>(5)
+          file was created to provide a better alternative to clearing the
+          packet mark. As a consequence, passing these packets to PREROUTING
+          complicates things without providing any real benefit. Beginning
+          with Shorewall 4.4.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No,
+          packets arriving through 'tracked' interfaces will not be passed to
+          the PREROUTING rules. Since TRACK_PROVIDERS was just introduced in
+          4.4.3, this change should be transparent to most, if not all,
+          users.</para>
         </listitem>
       </varlistentry>
 
