@@ -1,18 +1,22 @@
-Changes in Shorewall 4.4.5.4
+Changes in Shorewall 4.4.6
 
-1)  Fix breakage in Shorewall6 'forward' interface option.
+1)  Fix for rp_filter and kernel 2.6.31.
 
-Changes in Shorewall 4.4.5.3
+2)  Add a hack to work around a bug in Lenny + xtables-addons
 
-1)  Yet another fix for the ^%$& ROUTE_FILTER mess.
+3)  Re-enable SAVE_IPSETS
 
-Changes in Shorewall 4.4.5.2
+4)  Allow both <...> and [...] for IPv6 Addresses.
 
-1)  Allow KERNELVERSION in capabilities file.
+5)  Port mark geometry change from 4.5.
 
-Changes in Shorewall 4.4.5.1
+6)  Add Macro patch from Tuomo Soini
 
-1)  Handle rp_filter and kernel's 2.6.31 and later.
+7)  Add 'show macro' command.
+
+8)  Add -r option to check.
+
+9)  Port simplified TC from 4.5.
 
 Changes in Shorewall 4.4.5
 
