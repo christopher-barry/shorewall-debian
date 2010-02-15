@@ -65,6 +65,26 @@
     <programlisting>#INTERFACE             TYPE          IN-BANDWIDTH
 eth0                   External</programlisting>
 
+    <note>
+      <para>If you experience an error such as the following during
+      <command>shorewall start</command> or <command>shorewall
+      restart</command>, your kernel and iproute do not support the <emphasis
+      role="bold">flow</emphasis> classifier. In that case, you must leave the
+      TYPE column empty (or specify '-').</para>
+
+      <programlisting>Unknown filter "flow", hence option "hash" is unparsable
+   ERROR: Command "tc filter add dev eth0 protocol all prio 1 parent 11: handle 11 flow hash keys nfct-src divisor 1024" Failed</programlisting>
+
+      <para>RHEL5-based systems such as <trademark>CentOS</trademark> 5 and
+      <trademark>Foobar</trademark> 5 are known to experience this
+      error.</para>
+
+      <para><emphasis role="bold">Update</emphasis>: Beginning with Shorewall
+      4.4.7, Shorewall can determine that some environments, such as RHEL5 and
+      derivatives, are incapable of using the TYPE parameter and simply ignore
+      it.</para>
+    </note>
+
     <para>With this simple configuration, packets to be sent through interface
     eth0 will be assigned to a priority band based on the value of their TOS
     field:</para>
@@ -175,10 +195,10 @@ eth0                   External</programlisting>
       </listitem>
     </orderedlist>
 
-    <para>It is suggested that entries specifying an INTERFACE be placed the
-    top of the file. That way, the band assigned to a particular packet will
-    be the <emphasis role="bold">last</emphasis> entry matched by the packet.
-    Packets which match no entry in <ulink
+    <para>It is suggested that entries specifying an INTERFACE be placed at
+    the top of the file. That way, the band assigned to a particular packet
+    will be the <emphasis role="bold">last</emphasis> entry matched by the
+    packet. Packets which match no entry in <ulink
     url="manpages/shorewall-tcpri.html">shorewall-tcpri</ulink>(5) are
     assigned to priority bands using their TOS field as previously
     described.</para>
