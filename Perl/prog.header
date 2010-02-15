@@ -300,7 +300,7 @@ load_kernel_modules() # $1 = Yes, if we are to save moduleinfo in $VARDIR
 	[ -d $directory ] && moduledirectories="$moduledirectories $directory"
     done
 
-    modules=$(find_file modules)
+    [ -n "$LOAD_HELPERS_ONLY" ] && modules=$(find_file helpers) || modules=$(find_file modules)
 
     if [ -f $modules -a -n "$moduledirectories" ]; then
 	MODULES=$(lsmod | cut -d ' ' -f1)
@@ -606,6 +606,7 @@ find_first_interface_address_if_any() # $1 = interface
 #
 interface_is_usable() # $1 = interface
 {
+    [ "$1" = lo ] && return 0
     interface_is_up $1 && [ "$(find_first_interface_address_if_any $1)" != 0.0.0.0 ] && run_isusable_exit $1
 }
 

@@ -72,10 +72,11 @@ our @EXPORT = qw( NOTHING
 		  validate_hosts_file
 		  find_hosts_by_option
 		  all_ipsets
+		  have_ipsec
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_6';
+our $VERSION = '4.4_7';
 
 #
 # IPSEC Option types
@@ -156,6 +157,7 @@ our @bport_zones;
 our %ipsets;
 our %physical;
 our $family;
+our $have_ipsec;
 
 use constant { FIREWALL => 1,
 	       IP       => 2,
@@ -199,6 +201,7 @@ sub initialize( $ ) {
     @zones = ();
     %zones = ();
     $firewall_zone = '';
+    $have_ipsec = undef;
 
     @interfaces = ();
     %interfaces = ();
@@ -245,7 +248,7 @@ sub initialize( $ ) {
 				    dhcp        => SIMPLE_IF_OPTION,
 				    maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY,
-				    nosmurfs    => SIMPLE_IF_OPTION,
+				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    optional    => SIMPLE_IF_OPTION,
 				    proxyndp    => BINARY_IF_OPTION,
 				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST,
@@ -399,6 +402,7 @@ sub process_zone( \$ ) {
     }
 
     if ( $type eq IPSEC ) {
+	require_capability 'POLICY_MATCH' , 'IPSEC zones', '';
 	for ( @parents ) {
 	    unless ( $zones{$_}{type} == IPSEC ) {
 		set_super( $zones{$_} );
@@ -752,7 +756,7 @@ sub process_interface( $ ) {
     if ( defined $port && $port ne '' ) {
 	fatal_error qq("Virtual" interfaces are not supported -- see http://www.shorewall.net/Shorewall_and_Aliased_Interfaces.html) if $port =~ /^\d+$/;
 	require_capability( 'PHYSDEV_MATCH', 'Bridge Ports', '');
-	fatal_error "Your iptables is not recent enough to support bridge ports" unless $capabilities{KLUDGEFREE};
+	fatal_error "Your iptables is not recent enough to support bridge ports" unless have_capability( 'KLUDGEFREE' );
 
 	fatal_error "Invalid Interface Name ($interface:$port)" unless $port =~ /^[\w.@%-]+\+?$/;
 	fatal_error "Duplicate Interface ($port)" if $interfaces{$port};
@@ -796,7 +800,7 @@ sub process_interface( $ ) {
 	    fatal_error 'Invalid BROADCAST address' unless $address =~ /^(\d+)\.(\d+)\.(\d+)\.(\d+)$/;
 	}
 
-	if ( $capabilities{ADDRTYPE} ) {
+	if ( have_capability( 'ADDRTYPE' ) ) {
 	    warning_message 'Shorewall no longer uses broadcast addresses in rule generation when Address Type Match is available';
 	} else {
 	    $broadcasts = \@broadcasts;
@@ -919,15 +923,15 @@ sub process_interface( $ ) {
 	    $ipsets{$ipset} = 1;
 	}
 
-	$zoneref->{options}{in_out}{routeback} = 1 if $zoneref && $options{routeback};
-
 	if ( $options{bridge} ) {
 	    require_capability( 'PHYSDEV_MATCH', 'The "bridge" option', 's');
 	    fatal_error "Bridges may not have wildcard names" if $wildcard;
+	    $options{routeback} = 1;
 	}
 
-	$hostoptionsref = \%hostoptions;
+	$zoneref->{options}{in_out}{routeback} = 1 if $zoneref && $options{routeback};
 
+	$hostoptionsref = \%hostoptions;
     }
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
@@ -1212,6 +1216,7 @@ sub process_host( ) {
 
 	for my $option ( @options ) {
 	    if ( $option eq 'ipsec' ) {
+		require_capability 'POLICY_MATCH' , q(The 'ipsec' option), 's';
 		$type = IPSEC;
 		$zoneref->{options}{complex} = 1;
 		$ipsec = 1;
@@ -1271,7 +1276,15 @@ sub validate_hosts_file()
 
     $ipsec |= process_host while read_a_line;
 
-    $capabilities{POLICY_MATCH} = '' unless $ipsec || haveipseczones;
+    $have_ipsec = $ipsec || haveipseczones;
+
+}
+
+#
+# Return an indication of whether IPSEC is present
+#
+sub have_ipsec() {
+    return defined $have_ipsec ? $have_ipsec : have_capability 'POLICY_MATCH';
 }
 
 #

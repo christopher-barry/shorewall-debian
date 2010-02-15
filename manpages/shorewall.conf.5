@@ -1,11 +1,11 @@
 .\"     Title: shorewall.conf
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 01/14/2010
+.\"      Date: 02/14/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\&.CONF" "5" "01/14/2010" "" ""
+.TH "SHOREWALL\&.CONF" "5" "02/14/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -97,10 +97,16 @@ If you set the value of either option to "None" then no default action will be u
 \fIshorewall\-policy\fR\&[1](5)\&.
 .RE
 .PP
+\fBACCOUNTING=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.7\&. If set to Yes, Shorewall accounting is enabled (see
+\fIshorewall\-accounting\fR\&[2](5))\&. If not specified or set to the empty value, ACCOUNTING=Yes is assumed\&.
+.RE
+.PP
 \fBADD_IP_ALIASES=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 This parameter determines whether Shorewall automatically adds the external address(es) in
-\fIshorewall\-nat\fR\&[2](5)\&. If the variable is set to
+\fIshorewall\-nat\fR\&[3](5)\&. If the variable is set to
 \fBYes\fR
 or
 \fByes\fR
@@ -122,7 +128,7 @@ Addresses added by ADD_IP_ALIASES=Yes are deleted and re\-added during shorewall
 \fBADD_SNAT_ALIASES=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 This parameter determines whether Shorewall automatically adds the SNAT ADDRESS in
-\fIshorewall\-masq\fR\&[3](5)\&. If the variable is set to
+\fIshorewall\-masq\fR\&[4](5)\&. If the variable is set to
 \fBYes\fR
 or
 \fByes\fR
@@ -144,8 +150,8 @@ Addresses added by ADD_SNAT_ALIASES=Yes are deleted and re\-added during shorewa
 \fBADMINISABSENTMINDED=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 The value of this variable affects Shorewall\'s stopped state\&. When ADMINISABSENTMINDED=No, only traffic to/from those addresses listed in
-\fIshorewall\-routestopped\fR\&[4](5) is accepted when Shorewall is stopped\&. When ADMINISABSENTMINDED=Yes, in addition to traffic to/from addresses in
-\fIshorewall\-routestopped\fR\&[4](5), connections that were active when Shorewall stopped continue to work and all new connections from the firewall system itself are allowed\&. If this variable is not set or is given the empty value then ADMINISABSENTMINDED=No is assumed\&.
+\fIshorewall\-routestopped\fR\&[5](5) is accepted when Shorewall is stopped\&. When ADMINISABSENTMINDED=Yes, in addition to traffic to/from addresses in
+\fIshorewall\-routestopped\fR\&[5](5), connections that were active when Shorewall stopped continue to work and all new connections from the firewall system itself are allowed\&. If this variable is not set or is given the empty value then ADMINISABSENTMINDED=No is assumed\&.
 .RE
 .PP
 \fBAUTO_COMMENT=\fR[\fBYes\fR|\fBNo\fR]
@@ -229,7 +235,7 @@ that you specify\&.
 If this option is set to
 \fBNo\fR
 then Shorewall won\'t clear the current traffic control rules during [re]start\&. This setting is intended for use by people who prefer to configure traffic shaping when the network interfaces come up rather than when the firewall is started\&. If that is what you want to do, set TC_ENABLED=Yes and CLEAR_TC=No and do not supply an /etc/shorewall/tcstart file\&. That way, your traffic shaping rules can still use the \(lqfwmark\(rq classifier based on packet marking defined in
-\fIshorewall\-tcrules\fR\&[5](5)\&. If not specified, CLEAR_TC=Yes is assumed\&.
+\fIshorewall\-tcrules\fR\&[6](5)\&. If not specified, CLEAR_TC=Yes is assumed\&.
 .RE
 .PP
 \fBCONFIG_PATH\fR=[\fIdirectory\fR[:\fIdirectory\fR]\&.\&.\&.]
@@ -280,15 +286,22 @@ or
 .PP
 \fBDONT_LOAD=\fR[\fImodule\fR[,\fImodule\fR]\&.\&.\&.]
 .RS 4
-Added in Shorewall\-4\&.0\&.6\&. Causes Shorewall to not load the listed modules\&.
+Causes Shorewall to not load the listed kernel modules\&.
 .RE
 .PP
-\fBDYNAMIC_ZONES=\fR{\fBYes\fR|\fBNo\fR}
+\fBDYNAMIC_BLACKLIST=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-When set to
-\fBYes\fR
+Added in Shorewall 4\&.4\&.7\&. When set to
+\fBNo\fR
 or
-\fByes\fR, enables dynamic zones\&. DYNAMIC_ZONES=Yes is not allowed in configurations that will run under Shorewall Lite\&.
+\fBno\fR, dynamic blacklisting using the
+\fBshorewall drop\fR,
+\fBshorewall reject\fR,
+\fBshorewall logdrop\fR
+and
+\fBshorewall logreject\fR
+is disabled\&. Default is
+\fBYes\fR\&.
 .RE
 .PP
 \fBEXPAND_POLICIES=\fR{\fBYes\fR|\fBNo\fR}
@@ -320,7 +333,7 @@ The default is EXPORTPARAMS=Yes which is the recommended setting unless you are 
 Normally, Shorewall defers accepting ESTABLISHED/RELATED packets until these packets reach the chain in which the original connection was accepted\&. So for packets going from the \'loc\' zone to the \'net\' zone, ESTABLISHED/RELATED packets are ACCEPTED in the \'loc2net\' chain\&.
 .sp
 If you set FASTACCEPT=Yes, then ESTABLISHED/RELEATED packets are accepted early in the INPUT, FORWARD and OUTPUT chains\&. If you set FASTACCEPT=Yes then you may not include rules in the ESTABLISHED or RELATED sections of
-\fIshorewall\-rules\fR\&[6](5)\&.
+\fIshorewall\-rules\fR\&[7](5)\&.
 .sp
 .sp
 .it 1 an-trap
@@ -334,7 +347,7 @@ FASTACCEPT=Yes is incompatible with BLACKLISTNEWONLY=No\&.
 \fBHIGH_ROUTE_MARKS=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Prior to version 3\&.2\&.0, it was not possible to use connection marking in
-\fIshorewall\-tcrules\fR\&[5](5) if you had a multi\-ISP configuration that uses the track option\&.
+\fIshorewall\-tcrules\fR\&[6](5) if you had a multi\-ISP configuration that uses the track option\&.
 .sp
 You may set HIGH_ROUTE_MARKS=Yes in to effectively divide the packet mark and connection mark into two mark fields\&.
 .sp
@@ -382,8 +395,8 @@ When this option is set to
 \fBYes\fR, it causes subzones to be treated differently with respect to policies\&.
 .sp
 Subzones are defined by following their name with ":" and a list of parent zones (in
-\fIshorewall\-zones\fR\&[7](5))\&. Normally, you want to have a set of special rules for the subzone and if a connection doesn\'t match any of those subzone\-specific rules then you want the parent zone rules and policies to be applied; see
-\fIshorewall\-nesting\fR\&[8](5)\&. With IMPLICIT_CONTINUE=Yes, that happens automatically\&.
+\fIshorewall\-zones\fR\&[8](5))\&. Normally, you want to have a set of special rules for the subzone and if a connection doesn\'t match any of those subzone\-specific rules then you want the parent zone rules and policies to be applied; see
+\fIshorewall\-nesting\fR\&[9](5)\&. With IMPLICIT_CONTINUE=Yes, that happens automatically\&.
 .sp
 If IMPLICIT_CONTINUE=No or if IMPLICIT_CONTINUE is not set, then subzones are not subject to this special treatment\&. With IMPLICIT_CONTINUE=Yes, an implicit CONTINUE policy may be overridden by including an explicit policy (one that does not specify "all" in either the SOURCE or the DEST columns)\&.
 .RE
@@ -447,6 +460,11 @@ command\&.
 The default is KEEP_RT_TABLES=No\&.
 .RE
 .PP
+\fBLOAD_HELPERS_ONLY=\fR{\fBYes\fR|\fBNo\fR}
+.RS 4
+Added in Shorewall 4\&.4\&.7\&. When set to Yes, restricts the set of modules loaded by shorewall to those listed in /var/lib/shorewall/helpers and those that are actually used\&. When not set, or set to the empty value, LOAD_HELPERS_ONLY=No is assumed\&.
+.RE
+.PP
 \fBLOG_MARTIANS=\fR[\fBYes\fR|\fBNo\fR|Keep]
 .RS 4
 If set to
@@ -460,14 +478,14 @@ to 1 with the exception of
 which sets both of the above to one\&. If you do not enable martian logging for all interfaces, you may still enable it for individual interfaces using the
 \fBlogmartians\fR
 interface option in
-\fIshorewall\-interfaces\fR\&[9](5)\&.
+\fIshorewall\-interfaces\fR\&[10](5)\&.
 .sp
 The value
 \fBKeep\fR
 causes Shorewall to ignore the option\&. If the option is set to
 \fBYes\fR, then martians are logged on all interfaces\&. If the option is set to
 \fBNo\fR, then martian logging is disabled on all interfaces except those specified in
-\fIshorewall\-interfaces\fR\&[9](5)\&.
+\fIshorewall\-interfaces\fR\&[10](5)\&.
 .RE
 .PP
 \fBLOG_VERBOSITY=\fR[\fInumber\fR]
@@ -591,13 +609,13 @@ This problem can be worked around by setting MACLIST_TABLE=mangle which will cau
 \fBMACLIST_TTL=[\fR\fInumber\fR]
 .RS 4
 The performance of configurations with a large numbers of entries in
-\fIshorewall\-maclist\fR\&[10](5) can be improved by setting the MACLIST_TTL variable in
-\fIshorewall\&.conf\fR\&[11](5)\&.
+\fIshorewall\-maclist\fR\&[11](5) can be improved by setting the MACLIST_TTL variable in
+\fIshorewall\&.conf\fR\&[12](5)\&.
 .sp
 If your iptables and kernel support the "Recent Match" (see the output of "shorewall check" near the top), you can cache the results of a \'maclist\' file lookup and thus reduce the overhead associated with MAC Verification\&.
 .sp
 When a new connection arrives from a \'maclist\' interface, the packet passes through then list of entries for that interface in
-\fIshorewall\-maclist\fR\&[10](5)\&. If there is a match then the source IP address is added to the \'Recent\' set for that interface\&. Subsequent connection attempts from that IP address occurring within $MACLIST_TTL seconds will be accepted without having to scan all of the entries\&. After $MACLIST_TTL from the first accepted connection request from an IP address, the next connection request from that IP address will be checked against the entire list\&.
+\fIshorewall\-maclist\fR\&[11](5)\&. If there is a match then the source IP address is added to the \'Recent\' set for that interface\&. Subsequent connection attempts from that IP address occurring within $MACLIST_TTL seconds will be accepted without having to scan all of the entries\&. After $MACLIST_TTL from the first accepted connection request from an IP address, the next connection request from that IP address will be checked against the entire list\&.
 .sp
 If MACLIST_TTL is not specified or is specified as empty (e\&.g, MACLIST_TTL="" or is specified as zero then \'maclist\' lookups will not be cached)\&.
 .RE
@@ -659,17 +677,76 @@ When set to Yes, causes Shorewall to null\-route the IPv4 address ranges reserve
 When combined with route filtering (ROUTE_FILTER=Yes or
 \fBroutefilter\fR
 in
-\fIshorewall\-interfaces\fR\&[9](5)), this option ensures that packets with an RFC1918 source address are only accepted from interfaces having known routes to networks using such addresses\&.
+\fIshorewall\-interfaces\fR\&[10](5)), this option ensures that packets with an RFC1918 source address are only accepted from interfaces having known routes to networks using such addresses\&.
 .RE
 .PP
-\fBOPTIMIZE=\fR[\fB0\fR|\fB1\fR]
+\fBOPTIMIZE=\fR[\fIvalue\fR]
 .RS 4
-Traditionally, Shorewall has created rules for
-\fIthe complete matrix of host groups defined by the zones, interfaces and hosts files\fR\&[12]\&. Any traffic that didn\'t correspond to an element of that matrix was rejected in one of the built\-in chains\&. When the matrix is sparse, this results in lots of largely useless rules\&.
+The specified
+\fIvalue\fR
+enables certain optimizations\&. Each optimization category is associated with a power of two\&. To enable multiple optimization categories, simply add their corresponding numbers together\&.
 .sp
-These extra rules can be eliminated by setting OPTIMIZE=1\&.
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 1 \- Traditionally, Shorewall has created rules for
+\fIthe complete matrix of host groups defined by the zones, interfaces and hosts files\fR\&[13]\&. Any traffic that didn\'t correspond to an element of that matrix was rejected in one of the built\-in chains\&. When the matrix is sparse, this results in lots of largely useless rules\&.
 .sp
-The OPTIMIZE setting also controls the suppression of redundant wildcard rules (those specifying "all" in the SOURCE or DEST column)\&. A wildcard rule is considered to be redundant when it has the same ACTION and Log Level as the applicable policy\&.
+These extra rules can be eliminated by setting the 1 bit in OPTIMIZE\&.
+.sp
+The 1 bit setting also controls the suppression of redundant wildcard rules (those specifying "all" in the SOURCE or DEST column)\&. A wildcard rule is considered to be redundant when it has the same ACTION and Log Level as the applicable policy\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 2 \- Added in Shorewall 4\&.4\&.7\&. When set, suppresses superfluous ACCEPT rules in a policy chain that implements an ACCEPT policy\&. Any ACCEPT rules that immediately preceed the final blanket ACCEPT rule in the chain are now omitted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 4 \- Added in Shorewall 4\&.4\&.7\&. When set, causes short chains (those with less than 2 rules) to be optimized away\&. The following chains are excluded from optimization:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'accounting chains (unless OPTIMIZE_ACCOUNTING=Yes)
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'action chains (user\-defined)
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'dynamic
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'forwardUPnP
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'UPnP (nat table)
+.RE
+.IP "" 4
+Additionally:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'If a built\-in chain has a single rule that branches to a second chain, then the rules from the second chain are moved to the built\-in chain and the target chain is omitted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Chains with no references are deleted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Accounting chains are subject to optimization if the OPTIMIZE_ACCOUNTING option is set to \'Yes\'\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'If a chain ends with an unconditional branch to a second chain (other than to \'reject\'), then the branch is deleted from the first chain and the rules from the second chain are appended to it\&.
+.RE
+.RE
+.IP "" 4
+The default value is zero which disables all optimizations\&.
+.RE
+.PP
+\fBOPTIMIZE_ACCOUNTING=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.7\&. If set to Yes, Shorewall accounting changes are subject to optimization (OPTIMIZE=4,5,6 or 7)\&. If not specified or set to the empty value, OPTIMIZE_ACCOUNTING=No is assumed\&.
 .RE
 .PP
 \fBPATH=\fR\fIpathname\fR[\fB:\fR\fIpathname\fR]\&.\&.\&.
@@ -744,8 +821,8 @@ commands\&.
 .RS 4
 During
 \fBshorewall star\fRt, IP addresses to be added as a consequence of ADD_IP_ALIASES=Yes and ADD_SNAT_ALIASES=Yes are quietly deleted when
-\fIshorewall\-nat\fR\&[2](5) and
-\fIshorewall\-masq\fR\&[3](5) are processed then are re\-added later\&. This is done to help ensure that the addresses can be added with the specified labels but can have the undesirable side effect of causing routes to be quietly deleted\&. When RETAIN_ALIASES is set to Yes, existing addresses will not be deleted\&. Regardless of the setting of RETAIN_ALIASES, addresses added during
+\fIshorewall\-nat\fR\&[3](5) and
+\fIshorewall\-masq\fR\&[4](5) are processed then are re\-added later\&. This is done to help ensure that the addresses can be added with the specified labels but can have the undesirable side effect of causing routes to be quietly deleted\&. When RETAIN_ALIASES is set to Yes, existing addresses will not be deleted\&. Regardless of the setting of RETAIN_ALIASES, addresses added during
 \fBshorewall start\fR
 are still deleted at a subsequent
 \fBshorewall stop\fR
@@ -767,7 +844,7 @@ The value
 causes Shorewall to ignore the option\&. If the option is set to
 \fBYes\fR, then route filtering occurs on all interfaces\&. If the option is set to
 \fBNo\fR, then route filtering is disabled on all interfaces except those specified in
-\fIshorewall\-interfaces\fR\&[9](5)\&.
+\fIshorewall\-interfaces\fR\&[10](5)\&.
 .RE
 .PP
 \fBSAVE_IPSETS=\fR{\fBYes\fR|\fBNo\fR}
@@ -791,7 +868,7 @@ This option is used to specify the shell program to be used to run the Shorewall
 \fBSMURF_LOG_LEVEL=\fR[\fIlog\-level\fR]
 .RS 4
 Specifies the logging level for smurf packets (see the nosmurfs option in
-\fIshorewall\-interfaces\fR\&[9](5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
+\fIshorewall\-interfaces\fR\&[10](5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
 .RE
 .PP
 \fBSTARTUP_ENABLED=\fR{\fBYes\fR|\fBNo\fR}
@@ -838,8 +915,8 @@ or
 then traffic shaping is not enabled\&.
 .sp
 If you set TC_ENABLED=Simple (Shorewall 4\&.4\&.6 and later), simple traffic shaping using
-\fIshorewall\-tcinterfaces\fR\&[13](5) and
-\fIshorewall\-tcpri\fR\&[14](5) is enabled\&.
+\fIshorewall\-tcinterfaces\fR\&[14](5) and
+\fIshorewall\-tcpri\fR\&[15](5) is enabled\&.
 .sp
 If you set TC_ENABLED=Internal or internal or leave the option empty then Shorewall will use its builtin traffic shaper (tc4shorewall written by Arne Bernin\&.
 .RE
@@ -847,7 +924,7 @@ If you set TC_ENABLED=Internal or internal or leave the option empty then Shorew
 \fBTC_EXPERT=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Normally, Shorewall tries to protect users from themselves by preventing PREROUTING and OUTPUT tcrules from being applied to packets that have been marked by the \'track\' option in
-\fIshorewall\-providers\fR\&[15](5)\&.
+\fIshorewall\-providers\fR\&[16](5)\&.
 .sp
 If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall will not include these cautionary checks\&.
 .RE
@@ -855,7 +932,7 @@ If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall will not
 \fBTC_PRIOMAP\fR=\fImap\fR
 .RS 4
 Added in Shorewall 4\&.4\&.6\&. Determines the mapping of a packet\'s TOS field to priority bands\&. See
-\fIshorewall\-tcpri\fR\&[14](5)\&. The
+\fIshorewall\-tcpri\fR\&[15](5)\&. The
 \fImap\fR
 consists of 16 space\-separated digits with values 1, 2 or 3\&. The first entry corresponds to Linux priority 9, the second to Linux priority 1, the third to Linux Priority 2, and so on\&. See tc\-prio(8) for additional information\&.
 .sp
@@ -867,7 +944,7 @@ The default setting is TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2 2 2"\&.
 Determines the disposition of TCP packets that fail the checks enabled by the
 \fBtcpflags\fR
 interface option (see
-\fIshorewall\-interfaces\fR\&[9](5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
+\fIshorewall\-interfaces\fR\&[10](5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
 .RE
 .PP
 \fBTCP_FLAGS_LOG_LEVEL=\fR[\fIlog\-level\fR]
@@ -880,12 +957,12 @@ Determines the syslog level for logging packets that fail the checks enabled by 
 Added in Shorewall 4\&.4\&.3\&. When set to Yes, causes the
 \fBtrack\fR
 option to be assumed on all providers defined in
-\fIshorewall\-providers\fR\&[15](5)\&. May be overridden on an individual provider through use of the
+\fIshorewall\-providers\fR\&[16](5)\&. May be overridden on an individual provider through use of the
 \fBnotrack\fR
 option\&. The default value is \'No\'\&.
 .sp
 Beginning in Shorewall 4\&.4\&.6, setting this option to \'Yes\' also simplifies PREROUTING rules in
-\fIshorewall\-tcrules\fR\&[5](5)\&. Previously, when TC_EXPERT=No, packets arriving through \'tracked\' provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \'main\' routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The route_rules file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \'tracked\' interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
+\fIshorewall\-tcrules\fR\&[6](5)\&. Previously, when TC_EXPERT=No, packets arriving through \'tracked\' provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \'main\' routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The route_rules file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \'tracked\' interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
 .RE
 .PP
 \fBUSE_DEFAULT_RT=\fR[\fBYes\fR|\fBNo\fR]
@@ -896,7 +973,7 @@ When USE_DEFAULT_RT=Yes:
 .sp
 .RS 4
 \h'-04' 1.\h'+02'Both the DUPLICATE and the COPY columns in
-\fIproviders\fR\&[15](5) file must remain empty (or contain "\-")\&.
+\fIproviders\fR\&[16](5) file must remain empty (or contain "\-")\&.
 .RE
 .sp
 .RS 4
@@ -912,7 +989,7 @@ is specified\&.
 .sp
 .RS 4
 \h'-04' 4.\h'+02'Packets are sent through the main routing table by a rule with priority 999\&. In
-\fIrouting_rules\fR\&[16](5), the range 1\-998 may be used for inserting rules that bypass the main table\&.
+\fIrouting_rules\fR\&[17](5), the range 1\-998 may be used for inserting rules that bypass the main table\&.
 .RE
 .sp
 .RS 4
@@ -981,76 +1058,81 @@ shorewall-policy
 \%shorewall-policy.html
 .RE
 .IP " 2." 4
+shorewall-accounting
+.RS 4
+\%shorewall-accounting.html
+.RE
+.IP " 3." 4
 shorewall-nat
 .RS 4
 \%shorewall-nat.html
 .RE
-.IP " 3." 4
+.IP " 4." 4
 shorewall-masq
 .RS 4
 \%shorewall-masq.html
 .RE
-.IP " 4." 4
+.IP " 5." 4
 shorewall-routestopped
 .RS 4
 \%shorewall-routestopped.html
 .RE
-.IP " 5." 4
+.IP " 6." 4
 shorewall-tcrules
 .RS 4
 \%shorewall-tcrules.html
 .RE
-.IP " 6." 4
+.IP " 7." 4
 shorewall-rules
 .RS 4
 \%shorewall-rules.html
 .RE
-.IP " 7." 4
+.IP " 8." 4
 shorewall-zones
 .RS 4
 \%shorewall-zones.html
 .RE
-.IP " 8." 4
+.IP " 9." 4
 shorewall-nesting
 .RS 4
 \%shorewall-nesting.html
 .RE
-.IP " 9." 4
+.IP "10." 4
 shorewall-interfaces
 .RS 4
 \%shorewall-interfaces.html
 .RE
-.IP "10." 4
+.IP "11." 4
 shorewall-maclist
 .RS 4
 \%shorewall-maclist.html
 .RE
-.IP "11." 4
+.IP "12." 4
 shorewall.conf
 .RS 4
 \%shorewall.conf.html
 .RE
-.IP "12." 4
+.IP "13." 4
 the complete matrix of host groups defined by the zones, interfaces and hosts files
 .RS 4
 \%../ScalabilityAndPerformance.html
 .RE
-.IP "13." 4
+.IP "14." 4
 shorewall-tcinterfaces
 .RS 4
 \%shorewall-tcinterfaces.html
 .RE
-.IP "14." 4
+.IP "15." 4
 shorewall-tcpri
 .RS 4
 \%shorewall-tcpri.html
 .RE
-.IP "15." 4
+.IP "16." 4
 shorewall-providers
 .RS 4
 \%shorewall-providers.html
 .RE
-.IP "16." 4
+.IP "17." 4
 routing_rules
 .RS 4
 \%shorewall-routing_rules.html

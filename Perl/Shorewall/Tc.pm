@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_6';
+our $VERSION = '4.4_7';
 
 our %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -314,7 +314,39 @@ sub process_tc_rule( ) {
 			}
 
 			$target = "IPMARK --addr $srcdst --and-mask $mask1 --or-mask $mask2 --shift $shift";
+		    } elsif ( $target eq 'TPROXY ' ) {
+			require_capability( 'TPROXY_TARGET', 'Use of TPROXY', 's');
+
+			fatal_error "Invalid TPROXY specification( $cmd/$rest )" if $rest;
+			
+			$chain = 'tcpre';
+
+			$cmd =~ /TPROXY\((.+?)\)$/;
+
+			my $params = $1;
+
+			fatal_error "Invalid TPROXY specification( $cmd )" unless defined $params;
+
+			( $mark, my $port, my $ip, my $bad ) = split ',', $params;
+
+			fatal_error "Invalid TPROXY specification( $cmd )" if defined $bad;
+
+			if ( $port ) {
+			    $port = validate_port( 'tcp', $port );
+			} else {
+			    $port = 0;
+			}
+
+			$target .= "--on-port $port";
+			
+			if ( defined $ip && $ip ne '' ) {
+			    validate_address $ip, 1;
+			    $target .= " --on-ip $ip";
+			}
+
+			$target .= ' --tproxy-mark';	
 		    }
+			
 
 		    if ( $rest ) {
 			fatal_error "Invalid MARK ($originalmark)" if $marktype == NOMARK;
@@ -483,7 +515,7 @@ sub process_simple_device() {
     while ( ++$i <= 3 ) {
 	emit "run_tc qdisc add dev $physical parent $number:$i handle ${number}${i}: sfq quantum 1875 limit 127 perturb 10";
 	emit "run_tc filter add dev $physical protocol all parent $number: handle $i fw classid $devnum:$i";
-	emit "run_tc filter add dev $physical protocol all prio 1 parent ${number}$i: handle ${number}${i} flow hash keys $type divisor 1024" if $type ne '-';
+	emit "run_tc filter add dev $physical protocol all prio 1 parent ${number}$i: handle ${number}${i} flow hash keys $type divisor 1024" if $type ne '-' && have_capability 'FLOW_FILTER';
 	emit '';
     }
 
@@ -1082,7 +1114,7 @@ sub process_tc_priority() {
 
     my $rule = do_helper( $helper ) . "-j MARK --set-mark $band";
 
-    $rule .= join('', '/', in_hex( $globals{TC_MASK} ) ) if $capabilities{EXMARK};
+    $rule .= join('', '/', in_hex( $globals{TC_MASK} ) ) if have_capability( 'EXMARK' );
 
     if ( $interface ne '-' ) {
 	fatal_error "Invalid combination of columns" unless $address eq '-' && $proto eq '-' && $ports eq '-';
@@ -1352,7 +1384,7 @@ sub setup_tc() {
 	ensure_mangle_chain 'tcpre';
 	ensure_mangle_chain 'tcout';
 
-	if ( $capabilities{MANGLE_FORWARD} ) {
+	if ( have_capability( 'MANGLE_FORWARD' ) ) {
 	    ensure_mangle_chain 'tcfor';
 	    ensure_mangle_chain 'tcpost';
 	}
@@ -1363,6 +1395,9 @@ sub setup_tc() {
 	    $mark_part = '-m mark --mark 0/' . in_hex( $globals{PROVIDER_MASK} ) . ' ';
 
 	    unless ( $config{TRACK_PROVIDERS} ) {
+		#
+		# This is overloading TRACK_PROVIDERS a bit but sending tracked packets through PREROUTING is a PITA for users
+		#
 		for my $interface ( @routemarked_interfaces ) {
 		    add_rule $mangle_table->{PREROUTING} , match_source_dev( $interface ) . "-j tcpre";
 		}
@@ -1372,8 +1407,8 @@ sub setup_tc() {
 	add_jump $mangle_table->{PREROUTING} , 'tcpre', 0, $mark_part;
 	add_jump $mangle_table->{OUTPUT} ,     'tcout', 0, $mark_part;
 
-	if ( $capabilities{MANGLE_FORWARD} ) {
-	    add_rule( $mangle_table->{FORWARD},     '-j MARK --set-mark 0' );
+	if ( have_capability( 'MANGLE_FORWARD' ) ) {
+	    add_rule( $mangle_table->{FORWARD},     '-j MARK --set-mark 0' ) if have_capability 'MARK';
 	    add_jump $mangle_table->{FORWARD} ,     'tcfor',  0;
 	    add_jump $mangle_table->{POSTROUTING} , 'tcpost', 0;
 	}
@@ -1428,7 +1463,12 @@ sub setup_tc() {
 			  mark      => HIGHMARK ,
 			  mask      => '' ,
 			  connmark  => 0
-			}
+			} ,
+			{ match     => sub ( $ ) { $_[0] =~ /^TPROXY/ },
+			  target    => 'TPROXY',
+			  mark      => HIGHMARK,
+			  mask      => '',
+			  connmark  => '' },
 		      );
 
 	if ( my $fn = open_file 'tcrules' ) {
