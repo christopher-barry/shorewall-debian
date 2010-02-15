@@ -2,8 +2,9 @@ shorewall (4.4.7.4-1) unstable; urgency=low
 
   * New Upstream Version
   * Update to Standards-Version 3.8.4 (no changes)
+  * Add missing dependency on $remote_fs in init script.
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 15 Feb 2010 10:31:43 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 15 Feb 2010 10:44:37 -0500
 
 shorewall (4.4.6-1) unstable; urgency=low
 
