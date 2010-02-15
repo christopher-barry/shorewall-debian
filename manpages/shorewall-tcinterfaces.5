@@ -1,11 +1,11 @@
 .\"     Title: shorewall-tcinterfaces
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 01/14/2010
+.\"      Date: 02/14/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\-TCINTERFA" "5" "01/14/2010" "" ""
+.TH "SHOREWALL\-TCINTERFA" "5" "02/14/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -19,6 +19,47 @@ tcinterfaces \- Shorewall file
 .PP
 This file lists the interfaces that are subject to simple traffic shaping\&. Simple traffic shaping is enabled by setting TC_ENABLED=Simple in
 \fIshorewall\&.conf\fR\&[1](5)\&.
+.PP
+A note on the
+\fIbandwidth\fR
+definition used in this file:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'don\'t use a space between the integer value and the unit: 30kbit is valid while 30 kbit is not\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'you can use one of the following units:
+.PP
+\fBkbps\fR
+.RS 4
+Kilobytes per second\&.
+.RE
+.PP
+\fBmbps\fR
+.RS 4
+Megabytes per second\&.
+.RE
+.PP
+\fBkbit\fR
+.RS 4
+Kilobits per second\&.
+.RE
+.PP
+\fBmbit\fR
+.RS 4
+Megabits per second\&.
+.RE
+.PP
+\fBbps\fR or \fBnumber\fR
+.RS 4
+Bytes per second\&.
+.RE
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Only whole integers are allowed\&.
+.RE
 .PP
 The columns in the file are as follows\&.
 .PP

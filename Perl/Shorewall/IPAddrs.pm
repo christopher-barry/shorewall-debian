@@ -72,7 +72,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_icmp6
 		 );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_6';
+our $VERSION = '4.4_7';
 
 #
 # Some IPv4/6 useful stuff
@@ -287,7 +287,12 @@ sub resolve_proto( $ ) {
     my $proto = $_[0];
     my $number;
 
-    $proto =~ /^(\d+)$/ ? $proto <= 65535 ? $proto : undef : defined( $number = $nametoproto{$proto} ) ? $number : scalar getprotobyname $proto;
+    if ( $proto =~ /^\d+$/ || $proto =~ /^0x/ ) {
+	$number = numeric_value ( $proto );
+	defined $number && $number <= 65535 ? $number : undef;
+    } else {
+	defined( $number = $nametoproto{$proto} ) ? $number : scalar getprotobyname $proto;
+    }
 }
 
 sub proto_name( $ ) {
@@ -301,7 +306,7 @@ sub validate_port( $$ ) {
 
     my $value;
 
-    if ( $port =~ /^(\d+)$/ ) {
+    if ( $port =~ /^(\d+)$/ || $port =~ /^0x/ ) {
 	$port = numeric_value $port;
 	return $port if defined $port && $port && $port <= 65535;
     } else {
@@ -309,7 +314,7 @@ sub validate_port( $$ ) {
 	$value = getservbyname( $port, $proto );
     }
 
-    fatal_error "Invalid/Unknown $proto port/service ($port)" unless defined $value;
+    fatal_error "Invalid/Unknown $proto port/service ($_[1])" unless defined $value;
 
     $value;
 }

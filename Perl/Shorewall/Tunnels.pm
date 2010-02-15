@@ -34,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.3_7';
+our $VERSION = '4.4_7';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -86,7 +86,7 @@ sub setup_tunnels() {
 		$inchainref  = ensure_filter_chain rules_chain( ${zone}, ${fw} ), 1;
 		$outchainref = ensure_filter_chain rules_chain( ${fw}, ${zone} ), 1;
 
-		unless ( $capabilities{POLICY_MATCH} ) {
+		unless ( have_ipsec ) {
 		    add_tunnel_rule $inchainref,  "-p 50 $source -j ACCEPT";
 		    add_tunnel_rule $outchainref, "-p 50 $dest -j ACCEPT";
 

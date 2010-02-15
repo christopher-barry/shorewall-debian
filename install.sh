@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.6
+VERSION=4.4.7.3
 
 usage() # $1 = exit status
 {
@@ -196,7 +196,7 @@ fi
 #
 cd "$(dirname $0)"
 
-echo "Installing Shorewall-common Version $VERSION"
+echo "Installing Shorewall Version $VERSION"
 
 #
 # Check for /etc/shorewall
@@ -422,6 +422,12 @@ run_install $OWNERSHIP -m 0600 modules ${PREFIX}/usr/share/shorewall/modules
 echo "Modules file installed as ${PREFIX}/usr/share/shorewall/modules"
 
 #
+# Install the Module Helpers file
+#
+run_install $OWNERSHIP -m 0600 helpers ${PREFIX}/usr/share/shorewall/helpers
+echo "Helper modules file installed as ${PREFIX}/usr/share/shorewall/helpers"
+
+#
 # Install the TC Rules file
 #
 run_install $OWNERSHIP -m 0644 configfiles/tcrules ${PREFIX}/usr/share/shorewall/configfiles/tcrules
@@ -429,6 +435,26 @@ run_install $OWNERSHIP -m 0644 configfiles/tcrules ${PREFIX}/usr/share/shorewall
 if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall/tcrules ]; then
     run_install $OWNERSHIP -m 0600 configfiles/tcrules ${PREFIX}/etc/shorewall/tcrules
     echo "TC Rules file installed as ${PREFIX}/etc/shorewall/tcrules"
+fi
+
+#
+# Install the TC Interfaces file
+#
+run_install $OWNERSHIP -m 0644 configfiles/tcinterfaces ${PREFIX}/usr/share/shorewall/configfiles/tcinterfaces
+
+if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall/tcinterfaces ]; then
+    run_install $OWNERSHIP -m 0600 configfiles/tcinterfaces ${PREFIX}/etc/shorewall/tcinterfaces
+    echo "TC Interfaces file installed as ${PREFIX}/etc/shorewall/tcinterfaces"
+fi
+
+#
+# Install the TC Priority file
+#
+run_install $OWNERSHIP -m 0644 configfiles/tcpri ${PREFIX}/usr/share/shorewall/configfiles/tcpri
+
+if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall/tcpri ]; then
+    run_install $OWNERSHIP -m 0600 configfiles/tcpri ${PREFIX}/etc/shorewall/tcpri
+    echo "TC Priority file installed as ${PREFIX}/etc/shorewall/tcpri"
 fi
 
 #
@@ -848,4 +874,4 @@ fi
 #
 #  Report Success
 #
-echo "shorewall-common Version $VERSION Installed"
+echo "shorewall Version $VERSION Installed"

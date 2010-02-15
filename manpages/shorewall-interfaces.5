@@ -1,11 +1,11 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 01/14/2010
+.\"      Date: 02/14/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "01/14/2010" "" ""
+.TH "SHOREWALL\-INTERFACE" "5" "02/14/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -169,7 +169,8 @@ Check packets arriving on this interface against the
 .PP
 \fBbridge\fR
 .RS 4
-Designates the interface as a bridge\&.
+Designates the interface as a bridge\&. Beginning with Shorewall 4\&.4\&.7, setting this option also sets
+\fBrouteback\fR\&.
 .RE
 .PP
 \fBdhcp\fR
