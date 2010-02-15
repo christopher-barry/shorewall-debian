@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.6
+VERSION=4.4.7
 
 usage() # $1 = exit status
 {
@@ -362,6 +362,12 @@ run_install $OWNERSHIP -m 0600 modules ${PREFIX}/usr/share/shorewall6/modules
 echo "Modules file installed as ${PREFIX}/usr/share/shorewall6/modules"
 
 #
+# Install the Module Helpers file
+#
+run_install $OWNERSHIP -m 0600 helpers ${PREFIX}/usr/share/shorewall6/helpers
+echo "Helper modules file installed as ${PREFIX}/usr/share/shorewall6/helpers"
+
+#
 # Install the TC Rules file
 #
 run_install $OWNERSHIP -m 0644 tcrules ${PREFIX}/usr/share/shorewall6/configfiles/tcrules
@@ -369,6 +375,26 @@ run_install $OWNERSHIP -m 0644 tcrules ${PREFIX}/usr/share/shorewall6/configfile
 if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall6/tcrules ]; then
     run_install $OWNERSHIP -m 0600 tcrules ${PREFIX}/etc/shorewall6/tcrules
     echo "TC Rules file installed as ${PREFIX}/etc/shorewall6/tcrules"
+fi
+
+#
+# Install the TC Interfaces file
+#
+run_install $OWNERSHIP -m 0644 tcinterfaces ${PREFIX}/usr/share/shorewall6/configfiles/tcinterfaces
+
+if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall6/tcinterfaces ]; then
+    run_install $OWNERSHIP -m 0600 tcinterfaces ${PREFIX}/etc/shorewall6/tcinterfaces
+    echo "TC Interfaces file installed as ${PREFIX}/etc/shorewall6/tcinterfaces"
+fi
+
+#
+# Install the TC Priority file
+#
+run_install $OWNERSHIP -m 0644 tcpri ${PREFIX}/usr/share/shorewall6/configfiles/tcpri
+
+if [ -z "$CYGWIN" -a ! -f ${PREFIX}/etc/shorewall6/tcpri ]; then
+    run_install $OWNERSHIP -m 0600 tcpri ${PREFIX}/etc/shorewall6/tcpri
+    echo "TC Priority file installed as ${PREFIX}/etc/shorewall6/tcpri"
 fi
 
 #
@@ -693,4 +719,4 @@ fi
 #
 #  Report Success
 #
-echo "shorewall6-common Version $VERSION Installed"
+echo "shorewall6 Version $VERSION Installed"

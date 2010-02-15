@@ -1,11 +1,11 @@
 .\"     Title: shorewall6.conf
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 01/14/2010
+.\"      Date: 02/11/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "01/14/2010" "" ""
+.TH "SHOREWALL6\&.CONF" "5" "02/11/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -100,7 +100,7 @@ If you set the value of either option to "None" then no default action will be u
 .PP
 \fBACCOUNTING=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
-Added in Shorewall 4\&.5\&.0\&. If set to Yes, Shorewall6 accounting is enabled (see
+Added in Shorewall 4\&.4\&.7\&. If set to Yes, Shorewall6 accounting is enabled (see
 \fIshorewall6\-accounting\fR\&[2](5))\&. If not specified or set to the empty value, ACCOUNTING=Yes is assumed\&.
 .RE
 .PP
@@ -230,6 +230,21 @@ If set to Yes (the default value), entries in the /etc/shorewall6/route_stopped 
 \fBDONT_LOAD=\fR[\fImodule\fR[,\fImodule\fR]\&.\&.\&.]
 .RS 4
 Causes Shorewall6 to not load the listed kernel modules\&.
+.RE
+.PP
+\fBDYNAMIC_BLACKLIST=\fR{\fBYes\fR|\fBNo\fR}
+.RS 4
+Added in Shorewall 4\&.4\&.7\&. When set to
+\fBNo\fR
+or
+\fBno\fR, dynamic blacklisting using the
+\fBshorewall6 drop\fR,
+\fBshorewall6 reject\fR,
+\fBshorewall6 logdrop\fR
+and
+\fBshorewall6 logreject\fR
+is disabled\&. Default is
+\fBYes\fR\&.
 .RE
 .PP
 \fBEXPAND_POLICIES=\fR{\fBYes\fR|\fBNo\fR}
@@ -378,6 +393,11 @@ command\&.
 The default is KEEP_RT_TABLES=No\&.
 .RE
 .PP
+\fBLOAD_HELPERS_ONLY=\fR{\fBYes\fR|\fBNo\fR}
+.RS 4
+Added in Shorewall 4\&.4\&.7\&. When set to Yes, restricts the set of modules loaded by shorewall to those listed in /var/lib/shorewall6/helpers and those that are actually used\&. When not set, or set to the empty value, LOAD_HELPERS_ONLY=No is assumed\&.
+.RE
+.PP
 \fBLOG_VERBOSITY=\fR[\fInumber\fR]
 .RS 4
 This option controls the amount of information logged to the file specified in the STARTUP_LOG option\&.
@@ -501,17 +521,6 @@ If your kernel has a FORWARD chain in the mangle table, you may set MARK_IN_FORW
 command; if a FORWARD chain is displayed then your kernel will support this option\&. If this option is not specified or if it is given the empty value (e\&.g\&., MARK_IN_FORWARD_CHAIN="") then MARK_IN_FORWARD_CHAIN=No is assumed\&.
 .RE
 .PP
-\fBMASK_BITS\fR=\fIbits\fR
-.RS 4
-Added in Shorewall 4\&.5\&.0\&. This option specifies the number of
-\fIbits\fR
-to use as a mask for traffic shaping marks and must be greater than or equal to TC_BITS\&. The default value depends on the setting of WIDE_TC_MARKS:
-.IP "" 4
-WIDE_TC_MARKS=No \- 8 bits\&.
-.IP "" 4
-WIDE_TC_MARKS=Yes \- 16 bits\&.
-.RE
-.PP
 \fBMODULE_SUFFIX=\fR[\fB"\fR\fIextension\fR \&.\&.\&.\fB"\fR]
 .RS 4
 The value of this option determines the possible file extensions of kernel modules\&. The default value is "o gz ko o\&.gz"\&.
@@ -533,39 +542,70 @@ An appropriate value for this parameter would be twice the length of time that i
 command\&.
 .RE
 .PP
-\fBOPTIMIZE=\fR[\fB0\fR|\fB1\fR]
+\fBOPTIMIZE=\fR[\fIvalue\fR]
 .RS 4
-Traditionally, Shorewall6 has created rules for
+The specified
+\fIvalue\fR
+enables certain optimizations\&. Each optimization category is associated with a power of two\&. To enable multiple optimization categories, simply add their corresponding numbers together\&.
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 1 \- Traditionally, Shorewall has created rules for
 \fIthe complete matrix of host groups defined by the zones, interfaces and hosts files\fR\&[9]\&. Any traffic that didn\'t correspond to an element of that matrix was rejected in one of the built\-in chains\&. When the matrix is sparse, this results in lots of largely useless rules\&.
 .sp
-These extra rules can be eliminated by setting OPTIMIZE=1\&.
+These extra rules can be eliminated by setting the 1 bit in OPTIMIZE\&.
 .sp
-The OPTIMIZE setting also controls the suppression of redundant wildcard rules (those specifying "all" in the SOURCE or DEST column)\&. A wildcard rule is considered to be redundant when it has the same ACTION and Log Level as the applicable policy\&.
+The 1 bit setting also controls the suppression of redundant wildcard rules (those specifying "all" in the SOURCE or DEST column)\&. A wildcard rule is considered to be redundant when it has the same ACTION and Log Level as the applicable policy\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 2 \- Added in Shorewall 4\&.4\&.7\&. When set, suppresses superfluous ACCEPT rules in a policy chain that implements an ACCEPT policy\&. Any ACCEPT rules that immediately preceed the final blanket ACCEPT rule in the chain are now omitted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 4 \- Added in Shorewall 4\&.4\&.7\&. When set, causes short chains (those with less than 2 rules) to be optimized away\&. The following chains are excluded from optimization:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'accounting chains (unless OPTIMIZE_ACCOUNTING=Yes)
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'action chains (user\-defined)
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'dynamic
+.RE
+.IP "" 4
+Additionally:
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'If a built\-in chain has a single rule that branches to a second chain, then the rules from the second chain are moved to the built\-in chain and the target chain is omitted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Chains with no references are deleted\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Accounting chains are subject to optimization if the OPTIMIZE_ACCOUNTING option is set to \'Yes\'\&.
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'If a chain ends with an unconditional branch to a second chain (other than to \'reject\'), then the branch is deleted from the first chain and the rules from the second chain are appended to it\&.
+.RE
+.RE
+.IP "" 4
+The default value is zero which disables all optimizations\&.
+.RE
+.PP
+\fBOPTIMIZE_ACCOUNTING=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.7\&. If set to Yes, Shorewall accounting changes are subject to optimization (OPTIMIZE=4,5,6 or 7)\&. If not specified or set to the empty value, OPTIMIZE_ACCOUNTING=No is assumed\&.
 .RE
 .PP
 \fBPATH=\fR\fIpathname\fR[\fB:\fR\fIpathname\fR]\&.\&.\&.
 .RS 4
 Determines the order in which Shorewall6 searches directories for executable files\&.
-.RE
-.PP
-\fBPROVIDER_BITS\fR=\fIbits\fR
-.RS 4
-Added in Shorewall 4\&.5\&.0\&. Specifies the number of bits of the packet/connection mark to use for the provider (routing) mark\&. Provider mark values must be >= 2**PROVIDER_OFFSET and less than 2**(PROVIDER_OFFSET + PROVIDER_BITS)\&. The default value is 8 bits\&.
-.RE
-.PP
-\fBPROVIDER_OFFSET\fR=\fIoffset\fR
-.RS 4
-Added in Shorewall 4\&.5\&.0\&. Specifies the
-\fIoffset\fR
-in bits from the least significate bit of the packet/connection mark where the Provider Mark value is stored\&. The default is based on the settings of HIGH_ROUTE_MARKS and WIDE_TC_MARKS:
-.IP "" 4
-HIGH_ROUTE_MARKS=No \- 0 bits\&.
-.IP "" 4
-HIGH_ROUTE_MARKS=Yes and WIDE_TC_MARKS=No \- 8
-            bits\&.
-.IP "" 4
-HIGH_ROUTE_MARKS=Yes and WIDE_TC_MARKS=Yes \- 16
-            bits\&.
 .RE
 .PP
 \fBRCP_COMMAND="\fR\fIcommand\fR\fB"\fR
@@ -665,20 +705,6 @@ This parameter should be set to the name of a file that the firewall should crea
 If specified, gives the pathname of the \'tc\' executable\&. If not specified, \'tc\' is assumed and the utility will be located using the current PATH setting\&.
 .RE
 .PP
-\fBTC_BITS\fR=\fIbits\fR
-.RS 4
-Added in Shorewall 4\&.5\&.0\&. This option replaces WIDE_TC_MARKS by allowing you to specify the number of
-\fIbits\fR
-of the 32\-bit packet/connection mark to be used for traffic shaping\&. The default value is based on the settings of WIDE_TC_MARKS:
-.IP "" 4
-WIDE_TC_MARKS=No \- 8 bits\&.
-.IP "" 4
-WIDE_TC_MARKS=Yes \- 14 bits\&.
-Mark values specified in
-\fIshorewall6\-tcclasses (5)\fR\&[11]
-must be < 2**TC_BITS\&.
-.RE
-.PP
 \fBTC_ENABLED=\fR[\fBYes\fR|\fBNo\fR|\fBInternal\fR]
 .RS 4
 If you say
@@ -707,15 +733,15 @@ If you also run Shorewall and if you have TC_ENABLED=Internal in your
 \fBTC_EXPERT=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Normally, Shorewall6 tries to protect users from themselves by preventing PREROUTING and OUTPUT tcrules from being applied to packets that have been marked by the \'track\' option in
-\fIshorewall6\-providers\fR\&[12](5)\&.
+\fIshorewall6\-providers\fR\&[11](5)\&.
 .sp
 If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall6 will not include these cautionary checks\&.
 .RE
 .PP
 \fBTC_PRIOMAP\fR=\fImap\fR
 .RS 4
-Added in Shorewall 4\&.5\&.0\&. Determines the mapping of a packet\'s TOS field to priority bands\&. See
-\fIshorewall6\-tcpri\fR\&[13](5)\&. The
+Added in Shorewall 4\&.4\&.6\&. Determines the mapping of a packet\'s TOS field to priority bands\&. See
+\fIshorewall6\-tcpri\fR\&[12](5)\&. The
 \fImap\fR
 consists of 16 space\-separated digits with values 1, 2 or 3\&. The first entry corresponds to Linux priority 9, the second to Linux priority 1, the third to Linux Priority 2, and so on\&. See tc\-prio(8) for additional information\&.
 .sp
@@ -740,13 +766,13 @@ Determines the syslog level for logging packets that fail the checks enabled by 
 Added in Shorewall 4\&.4\&.3\&. When set to Yes, causes the
 \fBtrack\fR
 option to be assumed on all providers defined in
-\fIshorewall6\-providers\fR\&[12](5)\&. May be overridden on an individual provider through use of the
+\fIshorewall6\-providers\fR\&[11](5)\&. May be overridden on an individual provider through use of the
 \fBnotrack\fR
 option\&. The default value is \'No\'\&.
 .sp
 Beginning in Shorewall 4\&.4\&.6, setting this option to \'Yes\' also simplifies PREROUTING rules in
 \fIshorewall6\-tcrules\fR\&[4](5)\&. Previously, when TC_EXPERT=No, packets arriving through \'tracked\' provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \'main\' routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The
-\fIshorewall6\-route_rules\fR\&[14](5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \'tracked\' interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
+\fIshorewall6\-route_rules\fR\&[13](5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \'tracked\' interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
 .RE
 .PP
 \fBVERBOSITY=\fR[\fInumber\fR]
@@ -832,21 +858,16 @@ shorewall6-interfaces
 \%shorewall6-interfaces.html
 .RE
 .IP "11." 4
-shorewall6-tcclasses (5)
-.RS 4
-\%shorewall6-tcclasses.html
-.RE
-.IP "12." 4
 shorewall6-providers
 .RS 4
 \%shorewall6-providers.html
 .RE
-.IP "13." 4
+.IP "12." 4
 shorewall6-tcpri
 .RS 4
 \%shorewall6-tcpri.html
 .RE
-.IP "14." 4
+.IP "13." 4
 shorewall6-route_rules
 .RS 4
 \%shorewall6-route_rules.html
