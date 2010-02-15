@@ -1,3 +1,9 @@
+shorewall-doc (4.4.7-1) unstable; urgency=low
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 15 Feb 2010 08:39:15 -0500
+
 shorewall-doc (4.4.6-1) unstable; urgency=low
 
   * New Upstream Version
