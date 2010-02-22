@@ -262,6 +262,7 @@ our $chainseq;
 our $idiotcount;
 our $idiotcount1;
 our $warningcount;
+our $hashlimitset;
 
 our $global_variables;
 
@@ -373,6 +374,7 @@ sub initialize( $ ) {
     $idiotcount         = 0;
     $idiotcount1        = 0;
     $warningcount       = 0;
+    $hashlimitset       = 0;
     #
     # The chain table is initialized via a call to initialize_chain_table() after the configuration and capabilities have been determined.
     #
@@ -2026,20 +2028,36 @@ sub do_ratelimit( $$ ) {
 
 	my $limit = "-m hashlimit ";
 	my $match = have_capability( 'OLD_HL_MATCH' ) ? 'hashlimit' : 'hashlimit-upto';
+	my $units;
 
 	if ( $rate =~ /^[sd]:((\w*):)?(\d+(\/(sec|min|hour|day))?):(\d+)$/ ) {
 	    $limit .= "--hashlimit $3 --hashlimit-burst $6 --hashlimit-name ";
-	    $limit .= $2 ? $2 : 'shorewall';
+	    $limit .= $2 ? $2 : 'shorewall' . $hashlimitset++;
 	    $limit .= ' --hashlimit-mode ';
+	    $units = $5;
 	} elsif ( $rate =~ /^[sd]:((\w*):)?(\d+(\/(sec|min|hour|day))?)$/ ) {
 	    $limit .= "--$match $3 --hashlimit-name ";
-	    $limit .= $2 ? $2 : 'shorewall';
+	    $limit .= $2 ? $2 :  'shorewall' . $hashlimitset++;
 	    $limit .= ' --hashlimit-mode ';
+	    $units = $5;
 	} else {
 	    fatal_error "Invalid rate ($rate)";
 	}
 
 	$limit .= $rate =~ /^s:/ ? 'srcip ' : 'dstip ';
+
+	if ( $units && $units ne 'sec' ) {
+	    my $expire = 60000; # 1 minute in milliseconds
+
+	    if ( $units ne 'min' ) {
+		$expire *= 60; #At least an hour
+		$expire *= 24 if $units eq 'day';
+	    }
+
+	    $limit .= "--hashlimit-htable-expire $expire ";
+	} 
+
+	$limit;
     } elsif ( $rate =~ /^(\d+(\/(sec|min|hour|day))?):(\d+)$/ ) {
 	"-m limit --limit $1 --limit-burst $4 ";
     } elsif ( $rate =~ /^(\d+)(\/(sec|min|hour|day))?$/ )  {
@@ -3256,7 +3274,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 
 		    if ( $loglevel ne '' ) {
 			if ( $disposition ne 'LOG' ) {
-			    unless ( $logname ) {
+			    unless ( $logname || $target =~ /-j RETURN\b/ ) {
 				#
 				# Find/Create a chain that both logs and applies the target action
 				# and jump to the log chain if all of the rule's conditions are met
@@ -3270,7 +3288,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 				log_rule_limit(
 					       $loglevel ,
 					       $chainref ,
-					       $logname ,
+					       $logname || $chain,
 					       $disposition ,
 					       '',
 					       $logtag,
