@@ -1,3 +1,9 @@
+shorewall6-lite (4.4.7.4-2) unstable; urgency=low
+
+  * Synchronize init script with upstream
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 21 Feb 2010 21:21:01 -0500
+
 shorewall6-lite (4.4.7.4-1) unstable; urgency=low
 
   * New Upstream Version

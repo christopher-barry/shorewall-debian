@@ -15,9 +15,7 @@
 
 SRWL=/sbin/shorewall6-lite
 SRWL_OPTS="-tvv"
-# Note, set INITLOG to /dev/null if you do not want to
-# keep logs of the firewall (not recommended)
-INITLOG=/var/log/shorewall6-lite-init.log
+test -n ${INITLOG:=/var/log/shorewall6-lite-init.log}
 
 [ "$INITLOG" eq "/dev/null" && SHOREWALL_INIT_SCRIPT=1 || SHOREWALL_INIT_SCRIPT=0
 
@@ -25,7 +23,7 @@ export SHOREWALL_INIT_SCRIPT
 
 test -x $SRWL || exit 0
 test -x $WAIT_FOR_IFUP || exit 0
-test -n $INITLOG || {
+test -n "$INITLOG" || {
 	echo "INITLOG cannot be empty, please configure $0" ; 
 	exit 1;
 }
@@ -44,6 +42,7 @@ echo_notdone () {
 	  echo "not done (check $INITLOG)."
   fi
 
+  exit 1
 }
 
 not_configured () {
