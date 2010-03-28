@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-blacklist
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 02/15/2010
+.\"      Date: 03/24/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-BLACKLIS" "5" "02/15/2010" "" ""
+.TH "SHOREWALL6\-BLACKLIS" "5" "03/24/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -39,7 +39,7 @@ If specified, must be a protocol number or a protocol name from protocols(5)\&.
 .PP
 \fBPORTS\fR (Optional) \- {\fB\-\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
-May only be specified if the protocol is TCP (6) or UDP (17)\&. A comma\-separated list of destination port numbers or service names from services(5)\&.
+May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&. A comma\-separated list of destination port numbers or service names from services(5)\&.
 .RE
 .PP
 When a packet arrives on an interface that has the

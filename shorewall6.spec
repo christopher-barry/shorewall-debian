@@ -1,6 +1,6 @@
 %define name shorewall6
-%define version 4.4.7
-%define release 4
+%define version 4.4.8
+%define release 0base
 
 Summary: Shoreline Firewall 6 is an ip6tables-based firewall for Linux systems.
 Name: %{name}
@@ -82,6 +82,7 @@ fi
 %attr(-   ,root,root) /usr/share/shorewall6/functions
 %attr(0644,root,root) /usr/share/shorewall6/lib.base
 %attr(0644,root,root) /usr/share/shorewall6/lib.cli
+%attr(0644,root,root) /usr/share/shorewall6/lib.common
 %attr(0644,root,root) /usr/share/shorewall6/macro.*
 %attr(0644,root,root) /usr/share/shorewall6/modules
 %attr(0644,root,root) /usr/share/shorewall6/helpers
@@ -96,15 +97,17 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt tunnel ipsecvpn ipv6 Samples6
 
 %changelog
-* Mon Feb 15 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.7-4
-* Sun Feb 14 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.7-3
-* Sun Feb 14 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.7-2
-* Sat Feb 13 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.7-1
+* Fri Mar 19 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.8-0base
+* Tue Mar 16 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.8-0RC2
+* Mon Mar 08 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.8-0RC1
+* Sun Feb 28 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.8-0Beta2
 * Thu Feb 11 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.8-0Beta1
+* Fri Feb 05 2010 Tom Eastep tom@shorewall.net
 - Updated to 4.4.7-0base
 * Tue Feb 02 2010 Tom Eastep tom@shorewall.net
 - Updated to 4.4.7-0RC2

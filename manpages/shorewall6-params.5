@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-params
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 02/15/2010
+.\"      Date: 03/24/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-PARAMS" "5" "02/15/2010" "" ""
+.TH "SHOREWALL6\-PARAMS" "5" "03/24/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -21,6 +21,70 @@ Assign any shell variables that you need in this file\&.
 .PP
 It is suggested that variable names begin with an upper case letter to distinguish them from variables used internally within the Shorewall programs
 .PP
+The following variable names must be avoided\&. Those in
+\fBbold font\fR
+must be avoided in all Shorewall versions; those in regular font must be avoided in versions prior to 4\&.4\&.8\&.
+.IP "" 4
+\fBAny option from \fR\fB\fIshorewall6\&.conf\fR\&[1]\fR\fB
+      (5)\fR
+.IP "" 4
+\fBCOMMAND\fR
+.IP "" 4
+\fBCONFDIR\fR
+.IP "" 4
+DEBUG
+.IP "" 4
+ECHO_E
+.IP "" 4
+ECHO_N
+.IP "" 4
+EXPORT
+.IP "" 4
+FAST
+.IP "" 4
+FILEMODE
+.IP "" 4
+HOSTNAME
+.IP "" 4
+IPT_OPTIONS
+.IP "" 4
+NOROUTES
+.IP "" 4
+PREVIEW
+.IP "" 4
+PRODUCT
+.IP "" 4
+PROFILE
+.IP "" 4
+PURGE
+.IP "" 4
+RECOVERING
+.IP "" 4
+RESTOREPATH
+.IP "" 4
+RING_BELL
+.IP "" 4
+\fBSHAREDIR\fR
+.IP "" 4
+\fBAny name beginning with SHOREWALL_ or
+      SW_\fR
+.IP "" 4
+STOPPING
+.IP "" 4
+TEST
+.IP "" 4
+TIMESTAMP
+.IP "" 4
+USE_VERBOSITY
+.IP "" 4
+\fBVARDIR\fR
+.IP "" 4
+VERBOSE
+.IP "" 4
+VERBOSE_OFFSET
+.IP "" 4
+VERSION
+.PP
 Example params file:
 .sp
 .RS 4
@@ -31,7 +95,7 @@ NET_OPTIONS=dhcp,nosmurfs
 .RE
 .PP
 Example
-\fIshorewall6\-interfaces\fR\&[1](5) file\&.
+\fIshorewall6\-interfaces\fR\&[2](5) file\&.
 .sp
 .RS 4
 .nf
@@ -53,16 +117,21 @@ net     eth0            \-               dhcp,nosmurfs
 /etc/shorewall6/params
 .SH "SEE ALSO"
 .PP
-\fIhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Variables\fR\&[2]
+\fIhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Variables\fR\&[3]
 .PP
 shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
+shorewall6.conf
+.RS 4
+\%shorewall6.conf.html
+.RE
+.IP " 2." 4
 shorewall6-interfaces
 .RS 4
 \%shorewall6-interfaces.html
 .RE
-.IP " 2." 4
+.IP " 3." 4
 http://www.shorewall.net/configuration_file_basics.htm#Variables
 .RS 4
 \%http://www.shorewall.net/configuration_file_basics.htm#Variables?
