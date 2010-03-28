@@ -48,18 +48,19 @@
 SHAREDIR=/usr/share/shorewall6-lite
 VARDIR=/var/lib/shorewall6-lite
 CONFDIR=/etc/shorewall6-lite
-PRODUCT="Shorewall Lite"
+g_product="Shorewall Lite"
 
 . /usr/share/shorewall6-lite/lib.base
+. /usr/share/shorewall6-lite/lib.cli
 . /usr/share/shorewall6-lite/configpath
 
 [ -n "$PATH" ] || PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 
-VERSION=$(cat /usr/share/shorewall6-lite/version)
+SHOREWALL_VERSION=$(cat /usr/share/shorewall6-lite/version)
 
-[ -n "$IPTABLES" ] || IPTABLES=$(mywhich iptables)
+[ -n "$IP6TABLES" ] || IP6TABLES=$(mywhich iptables)
 
-VERBOSE=0
+VERBOSITY=0
 load_kernel_modules No
 determine_capabilities
 report_capabilities1
