@@ -3,8 +3,6 @@
 # Shorewall firewall (http://www.shorewall.net)
 # debianized version
 
-include /usr/share/quilt/quilt.make
-
 # shorewall version
 export VFULL=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
 export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "=" | cut -f 1-3 -d "."`
@@ -16,7 +14,7 @@ NEXTPATCH:=$(shell expr $(VPATCH) + 1 2>/dev/null || expr `echo $(VPATCH) | cut 
 SRWL=$(CURDIR)/debian/shorewall6
 
 build: build-stamp debian/po/templates.pot
-build-stamp: $(QUILT_STAMPFN)
+build-stamp:
 	dh_testdir
 # 	there's nothing to compile ;-)
 	touch build-stamp
@@ -25,7 +23,7 @@ debian/po/templates.pot: debian/shorewall6.templates
 	@debconf-updatepo
 #	@podebconf-report-po
 
-clean: unpatch
+clean:
 	dh_testdir
 	dh_testroot
 	rm -f build-stamp
@@ -85,4 +83,4 @@ binary-arch: build install
 
 binary: binary-indep binary-arch
 
-.PHONY: build clean binary-indep binary-arch binary install unpatch
+.PHONY: build clean binary-indep binary-arch binary install
