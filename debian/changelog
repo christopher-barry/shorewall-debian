@@ -1,8 +1,9 @@
 shorewall-doc (4.4.8-1) unstable; urgency=low
 
   * New Upstream Version
+  * Switch to dpkg-source 3.0 (quilt) format
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 27 Mar 2010 20:24:02 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 27 Mar 2010 20:24:51 -0400
 
 shorewall-doc (4.4.7-1) unstable; urgency=low
 
