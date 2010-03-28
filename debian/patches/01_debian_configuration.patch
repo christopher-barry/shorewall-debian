@@ -1,8 +1,8 @@
 Author: Lorenzo Martignoni <lorenzo.martignoni@poste.it>
 Description: Customize the shorewall.conf configuration file to be more like what is
 expected by Debian users.
---- shorewall-4.4.1.2.orig/configfiles/shorewall.conf
-+++ shorewall-4.4.1.2/configfiles/shorewall.conf
+--- a/configfiles/shorewall.conf
++++ b/configfiles/shorewall.conf
 @@ -18,7 +18,7 @@
  #		       S T A R T U P   E N A B L E D
  ###############################################################################
@@ -28,9 +28,9 @@ expected by Debian users.
 -IP_FORWARDING=On
 +IP_FORWARDING=Keep
  
- ADD_IP_ALIASES=Yes
+ ADD_IP_ALIASES=No
  
-@@ -123,7 +123,7 @@
+@@ -125,7 +125,7 @@
  
  CLAMPMSS=No
  
