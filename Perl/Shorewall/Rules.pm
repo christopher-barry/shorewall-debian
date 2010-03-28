@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_8';
 
 #
 # Set to one if we find a SECTION
@@ -223,9 +223,12 @@ sub setup_blacklist() {
     my $chainref;
     my ( $level, $disposition ) = @config{'BLACKLIST_LOGLEVEL', 'BLACKLIST_DISPOSITION' };
     my $target = $disposition eq 'REJECT' ? 'reject' : $disposition;
-
+    #
+    # We go ahead and generate the blacklist chain and jump to it, even if it turns out to be empty. That is necessary
+    # for 'refresh' to work properly.
+    #
     if ( @$hosts ) {
-	$chainref = new_standard_chain 'blacklst';
+	$chainref = dont_delete new_standard_chain 'blacklst';
 
 	if ( defined $level && $level ne '' ) {
 	    my $logchainref = new_standard_chain 'blacklog';
@@ -274,6 +277,10 @@ sub setup_blacklist() {
 
 		progress_message "  \"$currentline\" added to blacklist";
 	    }
+
+	    warning_message q(There are interfaces or hosts with the 'blacklist' option but the 'blacklist' file is empty) if $first_entry && @$hosts;
+	} elsif ( @$hosts ) {
+	    warning_message q(There are interfaces or hosts with the 'blacklist' option, but the 'blacklist' file is either missing or has zero size);
 	}
 
 	my $state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? '-m state --state NEW,INVALID,UNTRACKED ' : '-m state --state NEW,INVALID ' : '';
@@ -1630,6 +1637,32 @@ sub process_rules() {
 }
 
 #
+# Helper functions for generate_matrix()
+#-----------------------------------------
+#
+# Return the target for rules from $zone to $zone1.
+#
+sub rules_target( $$ ) {
+    my ( $zone, $zone1 ) = @_;
+    my $chain = rules_chain( ${zone}, ${zone1} );
+    my $chainref = $filter_table->{$chain};
+    
+    return $chain   if $chainref && $chainref->{referenced};
+    return 'ACCEPT' if $zone eq $zone1;
+    
+    assert( $chainref );
+    
+    if ( $chainref->{policy} ne 'CONTINUE' ) {
+	my $policyref = $filter_table->{$chainref->{policychain}};
+	assert( $policyref );
+	return $policyref->{name} if $policyref ne $chainref;
+	return $chainref->{policy} eq 'REJECT' ? 'reject' : $chainref->{policy};
+    }
+    
+    ''; # CONTINUE policy
+}
+
+#
 # Add jumps from the builtin chains to the interface-chains that are used by this configuration
 #
 sub add_interface_jumps {
@@ -1656,11 +1689,15 @@ sub add_interface_jumps {
     # Add the jumps to the interface chains from filter FORWARD, INPUT, OUTPUT
     #
     for my $interface ( @_ ) {
-	add_jump( $filter_table->{FORWARD} , forward_chain $interface , 0, match_source_dev( $interface ) ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface;
-	add_jump( $filter_table->{INPUT}   , input_chain $interface ,   0, match_source_dev( $interface ) ) unless $input_jump_added{$interface}   || ! use_input_chain $interface;
+	my $forwardref = $filter_table->{forward_chain $interface};
+	my $inputref   = $filter_table->{input_chain $interface};
+	my $outputref  = $filter_table->{output_chain $interface};
 
-	unless ( $output_jump_added{$interface} || ! use_output_chain $interface ) {
-	    add_jump $filter_table->{OUTPUT} , output_chain $interface , 0, match_dest_dev( $interface ) unless get_interface_option( $interface, 'port' );
+	add_jump( $filter_table->{FORWARD} , $forwardref , 0, match_source_dev( $interface ) ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
+	add_jump( $filter_table->{INPUT}   , $inputref ,   0, match_source_dev( $interface ) ) unless $input_jump_added{$interface}   || ! use_input_chain $interface, $inputref;
+
+	unless ( $output_jump_added{$interface} || ! use_output_chain $interface, $outputref ) {
+	    add_jump $filter_table->{OUTPUT} , $outputref , 0, match_dest_dev( $interface ) unless get_interface_option( $interface, 'port' );
 	}
     }
     #
@@ -1683,44 +1720,6 @@ sub add_interface_jumps {
 # The function traverses the full "source-zone by destination-zone" matrix and generates the rules necessary to direct traffic through the right set of filter-table rules.
 #
 sub generate_matrix() {
-    #
-    # Helper functions for generate_matrix()
-    #-----------------------------------------
-    #
-    # Return the target for rules from $zone to $zone1.
-    #
-    sub rules_target( $$ ) {
-	my ( $zone, $zone1 ) = @_;
-	my $chain = rules_chain( ${zone}, ${zone1} );
-	my $chainref = $filter_table->{$chain};
-
-	return $chain   if $chainref && $chainref->{referenced};
-	return 'ACCEPT' if $zone eq $zone1;
-
-	assert( $chainref );
-
-	if ( $chainref->{policy} ne 'CONTINUE' ) {
-	    my $policyref = $filter_table->{$chainref->{policychain}};
-	    assert( $policyref );
-	    return $policyref->{name} if $policyref ne $chainref;
-	    return $chainref->{policy} eq 'REJECT' ? 'reject' : $chainref->{policy};
-	}
-
-	''; # CONTINUE policy
-    }
-
-    #
-    # Set a breakpoint in this function if you want to step through generate_matrix().
-    #
-    sub start_matrix() {
-	progress_message2 'Generating Rule Matrix...';
-    }
-
-    #
-    #                               G e n e r a t e _ M a t r i x ( )   S t a r t s  H e r e
-    #
-    start_matrix;
-
     my @interfaces = ( all_interfaces );
     my $preroutingref = ensure_chain 'nat', 'dnat';
     my $fw = firewall_zone;
@@ -1731,6 +1730,7 @@ sub generate_matrix() {
     our %output_jump_added  = ();
     our %forward_jump_added = ();
 
+    progress_message2 'Generating Rule Matrix...';
     #
     # Special processing for complex configurations
     #
@@ -1753,11 +1753,10 @@ sub generate_matrix() {
 	    my $source_ref = ( $zoneref->{hosts}{ipsec} ) || {};
 
 	    for my $interface ( sort { interface_number( $a ) <=> interface_number( $b ) } keys %$source_ref ) {
-		my $sourcechainref;
+		my $sourcechainref = $filter_table->{forward_chain $interface};
 		my $interfacematch = '';
 
-		if ( use_forward_chain( $interface ) ) {
-		    $sourcechainref = $filter_table->{forward_chain $interface};
+		if ( use_forward_chain( $interface, $sourcechainref ) ) {
 		    add_jump $filter_table->{FORWARD} , $sourcechainref, 0 , match_source_dev( $interface ) unless $forward_jump_added{$interface}++;
 		} else {
 		    $sourcechainref = $filter_table->{FORWARD};
@@ -1871,7 +1870,7 @@ sub generate_matrix() {
 			    my $interfacematch = '';
 			    my $use_output = 0;
 
-			    if ( use_output_chain $interface || ( @{$interfacechainref->{rules}} && ! $chain1ref ) ) {
+			    if ( use_output_chain( $interface, $interfacechainref ) || ( @{$interfacechainref->{rules}} && ! $chain1ref ) ) {
 				$outputref = $interfacechainref;
 				add_jump $filter_table->{OUTPUT}, $outputref, 0, match_dest_dev( $interface ) unless $output_jump_added{$interface}++;
 				$use_output = 1;
@@ -1926,7 +1925,7 @@ sub generate_matrix() {
 			my $interfacematch = '';
 			my $use_input;
 
-			if ( use_input_chain $interface || ! $chain2 || ( @{$interfacechainref->{rules}} && ! $chain2ref ) ) {
+			if ( use_input_chain( $interface, $interfacechainref ) || ! $chain2 || ( @{$interfacechainref->{rules}} && ! $chain2ref ) ) {
 			    $inputchainref = $interfacechainref;
 			    add_jump $filter_table->{INPUT}, $inputchainref, 0, match_source_dev($interface) unless $input_jump_added{$interface}++;
 			    $use_input = 1;
@@ -1942,13 +1941,13 @@ sub generate_matrix() {
 
 			if ( $frwd_ref && $hostref->{ipsec} ne 'ipsec' ) {
 			    my $ref = source_exclusion( $exclusions, $frwd_ref );
-			    if ( use_forward_chain $interface ) {
-				my $forwardref = $filter_table->{forward_chain $interface};
+			    my $forwardref = $filter_table->{forward_chain $interface};
+			    if ( use_forward_chain $interface, $forwardref ) {
 				add_jump $forwardref , $ref, 0, join( '', $source, $ipsec_in_match );
 				add_jump $filter_table->{FORWARD} , $forwardref, 0 , match_source_dev( $interface ) unless $forward_jump_added{$interface}++;
 			    } else {
 				add_jump $filter_table->{FORWARD} , $ref, 0, join( '', match_source_dev( $interface ) , $source, $ipsec_in_match );
-				move_rules ( $filter_table->{forward_chain $interface} , $frwd_ref );
+				move_rules ( $forwardref , $frwd_ref );
 			    }
 			}
 		    }
@@ -2063,7 +2062,7 @@ sub generate_matrix() {
 			my $match_source_dev = '';
 			my $forwardchainref = $filter_table->{forward_chain $interface};
 
-			if ( use_forward_chain $interface || ( @{$forwardchainref->{rules} } && ! $chainref ) ) {
+			if ( use_forward_chain( $interface , $forwardchainref ) || ( @{$forwardchainref->{rules} } && ! $chainref ) ) {
 			    #
 			    # Either we must use the interface's forwarding chain or that chain has rules and we have nowhere to move them
 			    #
@@ -2242,35 +2241,34 @@ EOF
 
             case $COMMAND in
 	        start)
-	            logger -p kern.err "ERROR:$PRODUCT start failed"
+	            logger -p kern.err "ERROR:$g_product start failed"
 	            ;;
 	        restart)
-	            logger -p kern.err "ERROR:$PRODUCT restart failed"
+	            logger -p kern.err "ERROR:$g_product restart failed"
 	            ;;
 	        refresh)
-	            logger -p kern.err "ERROR:$PRODUCT refresh failed"
+	            logger -p kern.err "ERROR:$g_product refresh failed"
 	            ;;
             esac
 
             if [ "$RESTOREFILE" = NONE ]; then
                 COMMAND=clear
                 clear_firewall
-                echo "$PRODUCT Cleared"
+                echo "$g_product Cleared"
 
 	        kill $$
 	        exit 2
             else
-	        RESTOREPATH=${VARDIR}/$RESTOREFILE
+	        g_restorepath=${VARDIR}/$RESTOREFILE
 
-	        if [ -x $RESTOREPATH ]; then
-		    echo Restoring ${PRODUCT:=Shorewall}...
+	        if [ -x $g_restorepath ]; then
+		    echo Restoring ${g_product:=Shorewall}...
                     
-                    RECOVERING=Yes
-                    export RECOVERING
+                    g_recovering=Yes
 
-		    if $RESTOREPATH restore; then
-		        echo "$PRODUCT restored from $RESTOREPATH"
-		        set_state "Started"
+		    if run_it $g_restorepath restore; then
+		        echo "$g_product restored from $g_restorepath"
+		        set_state "Restored from $g_restorepath"
 		    else
 		        set_state "Unknown"
 		    fi
@@ -2282,11 +2280,14 @@ EOF
 	    ;;
     esac
 
+    if [ -n "$g_stopping" ]; then
+        kill $$
+        exit 1
+    fi
+
     set_state "Stopping"
 
-    STOPPING="Yes"
-
-    TERMINATOR=
+    g_stopping="Yes"
 
     deletechain shorewall
 
@@ -2310,7 +2311,7 @@ EOF
     if [ -f ${VARDIR}/proxyarp ]; then
 	while read address interface external haveroute; do
 	    qt arp -i $external -d $address pub
-	    [ -z "${haveroute}${NOROUTES}" ] && qt $IP -4 route del $address dev $interface
+	    [ -z "${haveroute}${g_noroutes}" ] && qt $IP -4 route del $address dev $interface
 	    f=/proc/sys/net/ipv4/conf/$interface/proxy_arp
 	    [ -f $f ] && echo 0 > $f
 	done < ${VARDIR}/proxyarp
@@ -2440,7 +2441,7 @@ EOF
     emit '
     set_state "Stopped"
 
-    logger -p kern.info "$PRODUCT Stopped"
+    logger -p kern.info "$g_product Stopped"
 
     case $COMMAND in
     stop|clear)

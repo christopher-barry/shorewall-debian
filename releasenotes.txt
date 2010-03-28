@@ -1,7 +1,16 @@
-Shorewall 4.4.7 Patch Release 5.
+----------------------------------------------------------------------------
+                       S H O R E W A L L  4 . 4 . 8
+----------------------------------------------------------------------------
+
+I.    RELEASE 4.4 HIGHLIGHTS
+II.   MIGRATION ISSUES
+III.  PROBLEMS CORRECTED IN THIS RELEASE
+IV.   KNOWN PROBLEMS REMAINING
+V.    NEW FEATURES IN THIS RELEASE
+VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES 
 
 ----------------------------------------------------------------------------
-               R E L E A S E  4 . 4  H I G H L I G H T S
+             I.  R E L E A S E  4 . 4  H I G H L I G H T S
 ----------------------------------------------------------------------------
 
 1)  Support for Shorewall-shell has been discontinued. Shorewall-perl
@@ -59,7 +68,7 @@ Shorewall 4.4.7 Patch Release 5.
 15) TPROXY support has been added.
 
 ----------------------------------------------------------------------------
-                    M I G R A T I O N   I S S U E S
+                  I I.  M I G R A T I O N   I S S U E S
 ----------------------------------------------------------------------------
 1)  If you are currently using Shorewall-shell:
 
@@ -183,8 +192,30 @@ Shorewall 4.4.7 Patch Release 5.
     unless you choose to replace your current shorewall.conf with the
     one from the release (not recommended).
 
+14) The names of interface configuration variables in generated scripts
+    have been changed to insure uniqueness. These names now begin with
+    SW_.
+
+    This change will only affect you if your extension scripts are
+    using one or more of these variables.
+
+          Old Variable Name                   New Variable Name
+          -----------------------------------------------------
+	  iface_ADDRESS                        SW_iface_ADDRESS
+	  iface_BCASTS                         SW_iface_BCASTS
+	  iface_ACASTS                         SW_iface_ACASTS
+	  iface_GATEWAY                        SW_iface_GATEWAY
+	  iface_ADDRESSES                      SW_iface_ADDRESSES
+	  iface_NETWORKS                       SW_iface_NETWORKS
+	  iface_MAC                            SW_iface_MAC
+	  
+	  provider_IS_USABLE                   SW_provider_IS_USABLE
+
+    where 'iface' is a capitalized interface name (e.g., ETH0) and
+    'provider' is the capitalized name of a provider.
+	  
 ----------------------------------------------------------------------------
-       P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7 . 5
+I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
 1)  A CONTINUE rule specifying a log level would cause the compiler to 
@@ -208,54 +239,131 @@ Shorewall 4.4.7 Patch Release 5.
     hashlimit table idle timeout based on the rate units (min, hour,
     ...) so that the rate is more accurately enforced.
 
-    As part of this change, a unique hashlimit table name is assigned
-    to each per-IP rate limiting rule that does not specify a table name
+    As part of this change, a unique hash table name is assigned to
+    each per-IP rate limiting rule that does not specify a table name
     in the rule. The assigned names are of the form 'shorewallN' where
     N is an integer. Previously, all such rules shared a single
     'shorewall' table which lead to unexpected results.
 
-4)  All prior versions of Shorewall-perl mishandle per-IP rate limiting
-    ACCEPT+ rules. The effective rate and burst are 1/2 of the values
-    given in the rule. This problem has been corrected so that the
-    specified rate is now the effective rate.
+4)  All versions of Shorewall-perl mishandle per-IP rate limiting in
+    REDIRECT, DNAT and ACCEPT+ rules. The effective rate and burst are
+    1/2 of the values given in the rule.
 
-----------------------------------------------------------------------------
-       P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7 . 4
-----------------------------------------------------------------------------
-
-1)  The Debian init scripts are modified to include $remote_fs in the 
-    Required-start and Required-stop specifications.
-
-----------------------------------------------------------------------------
-       P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7 . 3
-----------------------------------------------------------------------------
-
-1)  On older distributions such as RHEL5 and derivatives, when
-    LOAD_HELPERS_ONLY=Yes, Shorewall would fail to start if a TYPE was
-    specified in /etc/shorewall/tcinterfaces.
-
-----------------------------------------------------------------------------
-       P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7 . 2
-----------------------------------------------------------------------------
-
-1)  Detection of the 'Old hashlimit match' capability was broken in
+5)  Detection of the 'Old hashlimit match' capability was broken in
     /sbin/shorewall, /sbin/shorewall-lite and in the IPv4 version of 
     shorecap.
 
-2)  On older distributions such as RHEL5 and derivatives, when
-    LOAD_HELPERS_ONLY=No, Shorewall would fail to start if a TYPE was
-    specified in /etc/shorewall/tcinterfaces.
+6)  On older distributions such as RHEL5 and derivatives, Shorewall
+    would fail to start if a TYPE was specified in
+    /etc/shorewall/tcinterfaces and LOAD_HELPERS_ONLY had been
+    specified in /etc/shorewall/shorewall.conf.
+
+7)  The Debian init scripts are modified to include $remote_fs in the 
+    Required-start and Required-stop specifications.
+
+8)  Previously, when a supported command failed, the Debian Shorewall
+    init script would still return a success (zero) exit status. It now
+    returns a failure status (1) when the command fails.
+
+9)  Previously, if a queue number was specified in an NFQUEUE policy
+    (e.g., NFQUEUE(0)), invalid iptables-restore input would be
+    generated.
+
+10) Previously, with optimization 4, users of ipsec on older releases
+    such as RHEL5 and CentOS, could encounter an error similar to this
+    one:
+
+    Running /sbin/iptables-restore...
+    iptables-restore v1.3.5: Unknown arg `out'
+    Error occurred at line: 93
+    Try `iptables-restore -h' or 'iptables-restore --help' for more
+        information.
+    	ERROR: iptables-restore Failed. Input is in
+               /var/lib/shorewall/.iptables-restore-input
+
+11) Previously, with optimization 4, the 'blacklst' chain could be
+    optimized away. If the blacklist file was then changed and a
+    'shorewall refresh' executed, those new changes would not be included
+    in the active ruleset.
+
+----------------------------------------------------------------------------
+           I V. K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+None.
+
+----------------------------------------------------------------------------
+         V.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  To avoid variable name collisions, a number of shell variable names
+    that Shorewall uses and that are in all capital letters have been
+    changed. The following variables are now safe to use in your
+    /etc/shorewall/params file and in your extension scripts:
+
+        DEBUG
+	ECHO_E
+	ECHO_N
+	EXPORT
+	FAST
+	HOSTNAME
+	IPT_OPTIONS
+	NOROUTES
+	PREVIEW
+	PRODUCT
+	PROFILE
+	PURGE
+	RECOVERING
+	RESTOREPATH
+	RING_BELL
+	STOPPING
+	TEST
+	TIMESTAMP
+	USE_VERBOSITY
+	VERBOSE
+	VERBOSE_OFFSET
+	VERSION
+	
+    See Migration Issue 14 above for additional information.
+
+2)  The Shorewall and Shorewall6 installers now accept a '-s' (sparse)
+    option. That option causes only shorewall.conf to be installed in
+    /etc/shorewall/.
+
+3)  An OpenPGP HTTP Keyserver Protocol (HKP) macro (macro.HKP) has been
+    contributed.
+
+4)  In an attempt to help those who don't read the documentation, the
+    compiler now flags apparent use of '-' as a port range separator
+    with an error message.
+
+    Example:
+
+    /etc/shorewall/rules
+
+       #ACTION    SOURCE     DEST      PROTO    DEST
+       #                                        PORT(S)
+       ACCEPT	  net        fw        tcp      21-22
+
+    Resulting error message
+
+       ERROR: The separator for a port range is ':', not '-' (21-22) : 
+              /etc/shorewall/rules (line 3)
+
+5)  Support has been added for UDPLITE (proto 136) in that DEST PORT(S)
+    and SOURCE PORT(S) may now be specified for that protocol.
+
+6)  If a runtime error occurs during a 'start' or 'restart' operation
+    but a saved configuration is successfully restored, a subsequent
+    'status' command now gives the detailed status as 'Restored from
+    <filename>' rather than 'Started'; <filename> is the saved script
+    used to restore the configuration.
  
 ----------------------------------------------------------------------------
-       P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7 . 1
+V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
+      I N   P R I O R  R E L E A S E S
 ----------------------------------------------------------------------------
-
-1)  All versions of Shorewall-perl mishandle per-IP rate limiting in
-    REDIRECT and DNAT rules. The effective rate and burst are 1/2 of
-    the values given in the rule.
-
-----------------------------------------------------------------------------
-          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7
 ----------------------------------------------------------------------------
 
 1)  The tcinterfaces and tcpri files are now installed by the
@@ -295,12 +403,6 @@ Shorewall 4.4.7 Patch Release 5.
       accurately detected. If you do not regenerate the file, the
       compiler will use other hints to try to determine if 'flow' is
       available.
-
-----------------------------------------------------------------------------
-             K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-None.
 
 ----------------------------------------------------------------------------
                 N E W   F E A T U R E S   I N   4 . 4 . 7

@@ -1,28 +1,41 @@
-Changes in Shorewall 4.4.7.5
+Changes in Shorewall 4.4.8
 
-1)  Don't create a logging chain for rules with '-j RETURN'.
+1)  Correct handling of RATE LIMIT on NAT rules.
 
-2)  Avoid duplicate SFQ class numbers.
+2)  Don't create a logging chain for rules with '-j RETURN'.
 
-3)  Fix low per-IP rate limits.
+3)  Avoid duplicate SFQ class numbers.
 
-Changes in Shorewall 4.4.7.4
+4)  Fix low per-IP rate limits.
 
-1)  Add $remote_fs to Required-start and Required-stop for Debian.
+5)  Fix Debian init script exit status
 
-Changes in Shorewall 4.4.7.3
+6)  Fix NFQUEUE(queue-num) in policy
 
-1)  Detect FLOW_FILTER when LOAD_HELPERS_ONLY=Yes
+7)  Implement -s option in install.sh
 
-Changes in Shorewall 4.4.7.2
+8)  Add HKP Macro
 
-1)  Fix detection of "Old hashlimit match".
+9)  Fix multiple policy matches with OPTIMIZE 4 and not KLUDGEFREE
 
-2)  Detect FLOW_FILTER when LOAD_HELPERS_ONLY=No
+10) Eliminate up-cased variable names that aren't documented options.
 
-Changes in Shorewall 4.4.7.1
+11) Don't show 'OLD' capabilities if they are not available.
 
-1)  Don't apply rate limiting twice in NAT rules.
+12) Attempt to flag use of '-' as a port-range separator.
+
+13) Add undocumented OPTIMIZE=-1 setting.
+
+14) Replace OPTIMIZE=-1 with undocumented optimize 4096 which DISABLES
+    default optimizations.
+
+15) Add support for UDPLITE
+
+16) Distinguish between 'Started' and 'Restored' in ${VARDIR}/state
+
+17) Issue warnings when 'blacklist' but no blacklist file entries.
+
+18) Don't optimize 'blacklst'.
 
 Changes in Shorewall 4.4.7
 

@@ -1,11 +1,11 @@
 .\"     Title: shorewall-accounting
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 02/19/2010
+.\"      Date: 03/24/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\-ACCOUNTIN" "5" "02/19/2010" "" ""
+.TH "SHOREWALL\-ACCOUNTIN" "5" "03/24/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -104,11 +104,7 @@ or
 \fBDEST PORT(S)\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIipp2p\-option\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 Destination Port number\&. Service name from services(5) or
-\fIport number\fR\&. May only be specified if the protocol is
-\fBtcp\fR
-or
-\fBudp\fR
-(6 or 17)\&.
+\fIport number\fR\&. May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&.
 .sp
 You may place a comma\-separated list of port names or numbers in this column if your kernel and iptables include multiport match support\&.
 .sp
@@ -124,7 +120,7 @@ is assumed\&.
 \fBSOURCE PORT(S)\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 Service name from services(5) or
-\fIport number\fR\&. May only be specified if the protocol is TCP or UDP (6 or 17)\&.
+\fIport number\fR\&. May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&.
 .sp
 You may place a comma\-separated list of port numbers in this column if your kernel and iptables include multiport match support\&.
 .RE

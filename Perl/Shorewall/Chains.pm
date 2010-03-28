@@ -174,7 +174,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_8';
 
 #
 # Chain Table
@@ -352,7 +352,7 @@ sub initialize( $ ) {
     #
     $comment = '';
     #
-    # Used to sequence chains names.
+    # Used to sequence chain names.
     #
     $chainseq = 0;
     #
@@ -635,7 +635,7 @@ sub add_jump( $$$;$$$ ) {
 	#
 	# Ensure that we have the chain unless it is a builtin like 'ACCEPT'
 	#
-	$toref = ensure_chain( $fromref->{table} , $to ) unless $builtin_target{ $to };
+	$toref = ensure_chain( $fromref->{table} , $to ) unless $builtin_target{$to} || $to =~ / --/; #If the target has options, it must be a builtin. 
     }
 
     #
@@ -770,9 +770,11 @@ sub zone_forward_chain($) {
 #
 # Returns true if we're to use the interface's forward chain
 #
-sub use_forward_chain($) {
-    my $interface = $_[0];
+sub use_forward_chain($$) {
+    my ( $interface, $chainref ) = @_;
     my $interfaceref = find_interface($interface);
+
+    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
     #
     # We must use the interfaces's chain if the interface is associated with multiple zone nets
     #
@@ -806,10 +808,12 @@ sub zone_input_chain($) {
 #
 # Returns true if we're to use the interface's input chain
 #
-sub use_input_chain($) {
-    my $interface = $_[0];
+sub use_input_chain($$) {
+    my ( $interface, $chainref ) = @_;
     my $interfaceref = find_interface($interface);
     my $nets = $interfaceref->{nets};
+
+    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
     #
     # We must use the interfaces's chain if:
     #
@@ -835,8 +839,6 @@ sub use_input_chain($) {
     #
     # Interface associated with a single zone -- use the zone's input chain if it has one
     #
-    my $chainref = $filter_table->{zone_input_chain $zone};
-
     return 0 if $chainref;
     #
     # Use the '<zone>2fw' chain if it is referenced.
@@ -864,10 +866,12 @@ sub zone_output_chain($) {
 #
 # Returns true if we're to use the interface's output chain
 #
-sub use_output_chain($) {
-    my $interface = $_[0];
+sub use_output_chain($$) {
+    my ( $interface, $chainref)  = @_;
     my $interfaceref = find_interface($interface);
     my $nets = $interfaceref->{nets};
+
+    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
     #
     # We must use the interfaces's chain if the interface is associated with multiple zone nets
     #
@@ -879,8 +883,6 @@ sub use_output_chain($) {
     #
     # Interface associated with a single zone -- use the zone's output chain if it has one
     #
-    my $chainref = $filter_table->{zone_output_chain $interfaceref->{zone}};
-
     return 0 if $chainref;
     #
     # Use the 'fw2<zone>' chain if it is referenced.
@@ -1316,7 +1318,7 @@ sub optimize_chain( $ ) {
 	my $rules    = $chainref->{rules};
 	my $count    = 0;
     
-	pop @$rules;
+	pop @$rules; # Pop the plain -j ACCEPT rule at the end of the chain 
 
 	pop @$rules, $count++ while @$rules && $rules->[-1] =~ /-j ACCEPT\b/;
 
@@ -1509,7 +1511,7 @@ sub optimize_ruleset() {
     # The search continues until no short chains remain
     # Chains with 'dont_optimize = 1' are exempted from optimization
     #
-    for my $table ( qw/ raw mangle nat filter/ ) {
+    for my $table ( qw/raw mangle nat filter/ ) {
 
 	next if $family == F_IPV6 && $table eq 'nat';
 
@@ -1594,11 +1596,11 @@ sub optimize_ruleset() {
 				replace_references $chainref, $1;
 				$progress = 1;
 			    }
-			} elsif ( $firstrule =~ /-A $chainref->{name}( .*) -[jg] (.*)$/ ) {
+			} elsif ( $firstrule =~ /-A $chainref->{name}( +.+) -[jg] (.*)$/ ) {
 			    #
 			    # Not so easy -- the rule contains matches
 			    #
-			    if ( $chainref->{builtin} ) {
+			    if ( $chainref->{builtin} || ! have_capability 'KLUDGEFREE' ) {
 				#
 				# This case requires a new rule merging algorithm. Ignore this chain for
 				# now.
@@ -1844,12 +1846,12 @@ sub do_proto( $$$;$ )
 
 	  PROTO:
 	    {
-		if ( $proto == TCP || $proto == UDP || $proto == SCTP || $proto == DCCP ) {
+		if ( $proto == TCP || $proto == UDP || $proto == SCTP || $proto == DCCP || $proto == UDPLITE ) {
 		    my $multiport = 0;
 
 		    if ( $ports ne '' ) {
 			$invert = $ports =~ s/^!// ? '! ' : '';
-			if ( $ports =~ tr/,/,/ > 0 || $sports =~ tr/,/,/ > 0 ) {
+			if ( $ports =~ tr/,/,/ > 0 || $sports =~ tr/,/,/ > 0 || $proto == UDPLITE ) {
 			    fatal_error "Port lists require Multiport support in your kernel/iptables" unless have_capability( 'MULTIPORT' );
 			    fatal_error "Multiple ports not supported with SCTP" if $proto == SCTP;
 			    fatal_error "A port list in this file may only have up to 15 ports" if $restricted && port_count( $ports ) > 15;
@@ -1861,7 +1863,7 @@ sub do_proto( $$$;$ )
 			    $output .= "${invert}--dport ${ports} ";
 			}
 		    } else {
-			$multiport = ( ( $sports =~ tr/,/,/ ) > 0 );
+			$multiport = ( ( $sports =~ tr/,/,/ ) > 0 || $proto == UDPLITE );
 		    }
 
 		    if ( $sports ne '' ) {
@@ -2644,7 +2646,7 @@ sub mark_firewall_not_started() {
 # Returns the name of the shell variable holding the first address of the passed interface
 #
 sub interface_address( $ ) {
-    my $variable = chain_base( $_[0] ) . '_address';
+    my $variable = 'sw_' . chain_base( $_[0] ) . '_address';
     uc $variable;
 }
 
@@ -2669,7 +2671,7 @@ sub get_interface_address ( $ ) {
 # Returns the name of the shell variable holding the broadcast addresses of the passed interface
 #
 sub interface_bcasts( $ ) {
-    my $variable = chain_base( $_[0] ) . '_bcasts';
+    my $variable = 'sw_' . chain_base( $_[0] ) . '_bcasts';
     uc $variable;
 }
 
@@ -2692,7 +2694,7 @@ sub get_interface_bcasts ( $ ) {
 # Returns the name of the shell variable holding the anycast addresses of the passed interface
 #
 sub interface_acasts( $ ) {
-    my $variable = chain_base( $_[0] ) . '_acasts';
+    my $variable = 'sw_' . chain_base( $_[0] ) . '_acasts';
     uc $variable;
 }
 
@@ -2715,7 +2717,7 @@ sub get_interface_acasts ( $ ) {
 # Returns the name of the shell variable holding the gateway through the passed interface
 #
 sub interface_gateway( $ ) {
-    my $variable = chain_base( $_[0] ) . '_gateway';
+    my $variable = 'sw_' . chain_base( $_[0] ) . '_gateway';
     uc $variable;
 }
 
@@ -2747,7 +2749,7 @@ sub get_interface_gateway ( $ ) {
 # Returns the name of the shell variable holding the addresses of the passed interface
 #
 sub interface_addresses( $ ) {
-    my $variable = chain_base( $_[0] ) . '_addresses';
+    my $variable = 'sw_' . chain_base( $_[0] ) . '_addresses';
     uc $variable;
 }
 
@@ -2777,7 +2779,7 @@ sub get_interface_addresses ( $ ) {
 # Returns the name of the shell variable holding the networks routed out of the passed interface
 #
 sub interface_nets( $ ) {
-    my $variable = chain_base( $_[0] ) . '_networks';
+    my $variable = 'sw_' . chain_base( $_[0] ) . '_networks';
     uc $variable;
 }
 
@@ -2808,7 +2810,7 @@ sub get_interface_nets ( $ ) {
 # Returns the name of the shell variable holding the MAC address of the gateway for the passed provider out of the passed interface
 #
 sub interface_mac( $$ ) {
-    my $variable = join( '_' , chain_base( $_[0] ) , chain_base( $_[1] ) , 'mac' );
+    my $variable = join( '_' , 'sw' , chain_base( $_[0] ) , chain_base( $_[1] ) , 'mac' );
     uc $variable;
 }
 

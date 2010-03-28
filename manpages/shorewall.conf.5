@@ -1,11 +1,11 @@
 .\"     Title: shorewall.conf
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 02/19/2010
+.\"      Date: 03/24/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\&.CONF" "5" "02/19/2010" "" ""
+.TH "SHOREWALL\&.CONF" "5" "03/24/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -571,7 +571,7 @@ If the LOGFORMAT value contains the substring \(lq%d\(rq then the logging rule n
 .PP
 \fBLOGRATE=\fR[\fIrate\fR/{\fBminute\fR|\fBsecond\fR}]
 .RS 4
-These parameters set the match rate and initial burst size for logged packets\&. Please see iptables(8) for a description of the behavior of these parameters (the iptables option \-\-limit is set by LOGRATE and \-\-limit\-burst is set by LOGBURST)\&. If both parameters are set empty, no rate\-limiting will occur\&.
+These parameters set the match rate and initial burst size for logged packets\&. Please see iptables(8) for a description of the behavior of these parameters (the iptables option \-\-limit is set by LOGRATE and \-\-limit\-burst is set by LOGBURST)\&. If both parameters are set empty, no rate\-limiting will occur\&. If you supply one of these, then you should also supply the other\&.
 .sp
 Example:
 .sp
@@ -708,6 +708,10 @@ The 1 bit setting also controls the suppression of redundant wildcard rules (tho
 .sp
 .RS 4
 \h'-04'\(bu\h'+03'action chains (user\-defined)
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'\'blacklst\' chain
 .RE
 .sp
 .RS 4

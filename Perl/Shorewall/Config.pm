@@ -81,6 +81,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       pop_indent
 				       copy
 				       copy1
+				       copy2
 				       create_temp_aux_config
 				       finalize_aux_config
 				       set_shorewall_dir
@@ -128,7 +129,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_8';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -189,7 +190,7 @@ our %config;
 #
 # Config options and global settings that are to be copied to output script
 #
-our @propagateconfig = qw/ DISABLE_IPV6 MODULESDIR MODULE_SUFFIX LOAD_HELPERS_ONLY SUBSYSLOCK /;
+our @propagateconfig = qw/ DISABLE_IPV6 MODULESDIR MODULE_SUFFIX LOAD_HELPERS_ONLY SUBSYSLOCK LOG_VERBOSITY/;
 #
 # From parsing the capabilities file or detecting capabilities
 #
@@ -337,8 +338,8 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.7.5",
-		    CAPVERSION => 40407 ,
+		    VERSION => "4.4.8",
+		    CAPVERSION => 40408 ,
 		  );
 
     #
@@ -655,7 +656,7 @@ sub initialize( $ ) {
 	       LOG_TARGET => 1,         # Assume that we have it.
 	       PERSISTENT_SNAT => undef,
 	       OLD_HL_MATCH => undef,
-	       FLOW_FILTER => 'default',
+	       FLOW_FILTER => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -1197,6 +1198,62 @@ sub copy1( $ ) {
     $lastlineblank = 0;
 
     $result;
+}
+
+#
+# This one drops header comments and replaces them with a three-line banner
+#
+sub copy2( $ ) {
+    assert( $script_enabled );
+    my $empty = 1;
+
+    if ( $script ) {
+	my $file = $_[0];
+
+	open IF , $file or fatal_error "Unable to open $file: $!";
+
+	while ( <IF> ) {
+	    $empty = 0, last unless /^#/;
+	}
+
+	unless ( $empty ) {
+	    print $script <<EOF;
+################################################################################
+#   Functions imported from $file
+################################################################################
+
+EOF
+	    print $script $_ unless /^\s*$/;
+
+	    while ( <IF> ) {
+		chomp;
+		if ( /^\s*$/ ) {
+		    print $script "\n" unless $lastlineblank;
+		    $lastlineblank = 1;
+		} else {
+		    if  ( $indent ) {
+			s/^(\s*)/$indent1$1$indent2/;
+			s/        /\t/ if $indent2;
+		    }
+		    
+		    print $script $_;
+		    print $script "\n";
+		    $lastlineblank = 0;
+		}
+	    }
+	    
+	    close IF;
+	
+	    print $script "\n" unless $lastlineblank;
+
+	    print $script <<EOF;
+################################################################################
+#   End of imports from $file
+################################################################################
+EOF
+	    $lastlineblank = 0;
+	}
+    }
 }
 
 #
@@ -2394,9 +2451,7 @@ sub determine_capabilities() {
     fatal_error 'Your kernel/iptables do not include state match support. No version of Shorewall will run on this system'
 	unless qt1( "$iptables -A $sillyname -m state --state ESTABLISHED,RELATED -j ACCEPT");
   
-    if ( $config{ LOAD_HELPERS_ONLY } ) {
-	$capabilities{FLOW_FILTER} = undef;
-    } else {
+    unless ( $config{ LOAD_HELPERS_ONLY } ) {
 	#
 	# Using 'detect_capability()' is a bit less efficient than calling the individual detection
 	# functions but it ensures that %detect_capability is initialized properly.
@@ -2605,10 +2660,6 @@ sub read_capabilities() {
 	$capabilities{$_} = '' unless defined $capabilities{$_};
     }
 
-    if ( $capabilities{FLOW_FILTER} eq 'default' ) {
-	$capabilities{FLOW_FILTER} = $capabilities{OLD_HL_MATCH} ? '' : 'Yes';
-    }
-    
 }
 
 #
@@ -2953,7 +3004,7 @@ sub get_configuration( $ ) {
 
     $val = numeric_value $config{OPTIMIZE};
 
-    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless defined( $val ) && $val >= 0 && $val <= 7;
+    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless defined( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 7;
 
     $globals{MARKING_CHAIN} = $config{MARK_IN_FORWARD_CHAIN} ? 'tcfor' : 'tcpre';
 

@@ -47,6 +47,7 @@ our @EXPORT = qw( ALLIPv4
 		  ALL
 		  TCP
 		  UDP
+		  UDPLITE
 		  ICMP
 		  DCCP
 		  IPv6_ICMP
@@ -103,10 +104,10 @@ use constant { ALLIPv4             => '0.0.0.0/0' ,
 	       UDP                 => 17,
 	       DCCP                => 33,
 	       IPv6_ICMP           => 58,
-	       SCTP                => 132 };
+	       SCTP                => 132,
+	       UDPLITE             => 136 };
 
 our @rfc1918_networks = ( "10.0.0.0/8", "172.16.0.0/12", "192.168.0.0/16" );
-
 
 #
 # Note: initialize() is declared at the bottom of the file
@@ -314,9 +315,11 @@ sub validate_port( $$ ) {
 	$value = getservbyname( $port, $proto );
     }
 
-    fatal_error "Invalid/Unknown $proto port/service ($_[1])" unless defined $value;
+    return $value if defined $value;
 
-    $value;
+    fatal_error "The separator for a port range is ':', not '-' ($port)" if $port =~ /^\d+-\d+$/;
+
+    fatal_error "Invalid/Unknown $proto port/service ($_[1])" unless defined $value;
 }
 
 sub validate_portpair( $$ ) {

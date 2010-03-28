@@ -1,11 +1,11 @@
 .\"     Title: shorewall-masq
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 02/19/2010
+.\"      Date: 03/24/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\-MASQ" "5" "02/19/2010" "" ""
+.TH "SHOREWALL\-MASQ" "5" "03/24/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -169,7 +169,7 @@ If you wish to restrict this entry to a particular protocol then enter the proto
 .PP
 \fBPORT(S)\fR (Optional) \- [[!]\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.]
 .RS 4
-If the PROTO column specifies TCP (protocol 6) or UDP (protocol 17) then you may list one or more port numbers (or names from services(5)) separated by commas or you may list a single port range (\fIlowport\fR:\fIhighport\fR)\&.
+If the PROTO column specifies TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136) then you may list one or more port numbers (or names from services(5)) separated by commas or you may list a single port range (\fIlowport\fR:\fIhighport\fR)\&.
 .sp
 Where a comma\-separated list is given, your kernel and iptables must have multiport match support and a maximum of 15 ports may be listed\&.
 .RE
