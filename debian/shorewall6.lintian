@@ -6,6 +6,7 @@ shorewall6: postinst-uses-db-input
 shorewall6: non-standard-dir-perm var/lib/shorewall6/ 0750 != 0755
 shorewall6: script-not-executable ./usr/share/shorewall6/lib.base
 shorewall6: script-not-executable ./usr/share/shorewall6/lib.cli
+shorewall6: script-not-executable ./usr/share/shorewall6/lib.common
 # Shorewall needs to continue in runlevel 1 because networking may still be up
 shorewall6: init.d-script-possible-missing-stop
 # The administrator will not replace /sbin/shorewall with a local copy
