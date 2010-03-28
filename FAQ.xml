@@ -1186,7 +1186,8 @@ to debug/develop the newnat interface.</programlisting></para>
 LOGBURST=""</programlisting>
 
       <para>It is also possible to <ulink url="shorewall_logging.html">set up
-      Shorewall to log all of its messages to a separate file</ulink>.</para>
+      Shorewall to log all of Netfilter's messages to a separate
+      file</ulink>.</para>
 
       <section id="faq6a">
         <title>(FAQ 6a) Are there any log parsers that work with
@@ -1203,33 +1204,35 @@ LOGBURST=""</programlisting>
         </literallayout>
 
         <para>I personally use <ulink
-        url="http://www.logwatch.org">Logwatch</ulink>. It emails me a report
-        each day from my various systems with each report summarizing the
-        logged activity on the corresponding system. I use the brief report
-        format; here's a sample:</para>
+        url="http://www.cert.uni-stuttgart.de.projects/fwlogwatch">fwlogwatch</ulink>.
+        It emails me a report each day from my various systems with each
+        report summarizing the logged activity on the corresponding system;
+        here's a sample:</para>
 
         <blockquote>
-          <programlisting> --------------------- iptables firewall Begin ------------------------ 
+          <programlisting>fwlogwatch summary
+Generated Tuesday March 02 08:14:37 PST 2010 by root.
+362 (and 455 older than 86400 seconds) of 817 entries in the file "/var/log/ulog/syslogemu.log" are packet logs, 138 have unique characteristics.
+First packet log entry: Mar 01 08:16:06, last: Mar 02 08:06:21.
+All entries were logged by the same host: "gateway".
+All entries have the same target: "-".
+Only entries with a count of at least 5 are shown.
 
- Dropped 111 packets on interface eth0
-   From 58.20.162.142 - 5 packets to tcp(1080) 
-   From 62.163.19.50 - 1 packet to udp(6348) 
-   From 66.111.45.60 - 9 packets to tcp(192) 
-   From 69.31.82.50 - 18 packets to tcp(3128) 
-   From 72.232.183.102 - 2 packets to tcp(3128) 
-   From 82.96.96.3 - 6 packets to tcp(808,1080,1978,7600,65506) 
-   From 128.48.51.209 - 5 packets to tcp(143) 
-   From 164.77.223.150 - 12 packets to tcp(873) 
-   From 165.233.109.23 - 8 packets to tcp(22) 
-   From 202.99.172.175 - 4 packets to udp(2,4081) 
-   From 206.59.41.101 - 2 packets to tcp(5900) 
-   From 217.91.30.224 - 24 packets to tcp(873) 
-   From 218.87.47.114 - 6 packets to tcp(3128) 
-   From 220.110.219.234 - 4 packets to tcp(22) 
-   From 220.133.116.173 - 5 packets to tcp(3128) 
- 
- ---------------------- iptables firewall End -------------------------</programlisting>
+net-dmz DROP  eth2 36 packets from 61.158.162.9 to 206.124.146.177
+net-fw DROP  eth0 21 packets from 89.163.162.13 to 76.104.233.98
+net-fw DROP  eth0 19 packets from 61.184.101.46 to 76.104.233.98
+net-fw DROP  eth0 12 packets from 81.157.214.103 to 76.104.233.98
+net-fw DROP  eth0 11 packets from 174.37.159.222 to 76.104.233.98
+net-fw DROP  eth0 10 packets from 221.195.73.86 to 76.104.233.98
+net-dmz DROP  eth2 9 packets from 202.199.158.6 to 206.124.146.177
+net-fw DROP  eth2 9 packets from 202.199.158.6 to 206.124.146.176
+net-dmz DROP  eth2 9 packets from 202.199.158.6 to 206.124.146.178
+net-fw DROP  eth0 6 packets from 221.192.199.35 to 76.104.233.98
+net-fw DROP  eth2 5 packets from 61.158.162.9 to 206.124.146.177</programlisting>
         </blockquote>
+
+        <para>Fwlogwatch contains a built-in web server that allows monitoring
+        recent activity in summary fashion.</para>
       </section>
 
       <section id="faq6b">
@@ -1250,6 +1253,17 @@ DROP      net       fw      udp      10619</programlisting>
 
         <programlisting>#ADDRESS/SUBNET         PROTOCOL        PORT
 -                       udp             10619</programlisting>
+      </section>
+
+      <section id="faq6c">
+        <title>(FAQ 6c) cat /proc/sys/kernel/prink returns '4 4 1 7' and still
+        I get dmesg filled up</title>
+
+        <para><emphasis role="bold">Answer</emphasis>: While we would argue
+        that 'dmesg filled up' is not necessarily a problem, the only way to
+        eliminate that is to <ulink url="shorewall_logging.html">set up
+        Shorewall to log all of Netfilter's messages to a separate
+        file</ulink>.</para>
       </section>
 
       <section id="faq6d">
@@ -2184,7 +2198,15 @@ We have an error talking to the kernel
       <para><emphasis role="bold">Answer:</emphasis> At the shell prompt,
       type:</para>
 
-      <programlisting><command>/sbin/shorewall[-lite] version</command>      </programlisting>
+      <programlisting><command>/sbin/shorewall[-lite] version -a</command>     </programlisting>
+
+      <section id="faq25a">
+        <title>(FAQ 25a) It says 4.4.7.5; how do I know if it is
+        Shorewall-shell or Shorewall-perl?</title>
+
+        <para><emphasis role="bold">Answer</emphasis>: It is Shorewall-perl.
+        Shorewall-shell is discontinued in Shorewall 4.4.</para>
+      </section>
     </section>
 
     <section id="faq31">
