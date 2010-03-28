@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-rules
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 02/15/2010
+.\"      Date: 03/24/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-RULES" "5" "02/15/2010" "" ""
+.TH "SHOREWALL6\-RULES" "5" "03/24/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -474,8 +474,8 @@ or
 is specified, the rate applies per source IP address or per destination IP address respectively\&. The
 \fIname\fR
 may be chosen by the user and specifies a hash table to be used to count matching connections\&. If not give, the name
-\fBshorewall\fR
-is assumed\&. Where more than one POLICY specifies the same name, the connections counts for the rules are aggregated and the individual rates apply to the aggregated count\&.
+\fBshorewallN\fR
+(where N is a unique integer) is assumed\&. Where more than one POLICY specifies the same name, the connections counts for the rules are aggregated and the individual rates apply to the aggregated count\&.
 .RE
 .PP
 \fBUSER/GROUP\fR (Optional) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
