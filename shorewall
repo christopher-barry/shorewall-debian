@@ -62,19 +62,17 @@ get_config() {
 
     ensure_config_path
     
-    if [ -z "$EXPORT" -a "$(id -u)" = 0 ]; then
+    if [ -z "$g_export" -a "$(id -u)" = 0 ]; then
 	#
 	# This block is avoided for compile for export and when the user isn't root
 	#
-	export CONFIG_PATH
-
 	if [ "$3" = Yes ]; then
 	    [ -z "$LOGFILE" ] && LOGFILE=/var/log/messages
 
 	    if [ -n "$(syslog_circular_buffer)" ]; then
-		LOGREAD="logread | tac"
+		g_logread="logread | tac"
 	    elif [ -r $LOGFILE ]; then
-		LOGREAD="tac $LOGFILE"
+		g_logread="tac $LOGFILE"
 	    else
 		echo "LOGFILE ($LOGFILE) does not exist!" >&2
 		exit 2
@@ -93,8 +91,6 @@ get_config() {
 		exit 2
 	    fi
 	fi
-
-	export IPTABLES
 
 	if [ -n "$IP" ]; then
 	    case "$IP" in
@@ -117,8 +113,6 @@ get_config() {
 	    IP='ip'
 	fi
 
-	export IP
-
 	if [ -n "$IPSET" ]; then
 	    case "$IPSET" in
 		*/*)
@@ -140,8 +134,6 @@ get_config() {
 	    IPSET='ipset'
 	fi
 
-	export IPSET
-
 	if [ -n "$TC" ]; then
 	    case "$TC" in
 		*/*)
@@ -162,17 +154,12 @@ get_config() {
 	else 
 	    TC='tc'
 	fi
-
-	export TC
-
 	#
 	# Compile by non-root needs no restore file
 	#
 	[ -n "$RESTOREFILE" ] || RESTOREFILE=restore
 
 	validate_restorefile RESTOREFILE
-
-	export RESTOREFILE
 
 	if [ "$2" = Yes ]; then
 	    case $STARTUP_ENABLED in
@@ -212,8 +199,6 @@ get_config() {
 	[ -z "$LOGFORMAT" ] && LOGFORMAT='Shorewall:%s.%s' 
 
 	[ -n "$LOGFORMAT" ] && LOGFORMAT="${LOGFORMAT%%%*}"
-
-	export LOGFORMAT
 
 	if [ -n "$STARTUP_LOG" ]; then
 	    if [ -n "$LOG_VERBOSITY" ]; then
@@ -259,17 +244,15 @@ get_config() {
 	    ;;
     esac
 
-    [ -n "$USE_VERBOSITY" ] && VERBOSE=$USE_VERBOSITY || VERBOSE=$(($VERBOSE_OFFSET + $VERBOSITY))
+    [ -n "$g_use_verbosity" ] && VERBOSITY=$g_use_verbosity || VERBOSITY=$(($g_verbose_offset + $VERBOSITY))
 
-    if [ $VERBOSE -lt -1 ]; then
-	VERBOSE=-1
-    elif [ $VERBOSE -gt 2 ]; then
-	VERBOSE=2
+    if [ $VERBOSITY -lt -1 ]; then
+	VERBOSITY=-1
+    elif [ $VERBOSITY -gt 2 ]; then
+	VERBOSITY=2
     fi
 
-    export VERBOSE
-
-    [ -n "${HOSTNAME:=$(hostname)}" ]
+    g_hostname=$(hostname 2> /dev/null)
 
     [ -n "$RSH_COMMAND" ] || RSH_COMMAND='ssh ${root}@${system} ${command}'
     [ -n "$RCP_COMMAND" ] || RCP_COMMAND='scp ${files} ${root}@${system}:${destination}'
@@ -283,20 +266,6 @@ get_config() {
 	*)
 	    if [ -n "$MANGLE_ENABLED" ]; then
 		echo "   ERROR: Invalid MANGLE_ENABLED setting ($MANGLE_ENABLED)" >&2
-		exit 2
-	    fi
-	    ;;
-    esac
-
-    case $FAST_STOP in
-	Yes|yes)
-	    ;;
-	No|no)
-	    FAST_STOP=
-	    ;;
-	*)
-	    if [ -n "$FAST_STOP" ]; then
-		echo "   ERROR: Invalid FAST_STOP setting ($FAST_STOP)" >&2
 		exit 2
 	    fi
 	    ;;
@@ -360,8 +329,8 @@ compiler() {
     esac
 
     debugflags="-w"
-    [ -n "$DEBUG" ]   && debugflags='-wd'
-    [ -n "$PROFILE" ] && debugflags='-wd:DProf'
+    [ -n "$g_debug" ]   && debugflags='-wd'
+    [ -n "$g_profile" ] && debugflags='-wd:DProf'
 
     # Perl compiler only takes the output file as a argument
 	    
@@ -369,16 +338,16 @@ compiler() {
     [ "$1" = nolock ] && shift;
     shift 
 
-    options="--verbose=$VERBOSE"
+    options="--verbose=$VERBOSITY"
     [ -n "$STARTUP_LOG" ] && options="$options --log=$STARTUP_LOG"
     [ -n "$LOG_VERBOSITY" ] && options="$options --log_verbosity=$LOG_VERBOSITY";
-    [ -n "$EXPORT" ] && options="$options --export"
+    [ -n "$g_export" ] && options="$options --export"
     [ -n "$SHOREWALL_DIR" ] && options="$options --directory=$SHOREWALL_DIR"
-    [ -n "$TIMESTAMP" ] && options="$options --timestamp"
-    [ -n "$TEST" ] && options="$options --test"
-    [ -n "$PREVIEW" ] && options="$options --preview"
-    [ "$debugging" = trace ] && options="$options --debug"
-    [ -n "$REFRESHCHAINS" ] && options="$options --refresh=$REFRESHCHAINS"
+    [ -n "$g_timestamp" ] && options="$options --timestamp"
+    [ -n "$g_test" ] && options="$options --test"
+    [ -n "$g_preview" ] && options="$options --preview"
+    [ "$g_debugging" = trace ] && options="$options --debug"
+    [ -n "$g_refreshchains" ] && options="$options --refresh=$g_refreshchains"
     #
     # Run the appropriate params file
     #
@@ -387,7 +356,7 @@ compiler() {
     set +a
 
     perl $debugflags /usr/share/shorewall/compiler.pl $options $@
-}    
+}
 
 #
 # Start Command Executor
@@ -403,15 +372,15 @@ start_command() {
 
 	if [ -n "$AUTOMAKE" ]; then
 	    [ -n "$nolock" ] || mutex_on
-	    ${VARDIR}/firewall $debugging start
+	    run_it ${VARDIR}/firewall $g_debugging start
 	    rc=$?
 	    [ -n "$nolock" ] || mutex_off
 	else
 	    progress_message3 "Compiling..."
 
-	    if compiler $debugging $nolock compile ${VARDIR}/.start; then
+	    if compiler $g_debugging $nolock compile ${VARDIR}/.start; then
 		[ -n "$nolock" ] || mutex_on
-		${VARDIR}/.start $debugging start
+		run_it ${VARDIR}/.start $g_debugging start
 		rc=$?
 		[ -n "$nolock" ] || mutex_off
 	    else
@@ -443,16 +412,16 @@ start_command() {
 			    option=
 			    ;;
 			d*)
-			    DEBUG=Yes
+			    g_debug=Yes
 			    option=${option#d}
 			    ;;
 			f*)
-			    FAST=Yes
+			    g_fast=Yes
 			    option=${option#f}
 			    ;;
 			p*)
 			    [ -n "$(which conntrack)" ] || fatal_error "The '-p' option requires the conntrack utility which does not appear to be installed on this system"
-			    PURGE=Yes
+			    g_purge=Yes
 			    option=${option%p}
 			    ;;
 			*)
@@ -472,7 +441,7 @@ start_command() {
 	0)
 	    ;;
 	1)
-	    [ -n "$SHOREWALL_DIR" -o -n "$FAST" ] && usage 2
+	    [ -n "$SHOREWALL_DIR" -o -n "$g_fast" ] && usage 2
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
@@ -483,7 +452,6 @@ start_command() {
 	    fi
 
 	    SHOREWALL_DIR=$(resolve_file $1)
-	    export SHOREWALL_DIR
 	    AUTOMAKE=
 	    ;;
 	*)
@@ -491,42 +459,38 @@ start_command() {
 	    ;;
     esac
 
-    export NOROUTES
-    export PURGE
-
-    if [ -n "${FAST}${AUTOMAKE}" ]; then
+    if [ -n "${g_fast}${AUTOMAKE}" ]; then
 	if qt mywhich make; then
-	    #
-	    # RESTOREFILE is exported by get_config()
-	    #
 	    restorefile=$RESTOREFILE
 
-	    if [ -z "$FAST" ]; then
+	    if [ -z "$g_fast" ]; then
 		#
 		# Automake -- use the last compiled script
 		#
 		RESTOREFILE=firewall
 	    fi
 
-	    if ! make -qf ${CONFDIR}/Makefile; then
-		FAST= 
+	    export RESTOREFILE
+
+	    if make -qf ${CONFDIR}/Makefile; then
+		g_fast=
 		AUTOMAKE=
 	    fi
 
 	    RESTOREFILE=$restorefile
 	else
-	    FAST=
+	    g_fast=
 	    AUTOMAKE=
 	fi
 
-	if [ -n "$FAST" ]; then
-	    RESTOREPATH=${VARDIR}/$RESTOREFILE
+	if [ -n "$g_fast" ]; then
+	    g_restorepath=${VARDIR}/$RESTOREFILE
 
-	    if [ -x $RESTOREPATH ]; then
+	    if [ -x $g_restorepath ]; then
 		echo Restoring Shorewall...
-		$SHOREWALL_SHELL $RESTOREPATH restore
+		run_it $g_restorepath restore
 		date > ${VARDIR}/restarted
-		progress_message3 Shorewall restored from $RESTOREPATH
+		progress_message3 Shorewall restored from $g_restorepath
 	    else
 		do_it
 	    fi
@@ -558,19 +522,19 @@ compile_command() {
 		while [ -n "$option" ]; do
 		    case $option in
 			e*)
-			    EXPORT=Yes
+			    g_export=Yes
 			    option=${option#e}
 			    ;;
 			p*)
-			    PROFILE=Yes
+			    g_profile=Yes
 			    option=${option#p}
 			    ;;
 			t*)
-			    TEST=Yes
+			    g_test=Yes
 			    option=${option#t}
 			    ;;			    
 			d*)
-			    DEBUG=Yes;
+			    g_debug=Yes;
 			    option=${option#d}
 			    ;;
 			-)
@@ -611,7 +575,6 @@ compile_command() {
 	    fi
 
 	    SHOREWALL_DIR=$(resolve_file $1)
-	    export SHOREWALL_DIR
 	    file=$2
 	    ;;
 	*)
@@ -619,11 +582,9 @@ compile_command() {
 	    ;;
     esac
 
-    export EXPORT
-
     [ "x$file" = x- ] || progress_message3 "Compiling..."
 
-    compiler $debugging compile $file
+    compiler $g_debugging compile $file
 }
 
 #
@@ -646,19 +607,19 @@ check_command() {
 			    option=
 			    ;;
 			e*)
-			    EXPORT=Yes
+			    g_export=Yes
 			    option=${option#e}
 			    ;;
 			p*)
-			    PROFILE=Yes
+			    g_profile=Yes
 			    option=${option#p}
 			    ;;
 			d*)
-			    DEBUG=Yes;
+			    g_debug=Yes;
 			    option=${option#d}
 			    ;;
 			r*)
-			    PREVIEW=Yes;
+			    g_preview=Yes;
 			    option=${option#r}
 			    ;;
 			*)
@@ -689,18 +650,15 @@ check_command() {
 	    fi
 
 	    SHOREWALL_DIR=$(resolve_file $1)
-	    export SHOREWALL_DIR
 	    ;;
 	*)
 	    usage 1
 	    ;;
     esac
 
-    export EXPORT
-
     progress_message3 "Checking..."
 
-    compiler $debugging $nolock check
+    compiler $g_debugging $nolock check
 }
 
 #
@@ -726,20 +684,20 @@ restart_command() {
 			    option=
 			    ;;
 			d*)
-			    DEBUG=Yes
+			    g_debug=Yes
 			    option=${option#d}
 			    ;;
 			f*)
-			    FAST=Yes
+			    g_fast=Yes
 			    option=${option#f}
 			    ;;
 			n*)
-			    NOROUTES=Yes
+			    g_noroutes=Yes
 			    option=${option#n}
 			    ;;
 			p*)
 			    [ -n "$(which conntrack)" ] || fatal_error "The '-p' option requires the conntrack utility which does not appear to be installed on this system"
-			    PURGE=Yes
+			    g_purge=Yes
 			    option=${option%p}
 			    ;;
 			*)
@@ -770,8 +728,7 @@ restart_command() {
 	    fi
 
 	    SHOREWALL_DIR=$(resolve_file $1)
-	    [ -n "$FAST" ] && fatal_error "Directory may not be specified with the -f option"
-	    export SHOREWALL_DIR
+	    [ -n "$g_fast" ] && fatal_error "Directory may not be specified with the -f option"
 	    AUTOMAKE=
 	    ;;
 	*)
@@ -781,27 +738,24 @@ restart_command() {
 
     [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
 
-    export NOROUTES
-    export PURGE
-
-    if [ -z "$FAST" -a -n "$AUTOMAKE" ]; then
+    if [ -z "$g_fast" -a -n "$AUTOMAKE" ]; then
 	if qt mywhich make; then
 	    #
 	    # RESTOREFILE is exported by get_config()
 	    #
 	    restorefile=$RESTOREFILE
 	    RESTOREFILE=firewall
-	    make -qf ${CONFDIR}/Makefile && FAST=Yes
+	    make -qf ${CONFDIR}/Makefile && g_fast=Yes
 	    RESTOREFILE=$restorefile
 	fi
     fi
 
-    if [ -z "$FAST" ]; then  
+    if [ -z "$g_fast" ]; then  
 	progress_message3 "Compiling..."
 
-	if compiler $debugging $nolock compile ${VARDIR}/.restart; then
+	if compiler $g_debugging $nolock compile ${VARDIR}/.restart; then
 	    [ -n "$nolock" ] || mutex_on
-	    $SHOREWALL_SHELL ${VARDIR}/.restart $debugging restart
+	    run_it ${VARDIR}/.restart $g_debugging restart
 	    rc=$?
 	    [ -n "$nolock" ] || mutex_off
 	else
@@ -811,7 +765,7 @@ restart_command() {
     else
 	[ -x ${VARDIR}/firewall ] || fatal_error "No ${VARDIR}/firewall file found"
 	[ -n "$nolock" ] || mutex_on
-	$SHOREWALL_SHELL ${VARDIR}/firewall $debugging restart
+	run_it ${VARDIR}/firewall $g_debugging restart
 	rc=$?
 	[ -n "$nolock" ] || mutex_off
     fi
@@ -852,11 +806,11 @@ refresh_command() {
     done
 
     if [ $# -gt 0 ]; then
-	REFRESHCHAINS=$1
+	g_refreshchains=$1
 	shift
 
 	while [ $# -gt 0 ]; do
-	    REFRESHCHAINS="$REFRESHCHAINS,$1"
+	    g_refreshchains="$g_refreshchains,$1"
 	    shift
 	done
     fi
@@ -865,13 +819,11 @@ refresh_command() {
 
     [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
 
-    export NOROUTES
-
     progress_message3 "Compiling..."
 
-    if compiler $debugging $nolock compile ${VARDIR}/.refresh; then
+    if compiler $g_debugging $nolock compile ${VARDIR}/.refresh; then
 	[ -n "$nolock" ] || mutex_on
-	$SHOREWALL_SHELL ${VARDIR}/.refresh $debugging refresh
+	run_it ${VARDIR}/.refresh $g_debugging refresh
 	rc=$?
 	[ -n "$nolock" ] || mutex_off
     else
@@ -908,7 +860,7 @@ safe_commands() {
 			    option=
 			    ;;
 			n*)
-			    NOROUTES=Yes
+			    g_noroutes=Yes
 			    option=${option#n}
 			    ;;
 			*)
@@ -939,7 +891,6 @@ safe_commands() {
 	    fi
 
 	    SHOREWALL_DIR=$(resolve_file $1)
-	    export SHOREWALL_DIR
 	    ;;
 	*)
 	    usage 1
@@ -970,19 +921,19 @@ safe_commands() {
 
     progress_message3 "Compiling..."
 
-    if ! compiler $debugging nolock compile ${VARDIR}/.$command; then
+    if ! compiler $g_debugging nolock compile ${VARDIR}/.$command; then
 	status=$?
 	exit $status
     fi
 
     case $command in
 	start)
-	    export RESTOREFILE=NONE
+	    RESTOREFILE=NONE
 	    progress_message3 "Starting..."
 	    ;;
 	restart)
-	    export RESTOREFILE=.safe
-	    RESTOREPATH=${VARDIR}/.safe
+	    RESTOREFILE=.safe
+	    g_restorepath=${VARDIR}/.safe
 	    save_config
 	    progress_message3 "Restarting..."
 	    ;;
@@ -990,7 +941,7 @@ safe_commands() {
 
     [ -n "$nolock" ] || mutex_on
 
-    if ${VARDIR}/.$command $debugging $command; then
+    if ${VARDIR}/.$command $g_debugging $command; then
 
 	echo -n "Do you want to accept the new firewall configuration? [y/n] "
 
@@ -1035,7 +986,6 @@ try_command() {
 	fi
 	
 	SHOREWALL_DIR=$(resolve_file $1)
-	export SHOREWALL_DIR
     }
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
@@ -1051,7 +1001,7 @@ try_command() {
 			    option=
 			    ;;
 			n*)
-			    NOROUTES=Yes
+			    g_noroutes=Yes
 			    option=${option#n}
 			    ;;
 			*)
@@ -1107,19 +1057,19 @@ try_command() {
 
     progress_message3 "Compiling..."
 
-    if ! compiler $debugging $nolock compile ${VARDIR}/.$command; then
+    if ! compiler $g_debugging $nolock compile ${VARDIR}/.$command; then
 	status=$?
 	exit $status
     fi
 
     case $command in
 	start)
-	    export RESTOREFILE=NONE
+	    RESTOREFILE=NONE
 	    progress_message3 "Starting..."
 	    ;;
 	restart)
-	    export RESTOREFILE=.try
-	    RESTOREPATH=${VARDIR}/.try
+	    RESTOREFILE=.try
+	    g_restorepath=${VARDIR}/.try
 	    save_config
 	    progress_message3 "Restarting..."
 	    ;;
@@ -1178,7 +1128,7 @@ reload_command() # $* = original arguments less the command.
     local root
     root=root
 
-    LITEDIR=/var/lib/shorewall-lite
+    litedir=/var/lib/shorewall-lite
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -1233,9 +1183,9 @@ reload_command() # $* = original arguments less the command.
 	    ;;
     esac
 
-    litedir=$(rsh_command /sbin/shorewall-lite show config 2> /dev/null | grep ^LITEDIR | sed 's/LITEDIR is //')
+    temp=$(rsh_command /sbin/shorewall-lite show config 2> /dev/null | grep ^LITEDIR | sed 's/LITEDIR is //')
 
-    [ -n "$litedir" ] && LITEDIR=$litedir
+    [ -n "$temp" ] && litedir="$temp"
 
     if [ -z "$getcaps" ]; then
 	SHOREWALL_DIR=$(resolve_file $directory)
@@ -1260,11 +1210,11 @@ reload_command() # $* = original arguments less the command.
 
     file=$(resolve_file $directory/firewall)
 
-    [ -n "$TIMESTAMP" ] && timestamp='-t' || timestamp=
+    [ -n "$g_timestamp" ] && timestamp='-t' || timestamp=
 
-    if shorewall $debugging $verbose $timestamp compile -e $directory $directory/firewall && \
-	progress_message3 "Copying $file and ${file}.conf to ${system}:${LITEDIR}..." && \
-	rcp_command "$directory/firewall $directory/firewall.conf" ${LITEDIR}
+    if shorewall $g_debugging $verbose $timestamp compile -e $directory $directory/firewall && \
+	progress_message3 "Copying $file and ${file}.conf to ${system}:${litedir}..." && \
+	rcp_command "$directory/firewall $directory/firewall.conf" ${litedir}
     then
 	save=$(find_file save);
 
@@ -1272,15 +1222,15 @@ reload_command() # $* = original arguments less the command.
 
 	progress_message3 "Copy complete"
 	if [ $COMMAND = reload ]; then
-	    rsh_command "/sbin/shorewall-lite $debugging $verbose $timestamp restart" && \
+	    rsh_command "/sbin/shorewall-lite $g_debugging $verbose $timestamp restart" && \
 	    progress_message3 "System $system reloaded" || saveit=
 	else
-	    rsh_command "/sbin/shorewall-lite $debugging $verbose $timestamp start" && \
+	    rsh_command "/sbin/shorewall-lite $g_debugging $verbose $timestamp start" && \
 	    progress_message3 "System $system loaded" || saveit=
 	fi
 
 	if [ -n "$saveit" ]; then
-	    rsh_command "/sbin/shorewall-lite $debugging $verbose $timestamp save" && \
+	    rsh_command "/sbin/shorewall-lite $g_debugging $verbose $timestamp save" && \
 	    progress_message3 "Configuration on system $system saved"
 	fi
     fi
@@ -1349,7 +1299,7 @@ export_command() # $* = original arguments less the command.
 
     file=$(resolve_file $directory/firewall)
 
-    if shorewall $debugging $verbose compile -e $directory $directory/firewall && \
+    if shorewall $g_debugging $verbose compile -e $directory $directory/firewall && \
 	echo "Copying $file and ${file}.conf to ${target#*@}..." && \
 	scp $directory/firewall $directory/firewall.conf $target
     then
@@ -1427,10 +1377,10 @@ usage() # $1 = exit status
 #
 # Execution begins here
 #
-debugging=
+g_debugging=
 
 if [ $# -gt 0 ] && [ "x$1" = "xdebug" -o "x$1" = "xtrace" ]; then
-    debugging=$1
+    g_debugging=$1
     shift
 fi
 
@@ -1442,16 +1392,16 @@ if [ $# -gt 0 ] && [ "$1" = "nolock" ]; then
 fi
 
 SHOREWALL_DIR=
-IPT_OPTIONS="-nv"
-FAST=
-VERBOSE_OFFSET=0
-USE_VERBOSITY=
-NOROUTES=
-PURGE=
-DEBUG=
-EXPORT=
-export TIMESTAMP=
-noroutes=
+g_noroutes=
+g_purge=
+
+g_ipt_options="-nv"
+g_fast=
+g_verbose_offset=0
+g_use_verbosity=
+g_debug=
+g_export=
+g_refreshchains=
 
 finished=0
 
@@ -1483,52 +1433,52 @@ while [ $finished -eq 0 ]; do
 			shift
 			;;
 		    e*)
-			EXPORT=Yes
+			g_export=Yes
 			option=${option#e}
 			;;
 		    x*)
-			IPT_OPTIONS="-xnv"
+			g_ipt_options="-xnv"
 			option=${option#x}
 			;;
 		    q*)
-			VERBOSE_OFFSET=$(($VERBOSE_OFFSET - 1 ))
+			g_verbose_offset=$(($g_verbose_offset - 1 ))
 			option=${option#q}
 			;;
 		    f*)
-			FAST=Yes
+			g_fast=Yes
 			option=${option#f}
 			;;
 		    v*)
 			option=${option#v}
 			case $option in 
 			    -1*)
-				USE_VERBOSITY=-1
+				g_use_verbosity=-1
 				option=${option#-1}
 				;;
 			    0*)
-				USE_VERBOSITY=0
+				g_use_verbosity=0
 				option=${option#0}
 				;;
 			    1*)
-				USE_VERBOSITY=1
+				g_use_verbosity=1
 				option=${option#1}
 				;;
 			    2*)
-				USE_VERBOSITY=2
+				g_use_verbosity=2
 				option=${option#2}
 				;;
 			    *)
-				VERBOSE_OFFSET=$(($VERBOSE_OFFSET + 1 ))
-				USE_VERBOSITY=
+				g_verbose_offset=$(($g_verbose_offset + 1 ))
+				g_use_verbosity=
 				;;
 			esac
 			;;
 		    n*)
-			NOROUTES=Yes
+			g_noroutes=Yes
 			option=${option#n}
 			;;
 		    t*)
-			TIMESTAMP=Yes
+			g_timestamp=Yes
 			option=${option#t}
 			;;
 		    -)
@@ -1585,7 +1535,7 @@ version_command() {
 
     [ $# -gt 0 ] && usage 1
 
-    echo $version
+    echo $SHOREWALL_VERSION
 
 }
 
@@ -1593,14 +1543,14 @@ if [ $# -eq 0 ]; then
     usage 1
 fi
 
-[ -n "$SHOREWALL_DIR" ] && export SHOREWALL_DIR
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
-export PATH
 MUTEX_TIMEOUT=
 
 SHAREDIR=/usr/share/shorewall
 CONFDIR=/etc/shorewall
-export PRODUCT="Shorewall"
+g_product="Shorewall"
+g_recovering=
+g_timestamp=
 
 [ -f ${CONFDIR}/vardir ] && . ${CONFDIR}/vardir
 
@@ -1610,49 +1560,40 @@ if [ ! -f ${VARDIR}/firewall ]; then
     [ -f ${VARDIR}/.restore ] && cp -f ${VARDIR}/.restore ${VARDIR}/firewall 
 fi
 
-FIREWALL=${VARDIR}/firewall
-LIBRARIES="$SHAREDIR/lib.base $SHAREDIR/lib.cli"
-VERSION_FILE=$SHAREDIR/version
-REFRESHCHAINS=
-RECOVERING=
-export RECOVERING
+g_firewall=${VARDIR}/firewall
 
-for library in $LIBRARIES; do
-    if [ -f $library ]; then
-	. $library
-    else
-	echo "$library does not exist!" >&2
-	exit 2
-    fi
+for library in base cli; do
+    . ${SHAREDIR}/lib.$library
 done
 
-if [ -f $VERSION_FILE ]; then
-    version=$(cat $VERSION_FILE)
+version_file=$SHAREDIR/version
+if [ -f $version_file ]; then
+    SHOREWALL_VERSION=$(cat $version_file)
 else
     echo "   ERROR: Shorewall is not properly installed" >&2
-    echo "	 The file $VERSION_FILE does not exist"  >&2
+    echo "	 The file $version_file does not exist"  >&2
     exit 1
 fi
 
-banner="Shorewall-$version Status at $HOSTNAME -"
+banner="Shorewall-$SHOREWALL_VERSION Status at $g_hostname -"
 
 case $(echo -e) in
     -e*)
-	RING_BELL="echo \a"
-	ECHO_E="echo"
+	g_ring_bell="echo \a"
+	g_echo_e="echo"
 	;;
     *)
-	RING_BELL="echo -e \a"
-	ECHO_E="echo -e"
+	g_ring_bell="echo -e \a"
+	g_echo_e="echo -e"
 	;;
 esac
 
 case $(echo -n "Testing") in
     -n*)
-	ECHO_N=
+	g_echo_n=
 	;;
     *)
-	ECHO_N=-n
+	g_echo_n=-n
 	;;
 esac
 
@@ -1667,19 +1608,17 @@ case "$COMMAND" in
     stop|clear)
 	get_config
 	[ $# -ne 1 ] && usage 1
-	[ -x $FIREWALL ] || fatal_error "Shorewall has never been started"
-	export NOROUTES
+	[ -x $g_firewall ] || fatal_error "Shorewall has never been started"
 	mutex_on
-	$SHOREWALL_SHELL $FIREWALL $debugging $nolock $COMMAND
+	run_it $g_firewall $g_debugging $nolock $COMMAND
 	mutex_off
 	;;
     reset)
 	get_config
-	export NOROUTES
 	shift
 	mutex_on
-	[ -x $FIREWALL ] || fatal_error "Shorewall has never been started"
-	$SHOREWALL_SHELL $FIREWALL $debugging $nolock reset $@
+	[ -x $g_firewall ] || fatal_error "Shorewall has never been started"
+	run_it $g_firewall $g_debugging $nolock reset $@
 	mutex_off
 	;;
     compile)
@@ -1721,7 +1660,7 @@ case "$COMMAND" in
 	[ $# -eq 1 ] || usage 1
 	[ "$(id -u)" != 0 ] && fatal_error "ERROR: The status command may only be run by root"
 	get_config
-	echo "Shorewall-$version Status at $HOSTNAME - $(date)"
+	echo "Shorewall-$SHOREWALL_VERSION Status at $g_hostname - $(date)"
 	echo
 	if shorewall_is_started ; then
 	    echo "Shorewall is running"
@@ -1752,7 +1691,7 @@ case "$COMMAND" in
 	;;
     hits)
 	get_config Yes No Yes
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	shift
 	hits_command $@
 	;;
@@ -1767,16 +1706,16 @@ case "$COMMAND" in
 	;;
     logwatch)
 	get_config Yes Yes Yes
-	banner="Shorewall-$version Logwatch at $HOSTNAME -"
+	banner="Shorewall-$SHOREWALL_VERSION Logwatch at $g_hostname -"
 	logwatch_command $@
 	;;
     drop)
 	get_config
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	[ $# -eq 1 ] && usage 1
 	if shorewall_is_started ; then
 	    if ! chain_exists dynamic; then
-		echo "Dynamic blacklisting is not supported in the current $PRODUCT configuration"
+		echo "Dynamic blacklisting is not supported in the current $g_product configuration"
 		exit 2
 	    fi
 
@@ -1789,11 +1728,11 @@ case "$COMMAND" in
 	;;
     logdrop)
 	get_config
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	[ $# -eq 1 ] && usage 1
 	if shorewall_is_started ; then
 	    if ! chain_exists dynamic; then
-		echo "Dynamic blacklisting is not supported in the current $PRODUCT configuration"
+		echo "Dynamic blacklisting is not supported in the current $g_product configuration"
 		exit 2
 	    fi
 
@@ -1806,7 +1745,7 @@ case "$COMMAND" in
 	;;
     reject|logreject)
 	get_config
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	[ $# -eq 1 ] && usage 1
 	if shorewall_is_started ; then
 	    [ -n "$nolock" ] || mutex_on
@@ -1832,7 +1771,7 @@ case "$COMMAND" in
 	;;
     save)
 	get_config
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 
 	case $# in
 	1)
@@ -1846,7 +1785,7 @@ case "$COMMAND" in
 	    ;;
 	esac
 
-	RESTOREPATH=${VARDIR}/$RESTOREFILE
+	g_restorepath=${VARDIR}/$RESTOREFILE
 
 	[ -n "$nolock" ] || mutex_on
 
@@ -1872,20 +1811,19 @@ case "$COMMAND" in
 	    ;;
 	esac
 
+	g_restorepath=${VARDIR}/$RESTOREFILE
 
-	RESTOREPATH=${VARDIR}/$RESTOREFILE
-
-	if [ -x $RESTOREPATH ]; then
-	    rm -f $RESTOREPATH
-	    rm -f ${RESTOREPATH}-iptables
-	    echo "    $RESTOREPATH removed"
-	elif [ -f $RESTOREPATH ]; then
-	    echo "   $RESTOREPATH exists and is not a saved Shorewall configuration"
+	if [ -x $g_restorepath ]; then
+	    rm -f $g_restorepath
+	    rm -f ${g_restorepath}-iptables
+	    echo "    $g_restorepath removed"
+	elif [ -f $g_restorepath ]; then
+	    echo "   $g_restorepath exists and is not a saved Shorewall configuration"
 	fi
 	rm -f ${VARDIR}/save
 	;;
     ipcalc)
-    	[ -n "$debugging" ] && set -x
+    	[ -n "$g_debugging" ] && set -x
 	if [ $# -eq 2 ]; then
 	    address=${2%/*}
 	    vlsm=${2#*/}
@@ -1910,7 +1848,7 @@ case "$COMMAND" in
 	;;
 
     iprange)
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	case $2 in
 	    *.*.*.*-*.*.*.*)
 		for address in ${2%-*} ${2#*-}; do
@@ -1925,7 +1863,7 @@ case "$COMMAND" in
 	esac
 	;;
     ipdecimal)
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	[ $# -eq 2 ] || usage 1
 	case $2 in
 	    *.*.*.*)
@@ -1944,7 +1882,7 @@ case "$COMMAND" in
         ;;
     call)
 	get_config
-	[ -n "$debugging" ] && set -x
+	[ -n "$g_debugging" ] && set -x
 	#
 	# Undocumented way to call functions in ${SHAREDIR}/functions directly
 	#

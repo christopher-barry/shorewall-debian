@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_providers @routemarked_interfaces handle_stickiness handle_optional_interfaces );
 our @EXPORT_OK = qw( initialize lookup_provider );
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_8';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -416,7 +416,7 @@ sub add_a_provider( ) {
 	start_provider( $table, $number, qq(if interface_is_usable $physical && [ -n "$variable" ]; then) );
     } else {
 	if ( $optional ) {
-	    start_provider( $table, $number, qq(if [ -n "\$${base}_IS_USABLE" ]; then) );
+	    start_provider( $table, $number, qq(if [ -n "\$SW_${base}_IS_USABLE" ]; then) );
 	} elsif ( $gatewaycase eq 'detect' ) {
 	    start_provider( $table, $number, qq(if interface_is_usable $physical && [ -n "$gateway" ]; then) );
 	} else {
@@ -543,7 +543,7 @@ sub add_a_provider( ) {
 sub start_new_if( $ ) {
     our $current_if = shift;
 
-    emit ( '', qq(if [ -n "\$${current_if}_IS_USABLE" ]; then) );
+    emit ( '', qq(if [ -n "\$SW_${current_if}_IS_USABLE" ]; then) );
     push_indent;
 }
   
@@ -759,7 +759,7 @@ sub setup_providers() {
 
     first_entry sub() {
 	progress_message2 "$doing $fn...";
-	emit "\nif [ -z \"\$NOROUTES\" ]; then";
+	emit "\nif [ -z \"\$g_noroutes\" ]; then";
 	push_indent;
 	start_providers; };
 
@@ -792,7 +792,7 @@ sub setup_providers() {
 
 	setup_route_marking if @routemarked_interfaces;
     } else {
-	emit "\nif [ -z \"\$NOROUTES\" ]; then";
+	emit "\nif [ -z \"\$g_noroutes\" ]; then";
 
 	push_indent;
 
@@ -871,9 +871,9 @@ sub handle_optional_interfaces() {
 		emit qq(if interface_is_usable $physical; then);
 	    }
 
-	    emit( "    ${base}_IS_USABLE=Yes" ,
+	    emit( "    SW_${base}_IS_USABLE=Yes" ,
 		  'else' ,
-		  "    ${base}_IS_USABLE=" ,
+		  "    SW_${base}_IS_USABLE=" ,
 		  'fi' );
 	}
 

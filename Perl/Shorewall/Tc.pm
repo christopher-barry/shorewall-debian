@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_8';
 
 our %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -445,31 +445,10 @@ sub process_flow($) {
 sub process_simple_device() {
     my ( $device , $type , $bandwidth ) = split_line 1, 3, 'tcinterfaces';
 
-    my $devnumber;
-
-    if ( $device =~ /:/ ) {
-	( my $number, $device, my $rest )  = split /:/, $device, 3;
-
-	fatal_error "Invalid NUMBER:INTERFACE ($device:$number:$rest)" if defined $rest;
-
-	if ( defined $number ) {
-	    $devnumber = hex_value( $number );
-	    fatal_error "Invalid interface NUMBER ($number)" unless defined $devnumber && $devnumber;
-	    fatal_error "Duplicate interface number ($number)" if defined $devnums[ $devnumber ];
-	    $devnum = $devnumber if $devnumber > $devnum;
-	} else {
-	    fatal_error "Missing interface NUMBER";
-	}
-    } else {
-	$devnumber = ++$devnum;
-    }
-
-    $devnums[ $devnumber ] = $device;
-
-    my $number = in_hexp $devnumber;
-
     fatal_error "Duplicate INTERFACE ($device)"    if $tcdevices{$device};
     fatal_error "Invalid INTERFACE name ($device)" if $device =~ /[:+]/;
+
+    my $number = in_hexp( $tcdevices{$device} = ++$devnum );
 
     my $physical = physical_name $device;
     my $dev      = chain_base( $physical );
@@ -484,13 +463,7 @@ sub process_simple_device() {
 	}
     }
 
-    $tcdevices{$device} = { number   => $devnumber ,
-			    physical => physical_name $device ,
-			    type     => $type ,
-			    in_bandwidth => $bandwidth = rate_to_kbit( $bandwidth ) ,
-			  };
-
-    push @tcdevices, $device;
+    $bandwidth = rate_to_kbit( $bandwidth );
 
     emit "if interface_is_up $physical; then";
 
@@ -501,24 +474,20 @@ sub process_simple_device() {
 	   "qt \$TC qdisc del dev $physical ingress\n"	   
 	 );
 
-    if ( $bandwidth ) {
-	emit ( "run_tc qdisc add dev $physical handle ffff: ingress",
-	       "run_tc filter add dev $physical parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate ${bandwidth}kbit burst 10k drop flowid :1\n"
-	     );
-    }
+    emit ( "run_tc qdisc add dev $physical handle ffff: ingress",
+	   "run_tc filter add dev $physical parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate ${bandwidth}kbit burst 10k drop flowid :1\n"
+	 ) if $bandwidth;
 	  
     emit "run_tc qdisc add dev $physical root handle $number: prio bands 3 priomap $config{TC_PRIOMAP}";
-    
-    my $i = 0;
 
-    while ( ++$i <= 3 ) {
+    for ( my $i = 1; $i <= 3; $i++ ) {
 	emit "run_tc qdisc add dev $physical parent $number:$i handle ${number}${i}: sfq quantum 1875 limit 127 perturb 10";
 	emit "run_tc filter add dev $physical protocol all parent $number: handle $i fw classid $number:$i";
 	emit "run_tc filter add dev $physical protocol all prio 1 parent ${number}$i: handle ${number}${i} flow hash keys $type divisor 1024" if $type ne '-' && have_capability 'FLOW_FILTER';
 	emit '';
     }
 
-    save_progress_message_short "   TC Device $physical defined.";
+    save_progress_message_short qq("   TC Device $physical defined.");
     
     pop_indent;
     emit 'else';
@@ -590,13 +559,13 @@ sub validate_tc_device( ) {
     if ( @redirected ) {
 	fatal_error "IFB devices may not have IN-BANDWIDTH" if $inband ne '-' && $inband;
 	$classify = 1;
-    }
 
-    for my $rdevice ( @redirected ) {
-	fatal_error "Invalid device name ($rdevice)" if $rdevice =~ /[:+]/;
-	my $rdevref = $tcdevices{$rdevice};
-	fatal_error "REDIRECTED device ($rdevice) has not been defined in this file" unless $rdevref;
-	fatal_error "IN-BANDWIDTH must be zero for REDIRECTED devices" if $rdevref->{in_bandwidth} ne '0kbit';
+	for my $rdevice ( @redirected ) {
+	    fatal_error "Invalid device name ($rdevice)" if $rdevice =~ /[:+]/;
+	    my $rdevref = $tcdevices{$rdevice};
+	    fatal_error "REDIRECTED device ($rdevice) has not been defined in this file" unless $rdevref;
+	    fatal_error "IN-BANDWIDTH must be zero for REDIRECTED devices" if $rdevref->{in_bandwidth} ne '0kbit';
+	}
     }
 
     $tcdevices{$device} = { in_bandwidth  => rate_to_kbit( $inband ) . 'kbit',
@@ -1093,7 +1062,7 @@ sub process_tc_filter( ) {
 
     $currentline =~ s/\s+/ /g;
 
-    save_progress_message_short qq("   TC Filter \"$currentline\" defined.");
+    save_progress_message_short qq('   TC Filter \"$currentline\" defined.');
 
     emit '';
 
@@ -1156,7 +1125,7 @@ sub process_tc_priority() {
 sub setup_simple_traffic_shaping() {
     my $interfaces;
 
-    save_progress_message "Setting up Traffic Control...";
+    save_progress_message q("Setting up Traffic Control...");
 
     my $fn = open_file 'tcinterfaces';
 
@@ -1170,9 +1139,12 @@ sub setup_simple_traffic_shaping() {
     my $fn1 = open_file 'tcpri';
 
     if ( $fn1 ) {
-	first_entry sub { progress_message2 "$doing $fn1...";
-			  warning_message "There are entries in $fn1 but $fn was empty" unless $interfaces;
-		      };
+	first_entry 
+	    sub { 
+		progress_message2 "$doing $fn1...";
+		warning_message "There are entries in $fn1 but $fn was empty" unless $interfaces;
+	    };
+
 	process_tc_priority while read_a_line;
 
 	clear_comment;
@@ -1187,7 +1159,7 @@ sub setup_simple_traffic_shaping() {
 sub setup_traffic_shaping() {
     our $lastrule = '';
 
-    save_progress_message "Setting up Traffic Control...";
+    save_progress_message q("Setting up Traffic Control...");
 
     my $fn = open_file 'tcdevices';
 
@@ -1269,7 +1241,7 @@ sub setup_traffic_shaping() {
 	    emit( "run_tc filter add dev $rdev parent ffff: protocol all u32 match u32 0 0 action mirred egress redirect dev $device > /dev/null" );
 	}
 
-	save_progress_message_short "   TC Device $device defined.";
+	save_progress_message_short qq("   TC Device $device defined.");
 
 	pop_indent;
 	emit 'else';
@@ -1344,9 +1316,7 @@ sub setup_traffic_shaping() {
 	# add filters
 	#
 	unless ( $devref->{classify} ) {
-	    if ( $tcref->{occurs} == 1 ) {
-		emit "run_tc filter add dev $device protocol all parent $devicenumber:0 prio " . ( $priority | 20 ) . " handle $mark fw classid $classid";
-	    }
+	    emit "run_tc filter add dev $device protocol all parent $devicenumber:0 prio " . ( $priority | 20 ) . " handle $mark fw classid $classid" if $tcref->{occurs} == 1;
 	}
 
 	emit "run_tc filter add dev $device protocol all prio 1 parent $sfqinhex: handle $classnum flow hash keys $tcref->{flow} divisor 1024" if $tcref->{flow};
@@ -1373,7 +1343,7 @@ sub setup_traffic_shaping() {
 	$fn = open_file 'tcfilters';
 
 	if ( $fn ) {
-	    first_entry( sub { progress_message2 "$doing $fn..."; save_progress_message "Adding TC Filters"; } );
+	    first_entry( sub { progress_message2 "$doing $fn..."; save_progress_message q("Adding TC Filters"); } );
 
 	    process_tc_filter while read_a_line;
 	}
@@ -1420,7 +1390,7 @@ sub setup_tc() {
     }
 
     if ( $globals{TC_SCRIPT} ) {
-	save_progress_message 'Setting up Traffic Control...';
+	save_progress_message q('Setting up Traffic Control...');
 	append_file $globals{TC_SCRIPT};
     } elsif ( $config{TC_ENABLED} eq 'Internal' ) {
 	setup_traffic_shaping;
