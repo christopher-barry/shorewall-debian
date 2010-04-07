@@ -338,7 +338,7 @@ sub initialize( $ ) {
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
 		    UNTRACKED => 0,
-		    VERSION => "4.4.8",
+		    VERSION => "4.4.8.1",
 		    CAPVERSION => 40408 ,
 		  );
 
@@ -3050,7 +3050,8 @@ sub get_configuration( $ ) {
 #
 sub propagateconfig() {
     for my $option ( @propagateconfig ) {
-	my $value = $config{$option} || '';
+	my $value = $config{$option};
+	$value = '' unless defined $value;
 	emit "$option=\"$value\"";
     }
 }
