@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.8.1
+VERSION=4.4.8.3
 
 usage() # $1 = exit status
 {
@@ -264,6 +264,7 @@ fi
 run_install $OWNERSHIP -m 0644 configfiles/shorewall.conf ${PREFIX}/usr/share/shorewall/configfiles/shorewall.conf
 
 perl -p -w -i -e 's|^CONFIG_PATH=.*|CONFIG_PATH=/usr/share/shorewall/configfiles:/usr/share/shorewall|;' ${PREFIX}/usr/share/shorewall/configfiles/shorewall.conf
+perl -p -w -i -e 's|^STARTUP_LOG=.*|STARTUP_LOG=/var/log/shorewall-lite-init.log|;' ${PREFIX}/usr/share/shorewall/configfiles/shorewall.conf
 
 if [ ! -f ${PREFIX}/etc/shorewall/shorewall.conf ]; then
    run_install $OWNERSHIP -m 0644 configfiles/shorewall.conf ${PREFIX}/etc/shorewall/shorewall.conf
@@ -272,7 +273,7 @@ if [ ! -f ${PREFIX}/etc/shorewall/shorewall.conf ]; then
        #
        # Make a Debian-like shorewall.conf
        #
-       perl -p -w -i -e 's|^STARTUP_ENABLED=.*|STARTUP_ENABLED=Yes|;' ${PREFIX}/etc/shorewall.conf
+       perl -p -w -i -e 's|^STARTUP_ENABLED=.*|STARTUP_ENABLED=Yes|;' ${PREFIX}/etc/shorewall/shorewall.conf
    fi
 
    echo "Config file installed as ${PREFIX}/etc/shorewall/shorewall.conf"

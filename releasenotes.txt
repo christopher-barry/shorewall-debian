@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 8 . 1
+                      S H O R E W A L L  4 . 4 . 8 . 3
 ----------------------------------------------------------------------------
 
 I.    RELEASE 4.4 HIGHLIGHTS
@@ -218,7 +218,34 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.4.8.1 
+4.4.8.3
+
+1)  A problem with optimize 4 and wildcard interface names (those
+    ending in '+' has been corrected. The most likely symptom of this
+    problem would be iptables-restore failure.
+
+2)  A second problem with optimize 4 has been corrected. This one
+    manifested as invalid iptables-restore input involving the 'tcpre'
+    mangle chain.
+
+3)  A couple of fixes to the 4.4.8.2 change for startup log naming are
+    included. The main symptom occurred on Debian systems where perl
+    reported that /etc/shorewall.conf did not exist.
+
+4.4.8.2
+
+1)  With optimize 4, if an unnecessary NONAT rule was included in
+    /etc/shorewall/rules, 'shorewall start' and/or 'shorewall restart'
+    could fail with invalid iptables-restore input.
+
+2)  The -lite products previously were inconsistent in how they
+    referred to their startup log. Some references included '-lite'
+    where some did not. This was particularly bad in the case of the
+    Shorewall-lite logrotate file which duplicated the name used by the
+    Shorewall package. This inconsistency could cause logrotate to
+    fail if both packages were installed.
+
+4.4.8.1
 
 1)  Logical interface names in the EXTERNAL column of
     /etc/shorewall/proxyarp were previously not mapped to their

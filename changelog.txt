@@ -1,3 +1,19 @@
+Changes in Shorewall 4.4.8.3
+
+1)  Make wildcard interfaces play well with optimize 4.
+
+2)  Fix another add_rule() that should have been an add_jump().
+
+3)  Fix install scripts.
+
+Changes in Shorewall 4.4.8.2
+
+1)  Fix OPTIMIZE 4 bug.
+
+2)  Rationalize startup logs.
+
+3)  Do proper accounting in move_rules().
+
 Changes in Shorewall 4.4.8.1
 
 1)  Correct handling of a logical interface name in the EXTERNAL column
