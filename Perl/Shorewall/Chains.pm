@@ -674,22 +674,34 @@ sub move_rules( $$ ) {
     my ($chain1, $chain2 ) = @_;
 
     if ( $chain1->{referenced} ) {
-	my $name  = $chain1->{name};
-	my $rules = $chain2->{rules};
-	my $count = @{$chain1->{rules}};
+	my $name1    = $chain1->{name};
+	my $name2    = $chain2->{name};
+	my $rules    = $chain2->{rules};
+	my $count    = @{$chain1->{rules}};
+	my $tableref = $chain_table{$chain1->{table}}; 
 	#
 	# We allow '+' in chain names and '+' is an RE meta-character. Escape it.
 	#
-	$name =~ s/\+/\\+/;
+	$name1 =~ s/\+/\\+/;
 
-	( s/\-([AI]) $name /-$1 $chain2->{name} / ) for @{$chain1->{rules}};
+	for ( @{$chain1->{rules}} ) {
+	    if ( s/\-([AI]) $name1 /-$1 $name2 / ) {
+		if ( / -[jg] ([^\s]+)\b/ ) {
+		    my $toref =  $tableref->{$1};
+		    if ( $toref && ! $toref->{builtin} ) {
+			delete $toref->{references}{$name1} unless --$toref->{references}{$name1} > 0;
+			$toref->{references}{$name2}++;
+		    }
+		}
+	    }
+	}	    
 
-	splice @{$rules}, 0, 0, @{$chain1->{rules}};
+	unshift @{$rules}, @{$chain1->{rules}};
 	#
 	# In a firewall->x policy chain, multiple DHCP ACCEPT rules can be moved to the head of the chain.
 	# This hack avoids that.
 	#
-	shift @{$rules} if @{$rules} > 1 && $rules->[0] eq $rules->[1];
+	shift @{$rules} while @{$rules} > 1 && $rules->[0] eq $rules->[1];
 
 	$chain2->{referenced} = 1;
 	$chain1->{referenced} = 0;
@@ -1374,6 +1386,9 @@ sub replace_references( $$ ) {
     my ( $chainref, $target ) = @_;
     my $table    = $chainref->{table};
     my $count    = 0;
+    my $name     = $chainref->{name};
+
+    $name =~ s/\+/\\+/;
 
     if ( defined $chain_table{$table}{$target}  && ! $chain_table{$table}{$target}{builtin} ) {
 	#
@@ -1381,7 +1396,12 @@ sub replace_references( $$ ) {
 	#
 	for my $fromref ( map $chain_table{$table}{$_} , keys %{$chainref->{references}} ) {
 	    if ( $fromref->{referenced} ) {
-		defined && s/ -([jg]) $chainref->{name}(\b)/ -$1 ${target}$2/ && $count++ for @{$fromref->{rules}};
+		for ( @{$fromref->{rules}} ) {
+		    if ( defined && s/ -([jg]) $name(\b)/ -$1 ${target}$2/ ) {
+			add_reference( $fromref, $chain_table{$table}{$target} );
+			$count++;
+		    }
+		}
 	    }
 	}
     } else {
@@ -1390,7 +1410,7 @@ sub replace_references( $$ ) {
 	#
 	for my $fromref ( map $chain_table{$table}{$_} , keys %{$chainref->{references}} ) {
 	    if ( $fromref->{referenced} ) {
-		defined && s/ -[jg] $chainref->{name}(\b)/ -j ${target}$1/ && $count++ for @{$fromref->{rules}};
+		defined && s/ -[jg] $name(\b)/ -j ${target}$1/ && $count++ for @{$fromref->{rules}};
 	    }
 	}
     }
@@ -1408,6 +1428,9 @@ sub replace_references1( $$$ ) {
     my ( $chainref, $target, $matches ) = @_;
     my $table    = $chainref->{table};
     my $count    = 0;
+    my $name     = $chainref->{name};
+
+    $name =~ s/\+/\\+/;
     #
     # Note: If $matches is non-empty, then it begins with white space
     #
@@ -1417,13 +1440,18 @@ sub replace_references1( $$$ ) {
 	#
 	for my $fromref ( map $chain_table{$table}{$_} , keys %{$chainref->{references}} ) {
 	    if ( $fromref->{referenced} ) {
+		my $fromname = $fromref->{name};
+		
+		$fromname =~ s/\+/\\+/;
+		
 		for ( @{$fromref->{rules}} ) {
-		    if ( defined && /^-A $fromref->{name} .*-[jg] $chainref->{name}\b/ ) {
+		    if ( defined && /^-A $fromname .*-[jg] $name\b/ ) {
 			#
 			# Prevent multiple '-p' matches
 			#
 			s/ -p [^ ]+ / /	if / -p / && $matches =~ / -p /;
-			s/\s+-([jg]) $chainref->{name}(\b)/$matches -$1 ${target}$2/;
+			s/\s+-([jg]) $name(\b)/$matches -$1 ${target}$2/;
+			add_reference( $fromref, $chain_table{$table}{$target} );
 			$count++;
 		    }
 		}
@@ -1435,13 +1463,17 @@ sub replace_references1( $$$ ) {
 	#
 	for my $fromref ( map $chain_table{$table}{$_} , keys %{$chainref->{references}} ) {
 	    if ( $fromref->{referenced} ) {
+		my $fromname = $fromref->{name};
+		
+		$fromname =~ s/\+/\\+/;
+		
 		for ( @{$fromref->{rules}} ) {
-		    if ( defined && /^-A $fromref->{name} .*-[jg] $chainref->{name}\b/ ) {
+		    if ( defined && /^-A $fromname .*-[jg] $name\b/ ) {
 			#
 			# Prevent multiple '-p' matches
 			#
 			s/ -p [^ ]+ / /	if / -p / && $matches =~ / -p /;
-			s/\s+-[jg] $chainref->{name}(\b)/$matches -j ${target}$1/;
+			s/\s+-[jg] $name(\b)/$matches -j ${target}$1/;
 			$count++;
 		    }
 		}
@@ -1569,7 +1601,11 @@ sub optimize_ruleset() {
 			#
 			# Chain has a single non-nil rule which is in $firstrule
 			#
-			if ( $firstrule =~ /^-A $chainref->{name} -[jg] (.*)$/ ) {
+			my $name = $chainref->{name};
+
+			$name =~ s/\+/\\+/;
+
+			if ( $firstrule =~ /^-A $name -[jg] (.*)$/ ) {
 			    #
 			    # Easy case -- the rule is a simple jump
 			    #
@@ -1596,7 +1632,7 @@ sub optimize_ruleset() {
 				replace_references $chainref, $1;
 				$progress = 1;
 			    }
-			} elsif ( $firstrule =~ /-A $chainref->{name}( +.+) -[jg] (.*)$/ ) {
+			} elsif ( $firstrule =~ /-A $name( +.+) -[jg] (.*)$/ ) {
 			    #
 			    # Not so easy -- the rule contains matches
 			    #
