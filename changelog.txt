@@ -1,3 +1,26 @@
+Changes in Shorewall 4.4.8.3
+
+1)  Make wildcard interfaces play well with optimize 4.
+
+2)  Fix another add_rule() that should have been an add_jump().
+
+Changes in Shorewall 4.4.8.2
+
+1)  Fix OPTIMIZE 4 bug.
+
+2)  Rationalize startup logs.
+
+3)  Do proper accounting in move_rules().
+
+Changes in Shorewall 4.4.8.1
+
+1)  Correct handling of a logical interface name in the EXTERNAL column
+    of proxyarp.
+
+2)  Fix find_first_interface_address() error reporting.
+
+3)  Fix propagation of zero-valued config variables.
+
 Changes in Shorewall 4.4.8
 
 1)  Correct handling of RATE LIMIT on NAT rules.
