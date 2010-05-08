@@ -34,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_9';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -61,7 +61,7 @@ sub setup_tunnels() {
 	    }
 	}
 
-	my $options = $globals{UNTRACKED} ? '-m state --state NEW,UNTRACKED -j ACCEPT' : '-m state --state NEW -j ACCEPT';
+	my $options = $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,UNTRACKED -j ACCEPT" : "$globals{STATEMATCH} NEW -j ACCEPT";
 
 	add_tunnel_rule $inchainref,  "-p 50 $source -j ACCEPT";
 	add_tunnel_rule $outchainref, "-p 50 $dest   -j ACCEPT";

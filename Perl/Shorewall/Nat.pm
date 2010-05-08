@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_6';
+our $VERSION = '4.4_9';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -456,7 +456,7 @@ sub setup_netmap() {
 	    my $ruleout = '';
 	    my $iface = $interface;
 
-	    fatal_error "Unknown interface ($interface)" unless my $interfaceref = find_interface( $interface );
+	    fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
 	    unless ( $interfaceref->{root} ) {
 		$rulein  = match_source_dev $interface;
@@ -465,7 +465,7 @@ sub setup_netmap() {
 	    }
 
 	    if ( $type eq 'DNAT' ) {
-		add_rule ensure_chain( 'nat' , input_chain $interface )  , $rulein  . "-d $net1 -j NETMAP --to $net2";
+		add_rule ensure_chain( 'nat' , input_chain $interface ) , $rulein  . "-d $net1 -j NETMAP --to $net2";
 	    } elsif ( $type eq 'SNAT' ) {
 		add_rule ensure_chain( 'nat' , output_chain $interface ) , $ruleout . "-s $net1 -j NETMAP --to $net2";
 	    } else {

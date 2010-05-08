@@ -1,11 +1,11 @@
 .\"     Title: shorewall.conf
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 04/23/2010
+.\"      Date: 05/07/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\&.CONF" "5" "04/23/2010" "" ""
+.TH "SHOREWALL\&.CONF" "5" "05/07/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -19,7 +19,9 @@ shorewall.conf \- Shorewall global configuration file
 .PP
 This file sets options that apply to Shorewall as a whole\&.
 .PP
-The file consists of Shell comments (lines beginning with \'#\'), blank lines and assignment statements (\fIvariable\fR=\fIvalue\fR)\&.
+The file consists of Shell comments (lines beginning with \'#\'), blank lines and assignment statements (\fIvariable\fR=\fIvalue\fR)\&. If the
+\fIvalue\fR
+contains shell metacharacters or white\-space, then it must be enclosed in quotes\&. Example: MACLIST_LOG_LEVEL="NFLOG(1,0,1)"\&.
 .SH "OPTIONS"
 .PP
 Many options have as their value a
@@ -581,7 +583,7 @@ Example:
     LOGBURST=5
 .fi
 .RE
-For each logging rule, the first time the rule is reached, the packet will be logged; in fact, since the burst is 5, the first five packets will be logged\&. After this, it will be 6 seconds (1 minute divided by the rate of 10) before a message will be logged from the rule, regardless of how many packets reach it\&. Also, every 6 seconds which passes without matching a packet, one of the bursts will be regained; if no packets hit the rule for 30 seconds, the burst will be fully recharged; back where we started\&.
+For each logging rule, the first time the rule is reached, the packet will be logged; in fact, since the burst is 5, the first five packets will be logged\&. After this, it will be 6 seconds (1 minute divided by the rate of 10) before a message will be logged from the rule, regardless of how many packets reach it\&. Also, every 6 seconds, one of the bursts will be regained; if no packets hit the rule for 30 seconds, the burst will be fully recharged; back where we started\&.
 .RE
 .PP
 \fBLOGTAGONLY=\fR[\fBYes\fR|\fBNo\fR]
@@ -743,6 +745,10 @@ Additionally:
 .RS 4
 \h'-04'\(bu\h'+03'If a chain ends with an unconditional branch to a second chain (other than to \'reject\'), then the branch is deleted from the first chain and the rules from the second chain are appended to it\&.
 .RE
+.RE
+.sp
+.RS 4
+\h'-04'\(bu\h'+03'Optimization category 8 \- Added in Shorewall 4\&.4\&.9\&. When set, causes chains with duplicate rules to be collapsed into a single chain\&.
 .RE
 .IP "" 4
 The default value is zero which disables all optimizations\&.

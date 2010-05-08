@@ -39,8 +39,6 @@ get_config() {
     ensure_config_path
 
     if [ "$1" = Yes ]; then
-	[ -n "${IP:=ip}" ]
-
 	params=$(find_file params)
 
 	if [ -f $params ]; then
@@ -1362,7 +1360,7 @@ usage() # $1 = exit status
     echo "   show dynamic <zone>"
     echo "   show filters"
     echo "   show ip"
-    echo "   show [ -m ] log"
+    echo "   show [ -m ] log [<regex>]"
     echo "   show macro <macro>"
     echo "   show macros"
     echo "   show [ -x ] mangle|nat|raw|routing"

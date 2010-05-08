@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_8';
+our $VERSION = '4.4_9';
 
 #
 # Set to one if we find a SECTION
@@ -283,7 +283,7 @@ sub setup_blacklist() {
 	    warning_message q(There are interfaces or hosts with the 'blacklist' option, but the 'blacklist' file is either missing or has zero size);
 	}
 
-	my $state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? '-m state --state NEW,INVALID,UNTRACKED ' : '-m state --state NEW,INVALID ' : '';
+	my $state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
 
 	for my $hostref ( @$hosts ) {
 	    my $interface  = $hostref->[0];
@@ -317,12 +317,14 @@ sub process_routestopped() {
 
     while ( read_a_line ) {
 
-	my $routeback = 0;
-
 	my ($interface, $hosts, $options , $proto, $ports, $sports ) = split_line 1, 6, 'routestopped file';
 
-	fatal_error "Unknown interface ($interface)" unless known_interface $interface;
+	my $interfaceref;
+
+	fatal_error "Unknown interface ($interface)" unless $interfaceref = known_interface $interface;
 	$hosts = ALLIP unless $hosts && $hosts ne '-';
+
+	my $routeback = 0;
 
 	my @hosts;
 
@@ -338,24 +340,12 @@ sub process_routestopped() {
 	}
 
 	unless ( $options eq '-' ) {
-
 	    for my $option (split /,/, $options ) {
 		if ( $option eq 'routeback' ) {
 		    if ( $routeback ) {
 			warning_message "Duplicate 'routeback' option ignored";
 		    } else {
-			my $chainref = $filter_table->{FORWARD};
-
 			$routeback = 1;
-
-			for my $host ( split /,/, $hosts ) {
-			    add_rule( $chainref , 
-				      match_source_dev( $interface ) . 
-				      match_dest_dev( $interface ) .
-				      match_source_net( $host ) .
-				      match_dest_net( $host ) );
-			    clearrule;
-			}
 		    }
 		} elsif ( $option eq 'source' ) {
 		    for my $host ( split /,/, $hosts ) {
@@ -373,6 +363,19 @@ sub process_routestopped() {
 		    warning_message "Unknown routestopped option ( $option ) ignored" unless $option eq 'critical';
 		    warning_message "The 'critical' option is no longer supported (or needed)";
 		}
+	    }
+	}
+
+	if ( $routeback || $interfaceref->{options}{routeback} ) {
+	    my $chainref = $filter_table->{FORWARD};
+
+	    for my $host ( split /,/, $hosts ) {
+		add_rule( $chainref , 
+			  match_source_dev( $interface ) . 
+			  match_dest_dev( $interface ) .
+			  match_source_net( $host ) .
+			  match_dest_net( $host ) );
+		clearrule;
 	    }
 	}
 
@@ -431,7 +434,7 @@ sub add_common_rules() {
     my $list;
     my $chain;
 
-    my $state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? '-m state --state NEW,INVALID,UNTRACKED ' : '-m state --state NEW,INVALID ' : '';
+    my $state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
     my $level     = $config{BLACKLIST_LOGLEVEL};
     my $rejectref = dont_move new_standard_chain 'reject';
 
@@ -445,7 +448,7 @@ sub add_common_rules() {
     setup_mss;
 
     if ( $config{FASTACCEPT} ) {
-	add_rule( $filter_table->{$_} , "-m state --state ESTABLISHED,RELATED -j ACCEPT" ) for qw( INPUT FORWARD OUTPUT );
+	add_rule( $filter_table->{$_} , "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ) for qw( INPUT FORWARD OUTPUT );
     }
 
     for $interface ( all_interfaces ) {
@@ -517,7 +520,7 @@ sub add_common_rules() {
 	    my $target     = source_exclusion( $hostref->[3], $chainref );
 
 	    for $chain ( first_chains $interface ) {
-		add_jump $filter_table->{$chain} , $target, 0, join( '', "-m state --state $state ", match_source_net( $hostref->[2] ),  $policy );
+		add_jump $filter_table->{$chain} , $target, 0, join( '', "$globals{STATEMATCH} $state ", match_source_net( $hostref->[2] ),  $policy );
 	    }
 
 	    set_interface_option $interface, 'use_input_chain', 1;
@@ -666,10 +669,10 @@ sub add_common_rules() {
 		if ( interface_is_optional $interface ) {
 		    add_commands( $chainref,
 				  qq(if [ -n "\$${base}_IS_USABLE" -a -n "$variable" ]; then) ,
-				  qq(    echo -A $chainref->{name} ) . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) ,
+				  '    echo -A ' . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) ,
 				  qq(fi) );
 		} else {
-		    add_commands( $chainref, qq(echo -A $chainref->{name} ) . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) );
+		    add_commands( $chainref, 'echo -A ' . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) );
 		}
 	    }
 	}
@@ -773,12 +776,12 @@ sub setup_mac_lists( $ ) {
 			my $source = match_source_net $address;
 			log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , "${mac}${source}"
 			    if defined $level && $level ne '';
-			add_rule $chainref , "${mac}${source}-j $targetref->{target}";
+			add_jump $chainref , $targetref->{target}, 0, "${mac}${source}";
 		    }
 		} else {
 		    log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , $mac
 			if defined $level && $level ne '';
-		    add_rule $chainref , "$mac-j $targetref->{target}";
+		    add_jump $chainref , $targetref->{target}, 0, "$mac";
 		}
 
 		progress_message "      Maclist entry \"$currentline\" $done";
@@ -801,14 +804,14 @@ sub setup_mac_lists( $ ) {
 		my $chainref = source_exclusion( $hostref->[3], $filter_table->{mac_chain $interface} );
 
 		for my $chain ( first_chains $interface ) {
-		    add_jump $filter_table->{$chain} , $chainref, 0, "${source}-m state --state ${state} ${policy}";
+		    add_jump $filter_table->{$chain} , $chainref, 0, "${source}$globals{STATEMATCH} ${state} ${policy}";
 		}
 
 		set_interface_option $interface, 'use_input_chain', 1;
 		set_interface_option $interface, 'use_forward_chain', 1;
 	    } else {
 		my $chainref = source_exclusion( $hostref->[3], $mangle_table->{mac_chain $interface} );
-		add_jump $mangle_table->{PREROUTING}, $chainref, 0, match_source_dev( $interface ) . "${source}-m state --state ${state} ${policy}";
+		add_jump $mangle_table->{PREROUTING}, $chainref, 0, match_source_dev( $interface ) . "${source}$globals{STATEMATCH} ${state} ${policy}";
 	    }
 	}
     } else {
@@ -826,8 +829,8 @@ sub setup_mac_lists( $ ) {
 		    if ( have_capability( 'ADDRTYPE' ) ) {
 			add_commands( $chainref,
 				      "for address in $variable; do",
-				      "    echo \"-A $chainref->{name} -s \$address -m addrtype --dst-type BROADCAST -j RETURN\" >&3",
-				      "    echo \"-A $chainref->{name} -s \$address -d 224.0.0.0/4 -j RETURN\" >&3",
+				      "    echo \"-A -s \$address -m addrtype --dst-type BROADCAST -j RETURN\" >&3",
+				      "    echo \"-A -s \$address -d 224.0.0.0/4 -j RETURN\" >&3",
 				      'done' );
 		    } else {
 			my $bridge    = source_port_to_bridge( $interface );
@@ -839,19 +842,19 @@ sub setup_mac_lists( $ ) {
 			if ( $bridgeref->{broadcasts} ) {
 			    for my $address ( @{$bridgeref->{broadcasts}}, '255.255.255.255' ) {
 				add_commands( $chainref ,
-					      "    echo \"-A $chainref->{name} -s \$address -d $address -j RETURN\" >&3" );
+					      "    echo \"-A -s \$address -d $address -j RETURN\" >&3" );
 			    }
 			} else {
 			    my $variable1 = get_interface_bcasts $bridge;
 
 			    add_commands( $chainref,
 					  "    for address1 in $variable1; do" ,
-					  "        echo \"-A $chainref->{name} -s \$address -d \$address1 -j RETURN\" >&3",
+					  "        echo \"-A -s \$address -d \$address1 -j RETURN\" >&3",
 					  "    done" );
 			}
 
 			add_commands( $chainref
-				      , "    echo \"-A $chainref->{name} -s \$address -d 224.0.0.0/4 -j RETURN\" >&3" ,
+				      , "    echo \"-A -s \$address -d 224.0.0.0/4 -j RETURN\" >&3" ,
 				      , 'done' );
 		    }
 		}
@@ -1212,7 +1215,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
     unless ( $section eq 'NEW' ) {
 	fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" if $config{FASTACCEPT};
 	fatal_error "$basictarget rules are not allowed in the $section SECTION" if $actiontype & ( NATRULE | NONAT );
-	$rule .= "-m state --state $section "
+	$rule .= "$globals{STATEMATCH} $section "
     }
 
     #
@@ -1649,16 +1652,16 @@ sub rules_target( $$ ) {
     
     return $chain   if $chainref && $chainref->{referenced};
     return 'ACCEPT' if $zone eq $zone1;
-    
+
     assert( $chainref );
-    
+
     if ( $chainref->{policy} ne 'CONTINUE' ) {
 	my $policyref = $filter_table->{$chainref->{policychain}};
 	assert( $policyref );
 	return $policyref->{name} if $policyref ne $chainref;
 	return $chainref->{policy} eq 'REJECT' ? 'reject' : $chainref->{policy};
     }
-    
+
     ''; # CONTINUE policy
 }
 
@@ -1689,9 +1692,12 @@ sub add_interface_jumps {
     # Add the jumps to the interface chains from filter FORWARD, INPUT, OUTPUT
     #
     for my $interface ( @_ ) {
-	my $forwardref = $filter_table->{forward_chain $interface};
-	my $inputref   = $filter_table->{input_chain $interface};
-	my $outputref  = $filter_table->{output_chain $interface};
+	my $forwardref   = $filter_table->{forward_chain $interface};
+	my $inputref     = $filter_table->{input_chain $interface};
+	my $outputref    = $filter_table->{output_chain $interface};
+	my $interfaceref = find_interface($interface);
+
+	add_rule ( $filter_table->{FORWARD}, match_source_dev( $interface) . match_dest_dev( $interface) . '-j ACCEPT' ) unless $interfaceref->{nets} || ! $interfaceref->{options}{bridge};
 
 	add_jump( $filter_table->{FORWARD} , $forwardref , 0, match_source_dev( $interface ) ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
 	add_jump( $filter_table->{INPUT}   , $inputref ,   0, match_source_dev( $interface ) ) unless $input_jump_added{$interface}   || ! use_input_chain $interface, $inputref;
@@ -1862,7 +1868,7 @@ sub generate_matrix() {
 		    for my $net ( @{$hostref->{hosts}} ) {
 			my $dest   = match_dest_net $net;
 
-			if ( $chain1 ) {
+			if ( $chain1 && zone_type ( $zone) != BPORT ) {
 			    my $chain1ref = $filter_table->{$chain1};
 			    my $nextchain = dest_exclusion( $exclusions, $chain1 );
 			    my $outputref;
@@ -2144,7 +2150,7 @@ sub generate_matrix() {
 		    '' ,
 		    '' ,
 		    'insert' ,
-		    '-m state --state NEW ';
+		    "$globals{STATEMATCH} NEW ";
 	    }
 	}
     }
@@ -2332,7 +2338,7 @@ EOF
 
     my @chains = $config{ADMINISABSENTMINDED} ? qw/INPUT FORWARD/ : qw/INPUT OUTPUT FORWARD/;
 
-    add_rule $filter_table->{$_}, '-m state --state ESTABLISHED,RELATED -j ACCEPT' for @chains;
+    add_rule $filter_table->{$_}, "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" for @chains;
 
     if ( $family == F_IPV6 ) {
 	add_rule $input, '-s ff80::/10 -j ACCEPT';

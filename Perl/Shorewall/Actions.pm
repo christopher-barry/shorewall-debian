@@ -57,7 +57,7 @@ our @EXPORT = qw( merge_levels
 		  $macro_commands
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_7';
+our $VERSION = '4.4_9';
 
 #
 #  Used Actions. Each action that is actually used has an entry with value 1.
@@ -856,15 +856,15 @@ sub rejNotSyn ( $$$ ) {
 sub dropInvalid ( $$$ ) {
     my ($chainref, $level, $tag) = @_;
 
-    log_rule_limit $level, $chainref, 'dropInvalid' , 'DROP', '', $tag, 'add', '-m state --state INVALID ' if $level ne '';
-    add_rule $chainref , '-m state --state INVALID -j DROP';
+    log_rule_limit $level, $chainref, 'dropInvalid' , 'DROP', '', $tag, 'add', "$globals{STATEMATCH} INVALID " if $level ne '';
+    add_rule $chainref , "$globals{STATEMATCH} INVALID -j DROP";
 }
 
 sub allowInvalid ( $$$ ) {
     my ($chainref, $level, $tag) = @_;
 
-    log_rule_limit $level, $chainref, 'allowInvalid' , 'ACCEPT', '', $tag, 'add', '-m state --state INVALID ' if $level ne '';
-    add_rule $chainref , '-m state --state INVALID -j ACCEPT';
+    log_rule_limit $level, $chainref, 'allowInvalid' , 'ACCEPT', '', $tag, 'add', "$globals{STATEMATCH} INVALID " if $level ne '';
+    add_rule $chainref , "$globals{STATEMATCH} INVALID -j ACCEPT";
 }
 
 sub forwardUPnP ( $$$ ) {
