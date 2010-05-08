@@ -506,6 +506,11 @@ net        eth0          detect               <emphasis role="bold">routeback</e
         <para>And in <filename>/etc/shorewall/masq</filename>;<programlisting>#INTERFACE          SOURCE      ADDRESS          PROTO        PORT
 eth0:66.249.93.111  0.0.0.0/0   206.124.146.176  tcp          993</programlisting></para>
 
+        <para>And finally, in
+        <filename>/etc/shorewall/shorewall.conf</filename> you need:</para>
+
+        <programlisting>IP_FORWARDING=On</programlisting>
+
         <para>Like the hack in FAQ 2, this one results in all forwarded
         connections looking to the server (66.249.93.11) as if they originated
         on your firewall (206.124.146.176).</para>
@@ -623,8 +628,8 @@ DNAT       net           net:192.168.4.22       tcp      80,443      -         <
           clients or use <ulink url="shorewall_setup_guide.htm#DNS">Bind
           Version 9 <quote>views</quote></ulink> on your main name server)
           such that www.mydomain.com resolves to 130.141.100.69 externally and
-          192.168.1.5 internally. That's what I do here at shorewall.net for
-          my local systems that use one-to-one NAT.</para>
+          192.168.1.5 internally. I use a separate DNS server (dnsmasq) here
+          at shorewall.net.</para>
         </listitem>
       </itemizedlist>
 
@@ -641,8 +646,8 @@ DNAT       net           net:192.168.4.22       tcp      80,443      -         <
       url="SplitDNS.html"><emphasis role="bold">check
       here</emphasis></ulink>.</para>
 
-      <para>But if you are the type of person who prefers quick and dirty
-      hacks to "doing it right", then proceed as described below.<warning>
+      <para>If you really want to route traffic between two internal systems
+      through your firewall, then proceed as described below.<warning>
           <para>All traffic redirected through use of this hack will look to
           the server as if it originated on the firewall rather than on the
           original client! So the server's access logs will be useless for
@@ -666,6 +671,15 @@ loc      eth1         detect       <emphasis role="bold">routeback</emphasis>   
 
           <programlisting>#INTERFACE              SOURCE          ADDRESS         PROTO   PORT(S)
 <emphasis role="bold">eth1:192.168.1.5        eth1            192.168.1.254   tcp     www</emphasis></programlisting>
+
+          <para>Note: The technique described here is known as
+          <firstterm>hairpinning NAT</firstterm> and is described in section 6
+          of <ulink url="http://www.faqs.org/rfcs/rfc4787.html">RFC
+          4787</ulink>. There it is required that the <emphasis>external IP
+          address</emphasis> be used as the source:</para>
+
+          <programlisting>#INTERFACE              SOURCE          ADDRESS         PROTO   PORT(S)
+eth1:192.168.1.5        eth1            <emphasis role="bold">130.151.100.69</emphasis>  tcp     www</programlisting>
         </listitem>
 
         <listitem>
@@ -675,8 +689,9 @@ loc      eth1         detect       <emphasis role="bold">routeback</emphasis>   
 #                                                               PORT      DEST.
 <emphasis role="bold">DNAT       loc          loc:192.168.1.5    tcp      www         -         130.151.100.69</emphasis></programlisting>
 
-          <para>That rule only works of course if you have a static external
-          IP address. If you have a dynamic IP address then include this in
+          <para>That rule (and the second one in the previous bullet) only
+          works of course if you have a static external IP address. If you
+          have a dynamic IP address then include this in
           <filename>/etc/shorewall/params</filename> (or your
           <filename>&lt;export directory&gt;/init</filename> file if you are
           using Shorewall Lite on the firewall system):</para>
@@ -839,6 +854,19 @@ DNAT       loc           dmz:192.168.2.4    tcp      80          -         <emph
         <para><emphasis role="bold">Answer:</emphasis> Did you set <emphasis
         role="bold">IP_FORWARDING=On</emphasis> in
         <filename>shorewall.conf</filename>?</para>
+      </section>
+
+      <section>
+        <title>(FAQ 2d) Does Shorewall support hairpinning NAT?</title>
+
+        <para><emphasis role="bold">Answer:</emphasis> Yes.</para>
+
+        <para>In the case of simple masquerade/SNAT, see <link
+        linkend="faq2">FAQ 2</link>.</para>
+
+        <para>For one-to-one (static), NAT, simply place 'Yes' in the ALL
+        INTERFACES column of each entry in <ulink
+        url="manpages/shorewall-nat.html">/etc/shorewall/nat</ulink>.</para>
       </section>
     </section>
   </section>
@@ -1088,7 +1116,7 @@ to debug/develop the newnat interface.</programlisting></para>
     <section id="faq33">
       <title>(FAQ 33) From clients behind the firewall, connections to some
       sites fail. Connections to the same sites from the firewall itself work
-      fine. What's wrong.</title>
+      fine. What's wrong?</title>
 
       <para><emphasis role="bold">Answer:</emphasis> Most likely, you need to
       set CLAMPMSS=Yes in <filename><ulink
@@ -1970,14 +1998,10 @@ iptables: Invalid argument
       the init script, <command>stop</command> reverses the effect of
       <command>start</command>.</para>
 
-      <para>One way to avoid these differences is to install Shorewall from
-      the tarballs available from shorewall.net. This places Shorewall outside
-      of the control of the packaging system and provides consistent behavior
-      between the init scripts and <filename>/sbin/shorewall</filename> (and
-      <filename>/sbin/shorewall-lite</filename>). For more information on the
-      factors involved when deciding whether to use the Debian package, see
-      <ulink url="http://wiki.shorewall.net/wiki/ShorewallOnDebian">this
-      article</ulink>.</para>
+      <para>Beginning with Shorewall 4.4, when the Shorewall tarballs are
+      installed on a Debian (or derivative) system, the
+      <filename>/etc/init.d/shorewall</filename> file is the same as would be
+      installed by the .deb.</para>
     </section>
 
     <section id="faq74">

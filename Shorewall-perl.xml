@@ -583,8 +583,10 @@ DNAT-              net                192.168.1.3      tcp          21</programl
       environment. The best way to work around this limitation is to install
       Shorewall-perl on an administrative system and employ Shorewall-lite on
       your embedded systems. Shorewall-perl will run on Windows under <ulink
-      url="http://www.cygwin.com/">Cygwin</ulink>. Install using the
-      install.sh script.</para>
+      url="http://www.cygwin.com/">Cygwin</ulink> and on an <ulink
+      url="http://www.apple.com/mac/">Apple MacIntosh</ulink> running OS X
+      (Mac support was added in Shorewall 4.4.9). Install from a shell prompt
+      <ulink url="Install.htm">using the install.sh script</ulink>.</para>
     </section>
   </section>
 
@@ -760,6 +762,14 @@ DNAT-              net                192.168.1.3      tcp          21</programl
       <para>Specifies whether an IPv4 or an IPv6 firewall is to be
       created.</para>
 
+      <simplelist>
+        <member><emphasis role="bold">--preview</emphasis></member>
+      </simplelist>
+
+      <para>Added in Shorewall 4.4.6. If no filename is given, this option
+      causes the generated input to iptables-input to be displayed on standard
+      output.</para>
+
       <para>Example (compiles the configuration in the current directory
       generating a script named 'firewall' and using VERBOSITY
       2).<programlisting><emphasis role="bold">/usr/share/shorewall/compiler.pl -v 2 -d . firewall</emphasis></programlisting><note>
@@ -862,6 +872,15 @@ set +a
 
           <listitem>
             <para>Address family: 4 or 6</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term>preview</term>
+
+          <listitem>
+            <para>Added in Shorewall 4.4.6.l Preview the ruleset on standard
+            output.</para>
           </listitem>
         </varlistentry>
       </variablelist>
