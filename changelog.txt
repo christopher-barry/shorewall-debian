@@ -1,25 +1,49 @@
-Changes in Shorewall 4.4.8.3
+Changes in Shorewall 4.4.9
 
-1)  Make wildcard interfaces play well with optimize 4.
+1)  Auto-detection of bridges.
 
-2)  Fix another add_rule() that should have been an add_jump().
-
-Changes in Shorewall 4.4.8.2
-
-1)  Fix OPTIMIZE 4 bug.
-
-2)  Rationalize startup logs.
-
-3)  Do proper accounting in move_rules().
-
-Changes in Shorewall 4.4.8.1
-
-1)  Correct handling of a logical interface name in the EXTERNAL column
+2)  Correct handling of a logical interface name in the EXTERNAL column
     of proxyarp.
 
-2)  Fix find_first_interface_address() error reporting.
+3)  More robust 'trace'.
 
-3)  Fix propagation of zero-valued config variables.
+4)  Added IPv6 mDNS macro.
+
+5)  Fix find_first_interface_address() error reporting.
+
+6)  Fix propagation of zero-valued config variables.
+
+7)  Fix OPTIMIZE 4 bug.
+
+8)  Deallocate unused rules.
+
+9)  Keep rule arrays compressed during optimization.
+
+10) Remove remaining fallback scripts.
+
+11) Rationalize startup logs.
+
+12) Optimize 8.
+
+13) Don't create output chains for BPORT zones.
+
+14) Implement 'show log ip-addr' in /sbin/shorewall and
+    /sbin/shorewall-lite/
+
+15) Restore lone ACCEPT rule to the OUTPUT chain under OPTIMIZE 2.
+
+16) Change chain policy on OUTPUT chain with lone ACCEPT rule.
+
+17) Set IP before sourcing the params file.
+
+18) Fix rare optimization bug.
+
+19) Allow definition of an addressless bridge without a zone.
+
+20) In the routestopped file, assume 'routeback' if the interface has
+    'routeback'.
+
+21) Make Shorewall and Shorewall6 installable on OS X.
 
 Changes in Shorewall 4.4.8
 
