@@ -1,11 +1,11 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 04/23/2010
+.\"      Date: 05/07/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "04/23/2010" "" ""
+.TH "SHOREWALL\-INTERFACE" "5" "05/07/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -460,6 +460,18 @@ You have a simple dial\-in system with no ethernet connections\&.
 .nf
 #ZONE   INTERFACE BROADCAST        OPTIONS
 net     ppp0      \-
+.fi
+.RE
+.RE
+.PP
+Example 4 (Shorewall 4\&.4\&.9 and later):
+.RS 4
+You have a bridge with no IP address and you want to allow traffic through the bridge\&.
+.sp
+.RS 4
+.nf
+#ZONE   INTERFACE BROADCAST        OPTIONS
+\-       br0       \-                routeback
 .fi
 .RE
 .RE

@@ -98,6 +98,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       pop_open
 				       read_a_line
 				       validate_level
+				       which
 				       qt
 				       ensure_config_path
 				       get_configuration
@@ -117,6 +118,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $doing
 				       $done
 				       $currentline
+				       $debug
 				       %config
 				       %globals
 
@@ -129,7 +131,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_8';
+our $VERSION = '4.4_9';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -337,8 +339,9 @@ sub initialize( $ ) {
 		    LOGPARMS => '',
 		    TC_SCRIPT => '',
 		    EXPORT => 0,
+		    STATEMATCH => '-m state --state',
 		    UNTRACKED => 0,
-		    VERSION => "4.4.8.4",
+		    VERSION => "4.4.9",
 		    CAPVERSION => 40408 ,
 		  );
 
@@ -879,7 +882,7 @@ sub in_hexp( $ ) {
 sub emit {
     assert( $script_enabled );
 
-    if ( $script ) {
+    if ( $script || $debug ) {
 	#
 	# 'compile' as opposed to 'check'
 	#
@@ -889,10 +892,20 @@ sub emit {
 		$line =~ s/^\n// if $lastlineblank;
 		$line =~ s/^/$indent/gm if $indent;
 		$line =~ s/        /\t/gm;
-		print $script "$line\n";
+		print $script "$line\n" if $script;
 		$lastlineblank = ( substr( $line, -1, 1 ) eq "\n" );
+
+		if ( $debug ) {
+		    $line =~ s/^\n//;
+		    $line =~ s/\n/\nGS-----> /g;
+		    print "GS-----> $line\n";
+		}
 	    } else {
-		print $script "\n" unless $lastlineblank;
+		unless ( $lastlineblank ) {
+		    print $script "\n"  if $script;
+		    print "GS-----> \n" if $debug;
+		}
+
 		$lastlineblank = 1;
 	    }
 	}
@@ -997,7 +1010,7 @@ sub timestamp() {
 }
 
 #
-# Write a message if $verbosity >= 2
+# Write a message if $verbosity >= 2.
 #
 sub progress_message {
     my $havelocaltime = 0;
@@ -1151,7 +1164,7 @@ sub copy1( $ ) {
 
     my $result = 0;
 
-    if ( $script ) {
+    if ( $script || $debug ) {
 	my $file = $_[0];
 
 	open IF , $file or fatal_error "Unable to open $file: $!";
@@ -1162,8 +1175,16 @@ sub copy1( $ ) {
 	    chomp;
 
 	    if ( /^${here_documents}\s*$/ ) {
-		print $script $here_documents if $here_documents;
-		print $script "\n";
+		if ( $script ) {
+		    print $script $here_documents if $here_documents;
+		    print $script "\n";
+		}
+		
+		if ( $debug ) {
+		    print "GS-----> $here_documents" if $here_documents;
+		    print "GS----->\n";
+		}
+
 		$do_indent = 1;
 		$here_documents = '';
 		next;
@@ -1174,8 +1195,17 @@ sub copy1( $ ) {
 		s/^(\s*)/$indent1$1$indent2/;
 		s/        /\t/ if $indent2;
 		$do_indent = 0;
-		print $script $_;
-		print $script "\n";
+
+		if ( $script ) {
+		    print $script $_;
+		    print $script "\n";
+		}
+
+		if ( $debug ) {
+		    s/\n/\nGS-----> /g;
+		    print "GS-----> $_\n";
+		}
+
 		$result = 1;
 		next;
 	    }
@@ -1185,11 +1215,19 @@ sub copy1( $ ) {
 		s/        /\t/ if $indent2;
 	    }
 
-	    print $script $_;
-	    print $script "\n";
+	    if ( $script ) {
+		print $script $_;
+		print $script "\n";
+	    }
+
 	    $do_indent = ! ( $here_documents || /\\$/ );
 
 	    $result = 1 unless $result || /^\s*$/ || /^\s*#/;
+
+	    if ( $debug ) {
+		s/\n/\nGS-----> /g;
+		print "GS-----> $_\n";
+	    }
 	}
 
 	close IF;
@@ -1203,11 +1241,13 @@ sub copy1( $ ) {
 #
 # This one drops header comments and replaces them with a three-line banner
 #
-sub copy2( $ ) {
+sub copy2( $$ ) {
+    my ( $file, $trace ) = @_;
+
     assert( $script_enabled );
     my $empty = 1;
 
-    if ( $script ) {
+    if ( $script || $trace ) {
 	my $file = $_[0];
 
 	open IF , $file or fatal_error "Unable to open $file: $!";
@@ -1217,18 +1257,22 @@ sub copy2( $ ) {
 	}
 
 	unless ( $empty ) {
-	    print $script <<EOF;
+	    emit <<EOF;
 ################################################################################
 #   Functions imported from $file
 ################################################################################
-
 EOF
-	    print $script $_ unless /^\s*$/;
+	    chomp;
+	    emit( $_ ) unless /^\s*$/;
 
 	    while ( <IF> ) {
 		chomp;
 		if ( /^\s*$/ ) {
-		    print $script "\n" unless $lastlineblank;
+		    unless ( $lastlineblank ) {
+			print $script "\n" if $script;
+			print "GS----->\n" if $trace;
+		    }
+
 		    $lastlineblank = 1;
 		} else {
 		    if  ( $indent ) {
@@ -1236,22 +1280,30 @@ EOF
 			s/        /\t/ if $indent2;
 		    }
 		    
-		    print $script $_;
-		    print $script "\n";
+		    if ( $script ) {
+			print $script $_;
+			print $script "\n";
+		    }
+
+		    if ( $trace ) {
+			s/\n/GS-----> \n/g;
+			print "GS-----> $_\n";
+		    }
+
 		    $lastlineblank = 0;
 		}
 	    }
 	    
 	    close IF;
 	
-	    print $script "\n" unless $lastlineblank;
+	    unless ( $lastlineblank ) {
+		print $script "\n" if $script;
+		print "GS----->\n" if $trace;
+	    }
 
-	    print $script <<EOF;
-################################################################################
-#   End of imports from $file
-################################################################################
-EOF
-	    $lastlineblank = 0;
+	    emit( '################################################################################',
+		  "#   End of imports from $file",
+		  '################################################################################' );
 	}
     }
 }
@@ -1800,6 +1852,7 @@ sub read_a_line() {
 
 		    $currentline = '';
 		} else {
+		    print "IN===> $currentline\n" if $debug;
 		    return 1;
 		}
 	    }
@@ -1821,6 +1874,7 @@ sub read_a_line1() {
 	    $currentline =~ s/#.*$//;       # Remove Trailing Comments
 	    fatal_error "Non-ASCII gunk in file" if $currentline =~ /[^\s[:print:]]/;
 	    $currentlinenumber = $.;
+	    print "IN===> $currentline\n" if $debug;
 	    return 1;
 	}
 
@@ -2046,7 +2100,7 @@ sub load_kernel_modules( ) {
 
 	$loadedmodules{$_}++ for split_list( $config{DONT_LOAD}, 'module' );
 
-	progress_message "Loading Modules...";
+	progress_message2 "Loading Modules...";
 
 	open LSMOD , '-|', 'lsmod' or fatal_error "Can't run lsmod";
 
@@ -2449,7 +2503,10 @@ sub determine_capabilities() {
     qt1( "$iptables -N $sillyname1" );
 
     fatal_error 'Your kernel/iptables do not include state match support. No version of Shorewall will run on this system'
-	unless qt1( "$iptables -A $sillyname -m state --state ESTABLISHED,RELATED -j ACCEPT");
+	unless 
+	    qt1( "$iptables -A $sillyname -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT") ||
+	    qt1( "$iptables -A $sillyname -m state --state ESTABLISHED,RELATED -j ACCEPT");;
+	    
   
     unless ( $config{ LOAD_HELPERS_ONLY } ) {
 	#
@@ -2606,6 +2663,8 @@ sub process_shorewall_conf() {
 	if ( -r _ ) {
 	    open_file $file;
 
+	    first_entry "Processing $file...";
+
 	    while ( read_a_line ) {
 		if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
 		    my ($var, $val) = ($1, $2);
@@ -2757,6 +2816,8 @@ sub get_configuration( $ ) {
 
     get_capabilities( $export );
 
+    $globals{STATEMATCH} = '-m conntrack --ctstate' if have_capability 'CONNTRACK_MATCH';
+
     if ( $config{LOGRATE} || $config{LOGBURST} ) {
 	if ( defined $config{LOGRATE} ) {
 	    fatal_error"Invalid LOGRATE ($config{LOGRATE})" unless $config{LOGRATE}  =~ /^\d+\/(second|minute)$/;
@@ -2814,6 +2875,7 @@ sub get_configuration( $ ) {
 		my $val = numeric_value( $config{LOG_VERBOSITY} );
 		fatal_error "Invalid LOG_VERBOSITY ($config{LOG_VERBOSITY} )" unless defined( $val ) && ( $val >= -1 ) && ( $val <= 2 );
 		$config{STARTUP_LOG} = '' if $config{LOG_VERBOSITY} < 0;
+		$config{LOG_VERBOSITY} = $val;
 	    }
 	} else {
 	    $config{LOG_VERBOSITY} = 2;
@@ -3004,7 +3066,7 @@ sub get_configuration( $ ) {
 
     $val = numeric_value $config{OPTIMIZE};
 
-    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless defined( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 7;
+    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless defined( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 15;
 
     $globals{MARKING_CHAIN} = $config{MARK_IN_FORWARD_CHAIN} ? 'tcfor' : 'tcpre';
 
@@ -3093,7 +3155,7 @@ sub run_user_exit( $ ) {
     my $file = find_file $chainref->{name};
 
     if ( -f $file ) {
-	progress_message "Processing $file...";
+	progress_message2 "Processing $file...";
 
 	my $command = qq(package Shorewall::User;\nno strict;\n# line 1 "$file"\n) . `cat $file`;
 
@@ -3114,7 +3176,7 @@ sub run_user_exit1( $ ) {
     my $file = find_file $_[0];
 
     if ( -f $file ) {
-	progress_message "Processing $file...";
+	progress_message2 "Processing $file...";
 	#
 	# File may be empty -- in which case eval would fail
 	#
@@ -3145,7 +3207,7 @@ sub run_user_exit2( $$ ) {
     my ($file, $chainref) = ( find_file $_[0], $_[1] );
 
     if ( -f $file ) {
-	progress_message "Processing $file...";
+	progress_message2 "Processing $file...";
 	#
 	# File may be empty -- in which case eval would fail
 	#

@@ -76,7 +76,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_8';
+our $VERSION = '4.4_9';
 
 #
 # IPSEC Option types
@@ -404,14 +404,8 @@ sub process_zone( \$ ) {
     if ( $type eq IPSEC ) {
 	require_capability 'POLICY_MATCH' , 'IPSEC zones', '';
 	for ( @parents ) {
-	    unless ( $zones{$_}{type} == IPSEC ) {
-		set_super( $zones{$_} );
-	    }
+	    set_super( $zones{$_} ) unless $zones{$_}{type} == IPSEC;
 	}
-    }
-
-    for ( $options, $in_options, $out_options ) {
-	$_ = '' if $_ eq '-';
     }
 
     $zones{$zone} = { type       => $type,
@@ -420,7 +414,7 @@ sub process_zone( \$ ) {
 		      options    => { in_out  => parse_zone_option_list( $options || '', $type ) ,
 				      in      => parse_zone_option_list( $in_options || '', $type ) ,
 				      out     => parse_zone_option_list( $out_options || '', $type ) ,
-				      complex => ($type == IPSEC || $options || $in_options || $out_options ? 1 : 0) ,
+				      complex => ( $type == IPSEC || $options ne '-' || $in_options ne '-' || $out_options ne '-' ) ,
 				      nested  => @parents > 0 ,
 				      super   => 0 ,
 				    } ,
@@ -728,10 +722,17 @@ sub firewall_zone() {
 }
 
 #
+# Determine if the passed physical device is a bridge
+#
+sub is_a_bridge( $ ) {
+    which 'brctl' && qt( "brctl show | tail -n+2 | grep -q '^$_[0]\[\[:space:\]\]'" );
+} 
+
+#
 # Process a record in the interfaces file
 #
-sub process_interface( $ ) {
-    my $nextinum = $_[0];
+sub process_interface( $$ ) {
+    my ( $nextinum, $export ) = @_;
     my $netsref = '';
     my ($zone, $originalinterface, $bcasts, $options ) = split_line 2, 4, 'interfaces file';
     my $zoneref;
@@ -745,9 +746,6 @@ sub process_interface( $ ) {
 	fatal_error "Unknown zone ($zone)" unless $zoneref;
 	fatal_error "Firewall zone not allowed in ZONE column of interface record" if $zoneref->{type} == FIREWALL;
     }
-
-    $bcasts = '' if $bcasts eq '-';
-    $options  = '' if $options  eq '-';
 
     my ($interface, $port, $extra) = split /:/ , $originalinterface, 3;
 
@@ -793,7 +791,7 @@ sub process_interface( $ ) {
     my $physical = $interface;
     my $broadcasts;
 
-    unless ( $bcasts eq '' || $bcasts eq 'detect' ) {
+    unless ( $bcasts eq '-' || $bcasts eq 'detect' ) {
 	my @broadcasts = split_list $bcasts, 'address';
 
 	for my $address ( @broadcasts ) {
@@ -813,7 +811,7 @@ sub process_interface( $ ) {
 
     my $hostoptionsref = {};
 
-    if ( $options ) {
+    if ( $options ne '-' ) {
 
 	my %hostoptions = ( dynamic => 0 );
 
@@ -929,10 +927,15 @@ sub process_interface( $ ) {
 	    $hostoptions{routeback} = $options{routeback} = 1;
 	}
 
-	$zoneref->{options}{in_out}{routeback} = 1 if $zoneref && $options{routeback};
+	$hostoptions{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export || $options{routeback};
 
 	$hostoptionsref = \%hostoptions;
-    }
+    } else {
+	#
+	# No options specified -- auto-detect bridge
+	#
+	$hostoptionsref->{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export;
+    }	
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
 						       bridge     => $bridge ,
@@ -974,7 +977,7 @@ sub validate_interfaces_file( $ ) {
 
     first_entry "$doing $fn...";
 
-    push @ifaces, process_interface( $nextinum++) while read_a_line;
+    push @ifaces, process_interface( $nextinum++, $export ) while read_a_line;
 
     #
     # We now assemble the @interfaces array such that bridge ports immediately precede their associated bridge
@@ -1017,7 +1020,7 @@ sub map_physical( $$ ) {
 #
 # Returns true if passed interface matches an entry in /etc/shorewall/interfaces
 #
-# If the passed name matches a wildcard, a entry for the name is added in %interfaces to speed up validation of other references to that name.
+# If the passed name matches a wildcard, an entry for the name is added in %interfaces to speed up validation of other references to that name.
 #
 sub known_interface($)
 {
