@@ -39,8 +39,6 @@ get_config() {
     ensure_config_path
 
     if [ "$1" = Yes ]; then
-	[ -n "${IP:=ip}" ]
-
 	params=$(find_file params)
 
 	if [ -f $params ]; then
@@ -1284,7 +1282,7 @@ usage() # $1 = exit status
     echo "   restart [ -n ] [ -f ] [ <directory> ]"
     echo "   restore [ -n ] [ <file name> ]"
     echo "   save [ <file name> ]"
-    echo "   show [ -x ] [ -m ] [-f] [ -t {filter|mangle} ] [ {chain [<chain> [ <chain> ... ]|actions|capabilities|classifiers|config|connections|filters|ip|log|macros|mangle|nat|policies|raw|routing|tc|vardir|zones} ]"
+    echo "   show [ -x ] [ -m ] [-f] [ -t {filter|mangle} ] [ {chain [<chain> [ <chain> ... ]|actions|capabilities|classifiers|config|connections|filters|ip|log [<regex>]|macros|mangle|nat|policies|raw|routing|tc|vardir|zones} ]"
     echo "   start [ -f ] [ -n ] [ <directory> ]"
     echo "   stop [ -f ]"
     echo "   status"

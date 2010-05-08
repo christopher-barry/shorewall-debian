@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-rules
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 04/23/2010
+.\"      Date: 05/07/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-RULES" "5" "04/23/2010" "" ""
+.TH "SHOREWALL6\-RULES" "5" "05/07/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -183,16 +183,11 @@ name is followed by the parenthesized
 Example: FTP(ACCEPT)\&.
 .sp
 The older syntax where the macro name and the target are separated by a slash (e\&.g\&. FTP/ACCEPT) is still allowed but is deprecated\&.
-.sp
-.RS 4
-.nf
-.fi
-.RE
 .RE
 .sp
 The
 \fBACTION\fR
-may optionally be followed by ":" and a syslog log level (e\&.g, REJECT:info or ACCEPT:debug)\&. This causes the packet to be logged at the specified level\&.
+may optionally be followed by ":" and a syslog log level (e\&.g, REJECT:info or Web(ACCEPT):debug)\&. This causes the packet to be logged at the specified level\&.
 .sp
 If the
 \fBACTION\fR
