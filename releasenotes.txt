@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 8 . 3
+                       S H O R E W A L L  4 . 4 . 9
 ----------------------------------------------------------------------------
 
 I.    RELEASE 4.4 HIGHLIGHTS
@@ -218,49 +218,194 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.4.8.3
-
-1)  A problem with optimize 4 and wildcard interface names (those
-    ending in '+' has been corrected. The most likely symptom of this
-    problem would be iptables-restore failure.
-
-2)  A second problem with optimize 4 has been corrected. This one
-    manifested as invalid iptables-restore input involving the 'tcpre'
-    mangle chain.
-
-4.4.8.2
-
-1)  With optimize 4, if an unnecessary NONAT rule was included in
-    /etc/shorewall/rules, 'shorewall start' and/or 'shorewall restart'
-    could fail with invalid iptables-restore input.
-
-2)  The -lite products previously were inconsistent in how they
-    referred to their startup log. Some references included '-lite'
-    where some did not. This was particularly bad in the case of the
-    Shorewall-lite logrotate file which duplicated the name used by the
-    Shorewall package. This inconsistency could cause logrotate to
-    fail if both packages were installed.
-
-4.4.8.1
-
 1)  Logical interface names in the EXTERNAL column of
     /etc/shorewall/proxyarp were previously not mapped to their
     corresponding physical interface names. This could cause 'start' or
     'restart' to fail.
 
-2)  If find_first_interface_address() cannot determine the address of
-    the passed interface, the following message is issued and the
-    process continues:
+2)  If find_first_interface_address() was unable to detect an address,
+    then Shorewall 4.4.8 would issue an obscure message
+    (startup_error: command not found) and continue.
 
-    	    /usr/share/shorewall/lib.common: line 438:
-                startup_error: command not found
+    Now, a meaningful error message is produced and the calling process
+    stops.
 
 3)  If LOG_VERBOSITY=0 in shorewall.conf, then when the compiled script
     was executed, messages such as the following would be issued:
 
        /var/lib/shorewall6/.restart: line 65: [: -gt: unary operator
                                               expected
-4.4.8
+
+4)  With optimize 4, if an unnecessary NONAT rule was included in
+    /etc/shorewall/rules (there was no DNAT or REDIRECT rule with the
+    same source zone), then 'shorewall start' and/or 'shorewall restart'
+    could fail with invalid iptables-restore input.
+
+5)  The tarball installers now check for the presence of the CLI
+    program (/sbin/shorewall, /sbin/shorewall6, etc) to determine if a
+    fresh install or an upgrade should be performed. Previously, the
+    installers used the presense of the configuration directory
+    (/etc/shorewall, /etc/shorewall6, etc.) which led to incomplete
+    installations where there was an existing configuration directory.
+
+6)  The fallback.sh scripts have been removed from Shorewall-lite,
+    Shorewall6, and Shorewall6-lite. These scripts no longer work and
+    should have been removed in 4.4.0.
+
+7)  The -lite products previously were inconsistent in how they
+    referred to their startup log. Some references included '-lite'
+    where some did not. This was particularly bad in the case of the
+    Shorewall-lite logrotate file which duplicated the name used by the
+    Shorewall package. This inconsistency could cause logrotate to
+    fail if both packages were installed.
+
+8)  Two additional problems with optimize 4 have been corrected. One
+    manifested as invalid iptables-restore input involving the 'tcpre'
+    mangle chain. The other involved wildcard interface names (those
+    ending in '+') and would likely also result in invalid
+    iptables-restore input.
+
+9)  Previously, Shorewall would set up infrastructure to handle traffic
+    from the firewall to bport zones. Such infrastructure could never
+    be used. Now, Shorewall avoids setting up these unneeded chains
+    and/or rules.
+
+10) If optimization level 2 and there were no OUTPUT rules and the only
+    effective output policy was $FW->all ACCEPT, then the OUTPUT chain
+    was empty and no packets could be sent.
+
+11) If find_first_interface_address() was called in the params file, a
+    fatal error occured on start/restart.
+
+12) The following valid configuration produced invalid
+    iptables-restore input with optimization level 4.
+
+    /etc/shorewall/interfaces:
+
+    #ZONE      INTERFACE       BROADCAST      OPTIONS
+    vpn	       tun+	       -
+
+    /etc/shorewall/masq:
+
+    #INTERFACE	SOURCE		ADDRESS		PROTO	PORT
+    tun0	192.168.1.0/24	
+
+    Use of tunN in the nat and netmap files also produced invalid
+    iptables-restore input.
+
+----------------------------------------------------------------------------
+           I V.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+None.
+
+----------------------------------------------------------------------------
+         V.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  The compiler now auto-detects bridges for the purpose of setting
+    the 'routeback' option. Auto-detection is disabled when compiling
+    for export (-e option); note that -e is implicit in the 'load' and
+    'reload' commands.
+
+2)  When 'trace' is specified on a command that involves the compiler
+    (e.g., shorewall trace check), the compiler now creates a trace to
+    standard output.
+
+    Trace entries are of three types:
+
+    Input  --- begin with IN===>.     Input read from configuration
+                                      files. Comments have been
+                                      stripped, continuation lines
+                                      combined and shell variables
+                                      expanded.
+
+    Output --- begin with GS----->.   Text written to the generated
+                                      script.
+
+    Netfilter -- begin with NF-(x)->. Updates to the compiler's chain
+                                      table, where 'x' is one of the
+                                      following:
+
+        N - Create a chain.
+	A - Append a rule to a chain.
+	R - Replace a rule in a chain.
+	I - Inserted a rule into a chain.
+	T - Shell source text appended/inserted into a chain --
+            converted into rules at run-time.
+	D - Deleted Rule from a chain; note that this causes the 
+	    following rules to be renumbered.
+	X - Deleted a chain
+	P - Change a built-in chains policy. Chains in the filter table
+	    are created with a DROP policy. All other builtin chains
+	    have policy ACCEPT.
+	!   Followed by one or more of the following to indicate that
+            the operation is not allowed on the chain.
+
+	    O - Optimize
+	    D - Delete
+	    M - Move rules
+
+    Netfilter trace records indicate the table and chain being
+    changed. If the change involves a particular rule, then the rule
+    number is also included. 
+
+    Example (append the first rule to the filter FORWARD chain):
+
+	NF-(A)-> filter:FORWARD:1 ...
+
+    If the trace record involves the chain itself, then no rule number
+    is present.
+
+    Example (Delete the mangle tcpost chain):
+
+	NF-(X)-> mangle:tcpost
+
+3)  Thanks to Vincent Smeets, there is now an IPv6 mDNS macro.
+
+4)  Optimize 8 has been added. This optimization level eliminates
+    duplicate chains. So to set all possible optimizations, specify
+    OPTIMIZE=15.
+
+5)  The command-line tools now support 'show log <regex>' where <regex>
+    is a regular expression to search for in the LOGFILE. The command
+    searches the current LOGFILE for Netfilter messages matching the
+    supplied regex.
+
+6)  There are some instances where a bridge with no IP address is
+    configured. Prior to Shorewall 4.4.9, this required the following:
+
+    /etc/shorewall/interfaces:
+    #ZONE	INTERFACE	BROADCAST	OPTIONS
+    dummy	br0		-		routeback
+    
+    /etc/shorewall/policy:
+    #SOURCE	DEST		POLICY
+    dummy	all		DROP
+    all		dummy		DROP
+
+    Beginning in this release, a single entry will suffice:
+
+    /etc/shorewall/interfaces:
+    #ZONE	INTERFACE	BROADCAST	OPTIONS
+    -		br0		-		bridge
+
+7)  The generated ruleset now uses conntrack match for state matching,
+    if it is available.
+
+8)  In /etc/shorewall/routestopped, the 'routeback' option is assumed
+    if the interface has 'routeback' specified (either explicitly or
+    detected).
+
+9)  Apple Macs running OS X may now be used as a Shorewall
+    administrative system. Simply install using the tarball installer.
+
+----------------------------------------------------------------------------
+V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
+      I N   P R I O R  R E L E A S E S
+----------------------------------------------------------------------------
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 8
+----------------------------------------------------------------------------
 
 1)  A CONTINUE rule specifying a log level would cause the compiler to 
     generate an incorrect rule sequence. The packet would be logged
@@ -336,13 +481,7 @@ I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
     specified.
 
 ----------------------------------------------------------------------------
-           I V. K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-None.
-
-----------------------------------------------------------------------------
-         V.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+                N E W   F E A T U R E S   I N   4 . 4 . 8
 ----------------------------------------------------------------------------
 
 1)  To avoid variable name collisions, a number of shell variable names
@@ -408,9 +547,6 @@ None.
     <filename>' rather than 'Started'; <filename> is the saved script
     used to restore the configuration.
  
-----------------------------------------------------------------------------
-V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
-      I N   P R I O R  R E L E A S E S
 ----------------------------------------------------------------------------
          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 7
 ----------------------------------------------------------------------------
