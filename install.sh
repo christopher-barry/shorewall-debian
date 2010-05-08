@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.8.4
+VERSION=4.4.9
 
 usage() # $1 = exit status
 {
@@ -109,8 +109,10 @@ fi
 
 DEBIAN=
 CYGWIN=
+MAC=
 MANDIR=${MANDIR:-"/usr/share/man"}
 SPARSE=
+INSTALLD='-D'
 
 case $(uname) in
     CYGWIN*)
@@ -124,6 +126,18 @@ case $(uname) in
 	CYGWIN=Yes
 	SPARSE=Yes
 	;;
+    Darwin)
+	if [ -z "$PREFIX" ]; then
+	    DEST=
+	    INIT=
+	fi
+
+	[ -z "$OWNER" ] && OWNER=root
+	[ -z "$GROUP" ] && GROUP=wheel
+	MAC=Yes
+	SPARSE=Yes
+	INSTALLD=
+	;;	
     *)
 	[ -z "$OWNER" ] && OWNER=root
 	[ -z "$GROUP" ] && GROUP=root
@@ -170,11 +184,14 @@ if [ -n "$PREFIX" ]; then
     install -d $OWNERSHIP -m 755 ${PREFIX}${DEST}
    
     CYGWIN=
+    MAC=
 else
     [ -x /usr/share/shorewall/compiler.pl ] || \
 	{ echo "   ERROR: Shorewall >= 4.3.5 is not installed" >&2; exit 1; }
     if [ -n "$CYGWIN" ]; then
 	echo "Installing Cygwin-specific configuration..."
+    elif [ -n "$MAC" ]; then
+	echo "Installing Mac-specific configuration..."	
     else
 	if [ -d /etc/apt -a -e /usr/bin/dpkg ]; then
 	    echo "Installing Debian-specific configuration..."
@@ -202,9 +219,9 @@ cd "$(dirname $0)"
 echo "Installing Shorewall6 Version $VERSION"
 
 #
-# Check for /etc/shorewall6
+# Check for /sbin/shorewall6
 #
-if [ -d ${PREFIX}/etc/shorewall6 ]; then
+if [ -f ${PREFIX}/sbin/shorewall6 ]; then
     first_install=""
 else
     first_install="Yes"
@@ -232,7 +249,7 @@ elif [ -n "$INIT" ]; then
     install_file init.sh ${PREFIX}${DEST}/$INIT 0544 ${PREFIX}/usr/share/shorewall6-${VERSION}.bkout
 fi
 
-[ -n "$CYGWIN" ] || echo  "Shorewall6 script installed in ${PREFIX}${DEST}/$INIT"
+[ -n "$INIT" ] && echo  "Shorewall6 script installed in ${PREFIX}${DEST}/$INIT"
 
 #
 # Create /etc/shorewall, /usr/share/shorewall and /var/shorewall if needed
@@ -678,15 +695,17 @@ fi
 
 cd manpages
 
+[ -n "$INSTALLD" ] || mkdir -p ${PREFIX}${MANDIR}/man5/ ${PREFIX}${MANDIR}/man8/
+
 for f in *.5; do
     gzip -c $f > $f.gz
-    run_install -D  -m 0644 $f.gz ${PREFIX}${MANDIR}/man5/$f.gz
+    run_install $INSTALLD  -m 0644 $f.gz ${PREFIX}${MANDIR}/man5/$f.gz
     echo "Man page $f.gz installed to ${PREFIX}${MANDIR}/man5/$f.gz"
 done
 
 for f in *.8; do
     gzip -c $f > $f.gz
-    run_install -D  -m 0644 $f.gz ${PREFIX}${MANDIR}/man8/$f.gz
+    run_install $INSTALLD  -m 0644 $f.gz ${PREFIX}${MANDIR}/man8/$f.gz
     echo "Man page $f.gz installed to ${PREFIX}${MANDIR}/man8/$f.gz"
 done
 
@@ -699,7 +718,7 @@ if [ -d ${PREFIX}/etc/logrotate.d ]; then
     echo "Logrotate file installed as ${PREFIX}/etc/logrotate.d/shorewall6"
 fi
 
-if [ -z "$PREFIX" -a -n "$first_install" -a -z "$CYGWIN" ]; then
+if [ -z "$PREFIX" -a -n "$first_install" -a -z "${CYGWIN}${MAC}" ]; then
     if [ -n "$DEBIAN" ]; then
 	run_install $OWNERSHIP -m 0644 default.debian /etc/default/shorewall6
 	ln -s ../init.d/shorewall6 /etc/rcS.d/S40shorewall6

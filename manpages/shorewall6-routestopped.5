@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-routestopped
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 04/23/2010
+.\"      Date: 05/07/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-ROUTESTO" "5" "04/23/2010" "" ""
+.TH "SHOREWALL6\-ROUTESTO" "5" "05/07/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -39,7 +39,11 @@ A comma\-separated list of options\&. The order of the options is not important 
 .PP
 \fBrouteback\fR
 .RS 4
-Set up a rule to ACCEPT traffic from these hosts back to themselves\&.
+Set up a rule to ACCEPT traffic from these hosts back to themselves\&. Beginning with Shorewall 4\&.4\&.9, this option is automatically set if
+\fBrouteback\fR
+is specified in
+\fIshorewall6\-interfaces\fR\&[1]
+(5) or if the rules compiler detects that the interface is a bridge\&.
 .RE
 .PP
 \fBsource\fR
@@ -95,7 +99,7 @@ The
 and
 \fBdest\fR
 options work best when used in conjunction with ADMINISABSENTMINDED=Yes in
-\fIshorewall6\&.conf\fR\&[1](5)\&.
+\fIshorewall6\&.conf\fR\&[2](5)\&.
 .SH "EXAMPLE"
 .PP
 Example 1:
@@ -121,6 +125,11 @@ Example 1:
 shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
+shorewall6-interfaces
+.RS 4
+\%shorewall6-interfaces.html
+.RE
+.IP " 2." 4
 shorewall6.conf
 .RS 4
 \%shorewall6.conf.html
