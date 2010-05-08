@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.8.3
+VERSION=4.4.9
 
 usage() # $1 = exit status
 {
@@ -180,14 +180,21 @@ echo "Installing Shorewall Lite Version $VERSION"
 # Check for /etc/shorewall-lite
 #
 if [ -z "$PREFIX" -a -d /etc/shorewall-lite ]; then
-    first_install=""
     [ -f /etc/shorewall-lite/shorewall.conf ] && \
 	mv -f /etc/shorewall-lite/shorewall.conf /etc/shorewall-lite/shorewall-lite.conf
 else
-    first_install="Yes"
     rm -rf ${PREFIX}/etc/shorewall-lite
     rm -rf ${PREFIX}/usr/share/shorewall-lite
     rm -rf ${PREFIX}/var/lib/shorewall-lite
+fi
+
+#
+# Check for /sbin/shorewall-lite
+#
+if [ -f ${PREFIX}/sbin/shorewall-lite ]; then
+    first_install=""
+else
+    first_install="Yes"
 fi
 
 delete_file ${PREFIX}/usr/share/shorewall-lite/xmodules
