@@ -1,5 +1,5 @@
 %define name shorewall6-lite
-%define version 4.4.9
+%define version 4.4.10
 %define release 0base
 
 Summary: Shoreline Firewall 6 Lite is an ip6tables-based firewall for Linux systems.
@@ -14,6 +14,7 @@ URL: http://www.shorewall.net/
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Requires: iptables iproute
+Provides: shoreline_firewall = %{version}-%{release}
 
 %description
 
@@ -31,7 +32,7 @@ administrators to centralize the configuration of Shorewall6-based firewalls.
 %build
 
 %install
-export PREFIX=$RPM_BUILD_ROOT ; \
+export DESTDIR=$RPM_BUILD_ROOT ; \
 export OWNER=`id -n -u` ; \
 export GROUP=`id -n -g` ;\
 ./install.sh
@@ -92,6 +93,24 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Tue Jun 08 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0base
+* Mon Jun 07 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0RC3
+* Fri Jun 04 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0RC2
+* Thu May 27 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0RC1
+* Wed May 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta4
+* Tue May 25 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta3
+* Thu May 20 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta2
+* Thu May 20 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta2
+* Thu May 13 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta1
 * Mon May 03 2010 Tom Eastep tom@shorewall.net
 - Updated to 4.4.9-0base
 * Sun May 02 2010 Tom Eastep tom@shorewall.net

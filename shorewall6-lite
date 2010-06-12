@@ -349,7 +349,7 @@ usage() # $1 = exit status
     echo "Usage: $(basename $0) [debug|trace] [nolock] [ -q ] [ -v[-1|{0-2}] ] [ -t ] <command>"
     echo "where <command> is one of:"
     echo "   allow <address> ..."
-    echo "   clear [ -f ]"
+    echo "   clear"
     echo "   drop <address> ..."
     echo "   dump [ -x ]"
     echo "   forget [ <file name> ]"
@@ -366,11 +366,60 @@ usage() # $1 = exit status
     echo "   save [ <file name> ]"
     echo "   show [ -x ] [ -m ] [-f] [ -t {filter|mangle} ] [ {chain [<chain> [ <chain> ... ]capabilities|classifiers|config|connections|filters|ip|log [<regex>]|macros|mangle|nat|policies|raw|routing|tc|vardir|zones} ]"
     echo "   start [ -f ] [ <directory> ]"
-    echo "   stop [ -f ]"
+    echo "   stop"
     echo "   status"
     echo "   version [ -a ]"
     echo
     exit $1
+}
+
+version_command() {
+    local finished
+    finished=0
+    local all
+    all=
+    local product
+
+    while [ $finished -eq 0 -a $# -gt 0 ]; do
+	option=$1
+	case $option in
+	    -*)
+		option=${option#-}
+
+		while [ -n "$option" ]; do
+		    case $option in
+			-)
+			    finished=1
+			    option=
+			    ;;
+			a*)
+			    all=Yes
+			    option=${option#a}
+			    ;;
+			*)
+			    usage 1
+			    ;;
+		    esac
+		done
+		shift
+		;;
+	    *)
+		finished=1
+		;;
+	esac
+    done
+
+    [ $# -gt 0 ] && usage 1
+
+    echo $SHOREWALL_VERSION
+    
+    if [ -n "$all" ]; then
+	for product in shorewall shorewall6 shorewall-lite shorewall-init; do
+	    if [ -f /usr/share/$product/version ]; then
+		echo "$product: $(cat /usr/share/$product/version)"
+	    fi
+	done
+    fi
 }
 
 #
@@ -592,7 +641,7 @@ case "$COMMAND" in
 	if [ -f ${VARDIR}/state ]; then
 	    state="$(cat ${VARDIR}/state)"
 	    case $state in
-		Stopped*|Clear*)
+		Stopped*|Closed*|Clear*)
 		    status=3
 		    ;;
 	    esac
@@ -613,7 +662,8 @@ case "$COMMAND" in
 	hits_command $@
 	;;
     version)
-	echo $SHOREWALL_VERSION Lite
+	shift
+	version_command $@
 	;;
     logwatch)
 	logwatch_command $@
