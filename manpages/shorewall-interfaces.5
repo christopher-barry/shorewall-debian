@@ -1,11 +1,11 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 05/07/2010
+.\"      Date: 06/11/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "05/07/2010" "" ""
+.TH "SHOREWALL\-INTERFACE" "5" "06/11/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -81,11 +81,15 @@ optional
 .IP "" 4
 proxyarp
 .IP "" 4
+required
+.IP "" 4
 routefilter
 .IP "" 4
 sourceroute
 .IP "" 4
 upnp
+.IP "" 4
+wait
 .RE
 .PP
 \fBBROADCAST\fR (Optional) \- {\fB\-\fR|\fBdetect\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.}
@@ -277,7 +281,7 @@ dynamic\&. Requires ipset match support in your iptables and kernel\&. See
 for further information\&.
 .RE
 .PP
-\fBnosmurfs\fR
+nosmurfs
 .RS 4
 Filter packets for smurfs (packets with a broadcast address as the source)\&.
 .sp
@@ -301,11 +305,8 @@ entry for the interface cannot be modified (including for proxy ARP)\&.
 \h'-04'\(bu\h'+03'The first address of the interface cannot be obtained\&.
 .RE
 .IP "" 4
-
-I specify
-\fBoptional\fR
-on interfaces to Xen virtual machines that may or may not be running when Shorewall is [re]started\&.
-.sp
+May not be specified with
+\fBrequired\fR\&.
 .sp
 .it 1 an-trap
 .nr an-no-space-flag 1
@@ -322,7 +323,7 @@ and
 operations will instantiate a ruleset that does not support that interface, even if it is available at the time of the restore/start\&.
 .RE
 .PP
-physical=\fB\fIname\fR\fR
+\fBphysical\fR=\fB\fIname\fR\fR
 .RS 4
 Added in Shorewall 4\&.4\&.4\&. When specified, the interface or port name in the INTERFACE column is a logical name that refers to the name given in this option\&. It is useful when you want to specify the same wildcard port name on two or more bridges\&. See
 \fIhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\&.
@@ -353,6 +354,12 @@ name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
 Only those interfaces with the
 \fBproxyarp\fR
 option will have their setting changed; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
+.RE
+.PP
+\fBrequired\fR
+.RS 4
+Added in Shorewall 4\&.4\&.10\&. If this option is set, the firewall will fail to start if the interface is not usable\&. May not be specified together with
+\fBoptional\fR\&.
 .RE
 .PP
 \fBrouteback\fR
@@ -418,6 +425,17 @@ Incoming requests from this interface may be remapped via UPNP (upnpd)\&. See
 \fBupnpclient\fR
 .RS 4
 This option is intended for laptop users who always run Shorewall on their system yet need to run UPnP\-enabled client apps such as Transmission (BitTorrent client)\&. The option causes Shorewall to detect the default gateway through the interface and to accept UDP packets from that gateway\&. Note that, like all aspects of UPnP, this is a security hole so use this option at your own risk\&.
+.RE
+.PP
+\fBwait\fR=\fIseconds\fR
+.RS 4
+Added in Shorewall 4\&.4\&.10\&. Causes the generated script to wait up to
+\fIseconds\fR
+seconds for the interface to become usable before applying the
+\fBrequired\fR
+or
+\fBoptional\fR
+options\&.
 .RE
 .RE
 .SH "EXAMPLE"

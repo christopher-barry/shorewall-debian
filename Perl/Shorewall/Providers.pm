@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_providers @routemarked_interfaces handle_stickiness handle_optional_interfaces );
 our @EXPORT_OK = qw( initialize lookup_provider );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_10';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -836,14 +836,20 @@ sub lookup_provider( $ ) {
 
 #
 # This function is called by the compiler when it is generating the detect_configuration() function.
-# The function emits code to set the ..._IS_USABLE interface variables appropriately for the
-# optional interfaces
+# The function calls Shorewall::Zones::verify_required_interfaces then emits code to set the
+# ..._IS_USABLE interface variables appropriately for the  optional interfaces
 #
-# Returns true if there were optional interfaces
+# Returns true if there were required or optional interfaces
 #
-sub handle_optional_interfaces() {
+sub handle_optional_interfaces( $ ) {
 
-    my $interfaces = find_interfaces_by_option 'optional';
+    my $returnvalue = verify_required_interfaces( shift );
+    #
+    # find_interfaces_by_option1() does not return wildcard interfaces. If an interface is defined
+    # as a wildcard in /etc/shorewall/interfaces, then only specific interfaces matching that 
+    # wildcard are returned.
+    #
+    my $interfaces = find_interfaces_by_option1 'optional';
 
     if ( @$interfaces ) {
 	for my $interface ( @$interfaces ) {
@@ -851,7 +857,12 @@ sub handle_optional_interfaces() {
 	    my $physical = get_physical $interface;
 	    my $base     = uc chain_base( $physical );
 
-	    emit '';
+	    emit( '' );
+
+	    if ( $config{REQUIRE_INTERFACE} ) {
+		emit( 'HAVE_INTERFACE=' );
+		emit( '' );
+	    }
 
 	    if ( $provider ) {
 		#
@@ -871,14 +882,41 @@ sub handle_optional_interfaces() {
 		emit qq(if interface_is_usable $physical; then);
 	    }
 
+	    emit( '    HAVE_INTERFACE=Yes' ) if $config{REQUIRE_INTERFACE};
+
 	    emit( "    SW_${base}_IS_USABLE=Yes" ,
 		  'else' ,
 		  "    SW_${base}_IS_USABLE=" ,
 		  'fi' );
 	}
 
-	1;
+	if ( $config{REQUIRE_INTERFACE} ) {
+	    emit( '', 
+		  'if [ -z "$HAVE_INTERFACE" ]; then' ,
+		  '    case "$COMMAND" in',
+		  '        start|restart|restore|refresh)'
+		);
+
+	    if ( $family == F_IPV4 ) {
+		emit( '            if shorewall_is_started; then' );
+	    } else {
+		emit( '            if shorewall6_is_started; then' );
+	    }
+	
+	    emit( '                fatal_error "No network interface available"',
+		  '            else',
+		  '                startup_error "No network interface available',
+		  '            fi',
+		  '            ;;',
+		  '    esac',
+		  'fi'
+		);
+	}
+
+	$returnvalue = 1;
     }
+
+    $returnvalue;
 }
 
 #

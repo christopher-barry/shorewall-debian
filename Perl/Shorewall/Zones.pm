@@ -11,7 +11,7 @@
 #       it under the terms of Version 2 of the GNU General Public License
 #       as published by the Free Software Foundation.
 #
-#       This program is distributed in the hope that it will be useful,
+#       This program is distributed in the shope that it will be useful,
 #       but WITHOUT ANY WARRANTY; without even the implied warranty of
 #       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 #       GNU General Public License for more details.
@@ -54,6 +54,7 @@ our @EXPORT = qw( NOTHING
 		  complex_zones
 		  non_firewall_zones
 		  single_interface
+		  chain_base
 		  validate_interfaces_file
 		  all_interfaces
 		  all_bridges
@@ -67,8 +68,11 @@ our @EXPORT = qw( NOTHING
 		  source_port_to_bridge
 		  interface_is_optional
 		  find_interfaces_by_option
+		  find_interfaces_by_option1
 		  get_interface_option
 		  set_interface_option
+		  verify_required_interfaces
+		  compile_updown
 		  validate_hosts_file
 		  find_hosts_by_option
 		  all_ipsets
@@ -76,7 +80,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_10';
 
 #
 # IPSEC Option types
@@ -180,9 +184,9 @@ use constant { SIMPLE_IF_OPTION   => 1,
 
 our %validinterfaceoptions;
 
-our %defaultinterfaceoptions = ( routefilter => 1 );
+our %defaultinterfaceoptions = ( routefilter => 1 , wait => 60 );
 
-our %maxoptionvalue = ( routefilter => 2, mss => 100000 );
+our %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 );
 
 our %validhostoptions;
 
@@ -223,6 +227,7 @@ sub initialize( $ ) {
 				  nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  optional    => SIMPLE_IF_OPTION,
 				  proxyarp    => BINARY_IF_OPTION,
+				  required    => SIMPLE_IF_OPTION,
 				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST,
 				  routefilter => NUMERIC_IF_OPTION ,
 				  sourceroute => BINARY_IF_OPTION,
@@ -231,6 +236,7 @@ sub initialize( $ ) {
 				  upnpclient  => SIMPLE_IF_OPTION,
 				  mss         => NUMERIC_IF_OPTION,
 				  physical    => STRING_IF_OPTION + IF_OPTION_HOST,
+				  wait        => NUMERIC_IF_OPTION,
 				 );
 	%validhostoptions = (
 			     blacklist => 1,
@@ -251,12 +257,14 @@ sub initialize( $ ) {
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    optional    => SIMPLE_IF_OPTION,
 				    proxyndp    => BINARY_IF_OPTION,
+				    required    => SIMPLE_IF_OPTION,
 				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST,
 				    sourceroute => BINARY_IF_OPTION,
 				    tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    mss         => NUMERIC_IF_OPTION,
 				    forward     => BINARY_IF_OPTION,
 				    physical    => STRING_IF_OPTION + IF_OPTION_HOST,
+				    wait        => NUMERIC_IF_OPTION,
 				 );
 	%validhostoptions = (
 			     blacklist => 1,
@@ -729,6 +737,18 @@ sub is_a_bridge( $ ) {
 } 
 
 #
+# Transform the passed interface name into a legal shell variable name.
+#
+sub chain_base($) {
+    my $chain = $_[0];
+
+    $chain =~ s/^@/at_/;
+    $chain =~ tr/[.\-%@]/_/;
+    $chain =~ s/\+$//;
+    $chain;
+}
+
+#
 # Process a record in the interfaces file
 #
 sub process_interface( $$ ) {
@@ -810,6 +830,8 @@ sub process_interface( $$ ) {
     $options{port} = 1 if $port;
 
     my $hostoptionsref = {};
+
+    $options{ignore} = 1, $options = '-' if $options eq 'ignore';
 
     if ( $options ne '-' ) {
 
@@ -915,6 +937,8 @@ sub process_interface( $$ ) {
 	    }
 	}
 
+	fatal_error "Invalid combination of interface options" if $options{required} && $options{optional};
+
 	if ( $netsref eq 'dynamic' ) {
 	    my $ipset = "${zone}_" . chain_base $physical;
 	    $netsref = [ "+$ipset" ];
@@ -928,6 +952,7 @@ sub process_interface( $$ ) {
 	}
 
 	$hostoptions{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export || $options{routeback};
+
 
 	$hostoptionsref = \%hostoptions;
     } else {
@@ -1152,6 +1177,28 @@ sub find_interfaces_by_option( $ ) {
 }
 
 #
+# Returns reference to array of interfaces with the passed option
+#
+sub find_interfaces_by_option1( $ ) {
+    my $option = $_[0];
+    my @ints = ();
+
+    for my $interface ( keys %interfaces ) {
+	my $interfaceref = $interfaces{$interface};
+
+	next unless defined $interfaceref->{physical};
+	next if $interfaceref->{physical} =~ /\+/;
+
+	my $optionsref = $interfaceref->{options};
+	if ( $optionsref && defined $optionsref->{$option} ) {
+	    push @ints , $interface
+	}
+    }
+
+    \@ints;
+}
+
+#
 # Return the value of an option for an interface
 #
 sub get_interface_option( $$ ) {
@@ -1168,6 +1215,258 @@ sub set_interface_option( $$$ ) {
 
     $interfaces{$interface}{options}{$option} = $value;
 }
+
+#
+# Verify that all required interfaces are available after waiting for any that specify the 'wait' option.
+#
+sub verify_required_interfaces( $ ) {
+
+    my $generate_case = shift;
+    
+    my $returnvalue = 0;
+   
+    my $interfaces = find_interfaces_by_option 'wait';
+
+    if ( @$interfaces ) {
+	emit "local waittime\n";
+
+	for my $interface (@$interfaces ) {
+	    my $wait = $interfaces{$interface}{options}{wait};
+
+	    if ( $wait ) {
+		my $physical = get_physical $interface;
+	    
+		if ( $physical =~ /\+$/ ) {
+		    my $base = uc chain_base $physical;
+
+		    $physical =~ s/\+$/*/;
+
+		    emit( 'for interface in $(find_all_interfaces); do',
+			  '    case $interface in',
+			  "        $physical)",
+			  "            waittime=$wait",
+			  '            while [ $waittime -gt 0 ]; do',
+			  '                interface_is_usable $interface && break',
+			  '                waittime=$(($waittime - 1))',
+			  '            done',
+			  '            ;;',
+			  '    esac',
+			  'done',
+			  '',
+			);
+		} else {
+		    emit qq(if ! interface_is_usable $physical; then);
+		    emit qq(    waittime=$wait);
+		    emit  '';
+		    emit  q(    while [ $waittime -gt 0 ]; do);
+		    emit qq(        interface_is_usable $physical && break);
+		    emit  q(        sleep 1);
+		    emit   '        waittime=$(($waittime - 1))';
+		    emit  q(    done);
+		    emit qq(fi\n);
+		}
+
+		$returnvalue = 1;
+	    }
+	}
+    }
+
+    $interfaces = find_interfaces_by_option 'required';
+
+    if ( @$interfaces ) {
+
+	if ( $generate_case ) {
+	    emit( 'case "$COMMAND" in' );
+	    push_indent;
+	    emit( 'start|restart|restore|refresh)' );
+	    push_indent;
+	}
+
+	for my $interface (@$interfaces ) {
+	    my $physical = get_physical $interface;
+
+	    if ( $physical =~ /\+$/ ) {
+		my $base = uc chain_base $physical;
+
+		$physical =~ s/\+$/*/;
+
+		emit( "${base}_IS_UP=\n",
+		      'for interface in $(find_all_interfaces); do',
+		      '    case $interface in',
+		      "        $physical)",
+		      "            interface_is_usable \$interface && ${base}_IS_UP=Yes && break",
+		      '            ;;',
+		      '    esac',
+		      'done',
+		      '',
+		      "if [ -z \"\$${base}_IS_UP\" ]; then",
+		      "    startup_error \"None of the required interfaces $physical are available\"",
+		      "fi\n"
+		    );
+	    } else {
+		emit qq(if ! interface_is_usable $physical; then);
+		emit qq(    startup_error "Required interface $physical not available");
+		emit qq(fi\n);
+	    }
+	}
+	
+	if ( $generate_case ) {
+	    emit( ';;' );
+	    pop_indent;
+	    pop_indent;
+	    emit( 'esac' );
+	}
+
+	$returnvalue = 1;
+    }
+
+    $returnvalue;
+}
+
+#
+# Emit the updown() function
+#
+sub compile_updown() {
+    emit( '',
+	  '#',
+	  '# Handle the "up" and "down" commands',
+	  '#',
+	  'updown() # $1 = interface',
+	  '{',
+	);
+
+    push_indent;
+
+    emit( 'local state',
+	  'state=cleared',
+	  '' );
+
+    if ( $family == F_IPV4 ) {
+	emit 'if shorewall_is_started; then';
+    } else {
+	emit 'if shorewall6_is_started; then';
+    }
+
+    emit( '    state=started',
+	  'elif [ -f ${VARDIR}/state ]; then',
+	  '    case "$(cat ${VARDIR}/state)" in',
+	  '        Stopped*)',
+	  '            state=stopped',
+	  '            ;;',
+	  '        Cleared*)',
+	  '            ;;',
+	  '        *)',
+	  '            state=unknown',
+	  '            ;;',
+	  '    esac',
+	  'else',
+	  '    state=unknown',
+	  'fi',
+	  ''
+	);
+
+    emit( 'case $1 in' );
+
+    push_indent;
+
+    my $ignore   = find_interfaces_by_option 'ignore';
+    my $required = find_interfaces_by_option 'required';
+    my $optional = find_interfaces_by_option 'optional';
+
+    if ( @$ignore ) {
+	my $interfaces = join '|', map $interfaces{$_}->{physical}, @$ignore;
+
+	$interfaces =~ s/\+/*/;
+
+	emit( "$interfaces)",
+	      '    exit 0',
+	      '    ;;'
+	    );
+    }
+
+    if ( @$required ) {
+	my $interfaces = join '|', map $interfaces{$_}->{physical}, @$required;
+
+	my $wildcard = ( $interfaces =~ s/\+/*/ );
+
+	emit( "$interfaces)",
+	      '    if [ "$COMMAND" = up ]; then' );
+
+	if ( $wildcard ) {
+	    emit( '        if [ "$state" = started ]; then',
+		  '            COMMAND=restart',
+		  '        else',
+		  '            COMMAND=start',
+		  '        fi' );
+	} else {
+	    emit( '        COMMAND=start' );
+	}
+
+	emit( '        detect_configuration',
+	      '        define_firewall' );
+	
+	if ( $wildcard ) {
+	    emit( '    elif [ "$state" = started ]; then',
+		  '        COMMAND=restart',
+		  '        detect_configuration',
+		  '        define_firewall' );
+	} else {
+	    emit( '    else', 
+		  '        COMMAND=stop',
+		  '        detect_configuration',
+		  '        stop_firewall' );
+	}
+	
+	emit( '    fi',
+	      '    ;;'
+	    );
+    }
+
+    if ( @$optional ) {
+	my $interfaces = join '|', map $interfaces{$_}->{physical}, @$optional;
+
+	$interfaces =~ s/\+/*/;
+
+	emit( "$interfaces)",
+	      '    if [ "$COMMAND" = up ]; then',
+	      '        echo 0 > ${VARDIR}/${1}.state',
+	      '    else',
+	      '        echo 1 > ${VARDIR}/${1}.state',
+	      '    fi',
+	      '',
+	      '    if [ "$state" = started ]; then',
+	      '        COMMAND=restart',
+	      '        detect_configuration',
+	      '        define_firewall',
+	      '    elif [ "$state" = stopped ]; then',
+	      '        COMMAND=start',
+	      '        detect_configuration',
+	      '        define_firewall',
+	      '    fi',
+	      '    ;;',
+	    );
+    }
+
+    emit( "*)",
+	  '    case $state in',
+	  '        started)',
+	  '            COMMAND=restart',
+	  '            detect_configuration',
+	  '            define_firewall',
+	  '            ;;',
+	  '    esac',  
+	);
+
+    pop_indent;
+    
+    emit( 'esac' );
+
+    pop_indent;
+
+    emit( '}',
+	  '',
+	);
+}  
 
 #
 # Process a record in the hosts file

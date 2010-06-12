@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_10';
 
 #
 # Set to one if we find a SECTION
@@ -443,6 +443,7 @@ sub add_common_rules() {
 	add_rule_pair dont_delete( new_standard_chain( 'logreject' ) ), ' ' , 'reject' , $level ;
 	$chainref = dont_optimize( new_standard_chain( 'dynamic' ) );
 	add_jump $filter_table->{$_}, $chainref, 0, $state for qw( INPUT FORWARD );
+	add_commands( $chainref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
     }
 
     setup_mss;
@@ -647,7 +648,9 @@ sub add_common_rules() {
 	if ( @$list ) {
 	    progress_message2 "$doing UPnP";
 
-	    dont_optimize new_nat_chain( 'UPnP' );
+	    $chainref = dont_optimize new_nat_chain( 'UPnP' );
+
+	    add_commands( $chainref, '[ -s /${VARDIR}/.UPnP ] && cat ${VARDIR}/.UPnP >&3' );
 
 	    $announced = 1;
 
@@ -2445,8 +2448,8 @@ EOF
     }
 
     emit '
-    set_state "Stopped"
 
+    set_state "Stopped"
     logger -p kern.info "$g_product Stopped"
 
     case $COMMAND in

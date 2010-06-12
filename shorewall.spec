@@ -1,5 +1,5 @@
 %define name shorewall
-%define version 4.4.9
+%define version 4.4.10
 %define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
@@ -14,6 +14,7 @@ URL: http://www.shorewall.net/
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
 Requires: iptables iproute perl
+Provides: shoreline_firewall = %{version}-%{release}
 Obsoletes: shorewall-common shorewall-perl shorewall-shell
 
 %description
@@ -28,7 +29,7 @@ a multi-function gateway/ router/server or on a standalone GNU/Linux system.
 %build
 
 %install
-export PREFIX=$RPM_BUILD_ROOT ; \
+export DESTDIR=$RPM_BUILD_ROOT ; \
 export OWNER=`id -n -u` ; \
 export GROUP=`id -n -g` ;\
 ./install.sh
@@ -75,7 +76,6 @@ fi
 %attr(0755,root,root) %dir /usr/share/shorewall/configfiles
 %attr(0700,root,root) %dir /var/lib/shorewall
 %attr(0644,root,root) %config(noreplace) /etc/shorewall/*
-%attr(0600,root,root) /etc/shorewall/Makefile
 
 %attr(0644,root,root) /etc/logrotate.d/shorewall
 
@@ -103,11 +103,29 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/configfiles/*
 
 %attr(0644,root,root) %{_mandir}/man5/*
-%attr(0644,root,root) %{_mandir}/man8/shorewall.8.gz
+%attr(0644,root,root) %{_mandir}/man8/*
 
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples 
 
 %changelog
+* Tue Jun 08 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0base
+* Mon Jun 07 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0RC3
+* Fri Jun 04 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0RC2
+* Thu May 27 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0RC1
+* Wed May 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta4
+* Tue May 25 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta3
+* Thu May 20 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta2
+* Thu May 20 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta2
+* Thu May 13 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.10-0Beta1
 * Mon May 03 2010 Tom Eastep tom@shorewall.net
 - Updated to 4.4.9-0base
 * Sun May 02 2010 Tom Eastep tom@shorewall.net
