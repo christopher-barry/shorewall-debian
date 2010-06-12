@@ -43,7 +43,7 @@ use Shorewall::Raw;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_10';
 
 our $export;
 
@@ -271,7 +271,7 @@ sub generate_script_2() {
 
 	set_global_variables(1);
 
-	handle_optional_interfaces;
+	handle_optional_interfaces(0);
 
 	emit ';;';
 
@@ -284,7 +284,7 @@ sub generate_script_2() {
 
 	    set_global_variables(0);
 
-	    handle_optional_interfaces;
+	    handle_optional_interfaces(0);
 
 	    emit ';;';
 	}
@@ -294,7 +294,7 @@ sub generate_script_2() {
 
 	emit ( 'esac' ) ,
     } else {
-	emit( 'true' ) unless handle_optional_interfaces;
+	emit( 'true' ) unless handle_optional_interfaces(1);
     }
 
     pop_indent;
@@ -303,7 +303,6 @@ sub generate_script_2() {
     
 }
 
-#
 # Final stage of script generation.
 #
 #    Generate code for loading the various files in /var/lib/shorewall[6][-lite]
@@ -354,79 +353,16 @@ sub generate_script_3($) {
     }
 
     if ( $family == F_IPV4 ) {
-	my @ipsets = all_ipsets;
-
-	if ( @ipsets || $config{SAVE_IPSETS} ) {
-	    emit ( '',
-		   'local hack',
-		   '',
-		   'case $IPSET in',
-		   '    */*)',
-		   '        [ -x "$IPSET" ] || startup_error "IPSET=$IPSET does not exist or is not executable"',
-		   '        ;;',
-		   '    *)',
-		   '        IPSET="$(mywhich $IPSET)"',
-		   '        [ -n "$IPSET" ] || startup_error "The ipset utility cannot be located"' ,
-		   '        ;;',
-		   'esac',
-		   '',
-		   'if [ "$COMMAND" = start ]; then' ,
-		   '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
-		   '        $IPSET -F' ,
-		   '        $IPSET -X' ,
-		   '        $IPSET -R < ${VARDIR}/ipsets.save' ,
-		   '    fi' ,
-		   'elif [ "$COMMAND" = restore -a -z "$g_recovering" ]; then' ,
-		   '    if [ -f $(my_pathname)-ipsets ]; then' ,
-		   '        if chain_exists shorewall; then' ,
-		   '            startup_error "Cannot restore $(my_pathname)-ipsets with Shorewall running"' ,
-		   '        else' ,
-		   '            $IPSET -F' ,
-		   '            $IPSET -X' ,
-		   '            $IPSET -R < $(my_pathname)-ipsets' ,
-		   '        fi' ,
-		   '    fi' ,
-		 );
-
-	    if ( @ipsets ) {
-		emit '';
-
-		emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
-
-		emit ( '' ,
-		       'elif [ "$COMMAND" = restart ]; then' ,
-		       '' );
-
-		emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
-
-		emit ( '' ,
-		       '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
-		       '        #',
-		       '        # The \'grep -v\' is a hack for a bug in ipset\'s nethash implementation when xtables-addons is applied to Lenny' ,
-		       '        #',
-		       '        hack=\'| grep -v /31\'' ,
-		       '    else' ,
-		       '        hack=' ,
-		       '    fi' ,
-		       '',
-		       '    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then' ,
-		       '        grep -q "^-N" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
-		       '    fi' );
-	    }
-
-	    emit ( 'fi',
-		   '' );
-	}
+	load_ipsets;
 
 	emit ( 'if [ "$COMMAND" = refresh ]; then' ,
-	       '   run_refresh_exit' );
-
-	emit ( "   qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
-
-	emit ( 'else' ,
+	       '   run_refresh_exit' ,
+	       'else' ,
 	       '    run_init_exit',
 	       'fi',
 	       '' );
+
+	save_dynamic_chains;
 
 	mark_firewall_not_started;
 
@@ -450,6 +386,7 @@ sub generate_script_3($) {
     } else {
 	emit ( '[ "$COMMAND" = refresh ] && run_refresh_exit || run_init_exit', 
 	       '' );
+	save_dynamic_chains;
 	mark_firewall_not_started;
 	emit '';
     }
@@ -520,7 +457,6 @@ EOF
         set_state "Started"
     else
         setup_netfilter
-        restore_dynamic_rules
         conditionally_flush_conntrack
 EOF
     setup_forwarding( $family , 0 );
@@ -864,6 +800,11 @@ sub compiler {
 	#         (Writes the stop_firewall() function to the compiled script)
 	#
 	compile_stop_firewall( $test, $export );
+	#
+	#                               U P D O W N
+	#               (Writes the updown() function to the compiled script)
+	#
+	compile_updown;
 	#
 	# Copy the footer to the script
 	#

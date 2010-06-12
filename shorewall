@@ -1326,7 +1326,7 @@ usage() # $1 = exit status
     echo "   add <interface>[:<host-list>] ... <zone>"
     echo "   allow <address> ..."
     echo "   check [ -e ] [ -r ] [ <directory> ]"
-    echo "   clear [ -f ]"
+    echo "   clear"
     echo "   compile [ -e ] [ -d ] [ <directory name> ] [ <path name> ]"
     echo "   delete <interface>[:<host-list>] ... <zone>"
     echo "   drop <address> ..."
@@ -1369,7 +1369,7 @@ usage() # $1 = exit status
     echo "   show vardir"
     echo "   show zones"
     echo "   start [ -f ] [ -n ] [ -p ] [ <directory> ]"
-    echo "   stop [ -f ]"
+    echo "   stop"
     echo "   status"
     echo "   try <directory> [ <timeout> ]"
     echo "   version [ -a ]"
@@ -1508,6 +1508,7 @@ version_command() {
     finished=0
     local all
     all=
+    local product
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -1541,7 +1542,14 @@ version_command() {
     [ $# -gt 0 ] && usage 1
 
     echo $SHOREWALL_VERSION
-
+    
+    if [ -n "$all" ]; then
+	for product in shorewall6 shorewall-lite shorewall6-lite shorewall-init; do
+	    if [ -f /usr/share/$product/version ]; then
+		echo "$product: $(cat /usr/share/$product/version)"
+	    fi
+	done
+    fi
 }
 
 if [ $# -eq 0 ]; then
@@ -1678,7 +1686,7 @@ case "$COMMAND" in
 	if [ -f ${VARDIR}/state ]; then
 	    state="$(cat ${VARDIR}/state)"
 	    case $state in
-		Stopped*|Clear*)
+		Stopped*|Closed*|Clear*)
 		    status=3
 		    ;;
 	    esac
@@ -1821,6 +1829,7 @@ case "$COMMAND" in
 	if [ -x $g_restorepath ]; then
 	    rm -f $g_restorepath
 	    rm -f ${g_restorepath}-iptables
+	    rm -f ${g_restorepath}-ipsets
 	    echo "    $g_restorepath removed"
 	elif [ -f $g_restorepath ]; then
 	    echo "   $g_restorepath exists and is not a saved Shorewall configuration"
