@@ -1,0 +1,29 @@
+Source: shorewall-init
+Section: net
+Priority: optional
+Maintainer: Roberto C. Sanchez <roberto@connexer.com>
+Homepage: http://www.shorewall.net
+Build-Depends: debhelper (>= 5)
+Standards-Version: 3.8.4
+Vcs-Browser: http://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/debian;a=tree
+Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
+
+Package: shorewall-init
+Architecture: any
+Depends: shorewall | shoreline-firewall, ${misc:Depends}
+Description: Shorewall initialization 
+ This package provides two related features:
+ .
+    a)  It allows the firewall to be closed prior to bringing up
+        network devices. This insures that unwanted connections are not
+        allowed between the time that the network comes up and when the
+        firewall is started.
+ .
+    b)  It integrates with NetworkManager and distribution ifup/ifdown
+        systems to allow for 'event-driven' startup and shutdown.
+ .
+ The two facilities can be enabled separately.
+ .
+ When Shorewall-init is first installed, it does nothing until you
+ configure it.
+
