@@ -1,11 +1,11 @@
 .\"     Title: shorewall6.conf
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 05/07/2010
+.\"      Date: 06/11/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "05/07/2010" "" ""
+.TH "SHOREWALL6\&.CONF" "5" "06/11/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -657,6 +657,12 @@ Shell variables that will be set when the commands are envoked are as follows:.I
               into\&.
 .RE
 .PP
+\fBREQUIRE_INTERFACE=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.10\&. The default is No\&. If set to Yes, at least one optional interface must be up in order for the firewall to be in the started state\&. Intended to be used with the
+\fIShorewall Init Package\fR\&[10]\&.
+.RE
+.PP
 \fBRESTOREFILE=\fR\fIfilename\fR
 .RS 4
 Specifies the simple name of a file in /var/lib/shorewall6 to be used as the default restore script in the
@@ -683,7 +689,7 @@ This option is used to specify the shell program to be used to interpret the com
 \fBSMURF_LOG_LEVEL=\fR[\fIlog\-level\fR]
 .RS 4
 Specifies the logging level for smurf packets (see the nosmurfs option in
-\fIshorewall6\-interfaces\fR\&[10](5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
+\fIshorewall6\-interfaces\fR\&[11](5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
 .RE
 .PP
 \fBSTARTUP_ENABLED=\fR{\fBYes\fR|\fBNo\fR}
@@ -743,7 +749,7 @@ If you also run Shorewall and if you have TC_ENABLED=Internal in your
 \fBTC_EXPERT=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Normally, Shorewall6 tries to protect users from themselves by preventing PREROUTING and OUTPUT tcrules from being applied to packets that have been marked by the \'track\' option in
-\fIshorewall6\-providers\fR\&[11](5)\&.
+\fIshorewall6\-providers\fR\&[12](5)\&.
 .sp
 If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall6 will not include these cautionary checks\&.
 .RE
@@ -751,7 +757,7 @@ If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall6 will no
 \fBTC_PRIOMAP\fR=\fImap\fR
 .RS 4
 Added in Shorewall 4\&.4\&.6\&. Determines the mapping of a packet\'s TOS field to priority bands\&. See
-\fIshorewall6\-tcpri\fR\&[12](5)\&. The
+\fIshorewall6\-tcpri\fR\&[13](5)\&. The
 \fImap\fR
 consists of 16 space\-separated digits with values 1, 2 or 3\&. The first entry corresponds to Linux priority 9, the second to Linux priority 1, the third to Linux Priority 2, and so on\&. See tc\-prio(8) for additional information\&.
 .sp
@@ -763,7 +769,7 @@ The default setting is TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2 2 2"\&.
 Determines the disposition of TCP packets that fail the checks enabled by the
 \fBtcpflags\fR
 interface option (see
-\fIshorewall6\-interfaces\fR\&[10](5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
+\fIshorewall6\-interfaces\fR\&[11](5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
 .RE
 .PP
 \fBTCP_FLAGS_LOG_LEVEL=\fR[\fIlog\-level\fR]
@@ -776,13 +782,13 @@ Determines the syslog level for logging packets that fail the checks enabled by 
 Added in Shorewall 4\&.4\&.3\&. When set to Yes, causes the
 \fBtrack\fR
 option to be assumed on all providers defined in
-\fIshorewall6\-providers\fR\&[11](5)\&. May be overridden on an individual provider through use of the
+\fIshorewall6\-providers\fR\&[12](5)\&. May be overridden on an individual provider through use of the
 \fBnotrack\fR
 option\&. The default value is \'No\'\&.
 .sp
 Beginning in Shorewall 4\&.4\&.6, setting this option to \'Yes\' also simplifies PREROUTING rules in
 \fIshorewall6\-tcrules\fR\&[4](5)\&. Previously, when TC_EXPERT=No, packets arriving through \'tracked\' provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \'main\' routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The
-\fIshorewall6\-route_rules\fR\&[13](5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \'tracked\' interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
+\fIshorewall6\-route_rules\fR\&[14](5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \'tracked\' interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
 .RE
 .PP
 \fBVERBOSITY=\fR[\fInumber\fR]
@@ -863,21 +869,26 @@ the complete matrix of host groups defined by the zones, interfaces and hosts fi
 \%../ScalabilityAndPerformance.html
 .RE
 .IP "10." 4
+Shorewall Init Package
+.RS 4
+\%../Manpages/shorewall-init.html
+.RE
+.IP "11." 4
 shorewall6-interfaces
 .RS 4
 \%shorewall6-interfaces.html
 .RE
-.IP "11." 4
+.IP "12." 4
 shorewall6-providers
 .RS 4
 \%shorewall6-providers.html
 .RE
-.IP "12." 4
+.IP "13." 4
 shorewall6-tcpri
 .RS 4
 \%shorewall6-tcpri.html
 .RE
-.IP "13." 4
+.IP "14." 4
 shorewall6-route_rules
 .RS 4
 \%shorewall6-route_rules.html

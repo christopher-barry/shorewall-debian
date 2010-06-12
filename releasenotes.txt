@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                       S H O R E W A L L  4 . 4 . 9
+                      S H O R E W A L L  4 . 4 . 1 0
 ----------------------------------------------------------------------------
 
 I.    RELEASE 4.4 HIGHLIGHTS
@@ -218,6 +218,211 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
+1)  Startup Errors (those that are detected before the state of the
+    system has been altered), were previously not sent to the
+    STARTUP_LOG.
+
+2)  A regression of sorts occurred in Shorewall 4.4.9. Previously, a
+    Perl extension script could end with a call to add_rule(). Such a
+    script fails under Shorewall 4.4.9 unless the 'trace' option is
+    specified on the run line.
+
+    While this issue has been corrected, users are advised to always
+    end their Perl extension scripts with the following line to insure
+    that the script returns a 'true' value:
+
+    	 1;
+
+3)  Under rare circumstances involving a complex configuration,
+    OPTIMIZE=13 and OPTIMIZE=15 could cause invalid iptables-restore
+    input to be generated. 
+
+    Sample error message:
+
+        iptables-restore v1.4.8: Couldn't load target
+        `sys2sys':/usr/local/libexec/xtables/libipt_sys2sys.so:
+	cannot open shared object file: No such file or directory
+
+4)  Previously, if the 'optional' option was given to an interface with
+    a wildcard physical name, specific instances of the interface were
+    never considered usable.
+
+    Example:
+
+    /etc/shorewall/interfaces:
+
+    #ZONE	INTERFACE	BROADCAST	OPTIONS
+    net		ppp+		-		optional
+
+    /etc/shorewall/providers:
+
+    #PROVIDER	NUMBER	MARK	DUPLICATE	INTERFACE	...
+    XYZTEL	1	-	main		ppp0
+
+    The XYZTEL provider was never usable.
+
+    This configuration now works correctly.
+
+5)  The 'forget' command now correctly removes saved ipsets.
+
+----------------------------------------------------------------------------
+           I V.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+None.
+
+----------------------------------------------------------------------------
+         V.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  Shorewall 4.4.10 includes a new 'Shorewall Init' package. This new
+    package provides two related features:
+
+    a)  It allows the firewall to be closed prior to bringing up
+        network devices. This insures that unwanted connections are not
+        allowed between the time that the network comes up and when the
+        firewall is started.
+
+    b)  It integrates with NetworkManager and distribution ifup/ifdown
+        systems to allow for 'event-driven' startup and shutdown.
+
+    The two facilities can be enabled separately.
+
+    When Shorewall-init is first installed, it does nothing until you
+    configure it.
+
+    The configuration file is /etc/default/shorewall-init on
+    Debian-based systems and /etc/sysconfig/shorewall-init otherwise.
+
+    There are two settings in the file:
+
+    	  PRODUCTS    - lists the Shorewall packages that you want to
+    	                integrate with Shorewall-init. Example:
+
+			    PRODUCTS="shorewall shorewall6"
+
+          IFUPDOWN      When set to 1, enables integration with
+                        NetworkManager and the ifup/ifdown scripts.
+
+    To close your firewall before networking starts:
+
+    a)  in the Shorewall-init configuration file, set PRODUCTS to the
+        firewall products installed on your system.
+
+    b)  be sure that your current firewall script(s) (normally in
+        /var/lib/<product>/firewall) is(are) compiled with the 4.4.10
+        compiler. 
+
+	Shorewall and Shorewall6 users can execute these commands:
+
+	    shorewall compile
+            shorewall6 compile
+
+        Shorewall-lite and Shorewall6-lite users can execute these
+        commands on the administrative system.
+
+	    shorewall export <firewall-name-or-ip-address>
+	    shorewall6 export <firewall-name-or-ip-address>
+
+    That's all that is required.
+
+    To integrate with NetworkManager and ifup/ifdown, additional steps
+    are required. You probably don't want to enable this feature if you
+    run a link status monitor like swping or LSM.
+
+    a)  In the Shorewall-init configuration file, set IFUPDOWN=1.
+
+    b)  In your Shorewall interfaces file(s), set the 'required' option
+        on any interfaces that must be up in order for the firewall to
+        start. At least one interface must have the 'required' or
+        'optional' option if you perform the next optional step. If
+	'required' is specified on an interface with a wildcard name
+        (the physical name ends with '+'), then at least one interface
+        that matches the name must be in a usable state for the
+        firewall to start successfully.
+
+    c)  (Optional) -- If you have specified at least one 'required'
+        or 'optional interface, you can then disable automatic firewall
+        startup at boot time.
+
+	On Debian-based systems, set startup=0 in /etc/default/<product>.
+
+	On other systems, use your service startup configuration tool
+	(chkconfig, insserv, ...) to disable startup. 
+ 
+    The following actions occur when an interface comes up:
+
+    	FIREWALL      INTERFACE     ACTION
+	STATE
+	----------------------------------
+	Any           Required      start
+        stopped       Optional      start
+        started	         -          restart
+
+    The following actions occur when an interface goes down:
+
+    In the INTERFACE column, '-' indicates neither required nor
+    optional
+
+    	FIREWALL      INTERFACE     ACTION
+	STATE
+	----------------------------------
+	Any           Required      stop
+        stopped       Optional      start
+	started	         -          restart
+
+    For optional interfaces, the /var/lib/<product>/<interface>.state
+    files are maintained to reflect the state of the interface.
+
+    Please note that the action is carried out using the current
+    compiled script; the configuration is not recompiled.
+
+    A new option has been added to shorewall.conf and
+    shorewall6.conf. The REQUIRE_INTERFACE option determines the
+    outcome when an attempt to start/restart/restore/refresh the
+    firewall is made and none of the optional interfaces are available.
+    With REQUIRE_INTERFACE=No (the default), the operation is
+    performed. If REQUIRE_INTERFACE=Yes, then the operation fails and
+    the firewall is placed in the stopped state. This option is
+    suitable for a laptop with both ethernet and wireless
+    interfaces. If either come up, the firewall starts. If neither
+    comes up, the firewall remains in the stopped state. Similarly, if
+    an optional interface goes down and there are no optional
+    interfaces remaining in the up state, then the firewall is stopped.
+
+    Shorewall-init may be installed on Debian-based systems, SuSE-based
+    systems and RedHat-based systems.
+
+    On Debian-based systems, during system shutdown the firewall is
+    opened prior to network shutdown (/etc/init.d/shorewall stop
+    performs a 'clear' operation rather than a 'stop'). This is
+    required by Debian standards. You can change this default behavior
+    by setting SAFESTOP=1 in /etc/default/shorewall
+    (/etc/default/shorewall6, ...).
+
+2)  All of the CLIs now support the -a option of the 'version' command.
+
+    Example:
+
+	gateway:~# shorewall6 version -a
+	4.4.10-RC1
+	shorewall: 4.4.10-RC1
+	shorewall-lite: 4.4.10-RC1
+	shorewall6-lite: 4.4.10-RC1
+	shorewall-init: 4.4.10-RC1
+	gateway:~# 
+
+3)  Beginning with this release, the 'restart' and 'refresh' commands
+    now retain the contents of the dynamic blacklist as well as the
+    current UPnP rules. The dynamic blacklist is also preserved over
+    stop/start.
+
+----------------------------------------------------------------------------
+V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
+      I N   P R I O R  R E L E A S E S
+----------------------------------------------------------------------------
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 9
+----------------------------------------------------------------------------
 1)  Logical interface names in the EXTERNAL column of
     /etc/shorewall/proxyarp were previously not mapped to their
     corresponding physical interface names. This could cause 'start' or
@@ -293,14 +498,11 @@ I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
     Use of tunN in the nat and netmap files also produced invalid
     iptables-restore input.
 
-----------------------------------------------------------------------------
-           I V.  K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-None.
+2)  '/sbin/shorewall version -a' now shows the versions of all installed
+    Shorewall packages.
 
 ----------------------------------------------------------------------------
-         V.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+                N E W   F E A T U R E S   I N   4 . 4 . 9
 ----------------------------------------------------------------------------
 
 1)  The compiler now auto-detects bridges for the purpose of setting
@@ -401,10 +603,7 @@ None.
     administrative system. Simply install using the tarball installer.
 
 ----------------------------------------------------------------------------
-V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
-      I N   P R I O R  R E L E A S E S
-----------------------------------------------------------------------------
-         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 8
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 9
 ----------------------------------------------------------------------------
 
 1)  A CONTINUE rule specifying a log level would cause the compiler to 
