@@ -1261,7 +1261,7 @@ usage() # $1 = exit status
     echo "   add <interface>[:<host-list>] ... <zone>"
     echo "   allow <address> ..."
     echo "   check [ -e ] [ -r ] [ <directory> ]"
-    echo "   clear [ -f ]"
+    echo "   clear"
     echo "   compile [ -e ] [ -d ] [ <directory name> ] [ <path name> ]"
     echo "   delete <interface>[:<host-list>] ... <zone>"
     echo "   drop <address> ..."
@@ -1284,7 +1284,7 @@ usage() # $1 = exit status
     echo "   save [ <file name> ]"
     echo "   show [ -x ] [ -m ] [-f] [ -t {filter|mangle} ] [ {chain [<chain> [ <chain> ... ]|actions|capabilities|classifiers|config|connections|filters|ip|log [<regex>]|macros|mangle|nat|policies|raw|routing|tc|vardir|zones} ]"
     echo "   start [ -f ] [ -n ] [ <directory> ]"
-    echo "   stop [ -f ]"
+    echo "   stop"
     echo "   status"
     echo "   try <directory> [ <timeout> ]"
     echo "   version [ -a ]"
@@ -1458,9 +1458,11 @@ version_command() {
     echo $SHOREWALL_VERSION
 
     if [ -n "$all" ]; then
-	if [ -f /usr/share/shorewall/version ]; then
-	    echo "Shorewall $(cat /usr/share/shorewall/version)"
-	fi
+	for product in shorewall shorewall-lite shorewall6-lite shorewall-init; do
+	    if [ -f /usr/share/$product/version ]; then
+		echo "$product: $(cat /usr/share/$product/version)"
+	    fi
+	done
     fi
 }
 
@@ -1597,7 +1599,7 @@ case "$COMMAND" in
 	if [ -f ${VARDIR}/state ]; then
 	    state="$(cat ${VARDIR}/state)"
 	    case $state in
-		Stopped*|Clear*)
+		Stopped*|Closed*|Clear*)
 		    status=3
 		    ;;
 	    esac

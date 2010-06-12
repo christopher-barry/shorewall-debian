@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.4.9
+VERSION=4.4.10
 
 usage() # $1 = exit status
 {
@@ -79,7 +79,7 @@ if qt ip6tables -L shorewall6 -n && [ ! -f /sbin/shorewall6-lite ]; then
 fi
 
 if [ -L /usr/share/shorewall6/init ]; then
-    FIREWALL=$(ls -l /usr/share/shorewall6/init | sed 's/^.*> //')
+    FIREWALL=$(readlink -m -q /usr/share/shorewall6/init)
 else
     FIREWALL=/etc/init.d/shorewall6
 fi

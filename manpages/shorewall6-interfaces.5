@@ -1,11 +1,11 @@
 .\"     Title: shorewall6-interfaces
 .\"    Author: 
 .\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 05/07/2010
+.\"      Date: 06/11/2010
 .\"    Manual: 
 .\"    Source: 
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "05/07/2010" "" ""
+.TH "SHOREWALL6\-INTERFAC" "5" "06/11/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
@@ -123,6 +123,9 @@ entry for the interface cannot be modified\&.
 .RS 4
 \h'-04'\(bu\h'+03'The first global IPv6 address of the interface cannot be obtained\&.
 .RE
+.IP "" 4
+This option may not be specified together with
+\fBrequired\fR\&.
 .RE
 .PP
 \fBphysical\fR=\fB\fIname\fR\fR
@@ -141,6 +144,12 @@ If
 is not specified, then it\'s value defaults to the
 \fIinterface\fR
 name\&.
+.RE
+.PP
+\fBrequired\fR
+.RS 4
+Added in Shorewall 4\&.4\&.10\&. When specified, the firewall will fail to start if the interface named in the INTERFACE column is not usable\&. May not be specified together with
+\fBoptional\fR\&.
 .RE
 .PP
 \fBrouteback\fR
@@ -182,6 +191,17 @@ name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
 Only those interfaces with the
 \fBproxyndp\fR
 option will have their setting changed; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
+.RE
+.PP
+\fBwait\fR=\fIseconds\fR
+.RS 4
+Added in Shorewall 4\&.4\&.10\&. Causes the generated script to wait up to
+\fIseconds\fR
+seconds for the interface to become usable before applying the
+\fBrequired\fR
+or
+\fBoptional\fR
+options\&.
 .RE
 .RE
 .SH "EXAMPLE"
