@@ -20,7 +20,7 @@
     <pubdate><?dbtimestamp format="Y/m/d"?></pubdate>
 
     <copyright>
-      <year>2001-2009</year>
+      <year>2001-2010</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -505,11 +505,6 @@ net        eth0          detect               <emphasis role="bold">routeback</e
 
         <para>And in <filename>/etc/shorewall/masq</filename>;<programlisting>#INTERFACE          SOURCE      ADDRESS          PROTO        PORT
 eth0:66.249.93.111  0.0.0.0/0   206.124.146.176  tcp          993</programlisting></para>
-
-        <para>And finally, in
-        <filename>/etc/shorewall/shorewall.conf</filename> you need:</para>
-
-        <programlisting>IP_FORWARDING=On</programlisting>
 
         <para>Like the hack in FAQ 2, this one results in all forwarded
         connections looking to the server (66.249.93.11) as if they originated
@@ -2066,6 +2061,18 @@ shorewall status &gt; /dev/null 2&gt;&amp;1 || shorewall start # Start Shorewall
           <para>Be sure to secure the script for execute access.</para>
         </listitem>
       </itemizedlist>
+
+      <variablelist>
+        <varlistentry>
+          <term>Update:</term>
+
+          <listitem>
+            <para>Beginning with Shorewall 4.4.10, there is a new <ulink
+            url="Manpages/shorewall-init.html">Shorewall Init Package</ulink>
+            that is designed to handle this case.</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
     </section>
 
     <section id="faq87">
@@ -2703,6 +2710,8 @@ Shorewall has detected the following iptables/netfilter capabilities:
    LOG Target: Available
    Persistent SNAT: Available
 gateway:~# </programlisting>
+
+      <para></para>
     </section>
 
     <section id="faq19">
@@ -2731,6 +2740,75 @@ loc                $FW                     ACCEPT           </programlisting>
       reports that users have also been successful in using Snort in
       <emphasis>inline</emphasis> more with Shorewall, but no HOWTO exists at
       this time.</para>
+    </section>
+
+    <section id="faq89">
+      <title>(FAQ 89) How do I connect to the web server in my aDSL modem from
+      my local LAN?</title>
+
+      <para>Answer: Here's what I did:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>My local network is 172.20.1.0/24, so I set the IP address in
+          the modem to 172.20.1.2.</para>
+        </listitem>
+
+        <listitem>
+          <para>The IP address of my firewall's interface to the LAN is
+          172.20.1.254. The logical name of the DSL interface is EXT_IF and my
+          LAN interface is INT_IF.</para>
+
+          <para>I added the following two configuration entries:</para>
+
+          <para><filename>/etc/shorewall/masq:</filename></para>
+
+          <programlisting>#INTERFACE			SOURCE			ADDRESS
+
+COMMENT DSL Modem
+
+EXT_IF:172.20.1.2	     	0.0.0.0/0		172.20.1.254
+</programlisting>
+
+          <para><filename>/etc/shorewall/proxyarp</filename>:</para>
+
+          <programlisting>#ADDRESS	INTERFACE	EXTERNAL	HAVEROUTE	PERSISTENT
+172.20.1.2	EXT_IF		INT_IF		no		yes
+</programlisting>
+        </listitem>
+      </itemizedlist>
+
+      <para>If you can't change the IP address of your modem and its current
+      address isn't in your local network, then you need to change this
+      slightly; assuming that the modem IP address is 192.168.1.1:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Do not include an entry in
+          <filename>/etc/shorewall/proxyarp</filename>.</para>
+        </listitem>
+
+        <listitem>
+          <para>Add an IP address in 192.168.1.0/24 to your external interface
+          using your configuration's network management tools. For
+          Debian-based systems, that means adding this to the interface's
+          stanza in <filename>/etc/network/interfaces</filename>:</para>
+
+          <programlisting>    post-up /sbin/ip addr add 192.168.1.254/24 dev <replaceable>external-interface</replaceable></programlisting>
+        </listitem>
+
+        <listitem>
+          <para>Your entry in <filename>/etc/shorewall/masq</filename> would
+          then be:</para>
+
+          <programlisting>#INTERFACE			SOURCE			ADDRESS
+
+COMMENT DSL Modem
+
+EXT_IF:192.168.1.1	     	0.0.0.0/0		192.168.1.254
+</programlisting>
+        </listitem>
+      </itemizedlist>
     </section>
   </section>
 </article>
