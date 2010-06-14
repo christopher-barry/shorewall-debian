@@ -9,7 +9,7 @@ Vcs-Browser: http://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/deb
 Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
 
 Package: shorewall-init
-Architecture: any
+Architecture: all
 Depends: shorewall | shoreline-firewall, ${misc:Depends}
 Description: Shorewall initialization 
  This package provides two related features:

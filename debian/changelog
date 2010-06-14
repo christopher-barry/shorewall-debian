@@ -1,3 +1,10 @@
+shorewall-init (4.4.10-2) unstable; urgency=low
+
+  * Change package architecture from "any" to "all" (Thanks to Aaron M.
+    Ucko for the bug report)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 14 Jun 2010 16:57:55 -0400
+
 shorewall-init (4.4.10-1) unstable; urgency=low
 
   * New Upstream Version
