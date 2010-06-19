@@ -341,7 +341,7 @@ sub initialize( $ ) {
 		    EXPORT => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED => 0,
-		    VERSION => "4.4.10",
+		    VERSION => "4.4.10.1",
 		    CAPVERSION => 40408 ,
 		  );
 
@@ -2351,7 +2351,7 @@ sub IPSet_Match() {
     my $ipset  = $config{IPSET} || 'ipset';
     my $result = 0;
 
-    $ipset = which $ipset unless $ipset =~ '//';
+    $ipset = which $ipset unless $ipset =~ '/';
 
     if ( $ipset && -x $ipset ) {
 	qt( "$ipset -X $sillyname" );
