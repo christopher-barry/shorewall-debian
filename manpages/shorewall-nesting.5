@@ -2,21 +2,12 @@
 .\"     Title: shorewall-nesting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/17/2010
+.\"      Date: 06/25/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-NESTING" "5" "06/17/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * Define some portability stuff
-.\" -----------------------------------------------------------------
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.\" http://bugs.debian.org/507673
-.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.ie \n(.g .ds Aq \(aq
-.el       .ds Aq '
+.TH "SHOREWALL\-NESTING" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -121,7 +112,7 @@ Partial
 .RE
 .\}
 .PP
-Given these two rules, Sam can connect to the firewall\*(Aqs internet interface with ssh and the connection request will be forwarded to 192\&.168\&.1\&.3\&. Like all hosts in the net zone, Sam can connect to the firewall\*(Aqs internet interface on TCP port 80 and the connection request will be forwarded to 192\&.168\&.1\&.5\&. The order of the rules is not significant\&. Sometimes it is necessary to suppress port forwarding for a sub\-zone\&. For example, suppose that all hosts can SSH to the firewall and be forwarded to 192\&.168\&.1\&.5 EXCEPT Sam\&. When Sam connects to the firewall\*(Aqs external IP, he should be connected to the firewall itself\&. Because of the way that Netfilter is constructed, this requires two rules as follows:
+Given these two rules, Sam can connect to the firewall\'s internet interface with ssh and the connection request will be forwarded to 192\&.168\&.1\&.3\&. Like all hosts in the net zone, Sam can connect to the firewall\'s internet interface on TCP port 80 and the connection request will be forwarded to 192\&.168\&.1\&.5\&. The order of the rules is not significant\&. Sometimes it is necessary to suppress port forwarding for a sub\-zone\&. For example, suppose that all hosts can SSH to the firewall and be forwarded to 192\&.168\&.1\&.5 EXCEPT Sam\&. When Sam connects to the firewall\'s external IP, he should be connected to the firewall itself\&. Because of the way that Netfilter is constructed, this requires two rules as follows:
 .sp
 .if n \{\
 .RS 4
@@ -139,9 +130,9 @@ Given these two rules, Sam can connect to the firewall\*(Aqs internet interface 
 .PP
 The first rule allows Sam SSH access to the firewall\&. The second rule says that any clients from the net zone with the exception of those in the \(lqsam\(rq zone should have their connection port forwarded to 192\&.168\&.1\&.3\&. If you need to exclude more than one zone, simply use multiple ACCEPT+ rules\&. This technique also may be used when the ACTION is REDIRECT\&.
 .PP
-Care must be taken when nesting occurs as a result of the use of wildcard interfaces (interface names ends in \*(Aq+\*(Aq)\&.
+Care must be taken when nesting occurs as a result of the use of wildcard interfaces (interface names ends in \'+\')\&.
 .PP
-Here\*(Aqs an example\&.
+Here\'s an example\&.
 /etc/shorewall/zones:
 .PP
 /etc/shorewall/interfaces:
@@ -170,7 +161,7 @@ Because the net zone is declared before the loc zone, net is an implicit sub\-zo
 .sp -1
 .IP \(bu 2.3
 .\}
-DNAT and REDIRECT rules generate two Netfilter rules: a \*(Aqnat\*(Aq table rule that rewrites the destination IP address and/or port number, and a \*(Aqfilter\*(Aq table rule that ACCEPTs the rewritten connection\&.
+DNAT and REDIRECT rules generate two Netfilter rules: a \'nat\' table rule that rewrites the destination IP address and/or port number, and a \'filter\' table rule that ACCEPTs the rewritten connection\&.
 .RE
 .sp
 .RS 4
@@ -181,7 +172,7 @@ DNAT and REDIRECT rules generate two Netfilter rules: a \*(Aqnat\*(Aq table rule
 .sp -1
 .IP \(bu 2.3
 .\}
-Policies only affect the \*(Aqfilter\*(Aq table\&.
+Policies only affect the \'filter\' table\&.
 .RE
 .PP
 As a consequence, the following rules will have unexpected behavior:
@@ -199,13 +190,13 @@ As a consequence, the following rules will have unexpected behavior:
 .RE
 .\}
 .PP
-The second rule is intended to redirect local web requests to a proxy running on the firewall and listening on TCP port 3128\&. But the \*(Aqnat\*(Aq part of that rule will cause all connection requests for TCP port 80 arriving on interface ppp+ (including ppp0!) to have their destination port rewritten to 3128\&. Hence, the web server running in the DMZ will be inaccessible from the web\&.
+The second rule is intended to redirect local web requests to a proxy running on the firewall and listening on TCP port 3128\&. But the \'nat\' part of that rule will cause all connection requests for TCP port 80 arriving on interface ppp+ (including ppp0!) to have their destination port rewritten to 3128\&. Hence, the web server running in the DMZ will be inaccessible from the web\&.
 .PP
 The above problem can be corrected in several ways\&.
 .PP
 The preferred way is to use the
 \fBifname\fR
-pppd option to change the \*(Aqnet\*(Aq interface to something other than ppp0\&. That way, it won\*(Aqt match ppp+\&.
+pppd option to change the \'net\' interface to something other than ppp0\&. That way, it won\'t match ppp+\&.
 .PP
 If you are running Shorewall version 4\&.1\&.4 or later, a second way is to simply make the nested zones explicit:
 .sp

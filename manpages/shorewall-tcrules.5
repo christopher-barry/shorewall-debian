@@ -2,21 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/17/2010
+.\"      Date: 06/25/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "06/17/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * Define some portability stuff
-.\" -----------------------------------------------------------------
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.\" http://bugs.debian.org/507673
-.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.ie \n(.g .ds Aq \(aq
-.el       .ds Aq '
+.TH "SHOREWALL\-TCRULES" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -51,7 +42,7 @@ Entries in this file cause packets to be marked as a means of classifying them f
 Unlike rules in the
 \m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[1]\d\s+2(5) file, evaluation of rules in this file will continue after a match\&. So the final mark for each packet will be the one assigned by the LAST tcrule that matches\&.
 .PP
-If you use multiple internet providers with the \*(Aqtrack\*(Aq option, in /etc/shorewall/providers be sure to read the restrictions at
+If you use multiple internet providers with the \'track\' option, in /etc/shorewall/providers be sure to read the restrictions at
 \m[blue]\fBhttp://shorewall\&.net/MultiISP\&.html\fR\m[]\&.
 .sp .5v
 .RE
@@ -149,7 +140,7 @@ where
 \fImajor\fR
 and
 \fIminor\fR
-are integers\&. Corresponds to the \*(Aqclass\*(Aq specification in these traffic shaping modules:
+are integers\&. Corresponds to the \'class\' specification in these traffic shaping modules:
 .sp
 .if n \{\
 .RS 4
@@ -171,12 +162,12 @@ Classification occurs in the POSTROUTING chain except when the
 is
 \fB$FW\fR[:\fIaddress\fR] in which case classification occurs in the OUTPUT chain\&.
 .sp
-When using Shorewall\*(Aqs built\-in traffic shaping tool, the
+When using Shorewall\'s built\-in traffic shaping tool, the
 \fImajor\fR
 class is the device number (the first device in
 \m[blue]\fBshorewall\-tcdevices\fR\m[]\&\s-2\u[3]\d\s+2(5) is major class 1, the second device is major class 2, and so on) and the
 \fIminor\fR
-class is the class\*(Aqs MARK value in
+class is the class\'s MARK value in
 \m[blue]\fBshorewall\-tcclasses\fR\m[]\&\s-2\u[4]\d\s+2(5) preceded by the number 1 (MARK 1 corresponds to minor class 11, MARK 5 corresponds to minor class 15, MARK 22 corresponds to minor class 122, etc\&.)\&.
 .RE
 .sp
@@ -188,7 +179,7 @@ class is the class\*(Aqs MARK value in
 .sp -1
 .IP "  3." 4.2
 .\}
-\fBRESTORE\fR[/\fImask\fR] \-\- restore the packet\*(Aqs mark from the connection\*(Aqs mark using the supplied mask if any\&. Your kernel and iptables must include CONNMARK support\&.
+\fBRESTORE\fR[/\fImask\fR] \-\- restore the packet\'s mark from the connection\'s mark using the supplied mask if any\&. Your kernel and iptables must include CONNMARK support\&.
 .sp
 As in 1) above, may be followed by
 \fB:P\fR
@@ -204,7 +195,7 @@ or
 .sp -1
 .IP "  4." 4.2
 .\}
-\fBSAVE\fR[/\fImask\fR] \-\- save the packet\*(Aqs mark to the connection\*(Aqs mark using the supplied mask if any\&. Your kernel and iptables must include CONNMARK support\&.
+\fBSAVE\fR[/\fImask\fR] \-\- save the packet\'s mark to the connection\'s mark using the supplied mask if any\&. Your kernel and iptables must include CONNMARK support\&.
 .sp
 As in 1) above, may be followed by
 \fB:P\fR
@@ -221,7 +212,7 @@ or
 .IP "  5." 4.2
 .\}
 \fBCONTINUE\fR
-Don\*(Aqt process any more marking rules \(enin the table\&.
+Don\'t process any more marking rules \(enin the table\&.
 .sp
 As in 1) above, may be followed by
 \fB:P\fR
@@ -240,7 +231,7 @@ or
 .IP "  6." 4.2
 .\}
 \fBSAME\fR
-Some websites run applications that require multiple connections from a client browser\&. Where multiple \*(Aqbalanced\*(Aq providers are configured, this can lead to problems when some of the connections are routed through one provider and some through another\&. The SAME target allows you to work around that problem\&. SAME may be used in the PREROUTING and OUTPUT chains\&. When used in PREROUTING, it causes matching connections from an individual local system to all use the same provider\&. For example:
+Some websites run applications that require multiple connections from a client browser\&. Where multiple \'balanced\' providers are configured, this can lead to problems when some of the connections are routed through one provider and some through another\&. The SAME target allows you to work around that problem\&. SAME may be used in the PREROUTING and OUTPUT chains\&. When used in PREROUTING, it causes matching connections from an individual local system to all use the same provider\&. For example:
 .sp
 .if n \{\
 .RS 4
@@ -310,7 +301,7 @@ src
 .RS 4
 \fIshift\fR = 0
 .RE
-\*(Aqsrc\*(Aq and \*(Aqdst\*(Aq specify whether the mark is to be based on the source or destination address respectively\&. The selected address is first shifted to the right by
+\'src\' and \'dst\' specify whether the mark is to be based on the source or destination address respectively\&. The selected address is first shifted to the right by
 \fIshift\fR
 bits\&. The result is then LANDed with
 \fImask1\fR
@@ -437,7 +428,7 @@ An interface name followed by a colon (":") followed by a comma\-separated list 
 .\}
 $FW optionally followed by a colon (":") and a comma\-separated list of host or network IP addresses\&. Matches packets originating on the firewall\&. May not be used with a chain qualifier (:P, :F, etc\&.) in the MARK column\&.
 .RE
-.sp
+.RS 4
 MAC addresses must be prefixed with "~" and use "\-" as a separator\&.
 .sp
 Example: ~00\-A0\-C9\-15\-39\-78
@@ -475,7 +466,7 @@ An interface name\&. May not be used in the PREROUTING chain (:P in the mark col
 .\}
 A comma\-separated list of host or network IP addresses\&. The list may include ip address ranges if your kernel and iptables include iprange support\&.
 .RE
-.sp
+.RS 4
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
@@ -531,12 +522,12 @@ program must be run by joe
 .PP
 :kids
 .RS 4
-program must be run by a member of the \*(Aqkids\*(Aq group
+program must be run by a member of the \'kids\' group
 .RE
 .PP
 !:kids
 .RS 4
-program must not be run by a member of the \*(Aqkids\*(Aq group
+program must not be run by a member of the \'kids\' group
 .RE
 .PP
 +upnpd
@@ -564,7 +555,7 @@ The ability to specify a program name was removed from Netfilter in kernel versi
 .RS 4
 Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
 .sp
-If you don\*(Aqt want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
+If you don\'t want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
 .PP
 !
 .RS 4
@@ -583,7 +574,7 @@ A mask to be applied to the mark before testing\&.
 .PP
 \fB:C\fR
 .RS 4
-Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is tested\&.
+Designates a connection mark\&. If omitted, the packet mark\'s value is tested\&.
 .RE
 .RE
 .PP
@@ -697,7 +688,7 @@ We assume packet/connection mark 0 means unclassified\&.
 .RE
 .\}
 .sp
-If a packet hasn\*(Aqt been classifed (packet mark is 0), copy the connection mark to the packet mark\&. If the packet mark is set, we\*(Aqre done\&. If the packet is P2P, set the packet mark to 4\&. If the packet mark has been set, save it to the connection mark\&.
+If a packet hasn\'t been classifed (packet mark is 0), copy the connection mark to the packet mark\&. If the packet mark is set, we\'re done\&. If the packet is P2P, set the packet mark to 4\&. If the packet mark has been set, save it to the connection mark\&.
 .RE
 .SH "FILES"
 .PP
