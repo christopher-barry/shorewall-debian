@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.10.1
+VERSION=4.4.10.2
 
 usage() # $1 = exit status
 {
@@ -718,7 +718,13 @@ fi
 if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${CYGWIN}${MAC}" ]; then
     if [ -n "$DEBIAN" ]; then
 	run_install $OWNERSHIP -m 0644 default.debian /etc/default/shorewall6
-	ln -s ../init.d/shorewall6 /etc/rcS.d/S40shorewall6
+
+	if [ -x /sbin/insserv ]; then
+	    insserv /etc/init.d/shorewall6
+	else
+	    ln -s ../init.d/shorewall6 /etc/rcS.d/S40shorewall6
+	fi
+
 	echo "shorewall6 will start automatically at boot"
 	echo "Set startup=1 in /etc/default/shorewall6 to enable"
 	touch /var/log/shorewall6-init.log
