@@ -134,18 +134,18 @@ syslog_circular_buffer() {
 packet_log() # $1 = number of messages
 {
     if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' | head -n$1 | tac | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+	$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' | head -n$1 | tac | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
     else
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' |  head -n$1 | tac | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
+	$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' |  head -n$1 | tac | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
     fi
 }
 
 search_log() # $1 = IP address to search for
 {
     if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | tac | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | tac | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
     else
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | tac | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
+	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | tac | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
     fi
 }    
 
@@ -439,7 +439,7 @@ show_command() {
 	    local max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
 	    echo "$g_product $SHOREWALL_VERSION Connections ($count of $max) at $g_hostname - $(date)"
 	    echo
-	    grep '^ipv6' /proc/net/nf_conntrack
+	    grep '^ipv6' /proc/net/nf_conntrack | sed -r 's/0000:/:/g; s/:::+/::/g; s/:0+/:/g'
 	    ;;
 	tos|mangle)
 	    [ $# -gt 1 ] && usage 1
