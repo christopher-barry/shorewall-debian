@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 1 0
+                     S H O R E W A L L  4 . 4 . 1 0 . 2
 ----------------------------------------------------------------------------
 
 I.    RELEASE 4.4 HIGHLIGHTS
@@ -217,6 +217,26 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
 I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.10.2
+
+1)  The start priorities of the Shorewall products were incorrect on
+    Debian when the insserv package is installed. This is corrected for
+    new installs, but existing users who have both insserv and a
+    Shorewall product are urged to run insserv just be be sure.
+
+2)  The log output from IPv6 logs was almost unreadable due to display
+    of IPv6 addresses in uncompressed format. A similar problem
+    occurred with 'shorewall6 show connections'. This update makes the
+    displays much clearer at the expense of opening the slight
+    possibility of two '::' sequences being incorrectly shown in the
+    same address.
+
+3)  The new REQUIRE_INTERFACE was inadvertently omitted from
+    shorewall.conf and shorewall6.conf. It has been added.
+
+4)  Under some versions of Perl, a Perl run-time diagnostic was produced
+    when options were omitted from shorewall.conf or shorewall6.conf. 
 
 4.4.10.1
 

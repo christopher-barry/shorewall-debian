@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.10.1
+VERSION=4.4.10.2
 
 usage() # $1 = exit status
 {
@@ -350,7 +350,13 @@ if [ -z "$DESTDIR" ]; then
     if [ -n "$first_install" ]; then
 	if [ -n "$DEBIAN" ]; then
 	    run_install $OWNERSHIP -m 0644 default.debian /etc/default/shorewall6-lite
-	    ln -s ../init.d/shorewall6-lite /etc/rcS.d/S40shorewall6-lite
+
+	    if [ -x /sbin/insserv ]; then
+		insserv /etc/init.d/shorewall6-lite
+	    else
+		ln -s ../init.d/shorewall6-lite /etc/rcS.d/S40shorewall6-lite
+	    fi
+
 	    echo "Shorewall6 Lite will start automatically at boot"
 	else
 	    if [ -x /sbin/insserv -o -x /usr/sbin/insserv ]; then
