@@ -2,21 +2,12 @@
 .\"     Title: shorewall-tcdevices
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/17/2010
+.\"      Date: 06/25/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCDEVICES" "5" "06/17/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * Define some portability stuff
-.\" -----------------------------------------------------------------
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.\" http://bugs.debian.org/507673
-.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
-.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.ie \n(.g .ds Aq \(aq
-.el       .ds Aq '
+.TH "SHOREWALL\-TCDEVICES" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -36,7 +27,7 @@ tcdevices \- Shorewall Traffic Shaping Devices file
 .PP
 Entries in this file define the bandwidth for interfaces on which you want traffic shaping to be enabled\&.
 .PP
-If you do not plan to use traffic shaping for a device, don\*(Aqt put it in here as it limits the throughput of that device to the limits you set here\&.
+If you do not plan to use traffic shaping for a device, don\'t put it in here as it limits the throughput of that device to the limits you set here\&.
 .PP
 A note on the
 \fIbandwidth\fR
@@ -50,7 +41,7 @@ definitions used in this file:
 .sp -1
 .IP \(bu 2.3
 .\}
-don\*(Aqt use a space between the integer value and the unit: 30kbit is valid while 30 kbit is not\&.
+don\'t use a space between the integer value and the unit: 30kbit is valid while 30 kbit is not\&.
 .RE
 .sp
 .RS 4
@@ -110,7 +101,7 @@ Name of
 .sp
 You may NOT specify wildcards here, e\&.g\&. if you have multiple ppp interfaces, you need to put them all in here!
 .sp
-If the device doesn\*(Aqt exist, a warning message will be issued during "shorewall [re]start" and "shorewall refresh" and traffic shaping configuration will be skipped for that device\&.
+If the device doesn\'t exist, a warning message will be issued during "shorewall [re]start" and "shorewall refresh" and traffic shaping configuration will be skipped for that device\&.
 .sp
 Shorewall assigns a sequential
 interface number
@@ -123,7 +114,7 @@ The incoming
 \fIbandwidth\fR
 of that interface\&. Please note that you are not able to do traffic shaping on incoming traffic, as the traffic is already received before you could do so\&. But this allows you to define the maximum traffic allowed for this interface in total, if the rate is exceeded, the packets are dropped\&. You want this mainly if you have a DSL or Cable connection to avoid queuing at your providers side\&.
 .sp
-If you don\*(Aqt want any traffic to be dropped, set this to a value to zero in which case Shorewall will not create an ingress qdisc\&.Must be set to zero if the REDIRECTED INTERFACES column is non\-empty\&.
+If you don\'t want any traffic to be dropped, set this to a value to zero in which case Shorewall will not create an ingress qdisc\&.Must be set to zero if the REDIRECTED INTERFACES column is non\-empty\&.
 .RE
 .PP
 \fBOUT\-BANDWIDTH\fR \- \fIbandwidth\fR

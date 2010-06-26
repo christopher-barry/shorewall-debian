@@ -341,7 +341,7 @@ sub initialize( $ ) {
 		    EXPORT => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED => 0,
-		    VERSION => "4.4.10.1",
+		    VERSION => "4.4.10.2",
 		    CAPVERSION => 40408 ,
 		  );
 
@@ -1899,9 +1899,11 @@ sub default ( $$ ) {
 sub default_yes_no ( $$ ) {
     my ( $var, $val ) = @_;
 
-    my $curval = "\L$config{$var}";
+    my $curval = $config{$var};
 
     if ( defined $curval && $curval ne '' ) {
+	$curval = lc $curval;
+
 	if (  $curval eq 'no' ) {
 	    $config{$var} = '';
 	} else {

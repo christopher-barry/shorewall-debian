@@ -19,3 +19,27 @@
     Fixed in Shorewall 4.4.10.1. After installing this fix, if you 
     executed the above command to work around the problem, we recommend
     that you remove /etc/shorewall/capabilities.
+
+3)  The new REQUIRE_INTERFACE option was not added to shorewall.conf
+    and shorewall6.conf.
+
+    You can simply add it if you need it.
+
+4)  Under Perl 5.12.1, a harmless Perl run-time diagnostic is
+    produced when options are omitted from shorewall.conf or
+    shorewall6.conf. 
+
+    Example:
+
+	Use of uninitialized value
+	$Shorewall::Config::config{"REQUIRE_INTERFACE"} in lc at
+    	/usr/share/shorewall/Shorewall/Config.pm line 1902.
+
+5)  On Debian and Debian-based systems, the start/stop priorities of
+    Shorewall products may be incorrect when the insserv package is
+    installed.
+
+    You may correct this problem by running insserv (as root).
+
+
+
