@@ -1,3 +1,9 @@
+shorewall-lite (4.4.10.2-1) unstable; urgency=low
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 25 Jun 2010 21:39:24 -0400
+
 shorewall-lite (4.4.10.1-1) unstable; urgency=low
 
   * New Upstream Version
