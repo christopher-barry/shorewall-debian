@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.10.1
+VERSION=4.4.10.2
 
 usage() # $1 = exit status
 {
@@ -285,7 +285,12 @@ fi
 if [ -z "$DESTDIR" ]; then
     if [ -n "$first_install" ]; then
 	if [ -n "$DEBIAN" ]; then
-	    ln -sf ../init.d/shorewall-init /etc/rcS.d/S38shorewall-init
+	    if [ -x /sbin/insserv ]; then
+		insserv /etc/init.d/shorewall-init
+	    else
+		ln -sf ../init.d/shorewall-init /etc/rcS.d/S38shorewall-init
+	    fi
+
 	    echo "Shorewall Init will start automatically at boot"
 	else
 	    if [ -x /sbin/insserv -o -x /usr/sbin/insserv ]; then
