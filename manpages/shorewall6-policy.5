@@ -1,83 +1,59 @@
-'\" t
 .\"     Title: shorewall6-policy
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/25/2010
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 07/05/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL6\-POLICY" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL6\-POLICY" "5" "07/05/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 policy \- shorewall6 policy file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall6/policy\fR\ 'u
+.HP 23
 \fB/etc/shorewall6/policy\fR
 .SH "DESCRIPTION"
 .PP
 This file defines the high\-level policy for connections between zones defined in
-\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5)\&.
-.if n \{\
+\fIshorewall6\-zones\fR\&[1](5)\&.
 .sp
-.\}
-.RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
 .nr an-break-flag 1
 .br
-.ps +1
-\fBImportant\fR
-.ps -1
-.br
+Important
 .PP
 The order of entries in this file is important
 .PP
 This file determines what to do with a new connection request if we don\'t get a match from the /etc/shorewall6/rules file \&. For each source/destination pair, the file is processed in order until a match is found ("all" will match any client or server)\&.
-.sp .5v
-.RE
-.if n \{\
 .sp
-.\}
-.RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
 .nr an-break-flag 1
 .br
-.ps +1
-\fBImportant\fR
-.ps -1
-.br
+Important
 .PP
 Intra\-zone policies are pre\-defined
 .PP
 For $FW and for all of the zones defined in /etc/shorewall6/zones, the POLICY for connections from the zone to itself is ACCEPT (with no logging or TCP connection rate limiting but may be overridden by an entry in this file\&. The overriding entry must be explicit (cannot use "all" in the SOURCE or DEST)\&.
 .PP
 Similarly, if you have IMPLICIT_CONTINUE=Yes in shorewall6\&.conf, then the implicit policy to/from any sub\-zone is CONTINUE\&. These implicit CONTINUE policies may also be overridden by an explicit entry in this file\&.
-.sp .5v
-.RE
 .PP
 The columns in the file are as follows\&.
 .PP
 \fBSOURCE\fR \- \fIzone\fR|\fB$FW\fR|\fBall\fR
 .RS 4
 Source zone\&. Must be the name of a zone defined in
-\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5), $FW or "all"\&.
+\fIshorewall6\-zones\fR\&[1](5), $FW or "all"\&.
 .RE
 .PP
 \fBDEST\fR \- \fIzone\fR|\fB$FW\fR|\fBall\fR
 .RS 4
 Destination zone\&. Must be the name of a zone defined in
-\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5), $FW or "all"\&. If the DEST is a bport zone, then the SOURCE must be "all", another bport zone associated with the same bridge, or it must be an ipv6 zone that is associated with only the same bridge\&.
+\fIshorewall6\-zones\fR\&[1](5), $FW or "all"\&. If the DEST is a bport zone, then the SOURCE must be "all", another bport zone associated with the same bridge, or it must be an ipv6 zone that is associated with only the same bridge\&.
 .RE
 .PP
 \fBPOLICY\fR \- {\fBACCEPT\fR|\fBDROP\fR|\fBREJECT\fR|\fBCONTINUE\fR|\fBQUEUE\fR|\fBNFQUEUE\fR[(\fIqueuenumber\fR)]|\fBNONE\fR}[\fB:\fR{\fIdefault\-action\-or\-macro\fR|\fBNone\fR}]
@@ -87,50 +63,24 @@ Policy if no match from the rules file is found\&.
 If the policy is other than CONTINUE or NONE then the policy may be followed by ":" and one of the following:
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 1.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  1." 4.2
-.\}
-The word "None" or "none"\&. This causes any default action defined in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) to be omitted for this policy\&.
+\h'-04' 1.\h'+02'The word "None" or "none"\&. This causes any default action defined in
+\fIshorewall6\&.conf\fR\&[2](5) to be omitted for this policy\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 2.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  2." 4.2
-.\}
-The name of an action (requires that USE_ACTIONS=Yes in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5))\&. That action will be invoked before the policy is enforced\&.
+\h'-04' 2.\h'+02'The name of an action (requires that USE_ACTIONS=Yes in
+\fIshorewall6\&.conf\fR\&[2](5))\&. That action will be invoked before the policy is enforced\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 3.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  3." 4.2
-.\}
-The name of a macro\&. The rules in that macro will be applied before the policy is enforced\&. This does not require USE_ACTIONS=Yes\&.
+\h'-04' 3.\h'+02'The name of a macro\&. The rules in that macro will be applied before the policy is enforced\&. This does not require USE_ACTIONS=Yes\&.
 .RE
-.RS 4
+.IP "" 4
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
 .fi
-.if n \{\
 .RE
-.\}
-.sp
 Possible policies are:
 .PP
 \fBACCEPT\fR
@@ -163,7 +113,7 @@ is not given, queue zero (0) is assumed\&.
 \fBCONTINUE\fR
 .RS 4
 Pass the connection request past any other rules that it might also match (where the source or destination zone in those rules is a superset of the SOURCE or DEST in this policy)\&. See
-\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[3]\d\s+2(5) for additional information\&.
+\fIshorewall6\-nesting\fR\&[3](5) for additional information\&.
 .RE
 .PP
 \fBNONE\fR
@@ -178,7 +128,7 @@ received, the result is undefined\&. NONE may not be used if the SOURCE or DEST 
 .RS 4
 If supplied, each connection handled under the default POLICY is logged at that level\&. If not supplied, no log message is generated\&. See syslog\&.conf(5) for a description of log levels\&.
 .sp
-You may also specify NFLOG (must be in upper case)\&. This will log to the NFLOG target and will send to a separate log through use of ulogd (\m[blue]\fBhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR\m[])\&.
+You may also specify NFLOG (must be in upper case)\&. This will log to the NFLOG target and will send to a separate log through use of ulogd (\fIhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR)\&.
 .sp
 If you don\'t want to log but need to specify the following column, place "\-" here\&.
 .RE
@@ -216,41 +166,18 @@ specifies the width of a VLSM mask to be applied to the source address; the numb
 .SH "EXAMPLE"
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 1.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  1." 4.2
-.\}
-All connections from the local network to the internet are allowed
+\h'-04' 1.\h'+02'All connections from the local network to the internet are allowed
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 2.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  2." 4.2
-.\}
-All connections from the internet are ignored but logged at syslog level KERNEL\&.INFO\&.
+\h'-04' 2.\h'+02'All connections from the internet are ignored but logged at syslog level KERNEL\&.INFO\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04' 3.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  3." 4.2
-.\}
-All other connection requests are rejected and logged at level KERNEL\&.INFO\&.
+\h'-04' 3.\h'+02'All other connection requests are rejected and logged at level KERNEL\&.INFO\&.
 .RE
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #SOURCE         DEST            POLICY          LOG           BURST:LIMIT
         #                                               LEVEL
@@ -261,9 +188,7 @@ All other connection requests are rejected and logged at level KERNEL\&.INFO\&.
         #
         all             all             REJECT          info
 .fi
-.if n \{\
 .RE
-.\}
 .SH "FILES"
 .PP
 /etc/shorewall6/policy
@@ -274,15 +199,15 @@ shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-bl
 .IP " 1." 4
 shorewall6-zones
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-zones.html
+\%shorewall6-zones.html
 .RE
 .IP " 2." 4
 shorewall6.conf
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6.conf.html
+\%shorewall6.conf.html
 .RE
 .IP " 3." 4
 shorewall6-nesting
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
+\%shorewall6-nesting.html
 .RE
