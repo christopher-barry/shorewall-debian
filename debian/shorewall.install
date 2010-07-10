@@ -52,6 +52,8 @@ configfiles/tcclasses	/usr/share/doc/shorewall/default-config
 configfiles/tcclear	/usr/share/doc/shorewall/default-config
 configfiles/tcdevices	/usr/share/doc/shorewall/default-config
 configfiles/tcfilters	/usr/share/doc/shorewall/default-config
+configfiles/tcinterfaces	/usr/share/doc/shorewall/default-config
+configfiles/tcpri	/usr/share/doc/shorewall/default-config
 configfiles/tcrules	/usr/share/doc/shorewall/default-config
 configfiles/tos	/usr/share/doc/shorewall/default-config
 configfiles/tunnels	/usr/share/doc/shorewall/default-config
