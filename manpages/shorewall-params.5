@@ -1,27 +1,19 @@
-'\" t
 .\"     Title: shorewall-params
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/25/2010
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 07/05/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL\-PARAMS" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL\-PARAMS" "5" "07/05/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 params \- Shorewall parameters file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall/params\fR\ 'u
+.HP 22
 \fB/etc/shorewall/params\fR
 .SH "DESCRIPTION"
 .PP
@@ -32,153 +24,112 @@ It is suggested that variable names begin with an upper case letter to distingui
 The following variable names must be avoided\&. Those in
 \fBbold font\fR
 must be avoided in all Shorewall versions; those in regular font must be avoided in versions prior to 4\&.4\&.8\&.
-.RS 4
-\fBAny option from \fR\fB\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2\fR\fB (5)\fR
-.RE
-.RS 4
+.IP "" 4
+\fBAny option from \fR\fB\fIshorewall\&.conf\fR\&[1]\fR\fB (5)\fR
+.IP "" 4
 \fBCOMMAND\fR
-.RE
-.RS 4
+.IP "" 4
 \fBCONFDIR\fR
-.RE
-.RS 4
+.IP "" 4
 DEBUG
-.RE
-.RS 4
+.IP "" 4
 ECHO_E
-.RE
-.RS 4
+.IP "" 4
 ECHO_N
-.RE
-.RS 4
+.IP "" 4
 EXPORT
-.RE
-.RS 4
+.IP "" 4
 FAST
-.RE
-.RS 4
+.IP "" 4
 FILEMODE
-.RE
-.RS 4
+.IP "" 4
 HOSTNAME
-.RE
-.RS 4
+.IP "" 4
 IPT_OPTIONS
-.RE
-.RS 4
+.IP "" 4
 NOROUTES
-.RE
-.RS 4
+.IP "" 4
 PREVIEW
-.RE
-.RS 4
+.IP "" 4
 PRODUCT
-.RE
-.RS 4
+.IP "" 4
 PROFILE
-.RE
-.RS 4
+.IP "" 4
 PURGE
-.RE
-.RS 4
+.IP "" 4
 RECOVERING
-.RE
-.RS 4
+.IP "" 4
 RESTOREPATH
-.RE
-.RS 4
+.IP "" 4
 RING_BELL
-.RE
-.RS 4
+.IP "" 4
 \fBSHAREDIR\fR
-.RE
-.RS 4
+.IP "" 4
 \fBAny name beginning with SHOREWALL_ or
       SW_\fR
-.RE
-.RS 4
+.IP "" 4
 STOPPING
-.RE
-.RS 4
+.IP "" 4
 TEST
-.RE
-.RS 4
+.IP "" 4
 TIMESTAMP
-.RE
-.RS 4
+.IP "" 4
 USE_VERBOSITY
-.RE
-.RS 4
+.IP "" 4
 \fBVARDIR\fR
-.RE
-.RS 4
+.IP "" 4
 VERBOSE
-.RE
-.RS 4
+.IP "" 4
 VERBOSE_OFFSET
-.RE
-.RS 4
+.IP "" 4
 VERSION
-.RE
 .PP
 Example params file:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
 NET_IF=eth0
 NET_BCAST=130\&.252\&.100\&.255
 NET_OPTIONS=routefilter,norfc1918
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 Example
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&.
+\fIshorewall\-interfaces\fR\&[2](5) file\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
 ZONE    INTERFACE       BROADCAST       OPTIONS
 net     $NET_IF         $NET_BCAST      $NET_OPTIONS
 .fi
-.if n \{\
 .RE
-.\}
 .PP
 This is the same as if the interfaces file had contained:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
 ZONE    INTERFACE       BROADCAST       OPTIONS
 net     eth0            130\&.252\&.100\&.255 routefilter,norfc1918
 .fi
-.if n \{\
 .RE
-.\}
 .SH "FILES"
 .PP
 /etc/shorewall/params
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Variables\fR\m[]\&\s-2\u[3]\d\s+2
+\fIhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Variables\fR\&[3]
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall.conf
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall.conf.html
+\%shorewall.conf.html
 .RE
 .IP " 2." 4
 shorewall-interfaces
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-interfaces.html
+\%shorewall-interfaces.html
 .RE
 .IP " 3." 4
 http://www.shorewall.net/configuration_file_basics.htm#Variables

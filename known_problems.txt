@@ -25,6 +25,8 @@
 
     You can simply add it if you need it.
 
+    Fixed in Shorewall 4.4.10.2.
+
 4)  Under Perl 5.12.1, a harmless Perl run-time diagnostic is
     produced when options are omitted from shorewall.conf or
     shorewall6.conf. 
@@ -35,11 +37,63 @@
 	$Shorewall::Config::config{"REQUIRE_INTERFACE"} in lc at
     	/usr/share/shorewall/Shorewall/Config.pm line 1902.
 
+    Fixed in Shorewall 4.4.10.2.
+
 5)  On Debian and Debian-based systems, the start/stop priorities of
     Shorewall products may be incorrect when the insserv package is
     installed.
 
     You may correct this problem by running insserv (as root).
 
+    Fixed in Shorewall 4.4.10.2.
+
+6)  If 'trace' or 'debug' is specified on a command that runs the
+    compiled script, an invalid command line is passed to that script
+    resulting in a failure:
+
+    Shorewall configuration compiled to /var/lib/shorewall/.start
+    Usage: /var/lib/shorewall/.start [ options ] [ start|stop|clear|down|reset|
+     refresh|restart|status|up|version ]
+ 
+    Options are:
+ 
+    -v and -q        Standard Shorewall verbosity controls
+    -n               Don't unpdate routing configuration
+    -p               Purge Conntrack Table
+    -t               Timestamp progress Messages
+    -V <verbosity>   Set verbosity explicitly
+    -R <file>        Override RESTOREFILE setting
+
+   This issue affects Shorewall and Shorewall6 4.4.8 and later.
+
+   To work around the problem (IPv4 'debug restart' command):
+
+      shorewall compile /var/lib/shorewall/.restart
+      /var/lib/shorewall/.restart debug restart
+
+   Fixed in Shorewall 4.4.10.3.
+
+7) If the following options are specified in /etc/shorewall/interfaces
+   for an interface with '-' in the ZONE column, then these options
+   will be ignored if there is an entry in the hosts file for the
+   interface with an explicit or implicit 0.0.0.0/0 (0.0.0.0/0 is
+   implied when the host list begins with '!').
+
+   	blacklist
+	maclist
+	nosmurfs
+	tcpflags
+
+   You can work around this issue by specifying these options in the
+   hosts file entry rather than in the interfaces file.
+
+   Note: for IPv6, the network is ::/0 rather than 0.0.0.0/0.
+
+   Fixed in Shorewall 4.4.10.3.
+
+8) When REQUIRE_INTERFACE=Yes, the generated script is missing a
+   closing quote.
+
+   Fixed in Shorewall 4.4.10.3.
 
 

@@ -1,32 +1,24 @@
-'\" t
 .\"     Title: shorewall-tunnels
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/25/2010
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 07/05/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL\-TUNNELS" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL\-TUNNELS" "5" "07/05/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 tunnels \- Shorewall VPN definition file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall/tunnels\fR\ 'u
+.HP 23
 \fB/etc/shorewall/tunnels\fR
 .SH "DESCRIPTION"
 .PP
 The tunnels file is used to define rules for encapsulated (usually encrypted) traffic to pass between the Shorewall system and a remote gateway\&. Traffic flowing through the tunnel is handled using the normal zone/policy/rule mechanism\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/VPNBasics\&.html\fR\m[]
+\fIhttp://www\&.shorewall\&.net/VPNBasics\&.html\fR
 for details\&.
 .PP
 The columns in the file are as follows\&.
@@ -35,9 +27,7 @@ The columns in the file are as follows\&.
 .RS 4
 Types are as follows:
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         \fBipsec\fR         \- IPv4 IPSEC
         \fBipsecnat\fR      \- IPv4 IPSEC with NAT Traversal (UDP port 4500 encapsulation)
@@ -51,10 +41,7 @@ Types are as follows:
         \fBopenvpnserver\fR \- OpenVPN server runs on the firewall
         \fBgeneric\fR       \- Other tunnel type
 .fi
-.if n \{\
 .RE
-.\}
-.sp
 If the type is
 \fBipsec\fR, it may be followed by
 \fB:ah\fR
@@ -125,48 +112,36 @@ IPSec tunnel\&.
 .sp
 The remote gateway is 4\&.33\&.99\&.124 and the remote subnet is 192\&.168\&.9\&.0/24\&. The tunnel does not use the AH protocol
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY
         ipsec:noah      net     4\&.33\&.99\&.124
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 2:
 .RS 4
 Road Warrior (LapTop that may connect from anywhere) where the "gw" zone is used to represent the remote LapTop
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY         GATEWAY ZONES
         ipsec           net     0\&.0\&.0\&.0/0       gw
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 3:
 .RS 4
 Host 4\&.33\&.99\&.124 is a standalone system connected via an ipsec tunnel to the firewall system\&. The host is in zone gw\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY         GATEWAY ZONES
         ipsec           net     4\&.33\&.99\&.124     gw
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 4:
@@ -175,80 +150,60 @@ Road Warriors that may belong to zones vpn1, vpn2 or vpn3\&. The FreeS/Wan _updo
 \fBshorewall add\fR
 command on connect and will remove the host from the zone at disconnect time\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY         GATEWAY ZONES
         ipsec           net     0\&.0\&.0\&.0/0       vpn1,vpn2,vpn3
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 5:
 .RS 4
 You run the Linux PPTP client on your firewall and connect to server 192\&.0\&.2\&.221\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY         GATEWAY ZONES
         pptpclient      net     192\&.0\&.2\&.221
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 6:
 .RS 4
 You run a PPTP server on your firewall\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY         GATEWAY ZONES
         pptpserver      net     0\&.0\&.0\&.0/0
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 7:
 .RS 4
 OPENVPN tunnel\&. The remote gateway is 4\&.33\&.99\&.124 and openvpn uses port 7777\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE           ZONE    GATEWAY         GATEWAY ZONES
         openvpn:7777    net     4\&.33\&.99\&.124
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .PP
 Example 8:
 .RS 4
 You have a tunnel that is not one of the supported types\&. Your tunnel uses UDP port 4444\&. The other end of the tunnel is 4\&.3\&.99\&.124\&.
 .sp
-.if n \{\
 .RS 4
-.\}
 .nf
         #TYPE            ZONE    GATEWAY         GATEWAY ZONES
         generic:udp:4444 net     4\&.3\&.99\&.124
 .fi
-.if n \{\
 .RE
-.\}
 .RE
 .SH "FILES"
 .PP
