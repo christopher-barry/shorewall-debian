@@ -1,27 +1,19 @@
-'\" t
 .\"     Title: shorewall6-notrack
-.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/25/2010
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
-.\"  Language: English
+.\"    Author: 
+.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
+.\"      Date: 07/05/2010
+.\"    Manual: 
+.\"    Source: 
 .\"
-.TH "SHOREWALL6\-NOTRACK" "5" "06/25/2010" "[FIXME: source]" "[FIXME: manual]"
-.\" -----------------------------------------------------------------
-.\" * set default formatting
-.\" -----------------------------------------------------------------
+.TH "SHOREWALL6\-NOTRACK" "5" "07/05/2010" "" ""
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
-.\" -----------------------------------------------------------------
-.\" * MAIN CONTENT STARTS HERE *
-.\" -----------------------------------------------------------------
 .SH "NAME"
 notrack \- shorewall6 notrack file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall6/notrack\fR\ 'u
+.HP 24
 \fB/etc/shorewall6/notrack\fR
 .SH "DESCRIPTION"
 .PP
@@ -38,7 +30,7 @@ is the name of a zone,
 is an interface to that zone, and
 \fIaddress\-list\fR
 is a comma\-separated list of addresses (may contain exclusion \- see
-\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[1]\d\s+2
+\fIshorewall6\-exclusion\fR\&[1]
 (5))\&.
 .RE
 .PP
@@ -47,54 +39,33 @@ DEST \(en [\fIinterface\fR|\fIaddress\-list\fR]
 where
 \fIaddress\-list\fR
 is a comma\-separated list of addresses (may contain exclusion \- see
-\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[1]\d\s+2
+\fIshorewall6\-exclusion\fR\&[1]
 (5))\&. If an interface is given:
 .sp
 .RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-It must be up and configured with an IPv6 address when Shorewall is started or restarted\&.
+\h'-04'\(bu\h'+03'It must be up and configured with an IPv6 address when Shorewall is started or restarted\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-All routes out of the interface must be configured when Shorewall is started or restarted\&.
+\h'-04'\(bu\h'+03'All routes out of the interface must be configured when Shorewall is started or restarted\&.
 .RE
 .sp
 .RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-Default routes out of the interface will result in a warning message and will be ignored\&.
+\h'-04'\(bu\h'+03'Default routes out of the interface will result in a warning message and will be ignored\&.
 .RE
 .RE
 .PP
 PROTO \(en \fIprotocol\-name\-or\-number\fR
 .RS 4
 A protocol name from
-/etc/protocols
+\fI/etc/protocols\fR
 or a protocol number\&.
 .RE
 .PP
 DEST PORT(S) \- port\-number/service\-name\-list
 .RS 4
 A comma\-separated list of port numbers and/or service names from
-/etc/services\&. May also include port ranges of the form
+\fI/etc/services\fR\&. May also include port ranges of the form
 \fIlow\-port\fR:\fIhigh\-port\fR
 if your kernel and iptables include port range support\&.
 .RE
@@ -102,7 +73,7 @@ if your kernel and iptables include port range support\&.
 SOURCE PORT(S) \- port\-number/service\-name\-list
 .RS 4
 A comma\-separated list of port numbers and/or service names from
-/etc/services\&. May also include port ranges of the form
+\fI/etc/services\fR\&. May also include port ranges of the form
 \fIlow\-port\fR:\fIhigh\-port\fR
 if your kernel and iptables include port range support\&.
 .RE
@@ -123,5 +94,5 @@ shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-bl
 .IP " 1." 4
 shorewall6-exclusion
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall-exclusion.html
+\%shorewall-exclusion.html
 .RE
