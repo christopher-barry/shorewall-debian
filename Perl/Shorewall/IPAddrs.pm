@@ -91,9 +91,9 @@ our $validate_host;
 use constant { ALLIPv4             => '0.0.0.0/0' ,
 	       ALLIPv6             => '::/0' ,
 	       IPv4_MULTICAST      => '224.0.0.0/4' ,
-	       IPv6_MULTICAST      => 'FF00::/10' ,
-	       IPv6_LINKLOCAL      => 'FF80::/10' ,
-	       IPv6_SITELOCAL      => 'FFC0::/10' ,
+	       IPv6_MULTICAST      => 'FF00::/8' ,
+	       IPv6_LINKLOCAL      => 'FE80::/10' ,
+	       IPv6_SITELOCAL      => 'FEC0::/10' ,
 	       IPv6_LOOPBACK       => '::1' ,
 	       IPv6_LINK_ALLNODES  => 'FF01::1' ,
 	       IPv6_LINK_ALLRTRS   => 'FF01::2' ,
@@ -501,7 +501,7 @@ sub valid_6address( $ ) {
     unless ( $address =~ /::$/  ) {
 	return 0 if $address =~ /:$/;
     }
-		 
+
     for my $a ( @address ) {
 	return 0 unless $a eq '' || ( $a =~ /^[a-fA-f\d]+$/ && length $a < 5 );
     }
@@ -570,7 +570,7 @@ sub normalize_6addr( $ ) {
 	1 while $addr =~ s/::/:0:/;
 
 	$addr =~ s/^0+:/0:/;
-	
+
 	$addr;
     }
 }

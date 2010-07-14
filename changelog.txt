@@ -1,28 +1,30 @@
-Changes in Shorewall 4.4.10.3
-
-1)  Fix 'debug' and 'trace' handling.
-
-2)  Make find_hosts_by_option() work correctly where ALL_IP appears in
-    hosts file.
-
-3)  Correct syntax error in the generated script when REQUIRE_INTERFACE=Yes.
-
-Changes in Shorewall 4.4.10.2
-
-1)  Make IPv6 log and connections output readable.
-
-2)  Add REQUIRE_INTERFACE to shorewall*.conf
-
-3)  Avoid run-time diagnostic when options are omitted from
-    shorewall*.conf.
-
-4)  On Debian, run insserv when it is installed.
-
-Changes in Shorewall 4.4.10.1
+Changes in Shorewall 4.4.11
 
 1)  Apply patch from Gabriel.
 
 2)  Fix IPSET match detection when a pathname is specified for IPSET.
+
+3)  Fix start priority of shorewall-init on Debian
+
+4)  Make IPv6 log and connections output readable.
+
+5)  Add REQUIRE_INTERFACE to shorewall*.conf
+
+6)  Avoid run-time warnings when options are not listed in
+    shorewall.conf.
+
+7)  Implement Vserver zones.
+
+8)  Make find_hosts_by_option() work correctly where ALL_IP appears in
+    hosts file.
+
+9)  Add CLEAR_FORWARD_MARK option.
+
+10) Avoid missing closing quote when REQUIRE_INTERFACE=Yes.
+
+11) Add PERL option.
+
+12) Fix nets= in Shorewall6
 
 Changes in Shorewall 4.4.10
 

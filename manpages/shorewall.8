@@ -1,101 +1,109 @@
+'\" t
 .\"     Title: shorewall
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 07/05/2010
-.\"    Manual: 
-.\"    Source: 
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 07/14/2010
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
 .\"
-.TH "SHOREWALL" "8" "07/05/2010" "" ""
+.TH "SHOREWALL" "8" "07/14/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 shorewall \- Administration tool for Shoreline Firewall (Shorewall)
 .SH "SYNOPSIS"
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBadd\fR \fIinterface\fR[:\fIhost\-list\fR]... \fIzone\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcheck\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fB\-r\fR] [\fIdirectory\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBclear\fR\ [\fB\-f\fR] 
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcompile\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fIdirectory\fR] [\fIpathname\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdelete\fR \fIinterface\fR[:\fIhost\-list\fR]... \fIzone\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdrop\fR \fIaddress\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBdump\fR [\fB\-x\fR] [\fB\-l\fR] [\fB\-m\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBexport\fR [\fIdirectory1\fR] [\fIuser\fR@]\fIsystem\fR[\fB:\fR\fIdirectory2\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBforget\fR [\fIfilename\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBhelp\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBhits\fR\ [\fB\-t\fR] 
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBipcalc\fR {\fIaddress\fR\ \fImask\fR | \fIaddress\fR/\fIvlsm\fR}
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBiprange\fR \fIaddress1\fR\fB\-\fR\fIaddress2\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBiptrace\fR \fIiptables\ match\ expression\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fIdirectory\fR] \fIsystem\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogdrop\fR \fIaddress\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBlogwatch\fR [\fB\-m\fR] [\fIrefresh\-interval\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogreject\fR \fIaddress\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBnoiptrace\fR \fIiptables\ match\ expression\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrefresh\fR\ [\fIchain\fR...] 
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreject\fR \fIaddress\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBreload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fIdirectory\fR] \fIsystem\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreset\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-p\fR] [\fB\-f\fR] [\fIdirectory\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsafe\-restart\fR [\fB\-d\fR] [\fB\-p\fR] [\fIdirectory\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBsafe\-start\fR [\fB\-d\fR] [\fB\-p\fR] [\fIdirectory\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsave\fR [\fIfilename\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-x\fR] [\fB\-l\fR] [\fB\-t\fR\ {\fBfilter\fR|\fBmangle\fR|\fBnat\fR|\fBraw\fR}] [[\fBchain\fR]\ \fIchain\fR...]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-f\fR] \fBcapabilities\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR {\fBactions|classifiers|connections|config|filters|macros|zones\fR}
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR \fBmacro\fR\ \fImacro\fR 
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-x\fR] {\fBmangle|nat|raw\fR}
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR \fBpolicies\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR \fBtc\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-m\fR] \fBlog\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-p\fR] [\fIdirectory\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR\ [\fB\-f\fR] 
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBstatus\fR
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBtry\fR \fIdirectory\fR [\fItimeout\fR]
-.HP 10
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBversion\fR\ [\fB\-a\fR] 
 .SH "DESCRIPTION"
 .PP
@@ -107,14 +115,14 @@ The
 and
 \fBdebug\fR
 options are used for debugging\&. See
-\fIhttp://www\&.shorewall\&.net/starting_and_stopping\&.htm#Trace\fR\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping\&.htm#Trace\fR\m[]\&.
 .PP
 The nolock
 \fBoption\fR
 prevents the command from attempting to acquire the Shorewall lockfile\&. It is useful if you need to include
 \fBshorewall\fR
 commands in
-\fI/etc/shorewall/started\fR\&.
+/etc/shorewall/started\&.
 .PP
 The
 \fIoptions\fR
@@ -122,7 +130,7 @@ control the amount of output that the command produces\&. They consist of a sequ
 \fBv\fR
 and
 \fBq\fR\&. If the options are omitted, the amount of output is determined by the setting of the VERBOSITY parameter in
-\fIshorewall\&.conf\fR\&[1](5)\&. Each
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. Each
 \fBv\fR
 adds one to the effective verbosity and each
 \fBq\fR
@@ -148,14 +156,20 @@ Adds a list of hosts or subnets to a dynamic zone usually used with VPN\'s\&.
 The
 \fIinterface\fR
 argument names an interface defined in the
-\fIshorewall\-interfaces\fR\&[2](5) file\&. A
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&. A
 \fIhost\-list\fR
-is comma\-separated list whose elements are host or network addresses\&..sp
+is comma\-separated list whose elements are host or network addresses\&..if n \{\
+.sp
+.\}
+.RS 4
 .it 1 an-trap
 .nr an-no-space-flag 1
 .nr an-break-flag 1
 .br
-Caution
+.ps +1
+\fBCaution\fR
+.ps -1
+.br
 The
 \fBadd\fR
 command is not very robust\&. If there are errors in the
@@ -166,7 +180,8 @@ command will indicate that all hosts were added\&. If this happens, replace
 by
 \fBdelete\fR
 and run the same command again\&. Then enter the correct command\&.
-
+.sp .5v
+.RE
 .RE
 .PP
 \fBallow\fR
@@ -228,16 +243,16 @@ Compiles the current configuration into the executable file
 \fIpathname\fR\&. If a directory is supplied, Shorewall will look in that directory first for configuration files\&. If the
 \fIpathname\fR
 is omitted, the file
-\fIfirewall\fR
+firewall
 in the VARDIR (normally
-\fI/var/lib/shorewall/\fR) is assumed\&. A
+/var/lib/shorewall/) is assumed\&. A
 \fIpathname\fR
 of \'\-\' causes the compiler to send the generated script to it\'s standard output file\&. Note that \'\-v\-1\' is usually specified in this case (e\&.g\&.,
 \fBshorewall \-v\-1 compile \-\- \-\fR) to suppress the \'Compiling\&.\&.\&.\' message normally generated by
-\fI/sbin/shorewall\fR\&.
+/sbin/shorewall\&.
 .sp
 When \-e is specified, the compilation is being performed on a system other than where the compiled script will run\&. This option disables certain configuration options that require the script to be compiled where it is to be run\&. The use of \-e requires the presense of a configuration file named
-\fIcapabilities\fR
+capabilities
 which may be produced using the command
 \fBshorewall\-lite show \-f capabilities > capabilities\fR
 on a system with Shorewall Lite installed
@@ -262,7 +277,7 @@ command\&.
 The
 \fIinterface\fR
 argument names an interface defined in the
-\fIshorewall\-interfaces\fR\&[2](5) file\&. A
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&. A
 \fIhost\-list\fR
 is comma\-separated list whose elements are a host or network address\&.
 .RE
@@ -296,12 +311,17 @@ is omitted, the current working directory is assumed\&.
 .sp
 Allows a non\-root user to compile a shorewall script and stage it on a system (provided that the user has access to the system via ssh)\&. The command is equivalent to:
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
     \fB/sbin/shorewall compile \-e\fR \fIdirectory1\fR \fIdirectory1\fR\fB/firewall &&\e\fR
     \fBscp\fR directory1\fB/firewall\fR \fIdirectory1\fR\fB/firewall\&.conf\fR [\fIuser\fR@]\fBsystem\fR:[\fIdirectory2\fR]
 .fi
+.if n \{\
 .RE
+.\}
+.sp
 In other words, the configuration in the specified (or defaulted) directory is compiled to a file called firewall in that directory\&. If compilation succeeds, then firewall and firewall\&.conf are copied to
 \fIsystem\fR
 using scp\&.
@@ -312,7 +332,7 @@ using scp\&.
 Deletes /var/lib/shorewall/\fIfilenam\fRe and /var/lib/shorewall/save\&. If no
 \fIfilename\fR
 is given then the file specified by RESTOREFILE in
-\fIshorewall\&.conf\fR\&[1](5) is assumed\&.
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5) is assumed\&.
 .RE
 .PP
 \fBhelp\fR
@@ -354,13 +374,18 @@ If
 \fIdirectory\fR
 is omitted, the current working directory is assumed\&. Allows a non\-root user to compile a shorewall script and install it on a system (provided that the user has root access to the system via ssh)\&. The command is equivalent to:
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
     \fB/sbin/shorewall compile \-e\fR \fI\fIdirectory\fR\fR \fIdirectory\fR\fB/firewall &&\e\fR
     \fBscp\fR \fIdirectory\fR\fB/firewall\fR \fIdirectory\fR\fB/firewall\&.conf\fR \fBroot@\fR\fIsystem\fR\fB:/var/lib/shorewall\-lite/ &&\e\fR
     \fBssh root@\fR\fIsystem\fR \fB\'/sbin/shorewall\-lite start\'\fR
 .fi
+.if n \{\
 .RE
+.\}
+.sp
 In other words, the configuration in the specified (or defaulted) directory is compiled to a file called firewall in that directory\&. If compilation succeeds, then firewall is copied to
 \fIsystem\fR
 using scp\&. If the copy succeeds, Shorewall Lite on
@@ -396,14 +421,14 @@ rather than "root"\&.
 .RS 4
 Causes traffic from the listed
 \fIaddress\fRes to be logged then discarded\&. Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL setting in
-\fIshorewall\&.conf\fR\&[1]
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2
 (5)\&.
 .RE
 .PP
 \fBlogwatch\fR
 .RS 4
 Monitors the log file specified by the LOGFILE option in
-\fIshorewall\&.conf\fR\&[1](5) and produces an audible alarm when new Shorewall messages are logged\&. The
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5) and produces an audible alarm when new Shorewall messages are logged\&. The
 \fB\-m\fR
 option causes the MAC address of each packet source to be displayed if that information is available\&. The
 \fIrefresh\-interval\fR
@@ -415,7 +440,7 @@ specifies the time in seconds between screen refreshes\&. You can enter a negati
 .RS 4
 Causes traffic from the listed
 \fIaddress\fRes to be logged then rejected\&. Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL setting in
-\fIshorewall\&.conf\fR\&[1]
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2
 (5)\&.
 .RE
 .PP
@@ -452,18 +477,22 @@ The listed chains are assumed to be in the filter table\&. You can refresh chain
 .sp
 Example:
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
 \fBshorewall refresh net2fw nat:net_dnat\fR #Refresh the \'net2loc\' chain in the filter table and the \'net_dnat\' chain in the nat table
 .fi
+.if n \{\
 .RE
+.\}
 .sp
 The
 \fBrefresh\fR
 command has slightly different behavior\&. When no chain name is given to the
 \fBrefresh\fR
 command, the mangle table is refreshed along with the blacklist chain (if any)\&. This allows you to modify
-\fI/etc/shorewall/tcrules \fRand install the changes using
+/etc/shorewall/tcrulesand install the changes using
 \fBrefresh\fR\&.
 .RE
 .PP
@@ -473,13 +502,18 @@ If
 \fIdirectory\fR
 is omitted, the current working directory is assumed\&. Allows a non\-root user to compile a shorewall script and install it on a system (provided that the user has root access to the system via ssh)\&. The command is equivalent to:
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
     \fB/sbin/shorewall compile \-e\fR \fIdirectory\fR \fIdirectory\fR\fB/firewall &&\e\fR
     \fBscp\fR \fIdirectory\fR\fB/firewall\fR \fIdirectory\fR\fB/firewall\&.conf\fR \fBroot@\fR\fIsystem\fR\fB:/var/lib/shorewall\-lite/ &&\e\fR
     \fBssh root@\fR\fIsystem\fR \fB\'/sbin/shorewall\-lite restart\'\fR
 .fi
+.if n \{\
 .RE
+.\}
+.sp
 In other words, the configuration in the specified (or defaulted) directory is compiled to a file called firewall in that directory\&. If compilation succeeds, then firewall is copied to
 \fIsystem\fR
 using scp\&. If the copy succeeds, Shorewall Lite on
@@ -551,7 +585,7 @@ names a restore file in /var/lib/shorewall created using
 \fBshorewall save\fR; if no
 \fIfilename\fR
 is given then Shorewall will be restored from the file specified by the RESTOREFILE option in
-\fIshorewall\&.conf\fR\&[1](5)\&.
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&.
 .RE
 .PP
 \fBsafe\-restart\fR
@@ -576,7 +610,7 @@ and
 commands\&. If
 \fIfilename\fR
 is not given then the state is saved in the file specified by the RESTOREFILE option in
-\fIshorewall\&.conf\fR\&[1](5)\&.
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&.
 .RE
 .PP
 \fBshow\fR
@@ -643,7 +677,7 @@ Displays the IP connections currently being tracked by the firewall\&.
 \fBlog\fR
 .RS 4
 Displays the last 20 Shorewall messages from the log file specified by the LOGFILE option in
-\fIshorewall\&.conf\fR\&[1](5)\&. The
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. The
 \fB\-m\fR
 option causes the MAC address of each packet source to be displayed if that information is available\&.
 .RE
@@ -658,7 +692,7 @@ Displays information about each macro defined on the firewall system\&.
 Added in Shorewall 4\&.4\&.6\&. Displays the file that implements the specified
 \fImacro\fR
 (usually
-\fI/usr/share/shorewall/macro\fR\&.\fImacro\fR)\&.
+/usr/share/shorewall/macro\&.\fImacro\fR)\&.
 .RE
 .PP
 \fBmangle\fR
@@ -711,7 +745,7 @@ is included in the command, Shorewall will look in that
 first for configuration files\&. If
 \fB\-f\fR
 is specified, the saved configuration specified by the RESTOREFILE option in
-\fIshorewall\&.conf\fR\&[1](5) will be restored if that saved configuration exists and has been modified more recently than the files in /etc/shorewall\&. When
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5) will be restored if that saved configuration exists and has been modified more recently than the files in /etc/shorewall\&. When
 \fB\-f\fR
 is given, a
 \fIdirectory\fR
@@ -731,9 +765,9 @@ utility must be installed to use this option\&.
 \fBstop\fR
 .RS 4
 Stops the firewall\&. All existing connections, except those listed in
-\fIshorewall\-routestopped\fR\&[3](5) or permitted by the ADMINISABSENTMINDED option in
-\fIshorewall\&.conf\fR\&[1](5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
-\fIshorewall\-routestopped\fR\&[3](5) or by ADMINISABSENTMINDED\&.
+\m[blue]\fBshorewall\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
+\m[blue]\fBshorewall\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or by ADMINISABSENTMINDED\&.
 .sp
 If
 \fB\-f\fR
@@ -752,7 +786,7 @@ Produces a short report about the state of the Shorewall\-configured firewall\&.
 .PP
 \fBtry\fR
 .RS 4
-If Shorewall is started then the firewall state is saved to a temporary saved configuration (\fI/var/lib/shorewall/\&.try\fR)\&. Next, if Shorewall is currently started then a
+If Shorewall is started then the firewall state is saved to a temporary saved configuration (/var/lib/shorewall/\&.try)\&. Next, if Shorewall is currently started then a
 \fBrestart\fR
 command is issued; otherwise, a
 \fBstart\fR
@@ -789,22 +823,22 @@ option is included for compatibility with earlier Shorewall releases and is igno
 /etc/shorewall/
 .SH "SEE ALSO"
 .PP
-\fIhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]
 .PP
 shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall.conf
 .RS 4
-\%shorewall.conf.html
+\%http://www.shorewall.net/manpages/shorewall.conf.html
 .RE
 .IP " 2." 4
 shorewall-interfaces
 .RS 4
-\%shorewall-interfaces.html
+\%http://www.shorewall.net/manpages/shorewall-interfaces.html
 .RE
 .IP " 3." 4
 shorewall-routestopped
 .RS 4
-\%shorewall-routestopped.html
+\%http://www.shorewall.net/manpages/shorewall-routestopped.html
 .RE

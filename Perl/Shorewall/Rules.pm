@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  compile_stop_firewall
 		  );
 our @EXPORT_OK = qw( process_rule process_rule1 initialize );
-our $VERSION = '4.4_10';
+our $VERSION = '4.4_11';
 
 #
 # Set to one if we find a SECTION
@@ -370,8 +370,8 @@ sub process_routestopped() {
 	    my $chainref = $filter_table->{FORWARD};
 
 	    for my $host ( split /,/, $hosts ) {
-		add_rule( $chainref , 
-			  match_source_dev( $interface ) . 
+		add_rule( $chainref ,
+			  match_source_dev( $interface ) .
 			  match_dest_dev( $interface ) .
 			  match_source_net( $host ) .
 			  match_dest_net( $host ) );
@@ -452,7 +452,7 @@ sub add_common_rules() {
 	add_rule( $filter_table->{$_} , "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ) for qw( INPUT FORWARD OUTPUT );
     }
 
-    for $interface ( all_interfaces ) {
+    for $interface ( grep $_ ne '%vserver%', all_interfaces ) {
 	ensure_chain( 'filter', $_ ) for first_chains( $interface ), output_chain( $interface );
     }
 
@@ -466,18 +466,18 @@ sub add_common_rules() {
 	progress_message2 'Adding Anti-smurf Rules';
 
 	$chainref = new_standard_chain 'smurfs';
-    
+
 	my $smurfdest;
 
 	if ( defined $config{SMURF_LOG_LEVEL} && $config{SMURF_LOG_LEVEL} ne '' ) {
 	    my $smurfref = new_chain( 'filter', $smurfdest = 'smurflog' );
-	    
+
 	    log_rule_limit( $config{SMURF_LOG_LEVEL},
 			    $smurfref,
 			    'smurfs' ,
 			    'DROP',
 			    $globals{LOGLIMIT},
-			    '', 
+			    '',
 			    'add',
 			    '' );
 	    add_rule( $smurfref, '-j DROP' );
@@ -499,7 +499,7 @@ sub add_common_rules() {
 	    } else {
 		add_commands $chainref, 'for address in $ALL_ACASTS; do';
 	    }
-	    
+
 	    incr_cmd_level $chainref;
 	    add_jump( $chainref, $smurfdest, 1, '-s $address ' );
 	    decr_cmd_level $chainref;
@@ -582,7 +582,7 @@ sub add_common_rules() {
 		add_rule $filter_table->{$chain} , "-p udp --dport $ports -j ACCEPT";
 	    }
 
-	    add_rule( $filter_table->{forward_chain $interface} , 
+	    add_rule( $filter_table->{forward_chain $interface} ,
 		      "-p udp " .
 		      match_dest_dev( $interface ) .
 		      "--dport $ports -j ACCEPT" )
@@ -672,10 +672,10 @@ sub add_common_rules() {
 		if ( interface_is_optional $interface ) {
 		    add_commands( $chainref,
 				  qq(if [ -n "\$${base}_IS_USABLE" -a -n "$variable" ]; then) ,
-				  '    echo -A ' . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) ,
+				  '    echo "-A ' . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT" >&3) ,
 				  qq(fi) );
 		} else {
-		    add_commands( $chainref, 'echo -A ' . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT >&3) );
+		    add_rule( $chainref, match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT) );
 		}
 	    }
 	}
@@ -1133,10 +1133,10 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 
     my $restriction = NO_RESTRICT;
 
-    if ( $sourcezone eq firewall_zone ) {
-	$restriction = $destzone eq firewall_zone ? ALL_RESTRICT : OUTPUT_RESTRICT;
+    if ( $sourceref && ( $sourceref->{type} == FIREWALL || $sourceref->{type} == VSERVER ) ) {
+	$restriction = $destref && ( $destref->{type} == FIREWALL || $destref->{type} == VSERVER ) ? ALL_RESTRICT : OUTPUT_RESTRICT;
     } else {
-	$restriction = INPUT_RESTRICT if $destzone eq firewall_zone;
+	$restriction = INPUT_RESTRICT if $destref && ( $destref->{type} == FIREWALL || $destref->{type} == VSERVER );
     }
 
     my ( $chain, $chainref, $policy );
@@ -1199,14 +1199,14 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 	#
 	# Either a DNAT, REDIRECT or ACCEPT+ rule; don't apply rate limiting twice
 	#
-	$rule = join( '', 
+	$rule = join( '',
 		      do_proto($proto, $ports, $sports),
 		      do_user( $user ) ,
 		      do_test( $mark , $globals{TC_MASK} ) ,
 		      do_connlimit( $connlimit ),
 		      do_time( $time ) );
     } else {
-	$rule = join( '', 
+	$rule = join( '',
 		      do_proto($proto, $ports, $sports),
 		      do_ratelimit( $ratelimit, $basictarget ) ,
 		      do_user( $user ) ,
@@ -1290,7 +1290,7 @@ sub process_rule1 ( $$$$$$$$$$$$$ ) {
 		    $origdest = ALLIP;
 		}
 	    }
-	} else {            
+	} else {
 	    if ( $server eq '' ) {
 		fatal_error "A server and/or port must be specified in the DEST column in $action rules" unless $serverport;
 	    } elsif ( $server =~ /^(.+)-(.+)$/ ) {
@@ -1652,7 +1652,7 @@ sub rules_target( $$ ) {
     my ( $zone, $zone1 ) = @_;
     my $chain = rules_chain( ${zone}, ${zone1} );
     my $chainref = $filter_table->{$chain};
-    
+
     return $chain   if $chainref && $chainref->{referenced};
     return 'ACCEPT' if $zone eq $zone1;
 
@@ -1666,6 +1666,111 @@ sub rules_target( $$ ) {
     }
 
     ''; # CONTINUE policy
+}
+
+#
+# Generate rules for one destination zone
+#
+sub generate_dest_rules( $$$$ ) {
+    my ( $chainref, $chain, $z2, $match ) = @_;
+
+    my $z2ref            = find_zone( $z2 );
+    my $type2            = $z2ref->{type};
+
+    if ( $type2 == VSERVER ) {
+	for my $hostref ( @{$z2ref->{hosts}{ip}{'%vserver%'}} ) {
+	    my $exclusion   = dest_exclusion( $hostref->{exclusions}, $chain); 
+
+	    for my $net ( @{$hostref->{hosts}} ) {
+		add_jump( $chainref, 
+			  $exclusion ,
+			  0,
+			  join('', $match, match_dest_net( $net ) ) ) 
+	    }
+	}
+    } else {
+	add_jump( $chainref, $chain, 0, $match );
+    }
+}
+
+#
+# Generate rules for one vserver source zone
+#
+sub generate_source_rules( $$$$ ) {
+    my ( $outchainref, $z1, $z2, $match ) = @_;
+    my $chain = rules_target ( $z1, $z2 );
+	    
+    if ( $chain ) {
+	#
+	# Not a CONTINUE policy with no rules
+	#
+	for my $hostref ( @{defined_zone( $z1 )->{hosts}{ip}{'%vserver%'}} ) {
+	    my $ipsec_match = match_ipsec_in $z1 , $hostref;
+	    my $exclusion   = source_exclusion( $hostref->{exclusions}, $chain);
+		
+	    for my $net ( @{$hostref->{hosts}} ) {
+		generate_dest_rules( $outchainref,
+				     $exclusion,
+				     $z2,  
+				     join('', match_source_net( $net ), $match , $ipsec_match )
+				   );
+	    }	
+	}
+    } 
+}
+
+#
+# Loopback traffic -- this is where we assemble the intra-firewall traffic routing
+#
+sub handle_loopback_traffic() {
+    my @zones   = ( vserver_zones, firewall_zone );
+    my $natout  = $nat_table->{OUTPUT};
+    my $rulenum = 0;
+
+    my $outchainref;
+    my $rule = '';
+
+    if ( @zones > 1 ) {
+	$outchainref = new_standard_chain 'loopback';
+	add_jump $filter_table->{OUTPUT}, $outchainref, 0, '-o lo ';
+    } else {
+	$outchainref = $filter_table->{OUTPUT};
+	$rule = '-o lo ';
+    }
+
+    for my $z1 ( @zones ) {
+	my $z1ref            = find_zone( $z1 );
+	my $type1            = $z1ref->{type};
+	my $natref           = $nat_table->{dnat_chain $z1};
+
+	if ( $type1 == FIREWALL ) {
+	    for my $z2 ( @zones ) {
+		my $chain = rules_target( $z1, $z2 );
+
+		generate_dest_rules( $outchainref, $chain, $z2, $rule ) if $chain;
+	    }
+	} else {
+	    for my $z2 ( @zones ) {
+		generate_source_rules( $outchainref, $z1, $z2, $rule );
+	    }
+	}
+
+	if ( $natref && $natref->{referenced} ) {
+	    my $source_hosts_ref = defined_zone( $z1 )->{hosts};
+
+	    for my $typeref ( values %{$source_hosts_ref} ) {
+		for my $hostref ( @{$typeref->{'%vserver%'}} ) {
+		    my $exclusion   = source_exclusion( $hostref->{exclusions}, $natref);
+		
+		    for my $net ( @{$hostref->{hosts}} ) {
+			add_jump( $natout, $exclusion, 0, match_source_net( $net ), 0, $rulenum++ );
+		    }
+		}	
+	    }
+	}
+    }
+
+    add_rule $filter_table->{INPUT}  , '-i lo -j ACCEPT';
 }
 
 #
@@ -1686,7 +1791,7 @@ sub add_interface_jumps {
     addnatjump 'POSTROUTING' , 'nat_out' , '';
     addnatjump 'PREROUTING', 'dnat', '';
 
-    for my $interface ( @_ ) {
+    for my $interface ( grep $_ ne '%vserver%', @_ ) {
 	addnatjump 'PREROUTING'  , input_chain( $interface )  , match_source_dev( $interface );
 	addnatjump 'POSTROUTING' , output_chain( $interface ) , match_dest_dev( $interface );
 	addnatjump 'POSTROUTING' , masq_chain( $interface ) , match_dest_dev( $interface );
@@ -1694,7 +1799,7 @@ sub add_interface_jumps {
     #
     # Add the jumps to the interface chains from filter FORWARD, INPUT, OUTPUT
     #
-    for my $interface ( @_ ) {
+    for my $interface ( grep $_ ne '%vserver%', @_ ) {
 	my $forwardref   = $filter_table->{forward_chain $interface};
 	my $inputref     = $filter_table->{input_chain $interface};
 	my $outputref    = $filter_table->{output_chain $interface};
@@ -1709,14 +1814,8 @@ sub add_interface_jumps {
 	    add_jump $filter_table->{OUTPUT} , $outputref , 0, match_dest_dev( $interface ) unless get_interface_option( $interface, 'port' );
 	}
     }
-    #
-    # Loopback
-    #
-    my $fw = firewall_zone;
-    my $chainref = $filter_table->{rules_chain( ${fw}, ${fw} )};
 
-    add_jump $filter_table->{OUTPUT} ,  ($chainref->{referenced} ? $chainref : 'ACCEPT' ), 0, '-o lo ';
-    add_rule $filter_table->{INPUT} , '-i lo -j ACCEPT';
+    handle_loopback_traffic;
 }
 
 # Generate the rules matrix.
@@ -1733,7 +1832,8 @@ sub generate_matrix() {
     my $preroutingref = ensure_chain 'nat', 'dnat';
     my $fw = firewall_zone;
     my $notrackref = $raw_table->{notrack_chain $fw};
-    my @zones = non_firewall_zones;
+    my @zones = off_firewall_zones;
+    my @vservers = vserver_zones;
     my $interface_jumps_added = 0;
     our %input_jump_added   = ();
     our %output_jump_added  = ();
@@ -1802,7 +1902,6 @@ sub generate_matrix() {
 	my $source_hosts_ref = $zoneref->{hosts};
 	my $chain1           = rules_target firewall_zone , $zone;
 	my $chain2           = rules_target $zone, firewall_zone;
-	my $chain3           = rules_target $zone, $zone;
 	my $complex          = $zoneref->{options}{complex} || 0;
 	my $type             = $zoneref->{type};
 	my $frwd_ref         = $filter_table->{zone_forward_chain $zone};
@@ -1879,10 +1978,16 @@ sub generate_matrix() {
 			    my $interfacematch = '';
 			    my $use_output = 0;
 
-			    if ( use_output_chain( $interface, $interfacechainref ) || ( @{$interfacechainref->{rules}} && ! $chain1ref ) ) {
+			    if ( @vservers || use_output_chain( $interface, $interfacechainref ) || ( @{$interfacechainref->{rules}} && ! $chain1ref ) ) {
 				$outputref = $interfacechainref;
 				add_jump $filter_table->{OUTPUT}, $outputref, 0, match_dest_dev( $interface ) unless $output_jump_added{$interface}++;
 				$use_output = 1;
+
+				unless ( uc $net eq IPv6_LINKLOCAL ) {
+				    for my $vzone ( vserver_zones ) {
+					generate_source_rules ( $outputref, $vzone, $zone, $dest );
+				    }
+				}
 			    } else {
 				$outputref = $filter_table->{OUTPUT};
 				$interfacematch = match_dest_dev $interface;
@@ -1891,7 +1996,7 @@ sub generate_matrix() {
 			    add_jump $outputref , $nextchain, 0, join( '', $interfacematch, $dest, $ipsec_out_match );
 
 			    add_jump( $outputref , $nextchain, 0, join('', $interfacematch, '-d 255.255.255.255 ' , $ipsec_out_match ) )
-				if $hostref->{options}{broadcast};
+				if $family == F_IPV4 && $hostref->{options}{broadcast};
 
 			    move_rules( $interfacechainref , $chain1ref ) unless $use_output;
 			}
@@ -1934,10 +2039,17 @@ sub generate_matrix() {
 			my $interfacematch = '';
 			my $use_input;
 
-			if ( use_input_chain( $interface, $interfacechainref ) || ! $chain2 || ( @{$interfacechainref->{rules}} && ! $chain2ref ) ) {
+			if ( @vservers || use_input_chain( $interface, $interfacechainref ) || ! $chain2 || ( @{$interfacechainref->{rules}} && ! $chain2ref ) ) {
 			    $inputchainref = $interfacechainref;
 			    add_jump $filter_table->{INPUT}, $inputchainref, 0, match_source_dev($interface) unless $input_jump_added{$interface}++;
 			    $use_input = 1;
+
+			    unless ( uc $net eq IPv6_LINKLOCAL ) {
+				for my $vzone ( @vservers ) {
+				    my $target = rules_target( $zone, $vzone );
+				    generate_dest_rules( $inputchainref, $target, $vzone, $source . $ipsec_in_match ) if $target;
+				}
+			    }
 			} else {
 			    $inputchainref = $filter_table->{INPUT};
 			    $interfacematch = match_source_dev $interface;
@@ -2272,7 +2384,7 @@ EOF
 
 	        if [ -x $g_restorepath ]; then
 		    echo Restoring ${g_product:=Shorewall}...
-                    
+
                     g_recovering=Yes
 
 		    if run_it $g_restorepath restore; then

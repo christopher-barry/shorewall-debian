@@ -37,6 +37,7 @@ our @EXPORT = qw( NOTHING
 		  IPSECPROTO
 		  IPSECMODE
 		  FIREWALL
+		  VSERVER
 		  IP
 		  BPORT
 		  IPSEC
@@ -52,6 +53,8 @@ our @EXPORT = qw( NOTHING
 		  all_zones
 		  all_parent_zones
 		  complex_zones
+		  vserver_zones
+		  off_firewall_zones
 		  non_firewall_zones
 		  single_interface
 		  chain_base
@@ -80,7 +83,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_10';
+our $VERSION = '4.4_11';
 
 #
 # IPSEC Option types
@@ -166,7 +169,8 @@ our $have_ipsec;
 use constant { FIREWALL => 1,
 	       IP       => 2,
 	       BPORT    => 3,
-	       IPSEC    => 4 };
+	       IPSEC    => 4,
+	       VSERVER  => 5 };
 
 use constant { SIMPLE_IF_OPTION   => 1,
 	       BINARY_IF_OPTION   => 2,
@@ -180,6 +184,7 @@ use constant { SIMPLE_IF_OPTION   => 1,
 
 	       IF_OPTION_ZONEONLY => 8,
 	       IF_OPTION_HOST     => 16,
+	       IF_OPTION_VSERVER  => 32,
 	   };
 
 our %validinterfaceoptions;
@@ -222,13 +227,13 @@ sub initialize( $ ) {
 				  dhcp        => SIMPLE_IF_OPTION,
 				  maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  logmartians => BINARY_IF_OPTION,
-				  nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY,
+				  nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				  norfc1918   => OBSOLETE_IF_OPTION,
 				  nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  optional    => SIMPLE_IF_OPTION,
 				  proxyarp    => BINARY_IF_OPTION,
 				  required    => SIMPLE_IF_OPTION,
-				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST,
+				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				  routefilter => NUMERIC_IF_OPTION ,
 				  sourceroute => BINARY_IF_OPTION,
 				  tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -253,12 +258,12 @@ sub initialize( $ ) {
 				    bridge      => SIMPLE_IF_OPTION,
 				    dhcp        => SIMPLE_IF_OPTION,
 				    maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
-				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY,
+				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    optional    => SIMPLE_IF_OPTION,
 				    proxyndp    => BINARY_IF_OPTION,
 				    required    => SIMPLE_IF_OPTION,
-				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST,
+				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				    sourceroute => BINARY_IF_OPTION,
 				    tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    mss         => NUMERIC_IF_OPTION,
@@ -376,6 +381,7 @@ sub process_zone( \$ ) {
 	    fatal_error "Invalid Parent List ($2)" unless $p;
 	    fatal_error "Unknown parent zone ($p)" unless $zones{$p};
 	    fatal_error 'Subzones of firewall zone not allowed' if $zones{$p}{type} == FIREWALL;
+	    fatal_error 'Subzones of a Vserver zone not allowed' if $zones{$p}{type} == VSERVER;
 	    push @{$zones{$p}{children}}, $zone;
 	}
     }
@@ -402,11 +408,14 @@ sub process_zone( \$ ) {
 	$firewall_zone = $zone;
 	$ENV{FW} = $zone;
 	$type = FIREWALL;
+    } elsif ( $type eq 'vserver' ) {
+	fatal_error 'Vserver zones may not be nested' if @parents;
+	$type = VSERVER;
     } elsif ( $type eq '-' ) {
 	$type = IP;
 	$$ip = 1;
     } else {
-	fatal_error "Invalid zone type ($type)" ;
+	fatal_error "Invalid zone type ($type)";
     }
 
     if ( $type eq IPSEC ) {
@@ -495,9 +504,9 @@ sub zone_report()
     my @translate;
 
     if ( $family == F_IPV4 ) {
-	@translate = ( undef, 'firewall', 'ipv4', 'bport4', 'ipsec4' );
+	@translate = ( undef, 'firewall', 'ipv4', 'bport4', 'ipsec4', 'vserver' );
     } else {
-	@translate = ( undef, 'firewall', 'ipv6', 'bport6', 'ipsec6' );
+	@translate = ( undef, 'firewall', 'ipv6', 'bport6', 'ipsec6', 'vserver' );
     }
 
     for my $zone ( @zones )
@@ -524,7 +533,7 @@ sub zone_report()
 			    my $grouplist  = join ',', ( @$hosts );
 			    my $exclusions = join ',', @{$groupref->{exclusions}};
 			    $grouplist = join '!', ( $grouplist, $exclusions) if $exclusions;
-		
+
 			    if ( $family == F_IPV4 ) {
 				progress_message_nocompress "      $iref->{physical}:$grouplist";
 			    } else {
@@ -554,9 +563,9 @@ sub dump_zone_contents()
     my @xlate;
 
     if ( $family == F_IPV4 ) {
-	@xlate = ( undef, 'firewall', 'ipv4', 'bport4', 'ipsec4' );
+	@xlate = ( undef, 'firewall', 'ipv4', 'bport4', 'ipsec4', 'vserver' );
     } else {
-	@xlate = ( undef, 'firewall', 'ipv6', 'bport6', 'ipsec6' );
+	@xlate = ( undef, 'firewall', 'ipv6', 'bport6', 'ipsec6', 'vserver' );
     }
 
     for my $zone ( @zones )
@@ -722,8 +731,12 @@ sub all_zones() {
     @zones;
 }
 
+sub off_firewall_zones() {
+   grep ( ! ( $zones{$_}{type} == FIREWALL || $zones{$_}{type} == VSERVER )  ,  @zones );
+}
+
 sub non_firewall_zones() {
-   grep ( $zones{$_}{type} != FIREWALL ,  @zones );
+   grep ( $zones{$_}{type} != FIREWALL  ,  @zones );
 }
 
 sub all_parent_zones() {
@@ -732,6 +745,10 @@ sub all_parent_zones() {
 
 sub complex_zones() {
     grep( $zones{$_}{options}{complex} , @zones );
+}
+
+sub vserver_zones() {
+    grep ( $zones{$_}{type} == VSERVER, @zones );
 }
 
 sub firewall_zone() {
@@ -743,7 +760,7 @@ sub firewall_zone() {
 #
 sub is_a_bridge( $ ) {
     which 'brctl' && qt( "brctl show | tail -n+2 | grep -q '^$_[0]\[\[:space:\]\]'" );
-} 
+}
 
 #
 # Transform the passed interface name into a legal shell variable name.
@@ -797,6 +814,8 @@ sub process_interface( $$ ) {
 	    } else {
 		$zoneref->{bridge} = $interface;
 	    }
+	    
+	    fatal_error "Vserver zones may not be associated with bridge ports" if $zoneref->{type} == VSERVER;
 	}
 
 	$bridge = $interface;
@@ -804,6 +823,8 @@ sub process_interface( $$ ) {
     } else {
 	fatal_error "Duplicate Interface ($interface)" if $interfaces{$interface};
 	fatal_error "Zones of type 'bport' may only be associated with bridge ports" if $zone && $zoneref->{type} == BPORT;
+	fatal_error "Vserver zones may not be associated with interfaces" if $zone && $zoneref->{type} == VSERVER;
+
 	$bridge = $interface;
     }
 
@@ -840,7 +861,11 @@ sub process_interface( $$ ) {
 
     my $hostoptionsref = {};
 
-    $options{ignore} = 1, $options = '-' if $options eq 'ignore';
+    if ( $options eq 'ignore' ) {
+	fatal_error "Ignored interfaces may not be associated with a zone" if $zone;
+	$options{ignore} = 1;
+	$options = '-';
+    }
 
     if ( $options ne '-' ) {
 
@@ -853,7 +878,11 @@ sub process_interface( $$ ) {
 
 	    fatal_error "Invalid Interface option ($option)" unless my $type = $validinterfaceoptions{$option};
 
-	    fatal_error "The \"$option\" option may not be specified on a multi-zone interface" if $type & IF_OPTION_ZONEONLY && ! $zone;
+	    if ( $zone ) {
+		fatal_error qq(The "$option" option may not be specified for a Vserver zone") if $zoneref->{type} == VSERVER && ! ( $type & IF_OPTION_VSERVER );
+	    } else { 
+		fatal_error "The \"$option\" option may not be specified on a multi-zone interface" if $type & IF_OPTION_ZONEONLY;
+	    }
 
 	    my $hostopt = $type & IF_OPTION_HOST;
 
@@ -969,7 +998,7 @@ sub process_interface( $$ ) {
 	# No options specified -- auto-detect bridge
 	#
 	$hostoptionsref->{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export;
-    }	
+    }
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
 						       bridge     => $bridge ,
@@ -985,12 +1014,12 @@ sub process_interface( $$ ) {
     if ( $zone ) {
 	$netsref ||= [ allip ];
 	add_group_to_zone( $zone, $zoneref->{type}, $interface, $netsref, $hostoptionsref );
-	add_group_to_zone( $zone, 
-			   $zoneref->{type}, 
-			   $interface, 
-			   [ IPv4_MULTICAST ], 
+	add_group_to_zone( $zone,
+			   $zoneref->{type},
+			   $interface,
+			   $family == F_IPV4 ? [ IPv4_MULTICAST ] : [ IPv6_MULTICAST ] ,
 			   { destonly => 1 } ) if $hostoptionsref->{multicast} && $interfaces{$interface}{zone} ne $zone;
-    } 
+    }
 
     progress_message "  Interface \"$currentline\" Validated";
 
@@ -1035,6 +1064,27 @@ sub validate_interfaces_file( $ ) {
     # Be sure that we have at least one interface
     #
     fatal_error "No network interfaces defined" unless @interfaces;
+
+    if ( vserver_zones ) {
+	#
+	# While the user thinks that vservers are associated with a particular interface, they really are not.
+	# We create an interface to associated them with.
+	#
+	my $interface = '%vserver%';
+
+	$interfaces{$interface} = { name       => $interface ,
+				    bridge     => $interface ,
+				    nets       => 0 ,
+				    number     => $nextinum ,
+				    root       => $interface ,
+				    broadcasts => undef ,
+				    options    => {} ,
+				    zone       => '',
+				    physical   => 'lo',
+				  };
+
+	push @interfaces, $interface;
+    }
 }
 
 #
@@ -1043,13 +1093,13 @@ sub validate_interfaces_file( $ ) {
 sub map_physical( $$ ) {
     my ( $name, $interfaceref ) = @_;
     my $physical = $interfaceref->{physical};
-    
+
     return $physical if $name eq $interfaceref->{name};
 
     $physical =~ s/\+$//;
 
     $physical . substr( $name, length  $interfaceref->{root} );
-}  
+}
 
 #
 # Returns true if passed interface matches an entry in /etc/shorewall/interfaces
@@ -1070,9 +1120,9 @@ sub known_interface($)
 	    #
 	    # Cache this result for future reference. We set the 'name' to the name of the entry that appears in /etc/shorewall/interfaces and we do not set the root;
 	    #
-	    return $interfaces{$interface} = { options  => $interfaceref->{options}, 
-					       bridge   => $interfaceref->{bridge} , 
-					       name     => $i , 
+	    return $interfaces{$interface} = { options  => $interfaceref->{options},
+					       bridge   => $interfaceref->{bridge} ,
+					       name     => $i ,
 					       number   => $interfaceref->{number} ,
 					       physical => map_physical( $interface, $interfaceref )
 					     };
@@ -1173,7 +1223,7 @@ sub find_interfaces_by_option( $ ) {
 
     for my $interface ( @interfaces ) {
 	my $interfaceref = $interfaces{$interface};
-	
+
 	next unless $interfaceref->{root};
 
 	my $optionsref = $interfaceref->{options};
@@ -1231,9 +1281,9 @@ sub set_interface_option( $$$ ) {
 sub verify_required_interfaces( $ ) {
 
     my $generate_case = shift;
-    
+
     my $returnvalue = 0;
-   
+
     my $interfaces = find_interfaces_by_option 'wait';
 
     if ( @$interfaces ) {
@@ -1244,7 +1294,7 @@ sub verify_required_interfaces( $ ) {
 
 	    if ( $wait ) {
 		my $physical = get_physical $interface;
-	    
+
 		if ( $physical =~ /\+$/ ) {
 		    my $base = uc chain_base $physical;
 
@@ -1318,7 +1368,7 @@ sub verify_required_interfaces( $ ) {
 		emit qq(fi\n);
 	    }
 	}
-	
+
 	if ( $generate_case ) {
 	    emit( ';;' );
 	    pop_indent;
@@ -1413,19 +1463,19 @@ sub compile_updown() {
 
 	emit( '        detect_configuration',
 	      '        define_firewall' );
-	
+
 	if ( $wildcard ) {
 	    emit( '    elif [ "$state" = started ]; then',
 		  '        COMMAND=restart',
 		  '        detect_configuration',
 		  '        define_firewall' );
 	} else {
-	    emit( '    else', 
+	    emit( '    else',
 		  '        COMMAND=stop',
 		  '        detect_configuration',
 		  '        stop_firewall' );
 	}
-	
+
 	emit( '    fi',
 	      '    ;;'
 	    );
@@ -1463,11 +1513,11 @@ sub compile_updown() {
 	  '            detect_configuration',
 	  '            define_firewall',
 	  '            ;;',
-	  '    esac',  
+	  '    esac',
 	);
 
     pop_indent;
-    
+
     emit( 'esac' );
 
     pop_indent;
@@ -1475,7 +1525,7 @@ sub compile_updown() {
     emit( '}',
 	  '',
 	);
-}  
+}
 
 #
 # Process a record in the hosts file
@@ -1517,7 +1567,7 @@ sub process_host( ) {
 	} elsif ( $zoneref->{bridge} ne $interfaces{$interface}{bridge} ) {
 	    fatal_error "Interface $interface is not a port on bridge $zoneref->{bridge}";
 	}
-    }
+    } 
 
     my $optionsref = { dynamic => 0 };
 
@@ -1534,11 +1584,14 @@ sub process_host( ) {
 	    } elsif ( $option eq 'norfc1918' ) {
 		warning_message "The 'norfc1918' option is no longer supported"
 	    } elsif ( $validhostoptions{$option}) {
+		fatal_error qq(The "$option" option is not allowed with Vserver zones) if $type == VSERVER && ! ( $validhostoptions{$option} & IF_OPTION_VSERVER );
 		$options{$option} = 1;
 	    } else {
 		fatal_error "Invalid option ($option)";
 	    }
 	}
+
+	fatal_error q(A host entry for a Vserver zone may not specify the 'ipsec' option) if $ipsec && $zoneref->{type} == VSERVER; 
 
 	$optionsref = \%options;
     }
@@ -1559,6 +1612,7 @@ sub process_host( ) {
     $hosts = join( '', ALLIP , $hosts ) if substr($hosts, 0, 2 ) eq ',!';
 
     if ( $hosts eq 'dynamic' ) {
+	fatal_error "Vserver zones may not be dynamic" if $type == VSERVER;
 	require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
 	my $physical = physical_name $interface;
 	$hosts = "+${zone}_${physical}";
@@ -1566,6 +1620,10 @@ sub process_host( ) {
 	$ipsets{"${zone}_${physical}"} = 1;
 
     }
+    #
+    # We ignore the user's notion of what interface vserver addresses are on and simply invent one for all of the vservers.
+    #
+    $interface = '%vserver%' if $type == VSERVER;
 
     add_group_to_zone( $zone, $type , $interface, [ split_list( $hosts, 'host' ) ] , $optionsref);
 

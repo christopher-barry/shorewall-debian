@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_11';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -448,7 +448,9 @@ sub setup_netmap() {
 
     while ( read_a_line ) {
 
-	my ( $type, $net1, $interfacelist, $net2 ) = split_line 4, 4, 'netmap file';
+	my ( $type, $net1, $interfacelist, $net2, $net3 ) = split_line 4, 5, 'netmap file';
+
+	$net3 = ALLIP if $net3 eq '-';
 
 	for my $interface ( split_list $interfacelist, 'interface' ) {
 
@@ -459,15 +461,15 @@ sub setup_netmap() {
 	    fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
 	    unless ( $interfaceref->{root} ) {
-		$rulein  = match_source_dev $interface;
-		$ruleout = match_dest_dev $interface;
+		$rulein  = match_source_dev( $interface );
+		$ruleout = match_dest_dev( $interface );
 		$interface = $interfaceref->{name};
 	    }
 
 	    if ( $type eq 'DNAT' ) {
-		add_rule ensure_chain( 'nat' , input_chain $interface ) , $rulein  . "-d $net1 -j NETMAP --to $net2";
+		add_rule ensure_chain( 'nat' , input_chain $interface ) , $rulein   . match_source_net( $net3 ) . "-d $net1 -j NETMAP --to $net2";
 	    } elsif ( $type eq 'SNAT' ) {
-		add_rule ensure_chain( 'nat' , output_chain $interface ) , $ruleout . "-s $net1 -j NETMAP --to $net2";
+		add_rule ensure_chain( 'nat' , output_chain $interface ) , $ruleout . match_dest_net( $net3 )   . "-s $net1 -j NETMAP --to $net2";
 	    } else {
 		fatal_error "Invalid type ($type)";
 	    }

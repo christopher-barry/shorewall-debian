@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_11';
 
 our %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -317,7 +317,7 @@ sub process_tc_rule( ) {
 			require_capability( 'TPROXY_TARGET', 'Use of TPROXY', 's');
 
 			fatal_error "Invalid TPROXY specification( $cmd/$rest )" if $rest;
-			
+
 			$chain = 'tcpre';
 
 			$cmd =~ /TPROXY\((.+?)\)$/;
@@ -337,15 +337,15 @@ sub process_tc_rule( ) {
 			}
 
 			$target .= "--on-port $port";
-			
+
 			if ( defined $ip && $ip ne '' ) {
 			    validate_address $ip, 1;
 			    $target .= " --on-ip $ip";
 			}
 
-			$target .= ' --tproxy-mark';	
+			$target .= ' --tproxy-mark';
 		    }
-			
+
 
 		    if ( $rest ) {
 			fatal_error "Invalid MARK ($originalmark)" if $marktype == NOMARK;
@@ -371,8 +371,10 @@ sub process_tc_rule( ) {
 		my $val = numeric_value( $cmd );
 		fatal_error "Invalid MARK/CLASSIFY ($cmd)" unless defined $val;
 		my $limit = $globals{TC_MASK};
-		fatal_error "Marks <= $limit may not be set in the PREROUTING or OUTPUT chains when HIGH_ROUTE_MARKS=Yes"
-		    if $cmd && ( $chain eq 'tcpre' || $chain eq 'tcout' ) && $val <= $limit;
+		unless ( have_capability 'FWMARK_RT_MASK' ) {
+		    fatal_error "Marks <= $limit may not be set in the PREROUTING or OUTPUT chains when HIGH_ROUTE_MARKS=Yes"
+			if $cmd && ( $chain eq 'tcpre' || $chain eq 'tcout' ) && $val <= $limit;
+		}
 	    }
 	}
     }
@@ -443,7 +445,7 @@ sub process_flow($) {
 }
 
 sub process_simple_device() {
-    my ( $device , $type , $bandwidth ) = split_line 1, 3, 'tcinterfaces';
+    my ( $device , $type , $in_bandwidth ) = split_line 1, 3, 'tcinterfaces';
 
     fatal_error "Duplicate INTERFACE ($device)"    if $tcdevices{$device};
     fatal_error "Invalid INTERFACE name ($device)" if $device =~ /[:+]/;
@@ -463,7 +465,7 @@ sub process_simple_device() {
 	}
     }
 
-    $bandwidth = rate_to_kbit( $bandwidth );
+    $in_bandwidth = rate_to_kbit( $in_bandwidth );
 
     emit "if interface_is_up $physical; then";
 
@@ -471,13 +473,13 @@ sub process_simple_device() {
 
     emit ( "${dev}_exists=Yes",
 	   "qt \$TC qdisc del dev $physical root",
-	   "qt \$TC qdisc del dev $physical ingress\n"	   
+	   "qt \$TC qdisc del dev $physical ingress\n"
 	 );
 
     emit ( "run_tc qdisc add dev $physical handle ffff: ingress",
-	   "run_tc filter add dev $physical parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate ${bandwidth}kbit burst 10k drop flowid :1\n"
-	 ) if $bandwidth;
-	  
+	   "run_tc filter add dev $physical parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate ${in_bandwidth}kbit burst 10k drop flowid :1\n"
+	 ) if $in_bandwidth;
+
     emit "run_tc qdisc add dev $physical root handle $number: prio bands 3 priomap $config{TC_PRIOMAP}";
 
     for ( my $i = 1; $i <= 3; $i++ ) {
@@ -488,7 +490,7 @@ sub process_simple_device() {
     }
 
     save_progress_message_short qq("   TC Device $physical defined.");
-    
+
     pop_indent;
     emit 'else';
     push_indent;
@@ -497,9 +499,9 @@ sub process_simple_device() {
     emit "${dev}_exists=";
     pop_indent;
     emit "fi\n";
- 
+
     progress_message "  Simple tcdevice \"$currentline\" $done.";
-}    
+}
 
 sub validate_tc_device( ) {
     my ( $device, $inband, $outband , $options , $redirected ) = split_line 3, 5, 'tcdevices';
@@ -1094,14 +1096,14 @@ sub process_tc_priority() {
 		  1 );
     } else {
 	my $postref = $mangle_table->{tcpost};
-	
+
 	if ( $address ne '-' ) {
 	    fatal_error "Invalid combination of columns" unless $proto eq '-' && $ports eq '-';
 	    add_rule( $postref ,
 		      join( '', match_source_net( $address) , $rule ) ,
 		      1 );
 	} else {
-	    add_rule( $postref , 
+	    add_rule( $postref ,
 		      join( '', do_proto( $proto, $ports, '-' , 0 ) , $rule ) ,
 		      1 );
 
@@ -1113,7 +1115,7 @@ sub process_tc_priority() {
 		    $ipp2p = 1;
 		}
 
-		add_rule( $postref , 
+		add_rule( $postref ,
 			  join( '' , do_proto( $proto, '-', $ports, 0 ) , $rule ) ,
 			  1 )
 		    unless $proto =~ /^ipp2p/ || $protocol == ICMP || $protocol == IPv6_ICMP;
@@ -1139,8 +1141,8 @@ sub setup_simple_traffic_shaping() {
     my $fn1 = open_file 'tcpri';
 
     if ( $fn1 ) {
-	first_entry 
-	    sub { 
+	first_entry
+	    sub {
 		progress_message2 "$doing $fn1...";
 		warning_message "There are entries in $fn1 but $fn was empty" unless $interfaces;
 	    };
@@ -1383,7 +1385,9 @@ sub setup_tc() {
 	add_jump $mangle_table->{OUTPUT} ,     'tcout', 0, $mark_part;
 
 	if ( have_capability( 'MANGLE_FORWARD' ) ) {
-	    add_rule( $mangle_table->{FORWARD},     '-j MARK --set-mark 0' ) if have_capability 'MARK';
+	    my $mask = have_capability 'EXMARK' ? have_capability 'FWMARK_RT_MASK' ? '/' . in_hex $globals{PROVIDER_MASK} : '' : '';
+
+	    add_rule( $mangle_table->{FORWARD},     "-j MARK --set-mark 0${mask}" ) if $config{FORWARD_CLEAR_MARK};
 	    add_jump $mangle_table->{FORWARD} ,     'tcfor',  0;
 	    add_jump $mangle_table->{POSTROUTING} , 'tcpost', 0;
 	}

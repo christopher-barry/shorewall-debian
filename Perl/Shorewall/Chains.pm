@@ -175,7 +175,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_10';
+our $VERSION = '4.4_11';
 
 #
 # Chain Table
@@ -213,7 +213,7 @@ our $VERSION = '4.4_10';
 #                 }
 #
 #       'provisional' only applies to policy chains; when true, indicates that this is a provisional policy chain which might be
-#       replaced. Policy chains created under the IMPLICIT_CONTINUE=Yes option are marked with provisional == 1 as are intra-zone 
+#       replaced. Policy chains created under the IMPLICIT_CONTINUE=Yes option are marked with provisional == 1 as are intra-zone
 #       ACCEPT policies.
 #
 #       Only 'referenced' chains get written to the iptables-restore input.
@@ -631,7 +631,7 @@ sub insert_rule($$$) {
 # the target in the second argument. The third argument determines if a GOTO may be
 # used rather than a jump. The optional fourth argument specifies any matches to be
 # included in the rule and must end with a space character if it is non-null. The
-# optional 5th argument causes long port lists to be split. The optional 6th 
+# optional 5th argument causes long port lists to be split. The optional 6th
 # argument, if passed, gives the 0-relative index where the jump is to be inserted.
 #
 sub add_jump( $$$;$$$ ) {
@@ -650,7 +650,7 @@ sub add_jump( $$$;$$$ ) {
 	#
 	# Ensure that we have the chain unless it is a builtin like 'ACCEPT'
 	#
-	$toref = ensure_chain( $fromref->{table} , $to ) unless $builtin_target{$to} || $to =~ / --/; #If the target has options, it must be a builtin. 
+	$toref = ensure_chain( $fromref->{table} , $to ) unless $builtin_target{$to} || $to =~ / --/; #If the target has options, it must be a builtin.
     }
 
     #
@@ -761,7 +761,7 @@ sub move_rules( $$ ) {
 	my $name2    = $chain2->{name};
 	my $rules    = $chain2->{rules};
 	my $count    = @{$chain1->{rules}};
-	my $tableref = $chain_table{$chain1->{table}}; 
+	my $tableref = $chain_table{$chain1->{table}};
 	#
 	# We allow '+' in chain names and '+' is an RE meta-character. Escape it.
 	#
@@ -769,7 +769,7 @@ sub move_rules( $$ ) {
 
 	for ( @{$chain1->{rules}} ) {
 	    adjust_reference_counts( $tableref->{$1}, $name1, $name2 ) if / -[jg] ([^\s]+)/;
-	}	    
+	}
 
 	if ( $debug ) {
 	    my $rule = @{$chain1->{rules}};
@@ -830,7 +830,7 @@ sub copy_rules( $$ ) {
 	delete $chain1->{references}{$name2};
 	unless ( keys %{$chain1->{references}} ) {
 	    delete_chain $chain1;
-	}    
+	}
     }
 }
 
@@ -1413,8 +1413,8 @@ sub optimize_chain( $ ) {
     if ( $chainref->{referenced} ) {
 	my $rules    = $chainref->{rules};
 	my $count    = 0;
-    
-	pop @$rules; # Pop the plain -j ACCEPT rule at the end of the chain 
+
+	pop @$rules; # Pop the plain -j ACCEPT rule at the end of the chain
 
 	pop @$rules, $count++ while @$rules && $rules->[-1] =~ /-j ACCEPT(?:$|\s)/;
 
@@ -1441,7 +1441,7 @@ sub optimize_chain( $ ) {
 			$count++;
 			trace( $chainref, 'R', $rule, $_ ) if $debug;
 		    }
-		} 
+		}
 	    }
 
 	    progress_message "  $count references to ACCEPT policy chain $chainref->{name} replaced";
@@ -1501,7 +1501,7 @@ sub replace_references( $$ ) {
 			$count++;
 			trace( $fromref, 'R', $rule, $_ ) if $debug;
 		    }
-		}    
+		}
 	    }
 	}
 
@@ -1541,7 +1541,7 @@ sub replace_references1( $$$ ) {
     #
     # The caller has ensured that $matches does not contain /! -[piosd] /
     #
-    my $hasp     = $matches =~ / -p /; 
+    my $hasp     = $matches =~ / -p /;
     my $hasi     = $matches =~ / -i /;
     my $haso     = $matches =~ / -o /;
     my $hass     = $matches =~ / -s /;
@@ -1608,7 +1608,7 @@ sub replace_references1( $$$ ) {
 	}
     }
 
-    
+
 
     progress_message "  $count references to chain $chainref->{name} replaced" if $count;
 
@@ -1616,7 +1616,7 @@ sub replace_references1( $$$ ) {
 }
 
 #
-# The passed builtin chain has a single rule. If the target is a user chain without 'dont"move', copy the rules from the 
+# The passed builtin chain has a single rule. If the target is a user chain without 'dont"move', copy the rules from the
 # chain to the builtin and return true; otherwise, do nothing and return false.
 #
 sub conditionally_copy_rules( $$ ) {
@@ -1628,7 +1628,7 @@ sub conditionally_copy_rules( $$ ) {
 	#
 	my $basictarget = $1;
 	my $targetref = $chain_table{$chainref->{table}}{$basictarget};
-	
+
 	if ( $targetref && ! $targetref->{dont_move} ) {
 	    #
 	    # Move is safe -- start with an empty rule list
@@ -1691,10 +1691,10 @@ sub optimize_ruleset() {
 			delete_chain $chainref;
 			next;
 		    }
-		    
+
 		    unless ( $chainref->{dont_optimize} ) {
 			my $numrules = @{$chainref->{rules}};
-			
+
 			if ( $numrules == 0 ) {
 			    #
 			    # No rules in this chain
@@ -1765,25 +1765,25 @@ sub optimize_ruleset() {
 		    }
 		}
 	    }
-	    
+
 	    #
 	    # In this loop, we look for chains that end in an unconditional jump. If the target of the jump
 	    # is subject to deletion (dont_delete = false), the jump is replaced by target's rules.
 	    #
 	    $progress = 1;
-	    
+
 	    while ( $progress ) {
 		$progress = 0;
 		$passes++;
-		
+
 		for my $chainref ( grep $_->{referenced}, values %{$chain_table{$table}} ) {
 		    my $lastrule = $chainref->{rules}[-1];
-		    
+
 		    if ( defined $lastrule && $lastrule  =~ /^-A -[jg] (.*)$/ ) {
 			#
 			# Last rule is a simple branch
 			my $targetref = $chain_table{$table}{$1};
-			
+
 			if ( $targetref && ! ( $targetref->{builtin} || $targetref->{dont_move} ) ) {
 			    copy_rules( $targetref, $chainref );
 			    $progress = 1;
@@ -1808,11 +1808,11 @@ sub optimize_ruleset() {
 		    my $rules1 = $chainref1->{rules};
 		    next if @$rules != @$rules1;
 		    next if $chainref1->{dont_delete};
-		    
+
 		    for ( my $i = 0; $i <= $#$rules; $i++ ) {
 			next CHAIN unless $rules->[$i] eq $rules1->[$i];
 		    }
-		    
+
 		    replace_references1 $chainref1, $chainref->{name}, '';
 		}
 	    }
@@ -1855,7 +1855,7 @@ sub set_mss( $$$ ) {
 }
 
 #
-# Interate over non-firewall zones and interfaces with 'mss=' setting adding TCPMSS rules as appropriate.
+# Interate over all zones with 'mss=' settings adding TCPMSS rules as appropriate.
 #
 sub setup_zone_mss() {
     for my $zone ( all_zones ) {
@@ -1903,12 +1903,12 @@ sub logchain( $$$$$$ ) {
 		       $logtag,
 		       'add',
 		       '' );
-	
+
 	add_rule( $logchainref, $exceptionrule . $target );
     }
 
     $logchainref;
-}   
+}
 
 sub newnonatchain() {
     my $seq = $chainseq++;
@@ -2226,7 +2226,7 @@ sub do_ratelimit( $$ ) {
 	    }
 
 	    $limit .= "--hashlimit-htable-expire $expire ";
-	} 
+	}
 
 	$limit;
     } elsif ( $rate =~ /^(\d+(\/(sec|min|hour|day))?):(\d+)$/ ) {
@@ -2556,10 +2556,10 @@ sub match_ipsec_in( $$ ) {
     my $zoneref    = find_zone( $zone );
     my $optionsref = $zoneref->{options};
 
-    unless ( $optionsref->{super} ) {
+    unless ( $optionsref->{super} || $zoneref->{type} == VSERVER ) {
 	$match = '-m policy --dir in --pol ';
 
-	if ( $zoneref->{type} eq 'ipsec' ) {
+	if ( $zoneref->{type} == IPSEC ) {
 	    $match .= "ipsec $optionsref->{in_out}{ipsec}$optionsref->{in}{ipsec}";
 	} elsif ( have_ipsec ) {
 	    $match .= "$hostref->{ipsec} $optionsref->{in_out}{ipsec}$optionsref->{in}{ipsec}";
@@ -2580,10 +2580,10 @@ sub match_ipsec_out( $$ ) {
     my $zoneref    = find_zone( $zone );
     my $optionsref = $zoneref->{options};
 
-    unless ( $optionsref->{super} ) {
+    unless ( $optionsref->{super} || $zoneref->{type} == VSERVER ) {
 	$match = '-m policy --dir out --pol ';
 
-	if ( $zoneref->{type} eq 'ipsec' ) {
+	if ( $zoneref->{type} == IPSEC ) {
 	    $match .= "ipsec $optionsref->{in_out}{ipsec}$optionsref->{out}{ipsec}";
 	} elsif ( have_ipsec ) {
 	    $match .= "$hostref->{ipsec} $optionsref->{in_out}{ipsec}$optionsref->{out}{ipsec}"
@@ -3111,7 +3111,7 @@ sub expand_rule( $$$$$$$$$$;$ )
     if ( $target =~ /-[jg]\s+([^\s]+)/ ) {
 	my $targetref = $chain_table{$chainref->{table}}{$1};
 	if ( $targetref ) {
-	    $targetref->{referenced} = 1; 
+	    $targetref->{referenced} = 1;
 	    add_reference $chainref, $targetref;
 	}
     }
@@ -3450,9 +3450,9 @@ sub expand_rule( $$$$$$$$$$;$ )
 				# Find/Create a chain that both logs and applies the target action
 				# and jump to the log chain if all of the rule's conditions are met
 				#
-				add_jump( $chainref, 
-					  logchain( $chainref, $loglevel, $logtag, $exceptionrule , $disposition, $target ), 
-					  $builtin_target{$disposition},  
+				add_jump( $chainref,
+					  logchain( $chainref, $loglevel, $logtag, $exceptionrule , $disposition, $target ),
+					  $builtin_target{$disposition},
 					  $matches,
 					  1 );
 			    } else {
@@ -3537,7 +3537,7 @@ sub emitr( $$ ) {
     assert( $chain );
 
     if ( $rule ) {
-	my $replaced = ($rule =~ s/( ?)-A /$1-A $chain /);
+	my $replaced = ($rule =~ s/((^|[ "])?)-A /$1-A $chain /);
 
 	if ( substr( $rule, 0, 2 ) eq '-A' ) {
 	    #
