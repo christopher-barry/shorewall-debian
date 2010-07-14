@@ -34,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( validate_policy apply_policy_rules complete_standard_chain setup_syn_flood_chains save_policies optimize_policy_chains);
 our @EXPORT_OK = qw(  );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_11';
 
 # @policy_chains is a list of references to policy chains in the filter table
 
@@ -246,7 +246,7 @@ sub process_a_policy() {
 	$chainref->{synchain}  = $chain
     }
 
-    $chainref->{default}   = $default if $default;
+    $chainref->{default} = $default if $default;
 
     if ( $clientwild ) {
 	if ( $serverwild ) {
@@ -286,7 +286,7 @@ sub save_policies() {
 	    }
 	}
     }
-}	    
+}
 
 sub validate_policy()
 {
@@ -307,6 +307,7 @@ sub validate_policy()
 		 NFQUEUE_DEFAULT => 'NFQUEUE' );
 
     my $zone;
+    my $firewall = firewall_zone;
     our @zonelist = $config{EXPAND_POLICIES} ? all_zones : ( all_zones, 'all' );
 
     for my $option qw/DROP_DEFAULT REJECT_DEFAULT ACCEPT_DEFAULT QUEUE_DEFAULT NFQUEUE_DEFAULT/ {
@@ -332,13 +333,15 @@ sub validate_policy()
 	push @policy_chains, ( new_policy_chain $zone,         $zone, 'ACCEPT', PROVISIONAL );
 	push @policy_chains, ( new_policy_chain firewall_zone, $zone, 'NONE',   PROVISIONAL ) if zone_type( $zone ) == BPORT;
 
-	if ( $config{IMPLICIT_CONTINUE} && ( @{find_zone( $zone )->{parents}} ) ) {
+	my $zoneref = find_zone( $zone );
+
+	if ( $config{IMPLICIT_CONTINUE} && ( @{$zoneref->{parents}} || $zoneref->{type} == VSERVER ) ) {
 	    for my $zone1 ( all_zones ) {
 		unless( $zone eq $zone1 ) {
 		    add_or_modify_policy_chain( $zone, $zone1 );
 		    add_or_modify_policy_chain( $zone1, $zone );
 		}
-	    }
+	    }		
 	}
     }
 
@@ -415,13 +418,14 @@ sub apply_policy_rules() {
 
     for my $chainref ( @policy_chains ) {
 	my $policy      = $chainref->{policy};
-	my $loglevel    = $chainref->{loglevel};
-	my $provisional = $chainref->{provisional};
-	my $default     = $chainref->{default};
-	my $name        = $chainref->{name};
-	my $synparms    = $chainref->{synparms};
 
-	if ( $policy ne 'NONE' ) {
+	unless ( $policy eq 'NONE' ) {
+	    my $loglevel    = $chainref->{loglevel};
+	    my $provisional = $chainref->{provisional};
+	    my $default     = $chainref->{default};
+	    my $name        = $chainref->{name};
+	    my $synparms    = $chainref->{synparms};
+
 	    unless ( $chainref->{referenced} || $provisional || $policy eq 'CONTINUE' ) {
 		if ( $config{OPTIMIZE} & 2 ) {
 		    #

@@ -131,7 +131,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_11';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -249,6 +249,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 OLD_HL_MATCH    => 'Old Hash Limit Match',
 		 TPROXY_TARGET   => 'TPROXY Target',
 		 FLOW_FILTER     => 'Flow Classifier',
+		 FWMARK_RT_MASK  => 'fwmark route mask',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -288,6 +289,7 @@ our $sillyname;               # Name of temporary filter chains for testing capa
 our $sillyname1;
 our $iptables;                # Path to iptables/ip6tables
 our $tc;                      # Path to tc
+our $ip;                      # Path to ip
 
 use constant { MIN_VERBOSITY => -1,
 	       MAX_VERBOSITY => 2 ,
@@ -341,8 +343,8 @@ sub initialize( $ ) {
 		    EXPORT => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED => 0,
-		    VERSION => "4.4.10.3",
-		    CAPVERSION => 40408 ,
+		    VERSION => "4.4.11",
+		    CAPVERSION => 40411 ,
 		  );
 
     #
@@ -378,6 +380,7 @@ sub initialize( $ ) {
 	      IP => undef,
 	      TC => undef,
 	      IPSET => undef,
+	      PERL => undef,
 	      #
 	      #PATH is inherited
 	      #
@@ -461,6 +464,7 @@ sub initialize( $ ) {
 	      DYNAMIC_BLACKLIST => undef,
 	      LOAD_HELPERS_ONLY => undef,
 	      REQUIRE_INTERFACE => undef,
+	      FORWARD_CLEAR_MARK => undef,
 	      #
 	      # Packet Disposition
 	      #
@@ -582,6 +586,7 @@ sub initialize( $ ) {
 	      DYNAMIC_BLACKLIST => undef,
 	      LOAD_HELPERS_ONLY => undef,
 	      REQUIRE_INTERFACE => undef,
+	      FORWARD_CLEAR_MARK => undef,
 	      #
 	      # Packet Disposition
 	      #
@@ -662,6 +667,7 @@ sub initialize( $ ) {
 	       PERSISTENT_SNAT => undef,
 	       OLD_HL_MATCH => undef,
 	       FLOW_FILTER => undef,
+	       FWMARK_RT_MASK => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -1181,7 +1187,7 @@ sub copy1( $ ) {
 		    print $script $here_documents if $here_documents;
 		    print $script "\n";
 		}
-		
+
 		if ( $debug ) {
 		    print "GS-----> $here_documents" if $here_documents;
 		    print "GS----->\n";
@@ -1281,7 +1287,7 @@ EOF
 			s/^(\s*)/$indent1$1$indent2/;
 			s/        /\t/ if $indent2;
 		    }
-		    
+
 		    if ( $script ) {
 			print $script $_;
 			print $script "\n";
@@ -1295,9 +1301,9 @@ EOF
 		    $lastlineblank = 0;
 		}
 	    }
-	    
+
 	    close IF;
-	
+
 	    unless ( $lastlineblank ) {
 		print $script "\n" if $script;
 		print "GS----->\n" if $trace;
@@ -1764,7 +1770,9 @@ sub embedded_perl( $ ) {
 #   - Handle INCLUDE <filename>
 #
 
-sub read_a_line() {
+sub read_a_line(;$) {
+    my $embedded_enabled = defined $_[0] ? shift : 1;
+
     while ( $currentfile ) {
 
 	$currentline = '';
@@ -1810,53 +1818,59 @@ sub read_a_line() {
 	    #
 	    # Must check for shell/perl before doing variable expansion
 	    #
-	    if ( $currentline =~ s/^\s*(BEGIN\s+)?SHELL\s*;?// ) {
-		embedded_shell( $1 );
-	    } elsif ( $currentline =~ s/^\s*(BEGIN\s+)?PERL\s*\;?// ) {
-		embedded_perl( $1 );
-	    } else {
-		my $count = 0;
-		#
-		# Expand Shell Variables using %ENV
-		#
-		#                            $1      $2      $3           -     $4
-		while ( $currentline =~ m( ^(.*?) \$({)? ([a-zA-Z]\w*) (?(2)}) (.*)$ )x ) {
-		    my $val = $ENV{$3};
-
-		    unless ( defined $val ) {
-			fatal_error "Undefined shell variable (\$$3)" unless exists $ENV{$3};
-			$val = '';
-		    }
-
-		    $currentline = join( '', $1 , $val , $4 );
-		    fatal_error "Variable Expansion Loop" if ++$count > 100;
+	    if ( $embedded_enabled ) {
+		if ( $currentline =~ s/^\s*(BEGIN\s+)?SHELL\s*;?// ) {
+		    embedded_shell( $1 );
+		    next;
 		}
 
-		if ( $currentline =~ /^\s*INCLUDE\s/ ) {
+		if ( $currentline =~ s/^\s*(BEGIN\s+)?PERL\s*\;?// ) {
+		    embedded_perl( $1 );
+		    next;
+		}
+	    } 
 
-		    my @line = split ' ', $currentline;
+	    my $count = 0;
+	    #
+	    # Expand Shell Variables using %ENV
+	    #
+	    #                            $1      $2      $3           -     $4
+	    while ( $currentline =~ m( ^(.*?) \$({)? ([a-zA-Z]\w*) (?(2)}) (.*)$ )x ) {
+		my $val = $ENV{$3};
 
-		    fatal_error "Invalid INCLUDE command"    if @line != 2;
-		    fatal_error "INCLUDEs/Scripts nested too deeply" if @includestack >= 4;
+		unless ( defined $val ) {
+		    fatal_error "Undefined shell variable (\$$3)" unless exists $ENV{$3};
+		    $val = '';
+		}
 
-		    my $filename = find_file $line[1];
+		$currentline = join( '', $1 , $val , $4 );
+		fatal_error "Variable Expansion Loop" if ++$count > 100;
+	    }
 
-		    fatal_error "INCLUDE file $filename not found" unless -f $filename;
-		    fatal_error "Directory ($filename) not allowed in INCLUDE" if -d _;
+	    if ( $currentline =~ /^\s*INCLUDE\s/ ) {
 
-		    if ( -s _ ) {
-			push @includestack, [ $currentfile, $currentfilename, $currentlinenumber ];
-			$currentfile = undef;
-			do_open_file $filename;
-		    } else {
-			$currentlinenumber = 0;
-		    }
+		my @line = split ' ', $currentline;
 
-		    $currentline = '';
+		fatal_error "Invalid INCLUDE command"    if @line != 2;
+		fatal_error "INCLUDEs/Scripts nested too deeply" if @includestack >= 4;
+
+		my $filename = find_file $line[1];
+
+		fatal_error "INCLUDE file $filename not found" unless -f $filename;
+		fatal_error "Directory ($filename) not allowed in INCLUDE" if -d _;
+
+		if ( -s _ ) {
+		    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber ];
+		    $currentfile = undef;
+		    do_open_file $filename;
 		} else {
-		    print "IN===> $currentline\n" if $debug;
-		    return 1;
+		    $currentlinenumber = 0;
 		}
+
+		$currentline = '';
+	    } else {
+		print "IN===> $currentline\n" if $debug;
+		return 1;
 	    }
 	}
 
@@ -1926,7 +1940,7 @@ sub numeric_option( $$$ ) {
     my $value = $config{$option};
 
     my $val = $default;
-    
+
     if ( defined $value && $value ne '' ) {
 	$val = numeric_value $value;
 	fatal_error "Invalid value ($value) for '$option'" unless defined $val && $val <= 32;
@@ -1939,7 +1953,7 @@ sub numeric_option( $$$ ) {
 
 sub make_mask( $ ) {
     0xffffffff >> ( 32 - $_[0] );
-}   
+}
 
 my @suffixes = qw(group range threshold nlgroup cprange qthreshold);
 
@@ -2185,14 +2199,14 @@ sub Persistent_Snat() {
 	$result = qt1( "$iptables -t nat -A $sillyname -j SNAT --to-source 1.2.3.4 --persistent" );
 	qt1( "$iptables -t nat -F $sillyname" );
 	qt1( "$iptables -t nat -X $sillyname" );
-	
+
     }
 
     $result;
 }
 
 sub Mangle_Enabled() {
-    if ( qt1( "$iptables -t mangle -L -n" ) ) { 
+    if ( qt1( "$iptables -t mangle -L -n" ) ) {
 	system( "$iptables -t mangle -N $sillyname" ) == 0 || fatal_error "Cannot Create Mangle chain $sillyname";
     }
 }
@@ -2419,6 +2433,10 @@ sub Flow_Filter() {
     $tc && system( "$tc filter add flow add help 2>&1 | grep -q ^Usage" ) == 0;
 }
 
+sub Fwmark_Rt_Mask() {
+    $ip && system( "$ip rule add help 2>&1 | grep -q /MASK" ) == 0;
+}
+
 our %detect_capability =
     ( ADDRTYPE => \&Addrtype,
       CLASSIFY_TARGET => \&Classify_Target,
@@ -2430,6 +2448,7 @@ our %detect_capability =
       ENHANCED_REJECT => \&Enhanced_Reject,
       EXMARK => \&Exmark,
       FLOW_FILTER => \&Flow_Filter,
+      FWMARK_RT_MASK => \&Fwmark_Rt_Mask,
       GOTO_TARGET => \&Goto_Target,
       HASHLIMIT_MATCH => \&Hashlimit_Match,
       HELPER_MATCH => \&Helper_Match,
@@ -2486,7 +2505,7 @@ sub have_capability( $ ) {
 
     $capabilities{ $capability } = detect_capability( $capability ) unless defined $capabilities{ $capability };
 
-    $capabilities{ $capability }; 
+    $capabilities{ $capability };
 }
 
 #
@@ -2507,11 +2526,11 @@ sub determine_capabilities() {
     qt1( "$iptables -N $sillyname1" );
 
     fatal_error 'Your kernel/iptables do not include state match support. No version of Shorewall will run on this system'
-	unless 
+	unless
 	    qt1( "$iptables -A $sillyname -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT") ||
 	    qt1( "$iptables -A $sillyname -m state --state ESTABLISHED,RELATED -j ACCEPT");;
-	    
-  
+
+
     unless ( $config{ LOAD_HELPERS_ONLY } ) {
 	#
 	# Using 'detect_capability()' is a bit less efficient than calling the individual detection
@@ -2520,7 +2539,7 @@ sub determine_capabilities() {
 	$capabilities{NAT_ENABLED}     = detect_capability( 'NAT_ENABLED' );
 	$capabilities{PERSISTENT_SNAT} = detect_capability( 'PERSISTENT_SNAT' );
 	$capabilities{MANGLE_ENABLED}  = detect_capability( 'MANGLE_ENABLED' );
-	
+
 	if ( $capabilities{CONNTRACK_MATCH} = detect_capability( 'CONNTRACK_MATCH' ) ) {
 	    $capabilities{NEW_CONNTRACK_MATCH} = detect_capability( 'NEW_CONNTRACK_MATCH' );
 	    $capabilities{OLD_CONNTRACK_MATCH} = detect_capability( 'OLD_CONNTRACK_MATCH' );
@@ -2533,7 +2552,7 @@ sub determine_capabilities() {
 	     $capabilities{KLUDGEFREE}  = Kludgefree1;
 	}
 
-	$capabilities{XMULTIPORT}   = detect_capability( 'XMULTIPORT' ); 
+	$capabilities{XMULTIPORT}   = detect_capability( 'XMULTIPORT' );
 	$capabilities{POLICY_MATCH} = detect_capability( 'POLICY_MATCH' );
 
 	if ( $capabilities{PHYSDEV_MATCH} = detect_capability( 'PHYSDEV_MATCH' ) ) {
@@ -2669,7 +2688,7 @@ sub process_shorewall_conf() {
 
 	    first_entry "Processing $file...";
 
-	    while ( read_a_line ) {
+	    while ( read_a_line(0) ) {
 		if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
 		    my ($var, $val) = ($1, $2);
 		    unless ( exists $config{$var} ) {
@@ -2744,10 +2763,16 @@ sub get_capabilities( $ ) {
 
 	fatal_error "$iptables_restore does not exist or is not executable" unless -x $iptables_restore;
 
-	$tc = $config{TC};
+	$tc = $config{TC} || which 'tc';
 
 	if ( $tc ) {
 	    fatal_error "TC=$tc does not exist or is not executable" unless -x $tc;
+	}
+
+	$ip = $config{IP} || which 'ip';
+
+	if ( $ip ) {
+	    fatal_error "IP=$ip does not exist or is not executable" unless -x $ip;
 	}
 
 	load_kernel_modules;
@@ -2839,7 +2864,7 @@ sub get_configuration( $ ) {
     }
 
     check_trivalue ( 'IP_FORWARDING', 'on' );
-    
+
     my $val;
 
     if ( have_capability( 'KERNELVERSION' ) < 20631 ) {
@@ -2858,7 +2883,7 @@ sub get_configuration( $ ) {
     }
 
     if ( $family == F_IPV6 ) {
-	$val = $config{ROUTE_FILTER};	
+	$val = $config{ROUTE_FILTER};
 	fatal_error "ROUTE_FILTER=$val is not supported in IPv6" if $val && $val ne 'off';
     }
 
@@ -2952,12 +2977,15 @@ sub get_configuration( $ ) {
     default_yes_no 'OPTIMIZE_ACCOUNTING'        , '';
     default_yes_no 'DYNAMIC_BLACKLIST'          , 'Yes';
     default_yes_no 'REQUIRE_INTERFACE'          , '';
+    default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability 'MARK' ? 'Yes' : '';
+
+    require_capability 'MARK' , 'FOREWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 
     numeric_option 'TC_BITS',          $config{WIDE_TC_MARKS} ? 14 : 8 , 0;
     numeric_option 'MASK_BITS',        $config{WIDE_TC_MARKS} ? 16 : 8,  $config{TC_BITS};
     numeric_option 'PROVIDER_BITS' ,   8, 0;
     numeric_option 'PROVIDER_OFFSET' , $config{HIGH_ROUTE_MARKS} ? $config{WIDE_TC_MARKS} ? 16 : 8 : 0, 0;
-    
+
     if ( $config{PROVIDER_OFFSET} ) {
 	$config{PROVIDER_OFFSET} = $config{MASK_BITS} if $config{PROVIDER_OFFSET} < $config{MASK_BITS};
 	fatal_error 'PROVIDER_BITS + PROVIDER_OFFSET > 32' if $config{PROVIDER_BITS} + $config{PROVIDER_OFFSET} > 32;

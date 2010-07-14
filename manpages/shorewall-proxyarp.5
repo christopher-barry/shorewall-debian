@@ -1,19 +1,27 @@
+'\" t
 .\"     Title: shorewall-proxyarp
-.\"    Author: 
-.\" Generator: DocBook XSL Stylesheets v1.73.2 <http://docbook.sf.net/>
-.\"      Date: 07/05/2010
-.\"    Manual: 
-.\"    Source: 
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 07/14/2010
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
 .\"
-.TH "SHOREWALL\-PROXYARP" "5" "07/05/2010" "" ""
+.TH "SHOREWALL\-PROXYARP" "5" "07/14/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
 .\" disable hyphenation
 .nh
 .\" disable justification (adjust text to left margin only)
 .ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
 .SH "NAME"
 proxyarp \- Shorewall Proxy ARP file
 .SH "SYNOPSIS"
-.HP 24
+.HP \w'\fB/etc/shorewall/proxyarp\fR\ 'u
 \fB/etc/shorewall/proxyarp\fR
 .SH "DESCRIPTION"
 .PP
@@ -82,18 +90,22 @@ Example 1:
 .RS 4
 Host with IP 155\&.186\&.235\&.6 is connected to interface eth1 and we want hosts attached via eth0 to be able to access it using that address\&.
 .sp
+.if n \{\
 .RS 4
+.\}
 .nf
        #ADDRESS        INTERFACE       EXTERNAL
        155\&.186\&.235\&.6   eth1            eth0
 .fi
+.if n \{\
 .RE
+.\}
 .RE
 .SH "FILES"
 .PP
 /etc/shorewall/proxyarp
 .SH "SEE ALSO"
 .PP
-\fIhttp://shorewall\&.net/ProxyARP\&.htm\fR
+\m[blue]\fBhttp://shorewall\&.net/ProxyARP\&.htm\fR\m[]
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
