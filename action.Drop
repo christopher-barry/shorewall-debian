@@ -28,6 +28,11 @@ Auth(REJECT)
 #
 AllowICMPs	-	-	ipv6-icmp
 #
+# Drop Broadcasts so they don't clutter up the log
+# (broadcasts must *not* be rejected).
+#
+dropBcast
+#
 # Drop packets that are in the INVALID state -- these are usually ICMP packets
 # and just confuse people when they appear in the log.
 #
