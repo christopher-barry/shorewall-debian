@@ -1,0 +1,90 @@
+# Danish translation shorewall6.
+# Copyright (C) 2010 shorewall6 & nedenstående oversættere.
+# This file is distributed under the same license as the shorewall6 package.
+# Joe Hansen <joedalton2@yahoo.dk>, 2010.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2010-06-11 17:30+01:00\n"
+"Last-Translator: Joe Hansen <joedalton2@yahoo.dk>\n"
+"Language-Team: Danish <debian-l10n-danish@lists.debian.org> \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Ingen automatisk genstart for Shorewall6"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"Shorewall6 will not be restarted automatically after being upgraded, to "
+"prevent changes in configuration files causing network outages."
+msgstr ""
+"Shorewall6 vil ikke blive genstartet automatisk efter en opgradering, "
+"for at forhindre ændringer i konfigurationsfiler der medfører netværksudfald."
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid ""
+"You should check Shorewall6's configuration files and restart it with "
+"'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Du skal tjekke Shorewall6's konfigurationsfiler og genstarte den med "
+"'invoke-rc.d shorewall6 restart'."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Genstart Shorewall6?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid ""
+"To avoid the risk of failures and network outages, configuration files "
+"should be checked carefully before the firewall is restarted."
+msgstr ""
+"For at undgå risikoen for fejl og netværksudfald, skal konfigurationsfiler "
+"tjekkes omhyggeligt før brandmuren (firewall) genstartes."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Vælg venligst, hvorvidt du ønsker at genstarte Shorewall6 øjeblikkeligt."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Ugyldig Shorewall6-konfiguration registreret"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 er konfigureret til at genstarte ved opgraderinger."
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid ""
+"However, the current configuration for Shorewall6 is invalid and it will "
+"fail to restart. You should fix the program's configuration, then restart it "
+"with 'invoke-rc.d shorewall6 restart'."
+msgstr ""
+"Bemærk dog, at den aktuelle konfiguration for Shorewall6 er ugyldig og den "
+"vil ikke kunne genstarte. Du skal rette programmets konfiguration, og så "
+"genstarte den med 'invoke-rc.d shorewall6 restart'."
+
+

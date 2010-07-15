@@ -1,8 +1,9 @@
 shorewall6 (4.4.11-1) unstable; urgency=low
 
   * New Upstream Version
+  * New Danish debconf translation, thanks to Joe Dalton (Closes: #585554)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 14 Jul 2010 19:58:51 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 14 Jul 2010 20:04:02 -0400
 
 shorewall6 (4.4.10.3-1) unstable; urgency=low
 
