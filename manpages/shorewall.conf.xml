@@ -563,6 +563,20 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">FORWARD_CLEAR_MARK=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.11 Beta 3. Traditionally, Shorewall has
+          cleared the packet mark in the first rule in the mangle FORWARD
+          chain. This behavior is maintained with the default setting of this
+          option (CLEAR_FORWARD_MARK=Yes). If FORWARD_CLEAR_MARK is set to
+          'No', packet marks set in the mangle PREROUTING chain are retained
+          in the FORWARD chains.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">HIGH_ROUTE_MARKS=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -1307,6 +1321,19 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis
+        role="bold">PERL=</emphasis><emphasis>pathname</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.11 RC1. Specifies the path name of the
+          Perl executable. Default is <filename>/usr/bin/perl</filename>. If
+          the pathname specified by this option does not exist or the named
+          file is not executable, then Shorewall falls back to
+          <filename>/usr/bin/perl/</filename></para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">PKTTYPE=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -1608,9 +1635,10 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           TOS field to priority bands. See <ulink
           url="shorewall-tcpri.html">shorewall-tcpri</ulink>(5). The
           <emphasis>map</emphasis> consists of 16 space-separated digits with
-          values 1, 2 or 3. The first entry corresponds to Linux priority 9,
-          the second to Linux priority 1, the third to Linux Priority 2, and
-          so on. See tc-prio(8) for additional information.</para>
+          values 1, 2 or 3. A value of 1 corresponds to Linux priority 0, 2 to
+          Linux priority 1, and 3 to Linux Priority 2. The first entry gives
+          the priority of TOS value 0, the second of TOS value 1, and so on.
+          See tc-prio(8) for additional information.</para>
 
           <para>The default setting is TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2
           2 2".</para>
