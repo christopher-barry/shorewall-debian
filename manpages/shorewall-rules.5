@@ -2,12 +2,12 @@
 .\"     Title: shorewall-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 07/14/2010
+.\"      Date: 08/08/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-RULES" "5" "07/14/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-RULES" "5" "08/08/2010" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -142,9 +142,11 @@ The remaining columns specify characteristics of the packet before rewriting\&. 
 .PP
 The columns in the file are as follows\&.
 .PP
-\fBACTION\fR \- {\fBACCEPT\fR[\fB\fB+\fR\fR\fB|\fR\fB\fB!\fR\fR]|\fBNONAT\fR|\fBDROP[\fR\fB\fB!\fR\fR\fB]\fR|\fBREJECT\fR[\fB!\fR]|\fBDNAT\fR[\fB\-\fR]|\fBREDIRECT\fR[\fB\-\fR]|\fBCONTINUE\fR[\fB!\fR]|\fBLOG\fR|\fBQUEUE\fR[\fB!\fR]|\fBNFQUEUE[!]\fR|COUNT[\fB(\fR\fIqueuenumber\fR\fB)\fR]\fB|COMMENT\fR|\fIaction\fR|\fImacro\fR[\fB(\fR\fItarget\fR\fB)\fR]}\fB[:\fR{\fIlog\-level\fR|\fBnone\fR}[\fB\fB!\fR\fR][\fB:\fR\fItag\fR]]
+\fBACTION\fR \- \fB\fItarget\fR\fR\fB[:\fR{\fIlog\-level\fR|\fBnone\fR}[\fB\fB!\fR\fR][\fB:\fR\fItag\fR]]
 .RS 4
-Specifies the action to be taken if the connection request matches the rule\&. Must be one of the following\&.
+Specifies the action to be taken if the connection request matches the rule\&.
+\fItarget\fR
+must be one of the following\&.
 .PP
 \fBACCEPT\fR
 .RS 4
@@ -260,14 +262,14 @@ like QUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-NFQUEUE
+NFQUEUE[(\fIqueuenumber\fR)]
 .RS 4
 Queues the packet to a user\-space application using the nfnetlink_queue mechanism\&. If a
 \fIqueuenumber\fR
 is not specified, queue zero (0) is assumed\&.
 .RE
 .PP
-\fBNFQUEUE!\fR
+\fBNFQUEUE![(\fR\fB\fIqueuenumber\fR\fR\fB)]\fR
 .RS 4
 like NFQUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
@@ -291,12 +293,12 @@ declared in
 \m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[5]\d\s+2(5) or in /usr/share/shorewall/actions\&.std\&.
 .RE
 .PP
-\fImacro\fR
+\fImacro\fR\fB[(\fR\fB\fImacrotarget\fR\fR\fB)]\fR
 .RS 4
 The name of a macro defined in a file named macro\&.\fImacro\fR\&. If the macro accepts an action parameter (Look at the macro source to see if it has PARAM in the TARGET column) then the
 \fImacro\fR
 name is followed by the parenthesized
-\fItarget\fR
+\fImacrotarget\fR
 (\fBACCEPT\fR,
 \fBDROP\fR,
 \fBREJECT\fR, \&.\&.\&.) to be substituted for the parameter\&.
@@ -305,9 +307,21 @@ Example: FTP(ACCEPT)\&.
 .sp
 The older syntax where the macro name and the target are separated by a slash (e\&.g\&. FTP/ACCEPT) is still allowed but is deprecated\&.
 .RE
+.PP
+\fBTRIGGER(\fR\fB\fItrigger\fR\fR\fB[:\fR\fB\fIdirection\fR\fR\fB])\fR
+.RS 4
+Added in Shorewall 4\&.4\&.12\&. Causes either the SOURCE or DESTINATION address of the connection to be added to the named
+\fItrigger\fR\&. By default, the SOURCE address is added to the trigger but if
+\fIdirection\fR
+is
+\fBd\fR
+(e\&.g\&., trig:d) then the DESTINATION address is added\&. See the TRIGGER column below\&.
+.sp
+When a TRIGGER rule is placed in the NEW section, the SOURCE is added to the trigger at the time of the connection\&. If it is placed in the ESTABLISHED section, each packet that matches the rule causes the trigger time of the address (SOURCE or DEST) to be set to the current time\&.
+.RE
 .sp
 The
-\fBACTION\fR
+\fItarget\fR
 may optionally be followed by ":" and a syslog log level (e\&.g, REJECT:info or Web(ACCEPT):debug)\&. This causes the packet to be logged at the specified level\&. Note that if the
 \fBACTION\fR
 involves destination network address translation (DNAT, REDIRECT, etc\&.) then the packet is logged
@@ -885,6 +899,17 @@ datestop=\fIyyyy\fR[\-\fImm\fR[\-\fIdd\fR[\fBT\fR\fIhh\fR[:\fImm\fR[:\fIss\fR]]]
 Defines the ending date and time\&.
 .RE
 .RE
+.PP
+\fBTRIGGER \- \fR\fB\fItrigger\fR\fR\fB[:[\fR\fB\fIseconds\fR\fR\fB][:[\fR\fB\fIdirection\fR\fR\fB]]]\fR
+.RS 4
+Added in Shorewall 4\&.4\&.12\&. An entry in this column restrict the rule to matching an address that has been previously triggered by a TRIGGER rule\&. Normally the SOURCE address is checked but you can cause the DESTINATION address to be used instead by supplying a
+\fIdirection\fR
+of
+\fBd\fR
+(e\&.g\&., foo::d)\&. By default, the address must have been triggered within the last 60 seconds but you can specify a different time using the
+\fIseconds\fR
+option (e\&.g\&., foo:30)\&.
+.RE
 .SH "EXAMPLES"
 .PP
 Example 1:
@@ -1016,7 +1041,7 @@ You want to redirect connection requests to port 80 randomly to the port range 8
 .\}
 .nf
         #ACTION  SOURCE DEST                PROTO DEST    SOURCE  ORIGINAL
-        #                                   PORT  PORT(S) DEST
+        #                                         PORT    PORT(S) DEST
         REDIRECT net    $FW::81\-90:random   tcp   www
 .fi
 .if n \{\
@@ -1105,6 +1130,34 @@ Note that it would have been tempting to simply define the loc zone entirely in 
 .\}
 .sp
 This would have made it impossible to run a internet\-accessible web server in the DMZ because all traffic entering ppp+ interfaces would have been redirected to port 3128 on the firewall and there would have been no net\->fw ACCEPT rule for that traffic\&.
+.RE
+.PP
+Example 10:
+.RS 4
+Allow a connection from internet host to the firewall\'s TCP port 1088 within 30 seconds after the firewall establishes an SSH connection to that host\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #ACTION           SOURCE       DEST      PROTO DEST    SOURCE  ORIGINAL RATE   USER/ MARK CONNLIMIT TIME  TRIGGER
+        #                                              PORT(S) PORT(S) DEST     LIMIT  GROUP
+        #
+        # Trigger the incoming connection
+        #
+        TRIGGER(port1088:d) fw           net       tcp   22
+        #
+        # Note that the TRIGGER rule must precede the ACCEPT rule; the ACCEPT rule can be omitted if the fw\->net policy is ACCEPT
+        #
+        ACCEPT            fw           net       tcp   22
+        #
+        # Now accept the return connection on port 1088
+        #
+        ACCEPT            net          fw        tcp   1088    \-       \-        \-       \-     \-     \-      \-      port1088:30  
+.fi
+.if n \{\
+.RE
+.\}
 .RE
 .SH "FILES"
 .PP

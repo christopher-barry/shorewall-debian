@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.11
+VERSION=4.4.11.2
 
 usage() # $1 = exit status
 {
@@ -745,7 +745,7 @@ fi
 #
 # Install the  Makefiles
 #
-install-file Makefile-lite ${DESTDIR}/usr/share/shorewall/configfiles/Makefile 0644
+install_file Makefile-lite ${DESTDIR}/usr/share/shorewall/configfiles/Makefile 0644
 
 if [ -z "$SPARSE" ]; then
     run_install $OWNERSHIP -m 0600 Makefile ${DESTDIR}/etc/shorewall
