@@ -1,3 +1,24 @@
+Changes in Shorewall 4.4.11.2
+
+1)  Correct typo that caused hang after executing a stop, reset or
+    clear command in Shorewall6 lite.
+
+2)  Correct typo in Shorewall/install.sh
+
+3)  Backport Shorewall-init fixes from 4.4.12.
+
+Changes in Shorewall 4.4.11.1
+
+1)  Fix IPv6 shorecap program.
+
+2)  Eradicate incorrect IPv6 Multicast Network
+
+3)  Allow :random to work with REDIRECT
+
+4)  Don't slow down 'stop' with 'wait'.
+
+5)  Resolve mutex/nolock issues.
+
 Changes in Shorewall 4.4.11
 
 1)  Apply patch from Gabriel.
@@ -8,7 +29,7 @@ Changes in Shorewall 4.4.11
 
 4)  Make IPv6 log and connections output readable.
 
-5)  Add REQUIRE_INTERFACE to shorewall*.conf
+5) Add REQUIRE_INTERFACE to shorewall*.conf
 
 6)  Avoid run-time warnings when options are not listed in
     shorewall.conf.
