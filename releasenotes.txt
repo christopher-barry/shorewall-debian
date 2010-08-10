@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 1 1
+                    S H O R E W A L L  4 . 4 . 1 1 . 2
 ----------------------------------------------------------------------------
 
 I.    RELEASE 4.4 HIGHLIGHTS
@@ -218,6 +218,45 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
+4.4.11.2
+
+1)  A typo in /sbin/shorewall6-lite version 4.4.11.1 caused the
+    stop, reset and clear commands to hang for one minute after the
+    command had been executed and caused the next shorewall6-lite
+    command to similarly hang for one minute.
+
+2)  A typo in the Shorewall install.sh script prevented the Makefile from
+    being installed in /usr/share/shorewall/configfiles/Makefile.
+
+3)  A number of problems associated with Shorewall-init and Upstart
+    have been corrected. 
+
+    If you use Shorewall-init, then when upgrading to this version, be
+    sure to recompile all firewall scripts before you take interfaces
+    down or reboot.
+
+4.4.11.1
+
+1)  Previously, the Shoreall6-lite version of shorecap was using
+    iptables rather than ip6tables, with the result that many capabilities
+    that are only available in IPv4 were being reported as available.
+
+2)  In a number of cases, Shorewall6 generated incorrect rules
+    involving the IPv6 multicast network. The rules specify
+    ff00::/10 where they should specify ff00::/8. Also, rules
+    instantiated when the IPv6 firewall is stopped used ff80::/10 rather
+    than fe80::/10 (Ipv6 Link Local network).
+
+3)  Previously, using a destination port-range with :random produced a
+    fatal compilation error in REDIRECT rules.
+
+4)  /sbin/shorewall and /sbin/shorewall6 sometimes failed to honor the
+    'nolock' option. In other cases, this option was incorrectly passed
+    on to the compiled script, causing the script to issue a usage
+    synopsis and to terminate.
+ 
+4.4.11
+
 1)  The IPv6 allowBcast action generated an invalid rule.
 
 2)  If IPSET=<pathname> was specified in shorewall.conf, then when an
@@ -273,7 +312,8 @@ I I I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
            I V.  K N O W N   P R O B L E M S   R E M A I N I N G
 ----------------------------------------------------------------------------
 
-None.
+1)  On systems running Upstart, Shorewall-init cannot reliably close
+    the firewall before interfaces come up.
 
 ----------------------------------------------------------------------------
          V.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E

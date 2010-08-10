@@ -343,7 +343,7 @@ sub initialize( $ ) {
 		    EXPORT => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED => 0,
-		    VERSION => "4.4.11",
+		    VERSION => "4.4.11.2",
 		    CAPVERSION => 40411 ,
 		  );
 
@@ -524,6 +524,7 @@ sub initialize( $ ) {
 	      IP => undef,
 	      TC => undef,
 	      IPSET => undef,
+	      PERL => undef,
 	      #
 	      #PATH is inherited
 	      #
