@@ -1,6 +1,7 @@
 shorewall-init (4.4.11.3-1) unstable; urgency=low
 
   * New Upstream Version
+  * Update to Standards-Version 3.9.1 (no changes)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 22 Aug 2010 21:01:08 -0400
 
