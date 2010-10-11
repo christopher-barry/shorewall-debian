@@ -2,12 +2,21 @@
 .\"     Title: shorewall6-tos
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TOS" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TOS" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -82,7 +91,7 @@ Must be one of the following;
 .PP
 \fBMARK\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
 .RS 4
-If you don\'t want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
+If you don\*(Aqt want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
 .PP
 !
 .RS 4
@@ -101,7 +110,7 @@ A mask to be applied to the mark before testing\&.
 .PP
 \fB:C\fR
 .RS 4
-Designates a connection mark\&. If omitted, the packet mark\'s value is tested\&.
+Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is tested\&.
 .RE
 .RE
 .SH "FILES"

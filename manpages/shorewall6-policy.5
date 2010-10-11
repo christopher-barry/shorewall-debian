@@ -2,12 +2,21 @@
 .\"     Title: shorewall6-policy
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-POLICY" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-POLICY" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -42,7 +51,7 @@ This file defines the high\-level policy for connections between zones defined i
 .PP
 The order of entries in this file is important
 .PP
-This file determines what to do with a new connection request if we don\'t get a match from the /etc/shorewall6/rules file \&. For each source/destination pair, the file is processed in order until a match is found ("all" will match any client or server)\&.
+This file determines what to do with a new connection request if we don\*(Aqt get a match from the /etc/shorewall6/rules file \&. For each source/destination pair, the file is processed in order until a match is found ("all" will match any client or server)\&.
 .sp .5v
 .RE
 .if n \{\
@@ -120,7 +129,6 @@ The name of an action (requires that USE_ACTIONS=Yes in
 .\}
 The name of a macro\&. The rules in that macro will be applied before the policy is enforced\&. This does not require USE_ACTIONS=Yes\&.
 .RE
-.RS 4
 .sp
 .if n \{\
 .RS 4
@@ -180,7 +188,7 @@ If supplied, each connection handled under the default POLICY is logged at that 
 .sp
 You may also specify NFLOG (must be in upper case)\&. This will log to the NFLOG target and will send to a separate log through use of ulogd (\m[blue]\fBhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR\m[])\&.
 .sp
-If you don\'t want to log but need to specify the following column, place "\-" here\&.
+If you don\*(Aqt want to log but need to specify the following column, place "\-" here\&.
 .RE
 .PP
 \fBBURST:LIMIT\fR \- [{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsecond\fR|\fBminute\fR}[:\fIburst\fR]
