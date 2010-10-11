@@ -94,9 +94,9 @@ get_config() {
     [ -z "$LOGFILE" ] && LOGFILE=/var/log/messages
 
     if ( ps ax 2> /dev/null | grep -v grep |  qt grep 'syslogd.*-C' ) ; then
-	LOGREAD="logread | tac"
+	g_logread="logread | tac"
     elif [ -r $LOGFILE ]; then
-	LOGREAD="tac $LOGFILE"
+	g_logread="tac $LOGFILE"
     else
 	echo "LOGFILE ($LOGFILE) does not exist!" >&2
 	exit 2
@@ -144,6 +144,12 @@ get_config() {
     [ -n "${VERBOSITY:=2}" ]
 
     [ -n "$g_use_verbosity" ] && VERBOSITY=$g_use_verbosity || VERBOSITY=$(($g_verbose_offset + $VERBOSITY))
+
+    if [ $VERBOSITY -lt -1 ]; then
+	VERBOSITY=-1
+    elif [ $VERBOSITY -gt 2 ]; then
+	VERBOSITY=2
+    fi
 
     g_hostname=$(hostname 2> /dev/null)
 
@@ -447,6 +453,7 @@ g_noroutes=
 g_timestamp=
 g_recovering=
 g_purge=
+g_logread=
 
 finished=0
 
