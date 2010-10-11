@@ -2,12 +2,21 @@
 .\"     Title: shorewall-masq
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-MASQ" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-MASQ" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -95,7 +104,7 @@ Where
 .RE
 .\}
 .sp
-In that case, you will want to specify the interfaces\'s address for that provider in the ADDRESS column\&.
+In that case, you will want to specify the interfaces\*(Aqs address for that provider in the ADDRESS column\&.
 .sp
 The interface may be qualified by adding the character ":" followed by a comma\-separated list of destination host or subnet addresses to indicate that you only want to change the source IP address for packets being sent to those particular destinations\&. Exclusion is allowed (see
 \m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5))\&.
@@ -228,7 +237,7 @@ Comma\-separated list of options from the following\&. Only packets that will be
 .RS 4
 where
 \fInumber\fR
-is specified using setkey(8) using the \'unique:\fInumber\fR
+is specified using setkey(8) using the \*(Aqunique:\fInumber\fR
 option for the SPD level\&.
 .RE
 .PP
@@ -284,7 +293,7 @@ When used by itself, causes all traffic that will be encrypted/encapsulated to m
 .RS 4
 Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
 .sp
-If you don\'t want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
+If you don\*(Aqt want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
 .PP
 !
 .RS 4
@@ -303,7 +312,7 @@ A mask to be applied to the mark before testing\&.
 .PP
 \fB:C\fR
 .RS 4
-Designates a connection mark\&. If omitted, the packet mark\'s value is tested\&.
+Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is tested\&.
 .RE
 .RE
 .PP
@@ -326,12 +335,12 @@ program must be run by joe
 .PP
 :kids
 .RS 4
-program must be run by a member of the \'kids\' group
+program must be run by a member of the \*(Aqkids\*(Aq group
 .RE
 .PP
 !:kids
 .RS 4
-program must not be run by a member of the \'kids\' group
+program must not be run by a member of the \*(Aqkids\*(Aq group
 .RE
 .PP
 +upnpd

@@ -2,12 +2,21 @@
 .\"     Title: shorewall-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ACCOUNTIN" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-ACCOUNTIN" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -42,7 +51,7 @@ Simply count the match and continue with the next rule
 .PP
 \fBDONE\fR
 .RS 4
-Count the match and don\'t attempt to match any other accounting rules in the chain specified in the
+Count the match and don\*(Aqt attempt to match any other accounting rules in the chain specified in the
 \fBCHAIN\fR
 column\&.
 .RE
@@ -51,7 +60,7 @@ column\&.
 .RS 4
 Where
 \fIchain\fR
-is the name of a chain; Shorewall will create the chain automatically if it doesn\'t already exist\&. Causes a jump to that chain to be added to the chain specified in the CHAIN column\&. If
+is the name of a chain; Shorewall will create the chain automatically if it doesn\*(Aqt already exist\&. Causes a jump to that chain to be added to the chain specified in the CHAIN column\&. If
 \fB:COUNT\fR
 is included, a counting rule matching this entry will be added to
 \fIchain\fR
@@ -72,7 +81,7 @@ the
 \fBaccounting\fR
 chain is assumed\&. This is the chain where the accounting rule is added\&. The
 \fIchain\fR
-will be created if it doesn\'t already exist\&.
+will be created if it doesn\*(Aqt already exist\&.
 .RE
 .PP
 \fBSOURCE\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fIaddress\fR|\fIaddress\fR}
@@ -155,12 +164,12 @@ program must be run by joe
 .PP
 :kids
 .RS 4
-program must be run by a member of the \'kids\' group
+program must be run by a member of the \*(Aqkids\*(Aq group
 .RE
 .PP
 !:kids
 .RS 4
-program must not be run by a member of the \'kids\' group
+program must not be run by a member of the \*(Aqkids\*(Aq group
 .RE
 .PP
 +upnpd
@@ -188,7 +197,7 @@ The ability to specify a program name was removed from Netfilter in kernel versi
 .RS 4
 Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
 .sp
-If you don\'t want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
+If you don\*(Aqt want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
 .PP
 !
 .RS 4
@@ -207,7 +216,7 @@ A mask to be applied to the mark before testing\&.
 .PP
 \fB:C\fR
 .RS 4
-Designates a connection mark\&. If omitted, the packet mark\'s value is tested\&.
+Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is tested\&.
 .RE
 .RE
 .PP

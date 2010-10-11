@@ -2,12 +2,21 @@
 .\"     Title: shorewall6-notrack
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-NOTRACK" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-NOTRACK" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -86,8 +95,8 @@ All routes out of the interface must be configured when Shorewall is started or 
 .\}
 Default routes out of the interface will result in a warning message and will be ignored\&.
 .RE
-.RS 4
-These restrictions are because Netfilter doesn\'t support NOTRACK rules that specify a destination interface (these rules are applied before packets are routed and hence the destination interface is unknown)\&. Shorewall uses the routes out of the interface to replace the interface with an address list corresponding to the networks routed out of the named interface\&.
+.sp
+These restrictions are because Netfilter doesn\*(Aqt support NOTRACK rules that specify a destination interface (these rules are applied before packets are routed and hence the destination interface is unknown)\&. Shorewall uses the routes out of the interface to replace the interface with an address list corresponding to the networks routed out of the named interface\&.
 .RE
 .PP
 PROTO \(en \fIprotocol\-name\-or\-number\fR

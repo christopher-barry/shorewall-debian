@@ -117,3 +117,33 @@
     does not work correctly.
 
     Corrected in Shorewall 4.4.11.4.
+
+18) The SAME target in tcrules generates invalid iptables-restore
+    (ip6tables-restore) input.
+
+    Corrected in Shorewall 4.4.11.5.
+
+19) The Shorewall-lite and Shorewall6-lite Debian init scripts have a
+    syntax error.
+
+    This line:
+
+    [ "$INITLOG" eq "/dev/null" && SHOREWALL_INIT_SCRIPT=1 || SHOREWALL_INIT_SCRIPT=0
+
+    should be:
+
+    [ "$INITLOG" = "/dev/null" ] && SHOREWALL_INIT_SCRIPT=1 || SHOREWALL_INIT_SCRIPT=0
+
+    Corrected in Shorewall 4.4.11.6
+
+20) If the -v or -q options are used in /sbin/shorewall-lite or
+    /sbin/shorewall6-lite commands that involve the compiled firewall
+    script and the resulting effective VERBOSITY is > 2 or < -1, then
+    the command will fail.
+
+    Corrected in Shorewall 4.4.11.6
+
+21) The log-reading commands (show log, logwatch and dump) always
+    showed an empty log when issued to one of the -lite packages.
+
+    Corrected in Shorewall 4.4.11.6

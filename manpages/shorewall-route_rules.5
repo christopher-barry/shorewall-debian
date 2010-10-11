@@ -2,12 +2,21 @@
 .\"     Title: shorewall-route_rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ROUTE_RUL" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-ROUTE_RUL" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -63,23 +72,23 @@ or 254 for the main routing table\&. This can be used in combination with VPN tu
 .PP
 \fBPRIORITY\fR \- \fIpriority\fR
 .RS 4
-The rule\'s numeric
+The rule\*(Aqs numeric
 \fIpriority\fR
 which determines the order in which the rules are processed\&. Rules with equal priority are applied in the order in which they appear in the file\&.
 .PP
 1000\-1999
 .RS 4
-Before Shorewall\-generated \'MARK\' rules
+Before Shorewall\-generated \*(AqMARK\*(Aq rules
 .RE
 .PP
 11000\-11999
 .RS 4
-After \'MARK\' rules but before Shorewall\-generated rules for ISP interfaces\&.
+After \*(AqMARK\*(Aq rules but before Shorewall\-generated rules for ISP interfaces\&.
 .RE
 .PP
 26000\-26999
 .RS 4
-After ISP interface rules but before \'default\' rule\&.
+After ISP interface rules but before \*(Aqdefault\*(Aq rule\&.
 .RE
 .RE
 .SH "EXAMPLES"
