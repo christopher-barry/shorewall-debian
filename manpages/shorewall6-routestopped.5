@@ -2,12 +2,21 @@
 .\"     Title: shorewall6-routestopped
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/03/2010
+.\"      Date: 10/02/2010
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ROUTESTO" "5" "09/03/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-ROUTESTO" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
 .\" -----------------------------------------------------------------
 .\" * set default formatting
 .\" -----------------------------------------------------------------
@@ -19,7 +28,7 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-routestopped \- The Shorewall6 file that governs what traffic flows through the firewall while it is in \'stopped\' state\&.
+routestopped \- The Shorewall6 file that governs what traffic flows through the firewall while it is in \*(Aqstopped\*(Aq state\&.
 .SH "SYNOPSIS"
 .HP \w'\fB/etc/shorewall6/routestopped\fR\ 'u
 \fB/etc/shorewall6/routestopped\fR
@@ -78,7 +87,7 @@ is redundant\&.
 .PP
 \fBcritical\fR
 .RS 4
-Allow traffic between the firewall and these hosts throughout \'[re]start\', \'stop\' and \'clear\'\&. Specifying
+Allow traffic between the firewall and these hosts throughout \*(Aq[re]start\*(Aq, \*(Aqstop\*(Aq and \*(Aqclear\*(Aq\&. Specifying
 \fBcritical\fR
 on one or more entries will cause your firewall to be "totally open" for a brief window during each of those operations\&. Examples of where you might want to use this are:
 .sp
@@ -90,7 +99,7 @@ on one or more entries will cause your firewall to be "totally open" for a brief
 .sp -1
 .IP \(bu 2.3
 .\}
-\'Ping\' nodes with heartbeat\&.
+\*(AqPing\*(Aq nodes with heartbeat\&.
 .RE
 .sp
 .RS 4
