@@ -1,3 +1,9 @@
+shorewall (4.4.11.6-2) unstable; urgency=low
+
+  * Incorporate patch from upstream: "Fix 10+ TC Interfaces."
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 28 Oct 2010 22:12:15 -0400
+
 shorewall (4.4.11.6-1) unstable; urgency=low
 
   * New Upstream Version
