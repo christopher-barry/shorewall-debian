@@ -1,3 +1,9 @@
+shorewall (4.4.11.6-3) unstable; urgency=low
+
+  * Fix macro.JAP to correct nested macro call.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 28 Nov 2010 21:34:05 -0500
+
 shorewall (4.4.11.6-2) unstable; urgency=low
 
   * Incorporate patch from upstream: "Fix 10+ TC Interfaces."

@@ -1,2 +1,3 @@
 01_debian_configuration.patch
+02_macro_JAP.patch
 99_lockfile_relocation.patch
