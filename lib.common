@@ -32,10 +32,14 @@ get_script_version() { # $1 = script
     local version
     local ifs
     local digits
+    local verbosity
+
+    verbosity="$VERBOSITY"
+    VERBOSITY=0
 
     temp=$( $SHOREWALL_SHELL $1 version | sed 's/-.*//' )
 
-    if [ $? -ne 0 ]; then
+    if [ -z "$temp" ]; then
 	version=0
     else
 	ifs=$IFS
@@ -52,6 +56,8 @@ get_script_version() { # $1 = script
     fi
     
     echo $version
+
+    VERBOSITY="$verbosity"
 }
   
 #
@@ -452,7 +458,11 @@ find_file()
 #
 set_state () # $1 = state
 {
-    echo "$1 ($(date))" > ${VARDIR}/state
+    if [ $# -gt 1 ]; then
+	echo "$1 ($(date)) from $2" > ${VARDIR}/state
+    else
+	echo "$1 ($(date))" > ${VARDIR}/state
+    fi
 }
 
 #
