@@ -18,10 +18,10 @@
 #
 #       You should have received a copy of the GNU General Public License
 #       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MAS 02110-1301 USA.
 #
-#   This module deals with the /etc/shorewall/providers and
-#   /etc/shorewall/route_rules files.
+#   This module deals with the /etc/shorewall/providers,
+#   /etc/shorewall/route_rules and /etc/shorewall/routes files.
 #
 package Shorewall::Providers;
 require Exporter;
@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_providers @routemarked_interfaces handle_stickiness handle_optional_interfaces );
 our @EXPORT_OK = qw( initialize lookup_provider );
-our $VERSION = '4.4_11';
+our $VERSION = '4.4_16';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -121,7 +121,9 @@ sub setup_route_marking() {
 	}
 
 	if ( $providerref->{shared} ) {
+	    add_commands( $chainref, qq(if [ -n "$providerref->{mac}" ]; then) ), incr_cmd_level( $chainref ) if $providerref->{optional};
 	    add_rule $chainref, match_source_dev( $interface ) . "-m mac --mac-source $providerref->{mac} -j MARK --set-mark $providerref->{mark}";
+	    decr_cmd_level( $chainref ), add_commands( $chainref, "fi\n" ) if $providerref->{optional};
 	} else {
 	    add_rule $chainref, match_source_dev( $interface ) . "-j MARK --set-mark $providerref->{mark}";
 	}
@@ -275,7 +277,7 @@ sub add_a_provider( ) {
 	require_capability 'REALM_MATCH', "Configuring multiple providers through one interface", "s";
     }
 
-    fatal_error "Unknown Interface ($interface)" unless known_interface $interface;
+    fatal_error "Unknown Interface ($interface)" unless known_interface( $interface );
     fatal_error "A bridge port ($interface) may not be configured as a provider interface" if port_to_bridge $interface;
 
     my $physical    = get_physical $interface;
@@ -520,7 +522,7 @@ sub add_a_provider( ) {
 
     if ( $optional ) {
 	if ( $shared ) {
-	    emit ( "    error_message \"WARNING: Gateway $gateway is not reachable -- Provider $table ($number) not Added\"" );
+	    emit ( "    error_message \"WARNING: Gateway $gateway is not reachable -- Provider $table ($number) not Added\"" );	    
 	} else {
 	    emit ( "    error_message \"WARNING: Interface $physical is not usable -- Provider $table ($number) not Added\"" );
 	}
@@ -631,7 +633,7 @@ sub add_an_rtrule( ) {
 	my $base = uc chain_base( $providers{$provider}{physical} );
 	finish_current_if if $base ne $current_if;
 	start_new_if( $base ) unless $current_if;
-  } else {
+    } else {
 	finish_current_if;
     }
 
@@ -641,15 +643,70 @@ sub add_an_rtrule( ) {
     progress_message "   Routing rule \"$currentline\" $done";
 }
 
-#
-# This probably doesn't belong here but looking forward to the day when we get Shorewall out of the routing business,
-# it makes sense to keep all of the routing code together
-#
+sub add_a_route( ) {
+    my ( $provider, $dest, $gateway, $device ) = split_line 2, 4, 'routes file';
+
+    our $current_if;
+
+    unless ( $providers{$provider} ) {
+	my $found = 0;
+
+	if ( "\L$provider" =~ /^(0x[a-f0-9]+|0[0-7]*|[0-9]*)$/ ) {
+	    my $provider_number = numeric_value $provider;
+
+	    for ( keys %providers ) {
+		if ( $providers{$_}{number} == $provider_number ) {
+		    $provider = $_;
+		    fatal_error "You may not add routes to the $provider table" if $provider_number == LOCAL_TABLE || $provider_number == UNSPEC_TABLE;
+		    $found = 1;
+		    last;
+		}
+	    }
+	}
+
+	fatal_error "Unknown provider ($provider)" unless $found;
+    }
+
+    validate_net ( $dest, 1 );
+
+    validate_address ( $gateway, 1 ) if $gateway ne '-';
+
+    my ( $optional, $number ) = ( $providers{$provider}{optional} , $providers{$provider}{number} );
+
+    my $physical = $device eq '-' ? $providers{$provider}{physical} : physical_name( $device );
+    
+    if ( $providers{$provider}{optional} ) {
+	my $base = uc chain_base( $physical );
+	finish_current_if if $base ne $current_if;
+	start_new_if ( $base ) unless $current_if;
+    } else {
+	finish_current_if;
+    }
+
+    if ( $gateway ne '-' ) {
+	if ( $device ne '-' ) {
+	    emit qq(run_ip route add $dest via $gateway dev $physical table $number);
+	    emit qq(echo "qt \$IP -$family route del $dest via $gateway dev $physical table $number" >> \${VARDIR}/undo_routing) if $number >= DEFAULT_TABLE;
+	} else {
+	    emit qq(run_ip route add $dest via $gateway table $number);
+	    emit qq(echo "\$IP -$family route del $dest via $gateway table $number" >> \${VARDIR}/undo_routing) if $number >= DEFAULT_TABLE; 
+	}
+    } else {
+	fatal_error "You must specify a device for this route" unless $physical;
+	emit qq(run_ip route add $dest dev $physical table $number);
+	emit qq(echo "\$IP -$family route del $dest dev $physical table $number" >> \${VARDIR}/undo_routing) if $number >= DEFAULT_TABLE;
+    }
+
+    progress_message "   Route \"$currentline\" $done";
+}
+
 sub setup_null_routing() {
     save_progress_message "Null Routing the RFC 1918 subnets";
     for ( rfc1918_networks ) {
-	emit( qq(run_ip route replace unreachable $_) );
-	emit( qq(echo "qt \$IP -$family route del unreachable $_" >> \${VARDIR}/undo_routing) );
+	emit( qq(if ! \$IP -4 route ls | grep -q '^$_.* dev '; then),
+	      qq(    run_ip route replace unreachable $_),
+	      qq(    echo "qt \$IP -4 route del unreachable $_" >> \${VARDIR}/undo_routing),
+	      qq(fi\n) );
     }
 }
 
@@ -757,20 +814,35 @@ sub setup_providers() {
 
     $lastmark = 0;
 
-    my $fn = open_file 'providers';
+    if ( my $fn = open_file 'providers' ) {
 
-    first_entry sub() {
-	progress_message2 "$doing $fn...";
-	emit "\nif [ -z \"\$g_noroutes\" ]; then";
-	push_indent;
-	start_providers; };
-
-    add_a_provider, $providers++ while read_a_line;
+	first_entry sub() {
+	    progress_message2 "$doing $fn...";
+	    emit "\nif [ -z \"\$g_noroutes\" ]; then";
+	    push_indent;
+	    start_providers; };
+ 
+	add_a_provider, $providers++ while read_a_line;
+    }
 
     if ( $providers ) {
 	finish_providers;
 
-	my $fn = open_file 'route_rules';
+	my $fn = open_file 'routes';
+
+	if ( $fn ) {
+	    our $current_if = '';
+
+	    first_entry "$doing $fn...";
+
+	    emit '';
+
+	    add_a_route while read_a_line;
+
+	    finish_current_if;
+	}
+
+	$fn = open_file 'route_rules';
 
 	if ( $fn ) {
 	    our $current_if = '';
@@ -845,54 +917,99 @@ sub lookup_provider( $ ) {
 #
 sub handle_optional_interfaces( $ ) {
 
-    my $returnvalue = verify_required_interfaces( shift );
-    #
-    # find_interfaces_by_option1() does not return wildcard interfaces. If an interface is defined
-    # as a wildcard in /etc/shorewall/interfaces, then only specific interfaces matching that
-    # wildcard are returned.
-    #
-    my $interfaces = find_interfaces_by_option1 'optional';
-
-    if ( $config{REQUIRE_INTERFACE} ) {
-	emit( 'HAVE_INTERFACE=' );
-	emit( '' );
-    }
+    my ( $interfaces, $wildcards )  = find_interfaces_by_option1 'optional';
 
     if ( @$interfaces ) {
-	for my $interface ( @$interfaces ) {
-	    my $provider = $provider_interfaces{$interface};
-	    my $physical = get_physical $interface;
-	    my $base     = uc chain_base( $physical );
+	my $require     = $config{REQUIRE_INTERFACE};
 
-	    emit( '' );
+	verify_required_interfaces( shift );
 
-	    if ( $provider ) {
-		#
-		# This interface is associated with a non-shared provider -- get the provider table entry
-		#
-		my $providerref = $providers{$provider};
+	emit( 'HAVE_INTERFACE=', '' ) if $require;
+	#
+	# Clear the '_IS_USABLE' variables
+	#
+	emit( join( '_', 'SW', uc chain_base( get_physical( $_ ) ) , 'IS_USABLE=' ) ) for @$interfaces;
 
-		if ( $providerref->{gatewaycase} eq 'detect' ) {
-		    emit qq(if interface_is_usable $physical && [ -n "$providerref->{gateway}" ]; then);
-		} else {
-		    emit qq(if interface_is_usable $physical; then);
-		}
+	if ( $wildcards ) {
+	    #
+	    # We must consider all interfaces with an address in $family -- generate a list of such addresses.
+	    #
+	    emit( '',
+		  'for interface in $(find_all_interfaces1); do',
+		);
+
+	    push_indent;
+	    emit ( 'case "$interface" in' );
+	    push_indent;
+	} else {
+	    emit '';
+	}
+
+	for my $interface ( grep $provider_interfaces{$_}, @$interfaces ) {
+	    my $provider    = $provider_interfaces{$interface};
+	    my $physical    = get_physical $interface;
+	    my $base        = uc chain_base( $physical );
+	    my $providerref = $providers{$provider};
+
+	    emit( "$physical)" ), push_indent if $wildcards;
+
+	    if ( $providerref->{gatewaycase} eq 'detect' ) {
+		emit qq(if interface_is_usable $physical && [ -n "$providerref->{gateway}" ]; then);
 	    } else {
-		#
-		# Not a provider interface
-		#
 		emit qq(if interface_is_usable $physical; then);
 	    }
 
-	    emit( '    HAVE_INTERFACE=Yes' ) if $config{REQUIRE_INTERFACE};
+	    emit( '    HAVE_INTERFACE=Yes' ) if $require;
 
 	    emit( "    SW_${base}_IS_USABLE=Yes" ,
-		  'else' ,
-		  "    SW_${base}_IS_USABLE=" ,
 		  'fi' );
+
+	    emit( ';;' ), pop_indent if $wildcards;
 	}
 
-	if ( $config{REQUIRE_INTERFACE} ) {
+	for my $interface ( grep ! $provider_interfaces{$_}, @$interfaces ) {
+	    my $physical    = get_physical $interface;
+	    my $base        = uc chain_base( $physical );
+	    my $case        = $physical;
+	    my $wild        = $case =~ s/\+$/*/;
+
+	    if ( $wildcards ) {
+		emit( "$case)" );
+		push_indent;
+
+		if ( $wild ) {
+		    emit( qq(if [ -z "\$SW_${base}_IS_USABLE" ]; then) );
+		    push_indent;
+		    emit ( 'if interface_is_usable $interface; then' );
+		} else {
+		    emit ( "if interface_is_usable $physical; then" );
+		}
+	    } else {
+		emit ( "if interface_is_usable $physical; then" );
+	    }
+
+	    emit ( '    HAVE_INTERFACE=Yes' ) if $require;
+	    emit ( "    SW_${base}_IS_USABLE=Yes" ,
+		   'fi' );
+
+	    if ( $wildcards ) {
+		pop_indent, emit( 'fi' ) if $wild;
+		emit( ';;' );
+		pop_indent;
+	    }
+	}
+
+	if ( $wildcards ) {
+	    emit( '*)' ,
+		  '    ;;'
+		);
+	    pop_indent;
+	    emit( 'esac' );
+	    pop_indent;
+	    emit('done' );
+	}
+
+	if ( $require ) {
 	    emit( '',
 		  'if [ -z "$HAVE_INTERFACE" ]; then' ,
 		  '    case "$COMMAND" in',
@@ -915,10 +1032,10 @@ sub handle_optional_interfaces( $ ) {
 		);
 	}
 
-	$returnvalue = 1;
+	return 1;
     }
 
-    $returnvalue;
+    verify_required_interfaces( shift );
 }
 
 #
@@ -960,12 +1077,11 @@ sub handle_stickiness( $ ) {
 			$rule2 = '';
 		    }
 
-		    $rule1 =~ s/-A //;
-
+		    assert ( $rule1 =~ s/^-A // );
 		    add_rule $chainref, $rule1;
 
 		    if ( $rule2 ) {
-			$rule2 =~ s/-A //;
+			assert ( $rule2 =~ s/^-A // );
 			add_rule $chainref, $rule2;
 		    }
 		}
@@ -988,8 +1104,7 @@ sub handle_stickiness( $ ) {
 			$rule2 = '';
 		    }
 
-		    $rule1 =~ s/-A //;
-
+		    assert( $rule1 =~ s/-A // );
 		    add_rule $chainref, $rule1;
 
 		    if ( $rule2 ) {

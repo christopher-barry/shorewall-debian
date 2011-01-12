@@ -35,7 +35,7 @@ our @EXPORT = qw(
 		  );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_16';
 
 our @proxyarp;
 
@@ -56,8 +56,10 @@ sub initialize( $ ) {
     @proxyarp = ();
 }
 
-sub setup_one_proxy_arp( $$$$$ ) {
-    my ( $address, $interface, $external, $haveroute, $persistent) = @_;
+sub setup_one_proxy_arp( $$$$$$$ ) {
+    my ( $address, $interface, $physical, $external, $extphy, $haveroute, $persistent) = @_;
+
+    my $proto = $family == F_IPV4 ? 'ARP' : 'NDP';
 
     if ( "\L$haveroute" eq 'no' || $haveroute eq '-' ) {
 	$haveroute = '';
@@ -76,105 +78,101 @@ sub setup_one_proxy_arp( $$$$$ ) {
     }
 
     unless ( $haveroute ) {
-	emit "[ -n \"\$g_noroutes\" ] || run_ip route replace $address dev $interface";
+	fatal_error "HAVEROUTE=No requires an INTERFACE" if $interface eq '-';
+
+	if ( $family == F_IPV4 ) {
+	    emit "[ -n \"\$g_noroutes\" ] || run_ip route replace $address/32 dev $physical";
+	} else {
+	    emit "[ -n \"\$g_noroutes\" ] || run_ip route replace $address/128 dev $physical";
+	}
+
 	$haveroute = 1 if $persistent;
     }
 
-    emit ( "if ! arp -i $external -Ds $address $external pub; then",
-	   "    fatal_error \"Command 'arp -i $external -Ds $address $external pub' failed\"" ,
-	   'fi' ,
-	   '',
-	   "progress_message \"   Host $address connected to $interface added to ARP on $external\"\n" );
+    emit ( "run_ip neigh add proxy $address nud permanent dev $extphy" ,
+	   qq(progress_message "   Host $address connected to $interface added to $proto on $extphy"\n) );
 
     push @proxyarp, "$address $interface $external $haveroute";
 
-    progress_message "   Host $address connected to $interface added to ARP on $external";
+    progress_message "   Host $address connected to $interface added to $proto on $external";
 }
 
 #
-# Setup Proxy ARP
+# Setup Proxy ARP/NDP
 #
 sub setup_proxy_arp() {
-    if ( $family == F_IPV4 ) {
+    my $proto      = $family == F_IPV4 ? 'arp' : 'ndp';   # Protocol
+    my $file_opt   = 'proxy' . $proto;                    # Name of config file and of the interface option
+    my $proc_file  = 'proxy_' . $proto;                   # Name of the corresponding file in /proc
 
-	my $interfaces= find_interfaces_by_option 'proxyarp';
-	my $fn = open_file 'proxyarp';
+    my $interfaces= find_interfaces_by_option $file_opt;
+    my $fn = open_file $file_opt;
 
-	if ( @$interfaces || $fn ) {
+    if ( @$interfaces || $fn ) {
 
-	    my $first_entry = 1;
+	my $first_entry = 1;
 
-	    save_progress_message "Setting up Proxy ARP...";
+	save_progress_message 'Setting up Proxy ' . uc($proto) . '...';
 
-	    my ( %set, %reset );
+	my ( %set, %reset );
 
-	    while ( read_a_line ) {
+	while ( read_a_line ) {
 
-		my ( $address, $interface, $external, $haveroute, $persistent ) = split_line 3, 5, 'proxyarp file';
+	    my ( $address, $interface, $external, $haveroute, $persistent ) = split_line 3, 5, 'proxyarp file';
 
-		if ( $first_entry ) {
-		    progress_message2 "$doing $fn...";
-		    $first_entry = 0;
-		}
+	    if ( $first_entry ) {
+		progress_message2 "$doing $fn...";
+		$first_entry = 0;
+	    }
 
-		$interface = get_physical $interface;
-		$external  = get_physical $external;
+	    fatal_error "Unknown interface ($external)" unless known_interface $external;
+	    fatal_error "Wildcard interface ($external) not allowed" if $external =~ /\+$/;
+	    $reset{$external} = 1 unless $set{$external};
 
+	    my $extphy   = get_physical $external;
+	    my $physical = '-';
+
+	    if ( $interface ne '-' ) {
+		fatal_error "Unknown interface ($interface)" unless known_interface $interface;
+		fatal_error "Wildcard interface ($interface) not allowed" if $interface =~ /\+$/;
+		$physical = physical_name $interface;
 		$set{$interface}  = 1;
-		$reset{$external} = 1 unless $set{$external};
-
-		setup_one_proxy_arp( $address, $interface, $external, $haveroute, $persistent );
 	    }
 
-	    emit '';
+	    setup_one_proxy_arp( $address, $interface, $physical, $external, $extphy, $haveroute, $persistent );
+	}
 
-	    for my $interface ( keys %reset ) {
-		unless ( $set{interface} ) {
-		    emit  ( "if [ -f /proc/sys/net/ipv4/conf/$interface/proxy_arp ]; then" ,
-			    "    echo 0 > /proc/sys/net/ipv4/conf/$interface/proxy_arp" );
-		    emit    "fi\n";
-		}
-	    }
+	emit '';
 
-	    for my $interface ( keys %set ) {
-		emit  ( "if [ -f /proc/sys/net/ipv4/conf/$interface/proxy_arp ]; then" ,
-			"    echo 1 > /proc/sys/net/ipv4/conf/$interface/proxy_arp" );
-		emit  ( 'else' ,
-			"    error_message \"    WARNING: Cannot set the 'proxy_arp' option for interface $interface\"" ) unless interface_is_optional( $interface );
+	for my $interface ( keys %reset ) {
+	    unless ( $set{interface} ) {
+		my $physical = get_physical $interface;
+		emit  ( "if [ -f /proc/sys/net/ipv$family/conf/$physical/$proc_file ]; then" ,
+			"    echo 0 > /proc/sys/net/ipv$family/conf/$physical/$proc_file" );
 		emit    "fi\n";
 	    }
-
-	    for my $interface ( @$interfaces ) {
-		my $value = get_interface_option $interface, 'proxyarp';
-		my $optional = interface_is_optional $interface;
-
-		$interface = get_physical $interface;
-
-		emit ( "if [ -f /proc/sys/net/ipv4/conf/$interface/proxy_arp ] ; then" ,
-		       "    echo $value > /proc/sys/net/ipv4/conf/$interface/proxy_arp" );
-		emit ( 'else' ,
-		       "    error_message \"WARNING: Unable to set/reset proxy ARP on $interface\"" ) unless $optional;
-		emit   "fi\n";
-	    }
 	}
-    } else {
-	my $interfaces= find_interfaces_by_option 'proxyndp';
 
-	if ( @$interfaces ) {
-	    save_progress_message "Setting up Proxy NDP...";
+	for my $interface ( keys %set ) {
+	    my $physical = get_physical $interface;
+	    emit  ( "if [ -f /proc/sys/net/ipv$family/conf/$physical/$proc_file ]; then" ,
+		    "    echo 1 > /proc/sys/net/ipv$family/conf/$physical/$proc_file" );
+	    emit  ( 'else' ,
+		    "    error_message \"    WARNING: Cannot set the '$file_opt' option for interface $physical\"" ) unless interface_is_optional( $interface );
+	    emit    "fi\n";
+	}
 
-	    for my $interface ( @$interfaces ) {
-		my $value = get_interface_option $interface, 'proxyndp';
-		my $optional = interface_is_optional $interface;
+	for my $interface ( @$interfaces ) {
+	    my $value = get_interface_option $interface, $file_opt;
+	    my $optional = interface_is_optional $interface;
 
-		$interface = get_physical $interface;
+	    $interface = get_physical $interface;
 
-		emit ( "if [ -f /proc/sys/net/ipv6/conf/$interface/proxy_ndp ] ; then" ,
-		   "    echo $value > /proc/sys/net/ipv6/conf/$interface/proxy_ndp" );
-		emit ( 'else' ,
-		       "    error_message \"WARNING: Unable to set/reset Proxy NDP on $interface\"" ) unless $optional;
-		emit   "fi\n";
-	    }
+	    emit ( "if [ -f /proc/sys/net/ipv$family/conf/$interface/$proc_file ] ; then" ,
+		   "    echo $value > /proc/sys/net/ipv$family/conf/$interface/$proc_file" );
+	    emit ( 'else' ,
+		   "    error_message \"WARNING: Unable to set/reset the '$file_opt' option on $interface\"" ) unless $optional;
+	    emit   "fi\n";
 	}
     }
 }

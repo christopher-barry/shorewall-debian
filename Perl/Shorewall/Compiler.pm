@@ -32,18 +32,18 @@ use Shorewall::Nat;
 use Shorewall::Providers;
 use Shorewall::Tc;
 use Shorewall::Tunnels;
-use Shorewall::Actions;
 use Shorewall::Accounting;
 use Shorewall::Rules;
 use Shorewall::Proc;
 use Shorewall::Proxyarp;
 use Shorewall::IPAddrs;
 use Shorewall::Raw;
+use Shorewall::Misc;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_10';
+our $VERSION = '4.4_16';
 
 our $export;
 
@@ -62,11 +62,11 @@ sub initialize_package_globals() {
     Shorewall::Nat::initialize;
     Shorewall::Providers::initialize($family);
     Shorewall::Tc::initialize($family);
-    Shorewall::Actions::initialize( $family );
     Shorewall::Accounting::initialize;
     Shorewall::Rules::initialize($family);
     Shorewall::Proxyarp::initialize($family);
     Shorewall::IPAddrs::initialize($family);
+    Shorewall::Misc::initialize($family);
 }
 
 #
@@ -388,7 +388,11 @@ sub generate_script_3($) {
 	       '' );
 	save_dynamic_chains;
 	mark_firewall_not_started;
-	emit '';
+
+	emit ('',
+	       'delete_proxyndp',
+	       ''
+	     );
     }
 
     emit qq(delete_tc1\n) if $config{CLEAR_TC};
@@ -397,7 +401,12 @@ sub generate_script_3($) {
 
     emit( 'setup_routing_and_traffic_shaping', '' );
 
-    emit 'cat > ${VARDIR}/proxyarp << __EOF__';
+    if ( $family == F_IPV4 ) {
+	emit 'cat > ${VARDIR}/proxyarp << __EOF__';
+    } else {
+	emit 'cat > ${VARDIR}/proxyndp << __EOF__';
+    } 
+
     dump_proxy_arp;
     emit_unindented '__EOF__';
 
@@ -442,32 +451,37 @@ EOF
     setup_forwarding( $family , 1 );
     push_indent;
 
-    emit<<'EOF';
-    set_state "Started"
+    my $config_dir = $globals{CONFIGDIR};
+
+    emit<<"EOF";
+    set_state Started $config_dir
     run_restored_exit
 else
-    if [ $COMMAND = refresh ]; then
+    if [ \$COMMAND = refresh ]; then
         chainlist_reload
 EOF
     setup_forwarding( $family , 0 );
 
-    emit<<'EOF';
+    emit<<"EOF";
         run_refreshed_exit
         do_iptables -N shorewall
-        set_state "Started"
+        set_state Started $config_dir
     else
         setup_netfilter
         conditionally_flush_conntrack
 EOF
     setup_forwarding( $family , 0 );
 
-    emit<<'EOF';
+    emit<<"EOF";
         run_start_exit
         do_iptables -N shorewall
-        set_state "Started"
+        set_state Started $config_dir
         run_started_exit
     fi
 
+EOF
+
+    emit<<'EOF';
     [ $0 = ${VARDIR}/firewall ] || cp -f $(my_pathname) ${VARDIR}/firewall
 fi
 
@@ -621,6 +635,10 @@ sub compiler {
     #
     validate_policy;
     #
+    # Process default actions
+    #
+    process_actions2;
+    #
     #                                       N O T R A C K
     #                           (Produces no output to the compiled script)
     #
@@ -742,11 +760,6 @@ sub compiler {
     # Add Tunnel rules.
     #
     setup_tunnels;
-    #
-    # Post-rules action processing.
-    #
-    process_actions2;
-    process_actions3;
     #
     # MACLIST Filtration again
     #

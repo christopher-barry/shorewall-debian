@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_11';
+our $VERSION = '4.4_14';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -47,56 +47,6 @@ our %addresses_to_add;
 sub initialize() {
     @addresses_to_add = ();
     %addresses_to_add = ();
-}
-
-#
-# Handle IPSEC Options in a masq record
-#
-sub do_ipsec_options($)
-{
-    my %validoptions = ( strict       => NOTHING,
-			 next         => NOTHING,
-			 reqid        => NUMERIC,
-			 spi          => NUMERIC,
-			 proto        => IPSECPROTO,
-			 mode         => IPSECMODE,
-			 "tunnel-src" => NETWORK,
-			 "tunnel-dst" => NETWORK,
-		       );
-    my $list=$_[0];
-    my $options = '-m policy --pol ipsec --dir out ';
-    my $fmt;
-
-    for my $e ( split_list $list, 'option' ) {
-	my $val    = undef;
-	my $invert = '';
-
-	if ( $e =~ /([\w-]+)!=(.+)/ ) {
-	    $val    = $2;
-	    $e      = $1;
-	    $invert = '! ';
-	} elsif ( $e =~ /([\w-]+)=(.+)/ ) {
-	    $val = $2;
-	    $e   = $1;
-	}
-
-	$fmt = $validoptions{$e};
-
-	fatal_error "Invalid Option ($e)" unless $fmt;
-
-	if ( $fmt eq NOTHING ) {
-	    fatal_error "Option \"$e\" does not take a value" if defined $val;
-	} else {
-	    fatal_error "Missing value for option \"$e\""        unless defined $val;
-	    fatal_error "Invalid value ($val) for option \"$e\"" unless $val =~ /^($fmt)$/;
-	}
-
-	$options .= $invert;
-	$options .= "--$e ";
-	$options .= "$val " if defined $val;
-    }
-
-    $options;
 }
 
 #
@@ -153,11 +103,11 @@ sub process_one_masq( )
 	fatal_error "Non-empty IPSEC column requires policy match support in your kernel and iptables"  unless have_capability( 'POLICY_MATCH' );
 
 	if ( $ipsec =~ /^yes$/i ) {
-	    $baserule .= '-m policy --pol ipsec --dir out ';
+	    $baserule .= do_ipsec_options 'out', 'ipsec', '';
 	} elsif ( $ipsec =~ /^no$/i ) {
-	    $baserule .= '-m policy --pol none --dir out ';
+	    $baserule .= do_ipsec_options 'out', 'none', '';
 	} else {
-	    $baserule .= do_ipsec_options $ipsec;
+	    $baserule .= do_ipsec_options 'out', 'ipsec', $ipsec;
 	}
     } elsif ( have_ipsec ) {
 	$baserule .= '-m policy --pol none --dir out ';
@@ -175,7 +125,7 @@ sub process_one_masq( )
 
     for my $fullinterface (split_list $interfacelist, 'interface' ) {
 	my $rule = '';
-	my $target = '-j MASQUERADE ';
+	my $target = 'MASQUERADE ';
 	#
 	# Isolate and verify the interface part
 	#
@@ -221,7 +171,7 @@ sub process_one_masq( )
 		    fatal_error "The SAME target is no longer supported";
 		} elsif ( $addresses eq 'detect' ) {
 		    my $variable = get_interface_address $interface;
-		    $target = "-j SNAT --to-source $variable";
+		    $target = "SNAT --to-source $variable";
 
 		    if ( interface_is_optional $interface ) {
 			add_commands( $chainref,
@@ -231,13 +181,13 @@ sub process_one_masq( )
 			$detectaddress = 1;
 		    }
 		} elsif ( $addresses eq 'NONAT' ) {
-		    $target = '-j RETURN';
+		    $target = 'RETURN';
 		    $add_snat_aliases = 0;
 		} else {
 		    my $addrlist = '';
 		    for my $addr ( split_list $addresses , 'address' ) {
 			if ( $addr =~ /^.*\..*\..*\./ ) {
-			    $target = '-j SNAT ';
+			    $target = 'SNAT ';
 			    my ($ipaddr, $rest) = split ':', $addr;
 			    if ( $ipaddr =~ /^(.+)-(.+)$/ ) {
 				validate_range( $1, $2 );
@@ -312,14 +262,14 @@ sub process_one_masq( )
 #
 sub setup_masq()
 {
-    my $fn = open_file 'masq';
+    if ( my $fn = open_file 'masq' ) {
 
-    first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty masq file' , 's'; } );
+	first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty masq file' , 's'; } );
 
-    process_one_masq while read_a_line;
+	process_one_masq while read_a_line;
 
-    clear_comment;
-
+	clear_comment;
+    }
 }
 
 #
@@ -409,32 +359,32 @@ sub do_one_nat( $$$$$ )
 #
 sub setup_nat() {
 
-    my $fn = open_file 'nat';
+    if ( my $fn = open_file 'nat' ) {
 
-    first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty nat file' , 's'; } );
+	first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty nat file' , 's'; } );
 
-    while ( read_a_line ) {
+	while ( read_a_line ) {
 
-	my ( $external, $interfacelist, $internal, $allints, $localnat ) = split_line1 3, 5, 'nat file';
+	    my ( $external, $interfacelist, $internal, $allints, $localnat ) = split_line1 3, 5, 'nat file';
 
-	if ( $external eq 'COMMENT' ) {
-	    process_comment;
-	} else {
-	    ( $interfacelist, my $digit ) = split /:/, $interfacelist;
+	    if ( $external eq 'COMMENT' ) {
+		process_comment;
+	    } else {
+		( $interfacelist, my $digit ) = split /:/, $interfacelist;
 
-	    $digit = defined $digit ? ":$digit" : '';
+		$digit = defined $digit ? ":$digit" : '';
 
-	    for my $interface ( split_list $interfacelist , 'interface' ) {
-		fatal_error "Invalid Interface List ($interfacelist)" unless defined $interface && $interface ne '';
-		do_one_nat $external, "${interface}${digit}", $internal, $allints, $localnat;
+		for my $interface ( split_list $interfacelist , 'interface' ) {
+		    fatal_error "Invalid Interface List ($interfacelist)" unless defined $interface && $interface ne '';
+		    do_one_nat $external, "${interface}${digit}", $internal, $allints, $localnat;
+		}
+
+		progress_message "   NAT entry \"$currentline\" $done";
 	    }
-
-	    progress_message "   NAT entry \"$currentline\" $done";
 	}
 
+	clear_comment;
     }
-
-    clear_comment;
 }
 
 #
@@ -442,40 +392,43 @@ sub setup_nat() {
 #
 sub setup_netmap() {
 
-    my $fn = open_file 'netmap';
+    if ( my $fn = open_file 'netmap' ) {
 
-    first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty netmap file' , 's'; } );
+	first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty netmap file' , 's'; } );
 
-    while ( read_a_line ) {
+	while ( read_a_line ) {
 
-	my ( $type, $net1, $interfacelist, $net2, $net3 ) = split_line 4, 5, 'netmap file';
+	    my ( $type, $net1, $interfacelist, $net2, $net3 ) = split_line 4, 5, 'netmap file';
 
-	$net3 = ALLIP if $net3 eq '-';
+	    $net3 = ALLIP if $net3 eq '-';
 
-	for my $interface ( split_list $interfacelist, 'interface' ) {
+	    for my $interface ( split_list $interfacelist, 'interface' ) {
 
-	    my $rulein = '';
-	    my $ruleout = '';
-	    my $iface = $interface;
+		my $rulein = '';
+		my $ruleout = '';
+		my $iface = $interface;
 
-	    fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
+		fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
-	    unless ( $interfaceref->{root} ) {
-		$rulein  = match_source_dev( $interface );
-		$ruleout = match_dest_dev( $interface );
-		$interface = $interfaceref->{name};
+		unless ( $interfaceref->{root} ) {
+		    $rulein  = match_source_dev( $interface );
+		    $ruleout = match_dest_dev( $interface );
+		    $interface = $interfaceref->{name};
+		}
+
+		if ( $type eq 'DNAT' ) {
+		    add_rule ensure_chain( 'nat' , input_chain $interface ) , $rulein   . match_source_net( $net3 ) . "-d $net1 -j NETMAP --to $net2";
+		} elsif ( $type eq 'SNAT' ) {
+		    add_rule ensure_chain( 'nat' , output_chain $interface ) , $ruleout . match_dest_net( $net3 )   . "-s $net1 -j NETMAP --to $net2";
+		} else {
+		    fatal_error "Invalid type ($type)";
+		}
+
+		progress_message "   Network $net1 on $iface mapped to $net2 ($type)";
 	    }
-
-	    if ( $type eq 'DNAT' ) {
-		add_rule ensure_chain( 'nat' , input_chain $interface ) , $rulein   . match_source_net( $net3 ) . "-d $net1 -j NETMAP --to $net2";
-	    } elsif ( $type eq 'SNAT' ) {
-		add_rule ensure_chain( 'nat' , output_chain $interface ) , $ruleout . match_dest_net( $net3 )   . "-s $net1 -j NETMAP --to $net2";
-	    } else {
-		fatal_error "Invalid type ($type)";
-	    }
-
-	    progress_message "   Network $net1 on $iface mapped to $net2 ($type)";
 	}
+
+	clear_comment;
     }
 
 }

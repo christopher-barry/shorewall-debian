@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4.7';
+our $VERSION = '4.4.14';
 
 #
 # Called by the compiler to [re-]initialize this module's state
@@ -52,7 +52,7 @@ sub process_accounting_rule( ) {
 
     our $jumpchainref;
 
-    my ($action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark ) = split_line1 1, 9, 'Accounting File';
+    my ($action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers ) = split_line1 1, 11, 'Accounting File';
 
     if ( $action eq 'COMMENT' ) {
 	process_comment;
@@ -60,6 +60,16 @@ sub process_accounting_rule( ) {
     }
 
     our $disposition = '';
+
+    sub reserved_chain_name($) {
+	$_[0] =~ /^acc(?:ount(?:ing|out)|ipsecin|ipsecout)$/;
+    }
+
+    sub ipsec_chain_name($) {
+	if ( $_[0] =~ /^accipsec(in|out)$/ ) {
+	    $1;
+	}
+    }
 
     sub check_chain( $ ) {
 	my $chainref = shift;
@@ -72,10 +82,11 @@ sub process_accounting_rule( ) {
 
     sub jump_to_chain( $ ) {
 	my $jumpchain = $_[0];
-	$jumpchainref = ensure_accounting_chain( $jumpchain );
+	fatal_error "Jumps to the $jumpchain chain are not allowed" if reserved_chain_name( $jumpchain );
+	$jumpchainref = ensure_accounting_chain( $jumpchain, 0 );
 	check_chain( $jumpchainref );
 	$disposition = $jumpchain;
-	"-j $jumpchain";
+	$jumpchain;
     }
 
     my $target = '';
@@ -84,18 +95,21 @@ sub process_accounting_rule( ) {
     $ports  = ''    if $ports  eq 'any' || $ports  eq 'all';
     $sports = ''    if $sports eq 'any' || $sports eq 'all';
 
-    my $rule = do_proto( $proto, $ports, $sports ) . do_user ( $user ) . do_test ( $mark, $globals{TC_MASK} );
+    my $rule = do_proto( $proto, $ports, $sports ) . do_user ( $user ) . do_test ( $mark, $globals{TC_MASK} ) . do_headers( $headers );
     my $rule2 = 0;
+    my $jump  = 0;
 
     unless ( $action eq 'COUNT' ) {
 	if ( $action eq 'DONE' ) {
-	    $target = '-j RETURN';
+	    $target = 'RETURN';
 	} else {
 	    ( $action, my $cmd ) = split /:/, $action;
 	    if ( $cmd ) {
 		if ( $cmd eq 'COUNT' ) {
-		    $rule2=1;
-		} elsif ( $cmd ne 'JUMP' ) {
+		    $rule2 = 1;
+		} elsif ( $cmd eq 'JUMP' ) {
+		    $jump = 1;
+		} else {
 		    accounting_error;
 		}
 	    }
@@ -137,7 +151,31 @@ sub process_accounting_rule( ) {
 	$dest = ALLIP if $dest   eq 'any' || $dest   eq 'all';
     }
 
-    my $chainref = ensure_accounting_chain $chain;
+    my $chainref = $filter_table->{$chain};
+    my $dir;
+
+    if ( ! $chainref ) {
+	$chainref = ensure_accounting_chain $chain, 0;
+	$dir      = ipsec_chain_name( $chain );
+
+	if ( $ipsec ne '-' ) {
+	    if ( $dir ) {
+		$rule .= do_ipsec( $dir, $ipsec );
+		$chainref->{ipsec} = $dir;
+	    } else {
+		fatal_error "Adding an IPSEC rule to an unreferenced accounting chain is not allowed";
+	    }
+	} else {
+	    warning_message "Adding rule to unreferenced accounting chain $chain" unless reserved_chain_name( $chain );
+	    $chainref->{ipsec} = $dir;
+	}
+    } elsif ( $ipsec ne '-' ) {
+	$dir = $chainref->{ipsec};
+	fatal_error "Adding an IPSEC rule into a non-IPSEC chain is not allowed" unless $dir;
+	$rule .= do_ipsec( $dir , $ipsec );
+    }
+
+    $restriction = $dir eq 'in' ? INPUT_RESTRICT : OUTPUT_RESTRICT if $dir;
 
     expand_rule
 	$chainref ,
@@ -150,6 +188,22 @@ sub process_accounting_rule( ) {
 	'' ,
 	$disposition ,
 	'' ;
+
+    if ( $rule2 || $jump ) {
+	if ( $chainref->{ipsec} ) {
+	    if ( $jumpchainref->{ipsec} ) {
+		fatal_error "IPSEC in/out mismatch on chains $chain and $jumpchainref->{name}";
+	    } else {
+		fatal_error "$jumpchainref->{name} is not an IPSEC chain" if keys %{$jumpchainref->{references}} > 1;
+		$jumpchainref->{ipsec} = $chainref->{ipsec};
+	    }
+	} elsif ( $jumpchainref->{ipsec} ) {
+	    fatal_error "Jump from a non-IPSEC chain to an IPSEC chain not allowed";
+	} else {
+	    $jumpchainref->{ipsec} = $chainref->{ipsec};
+	}
+
+    }
 
     if ( $rule2 ) {
 	expand_rule
@@ -170,33 +224,46 @@ sub process_accounting_rule( ) {
 
 sub setup_accounting() {
 
-    my $fn = open_file 'accounting';
+    if ( my $fn = open_file 'accounting' ) {
 
-    first_entry "$doing $fn...";
+	first_entry "$doing $fn...";
 
-    my $nonEmpty = 0;
+	my $nonEmpty = 0;
 
-    $nonEmpty |= process_accounting_rule while read_a_line;
+	$nonEmpty |= process_accounting_rule while read_a_line;
 
-    fatal_error "Accounring rules are isolated" if $nonEmpty && ! $filter_table->{accounting};
+	clear_comment;
 
-    clear_comment;
-
-    if ( have_bridges ) {
-	if ( $filter_table->{accounting} ) {
-	    for my $chain ( qw/INPUT FORWARD/ ) {
-		add_jump( $filter_table->{$chain}, 'accounting', 0, '', 0, 0 );
+	if ( have_bridges ) {
+	    if ( $filter_table->{accounting} ) {
+		for my $chain ( qw/INPUT FORWARD/ ) {
+		    add_jump( $filter_table->{$chain}, 'accounting', 0, '', 0, 0 );
+		}
 	    }
-	}
 
-	if ( $filter_table->{accountout} ) {
-	    add_jump( $filter_table->{OUTPUT}, 'accountout', 0, '', 0, 0 );
-	}
-    } else {
-	if ( $filter_table->{accounting} ) {
+	    if ( $filter_table->{accountout} ) {
+		add_jump( $filter_table->{OUTPUT}, 'accountout', 0, '', 0, 0 );
+	    }
+	} elsif ( $filter_table->{accounting} ) {
 	    for my $chain ( qw/INPUT FORWARD OUTPUT/ ) {
 		add_jump( $filter_table->{$chain}, 'accounting', 0, '', 0, 0 );
 	    }
+	}
+
+	if ( $filter_table->{accipsecin} ) {
+	    for my $chain ( qw/INPUT FORWARD/ ) {
+		add_jump( $filter_table->{$chain}, 'accipsecin', 0,  '', 0, 0 );
+	    }
+	}
+
+	if ( $filter_table->{accipsecout} ) {
+	    for my $chain ( qw/FORWARD OUTPUT/ ) {
+		add_jump( $filter_table->{$chain}, 'accipsecout', 0, '', 0, 0 );
+	    }
+	}
+
+	for ( accounting_chainrefs ) {
+	    warning_message "Accounting chain $_->{name} has no references" unless keys %{$_->{references}};
 	}
     }
 }

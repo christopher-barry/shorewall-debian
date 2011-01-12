@@ -34,6 +34,10 @@ get_script_version() { # $1 = script
     local version
     local ifs
     local digits
+    local verbosity
+
+    verbosity="$VERBOSITY"
+    VERBOSITY=0
 
     temp=$( $SHOREWALL_SHELL $1 version | sed 's/-.*//' )
 
@@ -54,6 +58,8 @@ get_script_version() { # $1 = script
     fi
 
     echo $version
+
+    VERBOSITY="$verbosity"
 }
 
 #
@@ -514,9 +520,13 @@ find_file()
 #
 # Set the Shorewall state
 #
-set_state () # $1 = state
+set_state () # $1 = state $2
 {
-    echo "$1 ($(date))" > ${VARDIR}/state
+    if [ $# -gt 1 ]; then
+	echo "$1 ($(date)) from $2" > ${VARDIR}/state
+    else
+	echo "$1 ($(date))" > ${VARDIR}/state
+    fi
 }
 
 #
