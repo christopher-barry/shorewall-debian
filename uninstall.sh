@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.4.11.6
+VERSION=4.4.16
 
 usage() # $1 = exit status
 {
@@ -89,6 +89,18 @@ remove_file /etc/network/if-down.d/shorewall
 
 remove_file /etc/sysconfig/network/if-up.d/shorewall
 remove_file /etc/sysconfig/network/if-down.d/shorewall
+
+if [ -d /etc/ppp ]; then
+    for directory in ip-up.d ip-down.d ipv6-up.d ipv6-down.d; do
+	remove_file /etc/ppp/$directory/shorewall
+    done
+
+    for file in if-up.local if-down.local; do
+	if fgrep -q Shorewall-based /etc/ppp/$FILE; then
+	    remove_file /etc/ppp/$FILE
+	fi
+    done
+fi
 
 rm -rf /usr/share/shorewall-init
 
