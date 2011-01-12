@@ -54,6 +54,31 @@
       url="shorewall_quickstart_guide.htm">QuickStart Guides</ulink>.</para>
     </section>
 
+    <section id="faq92">
+      <title>(FAQ 92) There are lots of Shorewall packages; which one(s) do I
+      install?</title>
+
+      <para><emphasis role="bold">Answer</emphasis>: When first installing
+      Shorewall 4.4.0 or later, you must install the <emphasis
+      role="bold">shorewall</emphasis> package. If you want to configure an
+      IPv6 firewall, you must also install <emphasis
+      role="bold">shorewall6</emphasis>.</para>
+
+      <section id="faq92a">
+        <title>(FAQ 92a) Someone once told me to install shorewall-perl;
+        anything to that?</title>
+
+        <para><emphasis role="bold">Answer</emphasis>: That was good advice in
+        Shorewall 4.2 and earlier. In those releases, there were two packages
+        that provided the basic firewalling functionality: <emphasis
+        role="bold">shorewall-shell</emphasis> and <emphasis
+        role="bold">shorewall-perl</emphasis>. Beginning with Shorewall 4.4.0,
+        <emphasis role="bold">shorewall-shell</emphasis> is discontinued and
+        <emphasis role="bold">shorewall-perl</emphasis> is renamed <emphasis
+        role="bold">shorewall</emphasis>.</para>
+      </section>
+    </section>
+
     <section id="faq37">
       <title>(FAQ 37) I just installed Shorewall on Debian and the
       /etc/shorewall directory is almost empty!!!</title>
@@ -198,7 +223,8 @@
       it.</title>
 
       <para><emphasis role="bold">Answer:</emphasis> The format of a
-      port-forwarding rule to a local system is as follows:</para>
+      port-forwarding rule <emphasis>from the net</emphasis> to a local system
+      is as follows:</para>
 
       <programlisting>#ACTION    SOURCE      DEST                                   PROTO        DEST PORT
 DNAT       net         loc:<emphasis>local-IP-address</emphasis>[:<emphasis>local-port</emphasis>]      <emphasis>protocol</emphasis>     <emphasis>port-number</emphasis></programlisting>
@@ -227,6 +253,12 @@ DNAT    net:<emphasis>address</emphasis>   loc:<emphasis>local-IP-address</empha
       <para>Finally, if you need to forward a range of ports, in the DEST PORT
       column specify the range as
       <emphasis>low-port:high-port</emphasis>.</para>
+
+      <important>
+        <para><emphasis role="bold">The above does not work for forwarding
+        from the local network. If you want to do that, see <link
+        linkend="faq2">FAQ 2</link>.</emphasis></para>
+      </important>
 
       <section id="faq1a">
         <title>(FAQ 1a) Okay -- I followed those instructions but it doesn't
@@ -687,11 +719,9 @@ eth1:192.168.1.5        eth1            <emphasis role="bold">130.151.100.69</em
           <para>That rule (and the second one in the previous bullet) only
           works of course if you have a static external IP address. If you
           have a dynamic IP address then include this in
-          <filename>/etc/shorewall/params</filename> (or your
-          <filename>&lt;export directory&gt;/init</filename> file if you are
-          using Shorewall Lite on the firewall system):</para>
+          <filename>/etc/shorewall/params</filename>.</para>
 
-          <programlisting><command>ETH0_IP=`find_first_interface_address eth0`</command>        </programlisting>
+          <programlisting><command>ETH0_IP=$(find_first_interface_address eth0)</command>        </programlisting>
 
           <para>and make your DNAT rule:</para>
 
@@ -711,6 +741,14 @@ DNAT       loc           loc:192.168.1.5    tcp      www         -         <emph
             role="bold">find_first_interface_address()</emphasis>. The former
             will return 0.0.0.0 if the interface has no configured IP address;
             the latter terminates the calling program.</para>
+          </note>
+
+          <note>
+            <para>If you run Shorewall-lite on your firewall, you must use the
+            following in the firewall's configuration directory
+            <filename>params</filename> file:</para>
+
+            <programlisting><command>ETH0_IP=$(ssh root@firewall "/sbin/shorewall-lite call find_first_interface_address eth0")</command></programlisting>
           </note>
         </listitem>
       </itemizedlist>
@@ -1182,6 +1220,18 @@ to debug/develop the newnat interface.</programlisting></para>
   <section id="Logging">
     <title>Logging</title>
 
+    <section id="faq91">
+      <title>(FAQ 91) I changed the shorewall.conf file in /etc/shorewall/ to
+      spit out logs to /var/log/shorewall.log and it's not happening after I
+      restart shorewall. LOGFILE=/var/log/shorewall.log &lt;-- that should be
+      the correct line, right?</title>
+
+      <para><emphasis role="bold">Answer</emphasis>: No, that is not correct.
+      The LOGFILE setting tells Shorewall where to find the log; it does not
+      determine where messages are written. See <link linkend="faq6">the next
+      FAQ</link>.</para>
+    </section>
+
     <section id="faq6">
       <title>(FAQ 6) Where are the log messages written and how do I change
       the destination?</title>
@@ -1401,6 +1451,22 @@ teastep@ursa:~$ </programlisting>The first number determines the maximum log
 
         <para>Please see the <ulink url="shorewall_logging.html">Shorewall
         logging documentation</ulink> for further information.</para>
+      </section>
+
+      <section id="faq16b">
+        <title>(FAQ 16b) Shorewall messages are flooding the output of
+        'dmesg'; how to I stop that?</title>
+
+        <para><emphasis role="bold">Answer</emphasis>: Switch to using <ulink
+        url="???">ulogd</ulink>.</para>
+      </section>
+
+      <section id="faq16c">
+        <title>(FAQ 16c) I set LOGFILE=/var/log/shorewall but log messages are
+        still going to /var/log/messages.</title>
+
+        <para><emphasis role="bold">Answer</emphasis>: See the answer to <link
+        linkend="faq16a">FAQ 16a</link> above.</para>
       </section>
     </section>
 
@@ -1799,6 +1865,17 @@ ERROR: Command "ip -4 rule add from all table 254 pref 999" Failed</programlisti
   <section id="Start-Stop">
     <title>Starting and Stopping</title>
 
+    <section id="faq94">
+      <title>(FAQ 94) After I start Shorewall, ps doesn't show any shorewall
+      process running. What is the Shorewall daemon called?</title>
+
+      <para><emphasis role="bold">Answer:</emphasis> Shorewall is not a
+      daemon. It is a configuration tool that configures your kernel based on
+      the contents of <filename>/etc/shorewall/</filename>. Once the
+      <command>start</command> command completes, Shorewall has done its job
+      and there are no Shorewall processes remaining in the system.</para>
+    </section>
+
     <section id="faq7">
       <title>(FAQ 7) When I stop Shorewall using <quote>shorewall[-lite]
       stop</quote>, I can't connect to anything. Why doesn't that command
@@ -1921,7 +1998,8 @@ iptables: Invalid argument
       <para><emphasis role="bold">Answer:</emphasis> Copy
       <filename>/usr/share/shorewall[-lite]/modules</filename> to
       <filename>/etc/shorewall/modules </filename>and modify the copy to
-      include only the modules that you need.</para>
+      include only the modules that you need. An alternative is to set
+      LOAD_HELPERS_ONLY=Yes in shorewall.conf.</para>
     </section>
 
     <section id="faq61">
@@ -2089,6 +2167,57 @@ shorewall status &gt; /dev/null 2&gt;&amp;1 || shorewall start # Start Shorewall
       running script. The shell does not process
       <filename>/etc/shorewall/params</filename> when processing the <emphasis
       role="bold">restore</emphasis> command.</para>
+    </section>
+
+    <section id="faq90">
+      <title>(FAQ 90) Shorewall starts fine but after several minutes, it
+      stops. Why is it doing that?</title>
+
+      <para><emphasis role="bold">Answer:</emphasis> Shorewall uses the
+      presence of a chain named <emphasis>shorewall</emphasis> to indicate
+      whether is started or stopped. That chain is created during execution of
+      a successful <emphasis role="bold">start</emphasis>, <emphasis
+      role="bold">restart</emphasis> or <emphasis
+      role="bold">restore</emphasis> command and is removed during <emphasis
+      role="bold">stop</emphasis> and <emphasis role="bold">clear</emphasis>.
+      If <emphasis role="bold">shorewall status</emphasis> indicates that
+      Shorewall is stopped, then something has deleted that chain. Look at the
+      output of <emphasis role="bold">shorewall status</emphasis>; if it looks
+      like this:</para>
+
+      <blockquote>
+        <programlisting>gateway:~# shorewall status
+Shorewall-4.4.11 Status at gateway - Wed Jul 21 13:21:41 PDT 2010
+
+Shorewall is <emphasis role="bold">stopped</emphasis>
+State:<emphasis role="bold">Started</emphasis> (Tue Jul 20 16:01:49 PDT 2010)
+
+gateway:~# 
+</programlisting>
+      </blockquote>
+
+      <para>then it means that something outside of Shorewall has deleted the
+      chain. This usually means that you were running another firewall package
+      before you installed Shorewall and that other package has replaced
+      Shorewall's Netfilter configuration with its own. You must remove (or at
+      least disable) the other firewall package and restart Shorewall.</para>
+
+      <blockquote>
+        <programlisting>gateway:~# shorewall status
+Shorewall-4.4.11 Status at gateway - Wed Jul 21 13:26:29 PDT 2010
+
+Shorewall is <emphasis role="bold">stopped</emphasis>
+State:<emphasis role="bold">Stopped</emphasis> (Wed Jul 21 13:26:26 PDT 2010)
+
+gateway:~# </programlisting>
+      </blockquote>
+
+      <para>then a <emphasis role="bold">shorewall stop</emphasis> command has
+      been executed (if the State shown in the output is <emphasis
+      role="bold">Cleared</emphasis>, then a <emphasis role="bold">shorewall
+      clear</emphasis> command was executed). Most likely, you have installed
+      and configured the <emphasis>shorewall-init</emphasis> package and a
+      required interface has gone down.</para>
     </section>
   </section>
 
@@ -2326,7 +2455,7 @@ We have an error talking to the kernel
 
       <para><emphasis role="bold">Answer</emphasis>: Beginning with Shorewall
       4.4.11 Beta 2, you can <ulink url="Vserver.html">create vserver
-      zones</ulink> that are nested within the firewall zone. </para>
+      zones</ulink> that are nested within the firewall zone.</para>
 
       <para>Prior to 4.4.11 Beta 2, there is no way to create sub-zones of the
       firewall zone. But you can use shell variables to make vservers easier
@@ -2421,7 +2550,9 @@ rmmod nf_conntrack_sip</programlisting></para>
       <orderedlist>
         <listitem>
           <para>Copy <filename>/usr/share/shorewall/module</filename>s to
-          <filename class="directory">/etc/shorewall</filename>.</para>
+          <filename class="directory">/etc/shorewall</filename>
+          (<filename>/usr/share/shorewall/helpers</filename> if you have
+          LOAD_HELPERS_ONLY in shorewall.conf).</para>
         </listitem>
 
         <listitem>
@@ -2807,12 +2938,24 @@ EXT_IF:172.20.1.2	     	0.0.0.0/0		172.20.1.254
 
           <programlisting>#INTERFACE			SOURCE			ADDRESS
 
-COMMENT DSL Modem
+COMMENT DSL Modemhttp://ipv6.shorewall.net/SimpleBridge.html
 
 EXT_IF:192.168.1.1	     	0.0.0.0/0		192.168.1.254
 </programlisting>
         </listitem>
       </itemizedlist>
+    </section>
+
+    <section>
+      <title id="faq93">(FAQ 93) I'm not able to use Shorewall to manage a
+      bridge. I get the following error: ERROR: BRIDGING=Yes is not supported
+      by Shorewall 4.4.13.3.</title>
+
+      <para><emphasis role="bold">Answer:</emphasis> If you want to apply
+      firewall rules to the traffic passing between bridge ports, see <ulink
+      url="bridge-Shorewall-perl.html">http://www.shorewall.net/bridge-Shorewall-perl.html</ulink>.
+      If you simply want to allow all traffic between ports, then see <ulink
+      url="SimpleBridge.html">http://www.shorewall.net/SimpleBridge.html</ulink>.</para>
     </section>
   </section>
 </article>

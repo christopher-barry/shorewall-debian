@@ -391,6 +391,36 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">COMPLETE=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.12. When you set this option to Yes,
+          you are asserting that the configuration is complete so that your
+          set of zones encompasses any hosts that can send or receive traffic
+          to/from/through the firewall. This causes Shorewall to omit the
+          rules that catch packets in which the source or destination IP
+          address is outside of any of your zones. Default is No. It is
+          recommended that this option only be set to Yes if:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para>You have defined an interface whose effective physical
+              setting is '+'.</para>
+            </listitem>
+
+            <listitem>
+              <para>That interface is assigned to a zone.</para>
+            </listitem>
+
+            <listitem>
+              <para>You have no CONTINUE policies or rules.</para>
+            </listitem>
+          </itemizedlist>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis
         role="bold">CONFIG_PATH</emphasis>=[<emphasis>directory</emphasis>[:<emphasis>directory</emphasis>]...]</term>
 
@@ -588,11 +618,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
           <para>You may set HIGH_ROUTE_MARKS=Yes in to effectively divide the
           packet mark and connection mark into two mark fields.</para>
-
-          <note>
-            <para>From Shorewall 2.5.0 onward, this option is deprecated in
-            favor of the PROVIDER_OFFSET option.</para>
-          </note>
 
           <para>The width of the fields are determined by the setting of
           WIDE_TC_MARKS. If WIDE_TC_MARKS=No (the default):</para>
@@ -929,6 +954,36 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           that substring is not included then the rule number is not included.
           If not supplied or supplied as empty (LOGFORMAT="") then
           “Shorewall:%s:%s:” is assumed.</para>
+
+          <note>
+            <para>The setting of LOGFORMAT has an effect of the permitted
+            length of zone names. See <ulink
+            url="shorewall-zones.html">shorewall-zones</ulink> (5).</para>
+          </note>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">LOGLIMIT=[</emphasis>[{<emphasis>s</emphasis>|<emphasis
+        role="bold">d</emphasis>}:]<emphasis>rate</emphasis><emphasis
+        role="bold">/</emphasis>{<emphasis
+        role="bold">sec</emphasis>|<emphasis
+        role="bold">min</emphasis>|<emphasis
+        role="bold">hour</emphasis>|<emphasis
+        role="bold">day</emphasis>}[:<emphasis>burst</emphasis>]]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.12. Limits the logging rate, either
+          overall, or by source or destination IP address.</para>
+
+          <para>If the value starts with 's:' then logging is limited per
+          source IP. If the value starts with 'd:', then logging is limited
+          per destination IP. Otherwise, the overall logging rate is
+          limited.</para>
+
+          <para>If <replaceable>burst</replaceable> is not specified, then a
+          value of 5 is assumed.</para>
         </listitem>
       </varlistentry>
 
@@ -948,6 +1003,9 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">second</emphasis>}]</term>
 
         <listitem>
+          <para>Deprecated in Shorewall 4.4.12. These options are ignored when
+          LOGLIMIT is specified.</para>
+
           <para>These parameters set the match rate and initial burst size for
           logged packets. Please see iptables(8) for a description of the
           behavior of these parameters (the iptables option --limit is set by
@@ -1338,8 +1396,9 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
         <listitem>
-          <para>This option is included for compatibility with older Shorewall
-          releases. Its setting has no effect.</para>
+          <para><emphasis role="bold">Obsolete</emphasis> - This option is
+          included for compatibility with older Shorewall releases. Its
+          setting has no effect.</para>
         </listitem>
       </varlistentry>
 
@@ -1586,7 +1645,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">Yes</emphasis>|<emphasis
         role="bold">No</emphasis>|<emphasis
         role="bold">Internal</emphasis>|<emphasis
-        role="bold">Simple</emphasis>]</term>
+        role="bold">Simple</emphasis>|Shared]</term>
 
         <listitem>
           <para>If you say <emphasis role="bold">Yes</emphasis> or <emphasis
@@ -1608,6 +1667,16 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           <para>If you set TC_ENABLED=Internal or internal or leave the option
           empty then Shorewall will use its builtin traffic shaper
           (tc4shorewall written by Arne Bernin.</para>
+
+          <para>Beginning with Shorewall 4.4.15, you can set
+          TC_ENABLED=Shared. This allows you to configure the tcdevices and
+          tcclasses in your Shorewall6 configuration yet make them available
+          to the compiler when compiling your Shorewall configuration. In
+          addition to setting TC_ENABLED=Shared, you need to create symbolic
+          links from your Shorewall configuration directory (normally
+          /etc/shorewall/) to the tcdevices and tcclasses files in your
+          Shorewall6 configuration directory (normally
+          /etc/shorewall6/).</para>
         </listitem>
       </varlistentry>
 
@@ -1807,11 +1876,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           traffic shaping marks are 14 bytes wide (values 1-16383). The
           setting of WIDE_TC_MARKS also has an effect on the HIGH_ROUTE_MARKS
           option (see above).</para>
-
-          <note>
-            <para>From Shorewall 2.5.0 onware, this option is deprecated in
-            favor of the TC_BITS option.</para>
-          </note>
         </listitem>
       </varlistentry>
 
@@ -1838,8 +1902,8 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
     <title>See ALSO</title>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
-    shorewall-blacklist(5), shorewall-hosts(5), shorewall-interfaces(5),
-    shorewall-ipsec(5), shorewall-maclist(5), shorewall-masq(5),
+    shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
+    shorewall-ipsets(5), shorewall-maclist(5), shorewall-masq(5),
     shorewall-nat(5), shorewall-netmap(5), shorewall-params(5),
     shorewall-policy(5), shorewall-providers(5), shorewall-proxyarp(5),
     shorewall-route_rules(5), shorewall-routestopped(5), shorewall-rules(5),

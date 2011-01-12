@@ -428,11 +428,12 @@
         <listitem>
           <para>REDIRECTED INTERFACES — Entries are appropriate in this column
           only if the device in the INTERFACE column names a <link
-          linkend="IFB">Intermediate Functional Block (IFB)</link>. It lists the
-          physical interfaces that will have their input shaped using classes
-          defined on the IFB. Neither the IFB nor any of the interfaces listed
-          in this column may have an IN-BANDWIDTH specified. You may specify
-          zero (0) or a dash ("-:) in the IN-BANDWIDTH column.</para>
+          linkend="IFB">Intermediate Functional Block (IFB)</link>. It lists
+          the physical interfaces that will have their input shaped using
+          classes defined on the IFB. Neither the IFB nor any of the
+          interfaces listed in this column may have an IN-BANDWIDTH specified.
+          You may specify zero (0) or a dash ("-:) in the IN-BANDWIDTH
+          column.</para>
 
           <para>IFB devices automatically get the <emphasis
           role="bold">classify</emphasis> option.</para>
@@ -816,12 +817,9 @@ ppp0           6000kbit         500kbit</programlisting>
       in-depth look at the packet marking facility in Netfilter/Shorewall,
       please see <ulink url="PacketMarking.html">this article</ulink>.</para>
 
-      <para>Normally, packet marking occurs in the PREROUTING chain before any
-      address rewriting takes place. This makes it impossible to mark inbound
-      packets based on their destination address when SNAT or Masquerading are
-      being used. You can cause packet marking to occur in the FORWARD chain
-      by using the MARK_IN_FORWARD_CHAIN option in shorewall.conf or by using
-      the :F qualifier (see below).</para>
+      <para><emphasis role="bold">For marking forwarded traffic, you must
+      either set MARK_IN_FORWARD_CHAIN=Yes shorewall.conf or by using the :F
+      qualifier (see below).</emphasis></para>
 
       <para>Columns in the file are as follows:</para>
 
@@ -1163,6 +1161,13 @@ ppp0           6000kbit         500kbit</programlisting>
           modules such as <emphasis>ftp</emphasis>, <emphasis>sip</emphasis>,
           <emphasis>amanda</emphasis>, etc.</para>
         </listitem>
+
+        <listitem>
+          <para>HEADERS (Optioinal, Shorewall6 only, added in Shorewall
+          4.4.15). List of IPv6 headers that may appear in packets. See <ulink
+          url="manpages6/shorewall6-tcrules.html">shorewall6-tcrules</ulink>
+          (5) for details.</para>
+        </listitem>
       </itemizedlist>
 
       <example id="Example1">
@@ -1278,6 +1283,58 @@ SAVE     0.0.0.0/0      0.0.0.0/0       all        -             -        -     
       <programlisting>#! /bin/sh
 
 /sbin/shorewall refresh</programlisting>
+    </section>
+
+    <section>
+      <title>Sharing a TC configuration between Shorewall and
+      Shorewall6</title>
+
+      <para>Beginning with Shorewall 4.4.15, the traffic-shaping configuration
+      in the tcdevices, tcclasses and tcfilters files can be shared between
+      Shorewall and Shorewall6. Only one of the products can control the
+      configuration but the other can configure CLASSIFY rules in its own
+      tcrules file that refer to the shared classes.</para>
+
+      <para>To defined the configuration in Shorewall and shared it with
+      Shorewall6:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Set TC_ENABLED=Internal in <ulink
+          url="manpages/shorewall.conf.html">shorewall.conf</ulink>
+          (5).</para>
+        </listitem>
+
+        <listitem>
+          <para>Set TC_ENABLED=SHARED in <ulink
+          url="manpages6/shorewall6.conf.html">shorewall6.conf</ulink>
+          (5).</para>
+        </listitem>
+
+        <listitem>
+          <para>Create symbolic links from /etc/shorewall6 to
+          /etc/shorewall/tcdevices and /etc/shorewall/tcclasses:</para>
+
+          <programlisting>ln -s ../shorewall/tcdevices /etc/shorewall6/tcdevices
+ln -s ../shorewall/tcclasses /etc/shorewall6/tcclasses</programlisting>
+        </listitem>
+
+        <listitem>
+          <para>If you need to define IPv6 tcfilter entries, do so in
+          /etc/shorewall/tcfilters. That file now allows entries that apply to
+          IPv6.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>Shorewall6 compilations to have access to the tcdevices and
+      tcclasses files although it will create no output. That access allows
+      CLASSIFY rules in /etc/shorewall6/tcrules to be validated against the TC
+      configuration.</para>
+
+      <para>In this configuration, it is Shorewall that controls TC
+      configuration (except for IPv6 tcrules). You can reverse the settings in
+      the files if you want to control the configuration using
+      Shorewall6.</para>
     </section>
 
     <section id="perIP">
@@ -1850,6 +1907,14 @@ ip link set ifb0 up</command></programlisting>
         </listitem>
 
         <listitem>
+          <para>Address ranges and lists are not supported</para>
+        </listitem>
+
+        <listitem>
+          <para>Exclusion is not supported.</para>
+        </listitem>
+
+        <listitem>
           <para>filters are applied to packets as they <emphasis>appear on the
           wire</emphasis>. So incoming packets will not have DNAT applied yet
           (the destination IP address will be the external address) and
@@ -1894,6 +1959,11 @@ eth0              192.168.1.0/24   206.124.146.179</programlisting></para>
           <emphasis role="bold">source</emphasis> port 80.</para>
         </listitem>
       </orderedlist>
+
+      <para>Beginning with Shorewall 4.4.15, both IPv4 and IPv6 rules can be
+      defined in this file. See <ulink
+      url="manpages/shorewall-tcfilters.html">shorewall-tcfilters</ulink> (5)
+      for details.</para>
 
       <para>Columns in the file are as follow. As in all Shorewall
       configuration files, a hyphen ("-") may be used to indicate that no

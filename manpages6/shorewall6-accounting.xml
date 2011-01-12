@@ -35,7 +35,7 @@
         <term><emphasis role="bold">ACTION</emphasis> - {<emphasis
         role="bold">COUNT</emphasis>|<emphasis
         role="bold">DONE</emphasis>|<emphasis>chain</emphasis>[:<emphasis
-        role="bold">COUNT</emphasis>]|COMMENT}</term>
+        role="bold">{COUNT|JUMP}</emphasis>]|COMMENT}</term>
 
         <listitem>
           <para>What to do when a matching packet is found.</para>
@@ -73,6 +73,15 @@
                 role="bold">:COUNT</emphasis> is included, a counting rule
                 matching this entry will be added to
                 <emphasis>chain</emphasis></para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis>chain</emphasis>:JUMP</term>
+
+              <listitem>
+                <para>Like the previous option without the <emphasis
+                role="bold">:COUNT</emphasis> part.</para>
               </listitem>
             </varlistentry>
 
@@ -305,6 +314,241 @@
           </variablelist>
         </listitem>
       </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">IPSEC - <emphasis>option-list</emphasis>
+        (Optional - Added in Shorewall 4.4.13 )</emphasis></term>
+
+        <listitem>
+          <para>The option-list consists of a comma-separated list of options
+          from the following list. Only packets that will be encrypted or have
+          been de-crypted via an SA that matches these options will have their
+          source address changed.</para>
+
+          <variablelist>
+            <varlistentry>
+              <term><emphasis
+              role="bold">reqid=</emphasis><emphasis>number</emphasis></term>
+
+              <listitem>
+                <para>where <emphasis>number</emphasis> is specified using
+                setkey(8) using the 'unique:<emphasis>number</emphasis> option
+                for the SPD level.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">spi=</emphasis>&lt;number&gt;</term>
+
+              <listitem>
+                <para>where <emphasis>number</emphasis> is the SPI of the SA
+                used to encrypt/decrypt packets.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">proto=</emphasis><emphasis
+              role="bold">ah</emphasis>|<emphasis
+              role="bold">esp</emphasis>|<emphasis
+              role="bold">ipcomp</emphasis></term>
+
+              <listitem>
+                <para>IPSEC Encapsulation Protocol</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis
+              role="bold">mss=</emphasis><emphasis>number</emphasis></term>
+
+              <listitem>
+                <para>sets the MSS field in TCP packets</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">mode=</emphasis><emphasis
+              role="bold">transport</emphasis>|<emphasis
+              role="bold">tunnel</emphasis></term>
+
+              <listitem>
+                <para>IPSEC mode</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis
+              role="bold">tunnel-src=</emphasis><emphasis>address</emphasis>[/<emphasis>mask</emphasis>]</term>
+
+              <listitem>
+                <para>only available with mode=tunnel</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis
+              role="bold">tunnel-dst=</emphasis><emphasis>address</emphasis>[/<emphasis>mask</emphasis>]</term>
+
+              <listitem>
+                <para>only available with mode=tunnel</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">strict</emphasis></term>
+
+              <listitem>
+                <para>Means that packets must match all rules.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">next</emphasis></term>
+
+              <listitem>
+                <para>Separates rules; can only be used with strict</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">yes</emphasis> or <emphasis
+              role="bold">ipsec</emphasis></term>
+
+              <listitem>
+                <para>When used by itself, causes all traffic that will be
+                encrypted/encapsulated or has been decrypted/un-encapsulted to
+                match the rule.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">no</emphasis> or <emphasis
+              role="bold">none</emphasis></term>
+
+              <listitem>
+                <para>When used by itself, causes all traffic that will not be
+                encrypted/encapsulated or has been decrypted/un-encapsulted to
+                match the rule.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+
+          <para>If this column is non-empty, then:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para>A chain NAME may appearing in the ACTION column must be a
+              chain branched either directly or indirectly from the <emphasis
+              role="bold">accountin</emphasis> or <emphasis
+              role="bold">accountout</emphasis> chain.</para>
+            </listitem>
+
+            <listitem>
+              <para>The CHAIN column must contain either <emphasis
+              role="bold">accountin</emphasis> or <emphasis
+              role="bold">accountout</emphasis> or a chain branched either
+              directly or indirectly from those chains.</para>
+            </listitem>
+          </itemizedlist>
+
+          <para>These rules will NOT appear in the <emphasis
+          role="bold">accounting</emphasis> chain.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">HEADERS -
+        [!][any:|exactly:]</emphasis><replaceable>header-list
+        </replaceable>(Optional - Added in Shorewall 4.4.15)</term>
+
+        <listitem>
+          <para>The <replaceable>header-list</replaceable> consists of a
+          comma-separated list of headers from the following list.</para>
+
+          <variablelist>
+            <varlistentry>
+              <term><emphasis role="bold">auth</emphasis>, <emphasis
+              role="bold">ah</emphasis>, or <emphasis
+              role="bold">51</emphasis></term>
+
+              <listitem>
+                <para><firstterm>Authentication Headers</firstterm> extension
+                header.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">esp</emphasis>, or <emphasis
+              role="bold">50</emphasis></term>
+
+              <listitem>
+                <para><firstterm>Encrypted Security Payload</firstterm>
+                extension header.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">hop</emphasis>, <emphasis
+              role="bold">hop-by-hop</emphasis> or <emphasis
+              role="bold">0</emphasis></term>
+
+              <listitem>
+                <para>Hop-by-hop options extension header.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">route</emphasis>, <emphasis
+              role="bold">ipv6-route</emphasis> or <emphasis
+              role="bold">41</emphasis></term>
+
+              <listitem>
+                <para>IPv6 Route extension header.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">frag</emphasis>, <emphasis
+              role="bold">ipv6-frag</emphasis> or <emphasis
+              role="bold">44</emphasis></term>
+
+              <listitem>
+                <para>IPv6 fragmentation extension header.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">none</emphasis>, <emphasis
+              role="bold">ipv6-nonxt</emphasis> or <emphasis
+              role="bold">59</emphasis></term>
+
+              <listitem>
+                <para>No next header</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">proto</emphasis>, <emphasis
+              role="bold">protocol</emphasis> or <emphasis
+              role="bold">255</emphasis></term>
+
+              <listitem>
+                <para>Any protocol header.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
+
+          <para>If <emphasis role="bold">any:</emphasis> is specified, the
+          rule will match if any of the listed headers are present. If
+          <emphasis role="bold">exactly:</emphasis> is specified, the will
+          match packets that exactly include all specified headers. If neither
+          is given, <emphasis role="bold">any:</emphasis> is assumed.</para>
+
+          <para>If <emphasis role="bold">!</emphasis> is entered, the rule
+          will match those packets which would not be matched when <emphasis
+          role="bold">!</emphasis> is omitted.</para>
+        </listitem>
+      </varlistentry>
     </variablelist>
 
     <para>In all of the above columns except <emphasis
@@ -332,8 +576,8 @@
     shorewall6-hosts(5), shorewall6-interfaces(5), shorewall6-maclist(5),
     shorewall6-params(5), shorewall6-policy(5), shorewall6-providers(5),
     shorewall6-route_rules(5), shorewall6-routestopped(5),
-    shorewall6-rules(5), shorewall6.conf(5), shorewall6-tcclasses(5),
-    shorewall6-tcdevices(5), shorewall6-tcrules(5), shorewall6-tos(5),
-    shorewall6-tunnels(5), shorewall6-zones(5)</para>
+    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5),
+    shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-tcrules(5),
+    shorewall6-tos(5), shorewall6-tunnels(5), shorewall6-zones(5)</para>
   </refsect1>
 </refentry>
