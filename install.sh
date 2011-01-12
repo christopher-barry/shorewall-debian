@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.11.6
+VERSION=4.4.16
 
 usage() # $1 = exit status
 {
@@ -249,7 +249,7 @@ fi
 [ -n "$INIT" ] && echo  "Shorewall6 script installed in ${DESTDIR}${DEST}/$INIT"
 
 #
-# Create /etc/shorewall, /usr/share/shorewall and /var/shorewall if needed
+# Create /etc/shorewall, /usr/share/shorewall and /var/lib/shorewall6 if needed
 #
 mkdir -p ${DESTDIR}/etc/shorewall6
 mkdir -p ${DESTDIR}/usr/share/shorewall6
@@ -296,7 +296,7 @@ fi
 run_install $OWNERSHIP -m 0644 zones ${DESTDIR}/usr/share/shorewall6/configfiles/zones
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/zones ]; then
-    run_install $OWNERSHIP -m 0744 zones ${DESTDIR}/etc/shorewall6/zones
+    run_install $OWNERSHIP -m 0644 zones ${DESTDIR}/etc/shorewall6/zones
     echo "Zones file installed as ${DESTDIR}/etc/shorewall6/zones"
 fi
 
@@ -311,8 +311,8 @@ delete_file ${DESTDIR}/usr/share/shorewall6/lib.proxyarp
 delete_file ${DESTDIR}/usr/share/shorewall6/lib.tc
 delete_file ${DESTDIR}/usr/share/shorewall6/lib.tcrules
 delete_file ${DESTDIR}/usr/share/shorewall6/lib.tunnels
-delete_file ${DESTDIR}/usr/share/shorewall6/prog.header
-delete_file ${DESTDIR}/usr/share/shorewall6/prog.footer
+delete_file ${DESTDIR}/usr/share/shorewall6/prog.header6
+delete_file ${DESTDIR}/usr/share/shorewall6/prog.footer6
 
 #
 # Install wait4ifup
@@ -507,6 +507,16 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/notrack ]; then
     run_install $OWNERSHIP -m 0600 notrack ${DESTDIR}/etc/shorewall6/notrack
     echo "Notrack file installed as ${DESTDIR}/etc/shorewall6/notrack"
 fi
+
+#
+# Install the Secmarks file
+#
+run_install $OWNERSHIP -m 0644 secmarks ${DESTDIR}/usr/share/shorewall6/configfiles/secmarks
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/secmarks ]; then
+    run_install $OWNERSHIP -m 0600 secmarks ${DESTDIR}/etc/shorewall6/secmarks
+    echo "Secmarks file installed as ${DESTDIR}/etc/shorewall6/secmarks"
+fi
 #
 # Install the default config path file
 #
@@ -621,6 +631,35 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/tcclear ]; then
     echo "Tcclear file installed as ${DESTDIR}/etc/shorewall6/tcclear"
 fi
 #
+# Install the Scfilter file
+#
+run_install $OWNERSHIP -m 0644 scfilter ${DESTDIR}/usr/share/shorewall6/configfiles/scfilter
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/scfilter ]; then
+    run_install $OWNERSHIP -m 0600 scfilter ${DESTDIR}/etc/shorewall6/scfilter
+    echo "Scfilter file installed as ${DESTDIR}/etc/shorewall6/scfilter"
+fi
+
+#
+# Install the Providers file
+#
+run_install $OWNERSHIP -m 0644 providers ${DESTDIR}/usr/share/shorewall6/configfiles/providers
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/providers ]; then
+    run_install $OWNERSHIP -m 0600 providers ${DESTDIR}/etc/shorewall6/providers
+    echo "Providers file installed as ${DESTDIR}/etc/shorewall6/providers"
+fi
+#
+# Install the Proxyndp file
+#
+run_install $OWNERSHIP -m 0644 proxyndp ${DESTDIR}/usr/share/shorewall6/configfiles/proxyndp
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/proxyndp ]; then
+    run_install $OWNERSHIP -m 0600 proxyndp ${DESTDIR}/etc/shorewall6/proxyndp
+    echo "Proxyndp file installed as ${DESTDIR}/etc/shorewall6/proxyndp"
+fi
+
+#
 # Install the Standard Actions file
 #
 install_file actions.std ${DESTDIR}/usr/share/shorewall6/actions.std 0644
@@ -719,11 +758,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${CYGWIN}${MAC}" ]; then
     if [ -n "$DEBIAN" ]; then
 	run_install $OWNERSHIP -m 0644 default.debian /etc/default/shorewall6
 
-	if [ -x /sbin/insserv ]; then
-	    insserv /etc/init.d/shorewall6
-	else
-	    ln -s ../init.d/shorewall6 /etc/rcS.d/S40shorewall6
-	fi
+	update-rc.d shorewall6 defaults
 
 	echo "shorewall6 will start automatically at boot"
 	echo "Set startup=1 in /etc/default/shorewall6 to enable"

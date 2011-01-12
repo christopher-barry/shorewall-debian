@@ -67,15 +67,15 @@ get_config() {
 	# This block is avoided for compile for export and when the user isn't root
 	#
 	if [ "$3" = Yes ]; then
-	    [ -z "$LOGFILE" ] && LOGFILE=/var/log/messages
-
-	    if [ -n "$(syslog_circular_buffer)" ]; then
-		g_logread="logread | tac"
-	    elif [ -r $LOGFILE ]; then
-		g_logread="tac $LOGFILE"
-	    else
-		echo "LOGFILE ($LOGFILE) does not exist!" >&2
-		exit 2
+	    if [ -n "$LOGFILE" ]; then
+		if [ -n "$(syslog_circular_buffer)" ]; then
+		    g_logread="logread | tac"
+		elif [ -r $LOGFILE ]; then
+		    g_logread="tac $LOGFILE"
+		else
+		    echo "LOGFILE ($LOGFILE) does not exist!" >&2
+		    exit 2
+		fi
 	    fi
 	fi
 
@@ -290,14 +290,6 @@ compiler() {
     [ "$g_debugging" = trace ] && options="$options --debug"
     [ -n "$g_refreshchains" ] && options="$options --refresh=$g_refreshchains"
     [ -x $pc ] || startup_error "Shorewall6 requires the shorewall package which is not installed"
-    #
-    # Run the appropriate params file
-    #
-    if [ -z "$haveparams" ]; then
-	set -a; 
-	run_user_exit params
-	set +a
-    fi
 
     if [ -n "$PERL" ]; then
 	if [ ! -x "$PERL" ]; then
@@ -1303,6 +1295,54 @@ usage() # $1 = exit status
     exit $1
 }
 
+version_command() {
+    local finished
+    finished=0
+    local all
+    all=
+
+    while [ $finished -eq 0 -a $# -gt 0 ]; do
+	option=$1
+	case $option in
+	    -*)
+		option=${option#-}
+
+		while [ -n "$option" ]; do
+		    case $option in
+			-)
+			    finished=1
+			    option=
+			    ;;
+			a*)
+			    all=Yes
+			    option=${option#a}
+			    ;;
+			*)
+			    usage 1
+			    ;;
+		    esac
+		done
+		shift
+		;;
+	    *)
+		finished=1
+		;;
+	esac
+    done
+
+    [ $# -gt 0 ] && usage 1
+
+    echo $SHOREWALL_VERSION
+
+    if [ -n "$all" ]; then
+	for product in shorewall shorewall-lite shorewall6-lite shorewall-init; do
+	    if [ -f /usr/share/$product/version ]; then
+		echo "$product: $(cat /usr/share/$product/version)"
+	    fi
+	done
+    fi
+}
+
 #
 # Execution begins here
 #
@@ -1331,6 +1371,12 @@ g_export=
 g_noroutes=
 g_purge=
 g_timestamp=
+
+#
+# Make sure that these variables are cleared
+#
+VERBOSE=
+VERBOSITY=
 
 finished=0
 
@@ -1426,54 +1472,6 @@ while [ $finished -eq 0 ]; do
             ;;
     esac
 done
-
-version_command() {
-    local finished
-    finished=0
-    local all
-    all=
-
-    while [ $finished -eq 0 -a $# -gt 0 ]; do
-	option=$1
-	case $option in
-	    -*)
-		option=${option#-}
-
-		while [ -n "$option" ]; do
-		    case $option in
-			-)
-			    finished=1
-			    option=
-			    ;;
-			a*)
-			    all=Yes
-			    option=${option#a}
-			    ;;
-			*)
-			    usage 1
-			    ;;
-		    esac
-		done
-		shift
-		;;
-	    *)
-		finished=1
-		;;
-	esac
-    done
-
-    [ $# -gt 0 ] && usage 1
-
-    echo $SHOREWALL_VERSION
-
-    if [ -n "$all" ]; then
-	for product in shorewall shorewall-lite shorewall6-lite shorewall-init; do
-	    if [ -f /usr/share/$product/version ]; then
-		echo "$product: $(cat /usr/share/$product/version)"
-	    fi
-	done
-    fi
-}
 
 if [ $# -eq 0 ]; then
     usage 1
