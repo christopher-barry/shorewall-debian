@@ -113,10 +113,6 @@ get_config() {
 
     [ -n "$FW" ] || FW=fw
 
-    [ -n "LOGFORMAT" ] && LOGFORMAT="${LOGFORMAT%%%*}"
-
-    [ -n "$LOGFORMAT" ] || LOGFORMAT="Shorewall:"
-
     if [ -n "$IP6TABLES" ]; then
 	if [ ! -x "$IP6TABLES" ]; then
 	    echo "   ERROR: The program specified in IP6TABLES does not exist or is not executable" >&2
@@ -178,6 +174,15 @@ verify_firewall_script() {
 	
 	exit 2
     fi
+}
+
+#
+# Fatal error
+#
+startup_error() {
+    echo "   ERROR: $@" >&2
+    kill $$
+    exit 1
 }
 
 #
@@ -454,6 +459,12 @@ g_timestamp=
 g_recovering=
 g_purge=
 g_logread=
+
+#
+# Make sure that these variables are cleared
+#
+VERBOSE=
+VERBOSITY=
 
 finished=0
 
