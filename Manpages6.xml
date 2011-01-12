@@ -5,7 +5,7 @@
   <!--$Id: template.xml 5908 2007-04-12 23:04:36Z teastep $-->
 
   <articleinfo>
-    <title>Shorewall6 4.4/4.5 Manpages</title>
+    <title>Shorewall6 4.4 Manpages</title>
 
     <authorgroup>
       <author>
@@ -23,6 +23,8 @@
       <year>2008</year>
 
       <year>2009</year>
+
+      <year>2010</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -103,8 +105,16 @@
         routing tables, usually for multiple Internet links.</member>
 
         <member><ulink
+        url="manpages6/shorewall6-proxyndp.html">proxyndp</ulink> - Defines
+        Proxy NDP</member>
+
+        <member><ulink
         url="manpages6/shorewall6-route_rules.html">route_rules</ulink> -
         Define routing rules.</member>
+
+        <member><ulink url="manpages6/shorewall6-routes.html">routes</ulink> -
+        (Added in Shorewall 4.4.15) Add additional routes to provider routing
+        tables.</member>
 
         <member><ulink
         url="manpages6/shorewall6-routestopped.html">routestopped</ulink> -
@@ -113,6 +123,10 @@
 
         <member><ulink url="manpages6/shorewall6-rules.html">rules</ulink> -
         Specify exceptions to policies, including DNAT and REDIRECT.</member>
+
+        <member><ulink
+        url="manpages6/shorewall6-secmarks.html">secmarks</ulink> - Attached
+        an SELinux context to a packet.</member>
 
         <member><ulink
         url="manpages6/shorewall6-tcclasses.html">tcclasses</ulink> - Define

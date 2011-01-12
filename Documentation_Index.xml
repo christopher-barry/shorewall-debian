@@ -102,8 +102,8 @@
           </row>
 
           <row>
-            <entry><ulink url="Anatomy.html">Anatomy of Shorewall</ulink>
-            (<ulink url="Anatomy_ru.html">Russian</ulink>)</entry>
+            <entry><ulink url="Anatomy.html">Anatomy of
+            Shorewall</ulink></entry>
 
             <entry><ulink url="Manpages.html">Man Pages</ulink></entry>
 
@@ -112,8 +112,8 @@
           </row>
 
           <row>
-            <entry><ulink url="traffic_shaping.htm">Bandwidth Control</ulink>
-            (<ulink url="traffic_shaping_ru.html">Russian</ulink>)</entry>
+            <entry><ulink url="traffic_shaping.htm">Bandwidth
+            Control</ulink></entry>
 
             <entry><ulink url="ManualChains.html">Manual
             Chains</ulink></entry>
@@ -123,9 +123,8 @@
           </row>
 
           <row>
-            <entry><ulink url="blacklisting_support.htm">Blacklisting</ulink>
-            (<ulink
-            url="blacklisting_support_ru.html">Russian</ulink>)</entry>
+            <entry><ulink
+            url="blacklisting_support.htm">Blacklisting</ulink></entry>
 
             <entry><ulink
             url="two-interface.htm#SNAT">Masquerading</ulink></entry>
@@ -137,7 +136,7 @@
 
           <row>
             <entry>Bridge: <ulink
-            url="bridge-Shorewall-perl.html">Shorewall-perl</ulink></entry>
+            url="bridge-Shorewall-perl.html">Bridge/Firewall</ulink></entry>
 
             <entry><ulink url="MultiISP.html">Multiple Internet Connections
             from a Single Firewall</ulink> (<ulink
@@ -148,8 +147,8 @@
           </row>
 
           <row>
-            <entry>Bridge: <ulink url="SimpleBridge.html">No control of
-            traffic through the bridge</ulink></entry>
+            <entry>Bridge: <ulink url="SimpleBridge.html">No firewalling of
+            traffic between bridge port</ulink></entry>
 
             <entry><ulink url="Multiple_Zones.html">Multiple Zones Through One
             Interface</ulink></entry>
@@ -197,8 +196,7 @@
             NAT)</entry>
 
             <entry><ulink url="traffic_shaping.htm">Traffic Shaping/QOS -
-            Complex</ulink> (<ulink
-            url="traffic_shaping_ru.html">Russian</ulink>)</entry>
+            Complex</ulink></entry>
           </row>
 
           <row>
@@ -320,8 +318,8 @@
           </row>
 
           <row>
-            <entry><ulink url="Install.htm">Installation/Upgrade</ulink>
-            (<ulink url="Install_fr.html">Français</ulink>)</entry>
+            <entry><ulink
+            url="Install.htm">Installation/Upgrade</ulink></entry>
 
             <entry><ulink url="ReleaseModel.html">Release
             Model</ulink></entry>
@@ -339,8 +337,7 @@
           </row>
 
           <row>
-            <entry><ulink url="IPSEC-2.6.html">IPSEC using Kernel 2.6 and
-            Shorewall 2.1 or Later</ulink></entry>
+            <entry><ulink url="IPSEC-2.6.html">IPSEC</ulink></entry>
 
             <entry><ulink url="Shorewall_and_Routing.html">Routing and
             Shorewall</ulink></entry>

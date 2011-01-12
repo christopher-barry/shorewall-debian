@@ -22,6 +22,8 @@
 
       <year>2007</year>
 
+      <year>2010</year>
+
       <holder>Thomas M. Eastep</holder>
     </copyright>
 
@@ -45,8 +47,20 @@
     </listitem>
   </itemizedlist>
 
+  <para>Now, <ulink url="Install.htm">install Shorewall</ulink>.</para>
+
   <para>Next, read the QuickStart Guide that is appropriate for your
   configuration:</para>
+
+  <para><emphasis role="bold">If you just want to protect a system: (Requires
+  Shorewall 4.4.12-Beta3 or later)</emphasis></para>
+
+  <itemizedlist>
+    <listitem>
+      <para><ulink url="Universal.html">Universal</ulink> configuration --
+      requires no configuration to protect a single system.</para>
+    </listitem>
+  </itemizedlist>
 
   <para><emphasis role="bold">If you have only one public IP
   address:</emphasis></para>
@@ -54,24 +68,20 @@
   <itemizedlist>
     <listitem>
       <para><ulink url="standalone.htm">Standalone</ulink> Linux System with a
-      single network interface (<ulink url="standalone_fr.html">Version
-      Française</ulink>) <ulink url="standalone_ru.html">(Russian
-      Version)</ulink> <ulink url="standalone_es.html">Version en
-      Español</ulink></para>
+      single network interface (if you are running Shorewall 4.4.12 Beta 3 or
+      later, use the <ulink url="Universal.html">Universal</ulink>
+      configuration instead).</para>
     </listitem>
 
     <listitem>
       <para><ulink url="two-interface.htm">Two-interface</ulink> Linux System
-      acting as a firewall/router for a small local network (<ulink
-      url="two-interface_fr.html">Version Française</ulink>) (<ulink
-      url="two-interface_ru.html">Russian Version</ulink>)</para>
+      acting as a firewall/router for a small local network</para>
     </listitem>
 
     <listitem>
       <para><ulink url="three-interface.htm">Three-interface</ulink> Linux
-      System acting as a firewall/router for a small local network and a DMZ..
-      (<ulink url="three-interface_fr.html">Version Française</ulink>) (<ulink
-      url="three-interface_ru.html">Russian Version</ulink>)</para>
+      System acting as a firewall/router for a small local network and a
+      DMZ.</para>
     </listitem>
   </itemizedlist>
 
@@ -81,11 +91,10 @@
   <itemizedlist>
     <listitem>
       <para>The <ulink url="shorewall_setup_guide.htm">Shorewall Setup
-      Guide</ulink> (<ulink url="shorewall_setup_guide_fr.htm">Version
-      Française</ulink>) outlines the steps necessary to set up a firewall
-      where there are multiple public IP addresses involved or if you want to
-      learn more about Shorewall than is explained in the single-address
-      guides above.</para>
+      Guide</ulink> outlines the steps necessary to set up a firewall where
+      there are multiple public IP addresses involved or if you want to learn
+      more about Shorewall than is explained in the single-address guides
+      above.</para>
     </listitem>
   </itemizedlist>
 

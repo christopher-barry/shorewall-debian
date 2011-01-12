@@ -73,6 +73,55 @@
           destination port numbers or service names from services(5).</para>
         </listitem>
       </varlistentry>
+
+      <varlistentry>
+        <term>OPTIONS (Optional - Added in 4.4.12) -
+        {-|{dst|src}[,...]}</term>
+
+        <listitem>
+          <para>If specified, indicates whether traffic
+          <emphasis>from</emphasis> ADDRESS/SUBNET (<emphasis
+          role="bold">src</emphasis>) or traffic <emphasis>to</emphasis>
+          ADDRESS/SUBNET (<emphasis role="bold">dst</emphasis>) should be
+          blacklisted. The default is <emphasis role="bold">src</emphasis>. If
+          the ADDRESS/SUBNET column is empty, then this column has no effect
+          on the generated rule.</para>
+
+          <note>
+            <para>In Shorewall 4.4.12, the keywords from and to were used in
+            place of src and dst respectively. Blacklisting was still
+            restricted to traffic <emphasis>arriving</emphasis> on an
+            interface that has the 'blacklist' option set. So to block traffic
+            from your local network to an internet host, you had to specify
+            <option>blacklist</option> on your internal interface in <ulink
+            url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>
+            (5).</para>
+          </note>
+
+          <note>
+            <para>Beginning with Shorewall 4.4.13, entries are applied based
+            on the <emphasis role="bold">blacklist</emphasis> setting in
+            <ulink
+            url="shorewall-zones.html">shorewall6-zones</ulink>(5):</para>
+
+            <orderedlist>
+              <listitem>
+                <para>'blacklist' in the OPTIONS or IN_OPTIONS column. Traffic
+                from this zone is passed against the entries in this file that
+                have the <emphasis role="bold">src</emphasis> option
+                (specified or defaulted).</para>
+              </listitem>
+
+              <listitem>
+                <para>'blacklist' in the OPTIONS or OUT_OPTIONS column.
+                Traffic to this zone is passed against the entries in this
+                file that have the <emphasis role="bold">dst</emphasis>
+                option.</para>
+              </listitem>
+            </orderedlist>
+          </note>
+        </listitem>
+      </varlistentry>
     </variablelist>
 
     <para>When a packet arrives on an interface that has the <emphasis
@@ -135,8 +184,8 @@
     shorewall6-hosts(5), shorewall6-interfaces(5), shorewall6-maclist(5),
     shorewall6-params(5), shorewall6-policy(5), shorewall6-providers(5),
     shorewall6-route_rules(5), shorewall6-routestopped(5),
-    shorewall6-rules(5), shorewall6.conf(5), shorewall6-tcclasses(5),
-    shorewall6-tcdevices(5), shorewall6-tcrules(5), shorewall6-tos(5),
-    shorewall6-tunnels(5), shorewall6-zones(5)</para>
+    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5),
+    shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-tcrules(5),
+    shorewall6-tos(5), shorewall6-tunnels(5), shorewall6-zones(5)</para>
   </refsect1>
 </refentry>

@@ -73,7 +73,9 @@ loc     eth2            -</programlisting>
           <para>You may use wildcards here by specifying a prefix followed by
           the plus sign ("+"). For example, if you want to make an entry that
           applies to all PPP interfaces, use 'ppp+'; that would match ppp0,
-          ppp1, ppp2, …</para>
+          ppp1, ppp2, … Please note that the '+' means '<emphasis
+          role="bold">one</emphasis> or more additional characters' so 'ppp'
+          does not match 'ppp+'.</para>
 
           <para>When using Shorewall versions before 4.1.4, care must be
           exercised when using wildcards where there is another zone that uses
@@ -228,8 +230,31 @@ loc     eth2            -</programlisting>
               <listitem>
                 <para>Check packets arriving on this interface against the
                 <ulink
-                url="shorewall-blacklist.html">shorewall-blacklist</ulink>(5)
+                url="shorewall6-blacklist.html">shorewall6-blacklist</ulink>(5)
                 file.</para>
+
+                <para>Beginning with Shorewall 4.4.13:</para>
+
+                <itemizedlist>
+                  <listitem>
+                    <para>If a <replaceable>zone</replaceable> is given in the
+                    ZONES column, then the behavior is as if <emphasis
+                    role="bold">blacklist</emphasis> had been specified in the
+                    IN_OPTIONS column of <ulink
+                    url="shorewall-zones.html">shorewall-zones</ulink>(5).</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>Otherwise, the option is ignored with a
+                    warning:</para>
+
+                    <blockquote>
+                      <para><emphasis role="bold">WARNING: The 'blacklist'
+                      option is ignored on mult-zone
+                      interfaces</emphasis></para>
+                    </blockquote>
+                  </listitem>
+                </itemizedlist>
               </listitem>
             </varlistentry>
 
@@ -422,17 +447,6 @@ loc     eth2            -</programlisting>
 
                 <para>May not be specified with <emphasis
                 role="bold">required</emphasis>.</para>
-
-                <caution>
-                  <para>Use <option>optional</option> at your own risk. If you
-                  [re]start Shorewall when an 'optional' interface is not
-                  available and then do a <command>shorewall save</command>,
-                  subsequent <command>shorewall restore</command> and
-                  <command>shorewall -f start</command> operations will
-                  instantiate a ruleset that does not support that interface,
-                  even if it is available at the time of the
-                  restore/start.</para>
-                </caution>
               </listitem>
             </varlistentry>
 
@@ -692,12 +706,13 @@ net     ppp0      -</programlisting>
     <title>See ALSO</title>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
-    shorewall-blacklist(5), shorewall-hosts(5), shorewall-ipsec(5),
-    shorewall-maclist(5), shorewall-masq(5), shorewall-nat(5),
-    shorewall-netmap(5), shorewall-params(5), shorewall-policy(5),
-    shorewall-providers(5), shorewall-proxyarp(5), shorewall-route_rules(5),
+    shorewall-blacklist(5), shorewall-hosts(5), shorewall-maclist(5),
+    shorewall-masq(5), shorewall-nat(5), shorewall-netmap(5),
+    shorewall-params(5), shorewall-policy(5), shorewall-providers(5),
+    shorewall-proxyarp(5), shorewall-route_rules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
-    shorewall-tcclasses(5), shorewall-tcdevices(5), shorewall-tcrules(5),
-    shorewall-tos(5), shorewall-tunnels(5), shorewall-zones(5)</para>
+    shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
+    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),
+    shorewall-zones(5)</para>
   </refsect1>
 </refentry>

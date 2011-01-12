@@ -38,10 +38,11 @@
         role="bold">,</emphasis><emphasis>parent-zone</emphasis>]...]</term>
 
         <listitem>
-          <para>Name of the <emphasis>zone</emphasis>. The names "all",
-          "none", "SOURCE" and "DEST" are reserved and may not be used as zone
-          names. The maximum length of a zone name is determined by the
-          setting of the LOGFORMAT option in <ulink
+          <para>Name of the <emphasis>zone</emphasis>. Must start with a
+          letter and consist of letters, digits or '_'. The names "all",
+          "none", "any", "SOURCE" and "DEST" are reserved and may not be used
+          as zone names. The maximum length of a zone name is determined by
+          the setting of the LOGFORMAT option in <ulink
           url="shorewall.conf.html">shorewall.conf</ulink>(5). With the
           default LOGFORMAT, zone names can be at most 5 characters
           long.</para>
@@ -68,7 +69,8 @@
               <listitem>
                 <para>The canonical name for the chain containing the rules
                 for traffic going from zone 1 to zone 2 is "&lt;zone
-                1&gt;2&lt;zone 2&gt;".</para>
+                1&gt;2&lt;zone 2&gt;" or "&lt;zone 1&gt;-&lt;zone
+                2&gt;".</para>
               </listitem>
 
               <listitem>
@@ -178,6 +180,9 @@ c:a,b     ipv4</programlisting>
                 Linux-vserver guests. The zone contents must be defined in
                 <ulink url="shorewall-hosts.html">shorewall-hosts</ulink>
                 (5).</para>
+
+                <para>Vserver zones are implicitly handled as subzones of the
+                firewall zone.</para>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -191,10 +196,34 @@ c:a,b     ipv4</programlisting>
 
         <listitem>
           <para>A comma-separated list of options. With the exception of the
-          <option>mss</option> option, these only apply to TYPE
-          <option>ipsec</option> zones.</para>
+          <option>mss</option> and <option>blacklist</option> options, these
+          only apply to TYPE <option>ipsec</option> zones.</para>
 
           <variablelist>
+            <varlistentry>
+              <term><emphasis role="bold">blacklist</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.4.13. May not be specified for
+                <emphasis role="bold">firewall</emphasis> or <emphasis
+                role="bold">vserver</emphasis> zones.</para>
+
+                <para>When specified in the IN_OPTIONS column, causes all
+                traffic from this zone to be passed against the <emphasis
+                role="bold">src</emphasis> entries in s<ulink
+                url="shorewall-blacklist.html">horewall-blacklist</ulink>(5).</para>
+
+                <para>When specified in the OUT_OPTIONS column, causes all
+                traffic to this zone to be passed against the <emphasis
+                role="bold">dst</emphasis> entries in s<ulink
+                url="shorewall-blacklist.html">horewall-blacklist</ulink>(5).</para>
+
+                <para>Specifying this option in the OPTIONS column is
+                equivalent to entering it in both of the IN_OPTIONS and
+                OUT_OPTIONS column.</para>
+              </listitem>
+            </varlistentry>
+
             <varlistentry>
               <term><emphasis
               role="bold">reqid=</emphasis><emphasis>number</emphasis></term>
@@ -309,13 +338,13 @@ c:a,b     ipv4</programlisting>
     url="http://www.shorewall.net/Multiple_Zones.html">http://www.shorewall.net/Multiple_Zones.html</ulink>.</para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
-    shorewall-blacklist(5), shorewall-hosts(5), shorewall-interfaces(5),
-    shorewall-ipsec(5), shorewall-maclist(5), shorewall-masq(5),
+    shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
+    shorewall-ipsets(5), shorewall-maclist(5), shorewall-masq(5),
     shorewall-nat(5), shorewall-nesting(8), shorewall-netmap(5),
     shorewall-params(5), shorewall-policy(5), shorewall-providers(5),
     shorewall-proxyarp(5), shorewall-route_rules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
-    shorewall-tcclasses(5), shorewall-tcdevices(5), shorewall-tcrules(5),
-    shorewall-tos(5), shorewall-tunnels(5)</para>
+    shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
+    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5)</para>
   </refsect1>
 </refentry>

@@ -214,6 +214,12 @@
         </listitem>
 
         <listitem>
+          <para><filename>/etc/shorewall/secmarks</filename> - Added in
+          Shorewall 4.4.13. Attach an SELinux context to selected
+          packets.</para>
+        </listitem>
+
+        <listitem>
           <para><filename>/etc/shorewall/vardir</filename> - Determines the
           directory where Shorewall maintains its state.</para>
         </listitem>
@@ -290,6 +296,30 @@ ACCEPT  net     $FW      tcp     www     #This is an end-of-line comment</progra
     </example>
   </section>
 
+  <section id="Names">
+    <title>Names</title>
+
+    <para>When you define an object in Shorewall (<ulink
+    url="manpages/shorewall-zones.html">Zone</ulink>, <link
+    linkend="Logical">Logical Interface</link>, <ulink
+    url="ipsets.html">ipsets</ulink>, <ulink
+    url="Actions.html">Actions</ulink>, etc., you give it a name. Shorewall
+    names start with a letter and consist of letters, digits or underscores
+    ("_"). Except for Zone names, Shorewall does not impose a limit on name
+    length.</para>
+
+    <para>When an ipset is referenced, the name must be preceded by a plus
+    sign ("+").</para>
+
+    <para>The last character of an interface may also be a plus sign to
+    indicate a wildcard name.</para>
+
+    <para>Physical interface names match names shown by 'ip link ls'; if the
+    name includes an at sign ("@"), do not include that character or any
+    character that follows. For example, "sit1@NONE" is referred to as simply
+    'sit1".</para>
+  </section>
+
   <section id="COMMENT">
     <title>Attach Comment to Netfilter Rules</title>
 
@@ -317,6 +347,10 @@ ACCEPT  net     $FW      tcp     www     #This is an end-of-line comment</progra
 
       <listitem>
         <para><filename>/etc/shorewall/rules</filename></para>
+      </listitem>
+
+      <listitem>
+        <para><filename>/etc/shorewall/secmarks</filename></para>
       </listitem>
 
       <listitem>
@@ -396,7 +430,7 @@ gateway:~ #
 COMMENT SSH
 PARAM   -      -     tcp   22 </programlisting>
     <filename>/etc/shorewall/rules</filename>:<programlisting>COMMENT Allow SSH from home
-SSH/ALLOW    net:$MYIP      $FW
+SSH(ACCEPT)    net:$MYIP      $FW
 COMMENT</programlisting>The comment line in macro.SSH will not override the
     COMMENT line in the rules file and the generated rule will show <emphasis
     role="bold">/* Allow SSH from home */</emphasis> when displayed through
@@ -458,6 +492,63 @@ ACCEPT      net:\
     </example>
   </section>
 
+  <section>
+    <title>Addresses</title>
+
+    <para>In both Shorewall and Shorewall6, there are two basic types of
+    addresses:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>Host Address</term>
+
+        <listitem>
+          <para>This address type refer to a single host.</para>
+
+          <para>In IPv4, the format is <emphasis>i.j.k.l</emphasis> where
+          <emphasis>i</emphasis> through <emphasis>l</emphasis> are decimal
+          numbers between 1 and 255.</para>
+
+          <para>In IPv6, the format is <emphasis>a:b:c:d:e:f:g:h</emphasis>
+          where <emphasis>a</emphasis> through <emphasis>h</emphasis> consist
+          of 1 to 4 hexidecimal digits (leading zeros may be omitted). a
+          single series of 0 addresses may be omitted. For example
+          2001:227:e857:1:0:0:0:0:1 may be written 2001:227:e857:1::1.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Network Address</term>
+
+        <listitem>
+          <para>A network address refers to 1 or more hosts and consists of a
+          host address followed by a slash ("/") and a <firstterm>Variable
+          Length Subnet Mask</firstterm> (VLSM). This is known as
+          <firstterm>Classless Internet Domain Routing</firstterm> (CIDR)
+          notation.</para>
+
+          <para>The VLSM is a decimal number. For IPv4, it is in the range 0
+          through 32. For IPv6, the range is 0 through 128. The number
+          represents the number of leading bits in the address that represent
+          the network address; the remainder of the bits are a host address
+          and are generally given as zero.</para>
+
+          <para>Examples:</para>
+
+          <para>IPv4: 192.168.1.0/24</para>
+
+          <para>IPv6: 2001:227:e857:1:0:0:0:0:1/64</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>In the Shorewall documentation and manpages, we have tried to make
+    it clear which type of address is accepted in each specific case.</para>
+
+    <para>For more information about addressing, see the<ulink
+    url="shorewall_setup_guide.htm#Addressing"> Setup Guide</ulink>.</para>
+  </section>
+
   <section id="SOURCE-DEST">
     <title>Specifying SOURCE and DEST</title>
 
@@ -486,8 +577,9 @@ ACCEPT      net:\
       <listitem>
         <para>ADDRESS LIST — A list of one or more addresses (host or network)
         or address ranges, separated by commas. In an IPv6 configuration, this
-        list must be includes in angled brackets ("&lt;...&gt;"). The list may
-        have <link linkend="Exclusion">exclusion</link>.</para>
+        list must be includef in square or angled brackets ("[...]" or
+        "&lt;...&gt;"). The list may have <link
+        linkend="Exclusion">exclusion</link>.</para>
       </listitem>
     </orderedlist>
 
@@ -526,7 +618,7 @@ ACCEPT      net:\
       <listitem>
         <para>Host 2002:ce7c:92b4:1:a00:27ff:feb1:46a9 in the <emphasis
         role="bold">loc</emphasis> zone — <emphasis
-        role="bold">loc:&lt;2002:ce7c:92b4:1:a00:27ff:feb1:46a9&gt;</emphasis></para>
+        role="bold">loc:[2002:ce7c:92b4:1:a00:27ff:feb1:46a9]</emphasis></para>
       </listitem>
     </orderedlist>
   </section>
@@ -750,9 +842,7 @@ SHELL cat /etc/shorewall/rules.d/*.rules</programlisting></para>
       </listitem>
 
       <listitem>
-        <para>Should not depend on where the code is called from (the params
-        file is sourced by both /sbin/shorewall and
-        /usr/lib/shorewall/firewall).</para>
+        <para>Should not depend on where the code is called from.</para>
       </listitem>
 
       <listitem>
@@ -1318,7 +1408,7 @@ DNAT       net        loc:192.168.1.3 tcp       4000:4100</programlisting>
     <para>Beginning with Shorewall 4.4.4, you can use logical interface names
     which are mapped to the actual interface using the
     <option>physical</option> option in <ulink
-    url="manpages/shorewall-interfaces.html">shorewall-interfraces</ulink>
+    url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>
     (5).</para>
 
     <para>Here is an example:</para>
@@ -1356,6 +1446,85 @@ Comcast 2        0x20000 main       COM_IF     detect          balance          
 
     <para>Note in particular that Shorewall translates TUN_IF to <filename
     class="devicefile">tun*</filename> in the COPY column.</para>
+  </section>
+
+  <section>
+    <title>Zone and Chain Names</title>
+
+    <para>For a pair of zones, Shorewall creates two Netfilter chains; one for
+    connections in each direction. The names of these chains are formed by
+    separating the names of the two zones by either "2" or "-".</para>
+
+    <para>Example: Traffic from zone A to zone B would go through chain A2B
+    (think "A to B") or "A-B".</para>
+
+    <para>The default separator is "2" but you can override that by setting
+    ZONE_SEPARATOR="-" in <ulink
+    url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5).</para>
+
+    <para>Zones themselves have names that begin with a letter and are
+    composed of letters, numerals, and "_". The maximum length of a name is
+    dependent on the setting of LOGFORMAT in <ulink
+    url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5). See <ulink
+    url="manpages/shorewall-zones.html">shorewall-zones</ulink> (5) for
+    details.</para>
+  </section>
+
+  <section>
+    <title>Optional and Required Interfaces</title>
+
+    <para>Normally, Shorewall assumes that all interfaces described in <ulink
+    url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink> (5)
+    are going to be in an up and usable state when Shorewall starts or
+    restarts. You can alter that assumption by specifying the <emphasis
+    role="bold">optional</emphasis> option in the OPTIONS column.</para>
+
+    <para>When an interface is marked as optional, Shorewall will determine
+    the interface state at <command>start</command> and
+    <command>restart</command> and adjust its configuration
+    accordingly.</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>The <emphasis role="bold">arp_filter</emphasis>, <emphasis
+        role="bold">arp_ignore</emphasis>, <emphasis
+        role="bold">routefilter</emphasis>, <emphasis
+        role="bold">logmartians</emphasis>, <emphasis
+        role="bold">proxyarp</emphasis> and <emphasis
+        role="bold">sourceroute</emphasis> options are not enforced when the
+        interface is down, thus avoiding an error message such
+        as:<programlisting>WARNING: Cannot set Martian logging on ppp0</programlisting></para>
+      </listitem>
+
+      <listitem>
+        <para>If the interface is associated with a provider in <ulink
+        url="manpages/shorewall-providers.html">shorewall-providers</ulink>
+        (5), <command>start</command> and <command>restart</command> will not
+        fail if the interface is not usable.</para>
+      </listitem>
+
+      <listitem>
+        <para>When DETECT_DNAT_IPADDRS=Yes in <ulink
+        url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5), DNAT
+        rules in shorewall-rules (5) involving the interface will be omitted
+        when the interface does not have an IP address.</para>
+      </listitem>
+
+      <listitem>
+        <para>If <emphasis role="bold">detect</emphasis> is specified in the
+        ADDRESS column of an entry in <ulink
+        url="manpages/shorewall-masq.html">shorewall-masq</ulink> (5) then the
+        firewall still start if the optional interface in the INTERFACE column
+        does not have an IP address.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>If you don't want the firewall to start unless a given interface is
+    usable, then specify required in the OPTIONS column of <ulink
+    url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink> (5).
+    If you have installed and configured the Shorewall-init package, then when
+    the interface becomes available, an automatic attempt will be made to
+    start the firewall.</para>
   </section>
 
   <section id="Levels">

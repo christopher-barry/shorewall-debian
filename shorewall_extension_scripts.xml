@@ -18,7 +18,7 @@
     <pubdate><?dbtimestamp format="Y/m/d"?></pubdate>
 
     <copyright>
-      <year>2001-2007</year>
+      <year>2001-2010</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -200,6 +200,26 @@ esac</programlisting><caution>
         with dhclient on several distributions are available at <ulink
         url="http://www.shorewall.net/pub/shorewall/contrib/findgw/">http://www.shorewall.net/pub/shorewall/contrib/findgw/</ulink></para>
       </listitem>
+
+      <listitem>
+        <para><filename>scfilter</filename> -- Added in Shorewall 4.4.14.
+        Unlike the other scripts, this script is executed by the command-line
+        tools (<filename>/sbin/shorewall</filename>,
+        <filename>/sbin/shorewall6</filename>, etc) and can be used to
+        reformat the output of the <command>show connections</command>
+        command. The connection information is piped through this script so
+        that the script can drop information, add information or alter the
+        format of the information. When using Shorewall Lite or Shorewall6
+        Lite, the script is encapsulated in a function that is copied into the
+        generated auxillary configuration file. That function is invoked by
+        the 'show connections' command.</para>
+
+        <para>The default script is as follows and simply pipes the output
+        through unaltered.</para>
+
+        <programlisting>#! /bin/sh
+cat -</programlisting>
+      </listitem>
     </itemizedlist>
 
     <para><emphasis role="bold">If your version of Shorewall doesn't have the
@@ -286,6 +306,12 @@ esac</programlisting><caution>
             <entry>save</entry>
 
             <entry>save</entry>
+          </row>
+
+          <row>
+            <entry>scfilter</entry>
+
+            <entry>show connections</entry>
           </row>
 
           <row>
@@ -512,6 +538,12 @@ esac</programlisting><caution>
 
                 <entry>restored</entry>
               </row>
+
+              <row>
+                <entry></entry>
+
+                <entry>scfilter</entry>
+              </row>
             </tbody>
           </tgroup>
         </informaltable></para>
@@ -596,6 +628,9 @@ esac</programlisting><caution>
       <para>Example:</para>
 
       <programlisting>my $chainref = $filter_table-&gt;{INPUT}; #Same as above with a few less keystrokes; runs faster too</programlisting>
+
+      <para>For imformation about the 'compile' extension script, see the
+      <ulink url="ManualChains.html">Manual Chains article</ulink>.</para>
     </section>
   </section>
 </article>

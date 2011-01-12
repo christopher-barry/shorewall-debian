@@ -575,6 +575,12 @@
             Normally, you will list all interfaces on your firewall in this
             column except those Internet interfaces specified in the INTERFACE
             column of entries in this file.</para>
+
+            <note>
+              <para>Beginning with Shorewall 4.4.15, provider routing tables
+              can be augmeted with additional routes through use of the <link
+              linkend="routes">/etc/shorewall/routes</link> file.</para>
+            </note>
           </listitem>
         </varlistentry>
       </variablelist>
@@ -912,7 +918,8 @@ eth3             0.0.0.0/0         16.105.78.4</programlisting></para>
     </section>
 
     <section id="Local">
-      <title>Applications running on the Firewall</title>
+      <title>Applications running on the Firewall -making them use a
+      particular provider</title>
 
       <para>As <link linkend="Applications">noted above</link>, separate
       entries in <filename>/etc/shorewall/tcrules</filename> are required for
@@ -948,6 +955,11 @@ eth3             0.0.0.0/0         16.105.78.4</programlisting></para>
       that an entry in <filename>/etc/shorewall/route_rules</filename> with
       'lo' in the SOURCE column seems to be the most reliable way to direct
       such traffic to a particular ISP.</para>
+
+      <para>Example:</para>
+
+      <programlisting>#SOURCE     DEST      PROVIDER        PRIORITY
+lo          -         shorewall       1000</programlisting>
     </section>
 
     <section id="route_rules">
@@ -1098,6 +1110,104 @@ gateway:~ #</programlisting>Note that because we used a priority of 1000, the
         <programlisting>#SOURCE                 DEST            PROVIDER        PRIORITY
 -                       10.8.0.0/24     main            1000</programlisting>
       </section>
+    </section>
+
+    <section id="routes">
+      <title>/etc/shorewall/routes File</title>
+
+      <para>Beginning with Shorewall 4.4.15, additional routes can be added to
+      the provider routing tables using the /etc/shorewall/routes file.</para>
+
+      <para>The columns in the file are as follows.</para>
+
+      <variablelist>
+        <varlistentry>
+          <term><emphasis role="bold">PROVIDER</emphasis></term>
+
+          <listitem>
+            <para>The name or number of a provider defined in <ulink
+            url="shorewall-providers.html">shorewall-providers</ulink>
+            (5).</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><emphasis role="bold">DEST</emphasis></term>
+
+          <listitem>
+            <para>Destination host address or network address.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><emphasis role="bold">GATEWAY</emphasis> (Optional)</term>
+
+          <listitem>
+            <para>If specified, gives the IP address of the gateway to the
+            DEST.</para>
+          </listitem>
+        </varlistentry>
+
+        <varlistentry>
+          <term><emphasis role="bold">DEVICE</emphasis> (Optional)</term>
+
+          <listitem>
+            <para>Specifies the device route. If neither DEVICE nor GATEWAY is
+            given, then the INTERFACE specified for the PROVIDER in <ulink
+            url="manpages/shorewall-providers.html">shorewall-providers</ulink>
+            (5).</para>
+          </listitem>
+        </varlistentry>
+      </variablelist>
+
+      <para> Assume the following entry in
+      <filename>/etc/shorewall/providers</filename>:</para>
+
+      <programlisting>#NAME   NUMBER  MARK    DUPLICATE       INTERFACE       GATEWAY         OPTIONS          COPY
+Comcast      1     -    xxx             eth2            ....     </programlisting>
+
+      <para>The following table gives some example entries in the file and the
+      <command>ip route</command> command which results.</para>
+
+      <programlisting><emphasis role="bold">#PROVIDER     DEST             GATEWAY         DEVICE</emphasis>        | <emphasis
+          role="bold">             Generated Command</emphasis>
+Comcast       172.20.1.0/24    -               eth0          | ip -4 route add 172.20.1.0/24 dev eth0 table 1
+Comcast       192.168.4.0/24   172.20.1.1                    | ip -4 route add 192.168.1.0/24 via 172.20.1.1 table 1
+Comcast       192.168.4.0/24                                 | ip -4 route add 192.168.4.0/24 dev eth2 table 1 </programlisting>
+    </section>
+
+    <section>
+      <title>Looking at the routing tables</title>
+
+      <para>To look at the various routing tables, you must use the <emphasis
+      role="bold">ip</emphasis> utility. To see the entire routing
+      configuration (including rules), the command is <command>shorewall show
+      routing</command>. To look at an individual provider's table use
+      <command>ip route ls table <replaceable>provider</replaceable></command>
+      where <replaceable>provider</replaceable> can be either the provider
+      name or number.</para>
+
+      <para>Example:</para>
+
+      <programlisting>lillycat:- #<command>ip route ls</command>
+144.77.167.142 dev ppp0  proto kernel  scope link  src 144.177.121.199
+71.190.227.208 dev ppp1  proto kernel  scope link  src 71.24.88.151
+192.168.7.254 dev eth1  scope link  src 192.168.7.1
+192.168.7.253 dev eth1  scope link  src 192.168.7.1
+192.168.7.0/24 dev eth1  proto kernel  scope link  src 192.168.7.1
+192.168.5.0/24 via 192.168.4.2 dev eth0
+192.168.4.0/24 dev eth0  proto kernel  scope link  src 192.168.4.223
+192.168.1.0/24 via 192.168.4.222 dev eth0
+default
+        nexthop dev ppp1 weight 2
+        nexthop dev ppp0 weight 1
+lillycat: #ip <command>route ls provider 1</command>
+144.77.167.142 dev ppp0  proto kernel  scope link  src 144.177.121.199 
+192.168.5.0/24 via 192.168.4.2 dev eth0 
+192.168.4.0/24 dev eth0  proto kernel  scope link  src 192.168.4.223 
+192.168.1.0/24 via 192.168.4.222 dev eth0 
+default dev ppp0  scope link 
+lillycat: #</programlisting>
     </section>
 
     <section id="USE_DEFAULT_RT">
@@ -1527,7 +1637,7 @@ connection {
 
 connection {
     name=Comcast
-    checkip=${ETH0_GATEWAY:-71.231.152.1}
+    checkip=${SW_ETH0_GATEWAY:-71.231.152.1}
     device=$COM_IF
     ttl=1
 }
@@ -1543,9 +1653,14 @@ EOF
    /usr/sbin/lsm /etc/lsm/lsm.conf &gt;&gt; /var/log/lsm
 }</programlisting>
 
-        <para>eth3 has a dynamic IP address so I need to use the
-        Shorewall-detected gateway address ($ETH3_GATEWAY). I supply a default
-        value to be used in the event that detection fails.</para>
+        <para>eth0 has a dynamic IP address so I need to use the
+        Shorewall-detected gateway address ($SW_ETH1_GATEWAY). I supply a
+        default value to be used in the event that detection fails.</para>
+
+        <note>
+          <para>In Shorewall 4.4.7 and earlier, the variable name is
+          ETH1_GATEWAY.</para>
+        </note>
 
         <para><filename>/etc/shorewall/started</filename>:</para>
 

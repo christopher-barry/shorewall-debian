@@ -1,0 +1,239 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE refentry PUBLIC "-//OASIS//DTD DocBook XML V4.4//EN"
+"http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
+<refentry>
+  <refmeta>
+    <refentrytitle>shorewall6-tcfilters</refentrytitle>
+
+    <manvolnum>5</manvolnum>
+  </refmeta>
+
+  <refnamediv>
+    <refname>tcfilters</refname>
+
+    <refpurpose>shorewall6 u32 classifier rules file</refpurpose>
+  </refnamediv>
+
+  <refsynopsisdiv>
+    <cmdsynopsis>
+      <command>/etc/shorewall6/tcfilters</command>
+    </cmdsynopsis>
+  </refsynopsisdiv>
+
+  <refsect1>
+    <title>Description</title>
+
+    <para>Entries in this file cause packets to be classified for traffic
+    shaping.</para>
+
+    <para>Beginning with Shorewall 4.4.15, the file may contain entries for
+    both IPv4 and IPv6. By default, all rules apply to IPv6 but that can be
+    changed by inserting a line as follows:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>IPV4</term>
+
+        <listitem>
+          <para>Following entriess apply to IPv4.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>IPV6</term>
+
+        <listitem>
+          <para>Following entries apply to IPv6</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>ALL</term>
+
+        <listitem>
+          <para>Following entries apply to both IPv4 and IPv6. Each entry is
+          processed twice; once for IPv4 and once for IPv6.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>The columns in the file are as follows.</para>
+
+    <variablelist>
+      <varlistentry>
+        <term><emphasis role="bold">CLASS</emphasis> -
+        <emphasis>interface</emphasis><emphasis
+        role="bold">:</emphasis><emphasis>class</emphasis></term>
+
+        <listitem>
+          <para>The name or number of an <returnvalue>interface</returnvalue>
+          defined in <ulink
+          url="shorewall6-tcdevices.html">shorewall6-tcdevices</ulink>(5)
+          followed by a <replaceable>class</replaceable> number defined for
+          that interface in <ulink
+          url="shorewall6-tcclasses.html">shorewall6-tcclasses</ulink>(5).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SOURCE</emphasis> - {<emphasis
+        role="bold">-</emphasis>|<emphasis>address</emphasis>}</term>
+
+        <listitem>
+          <para>Source of the packet. May be a host or network
+          <replaceable>address</replaceable>. DNS names are not
+          allowed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">DEST</emphasis> - {<emphasis
+        role="bold">-</emphasis>|<emphasis>address</emphasis>}}</term>
+
+        <listitem>
+          <para>Destination of the packet. May be a host or network
+          <replaceable>address</replaceable>. DNS names are not
+          allowed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">PROTO</emphasis> - {<emphasis
+        role="bold">-</emphasis>|<emphasis>protocol-number</emphasis>|<emphasis>protocol-name</emphasis>|<emphasis
+        role="bold">all}</emphasis></term>
+
+        <listitem>
+          <para>Protocol.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">DEST PORT</emphasis> (Optional) -
+        [<emphasis
+        role="bold">-</emphasis>|<emphasis>port-name-or-number</emphasis>]</term>
+
+        <listitem>
+          <para>Destination Ports. A Port name (from services(5)) or a
+          <emphasis>port number</emphasis>; if the protocol is <emphasis
+          role="bold">icmp</emphasis>, this column is interpreted as the
+          destination icmp-type(s).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SOURCE PORT</emphasis> (Optional) -
+        [<emphasis
+        role="bold">-</emphasis>|<emphasis>port-name-or-number</emphasis>]</term>
+
+        <listitem>
+          <para>Source port.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">TOS</emphasis> (Optional) - [<emphasis
+        role="bold">-</emphasis>|<emphasis>tos</emphasis>]</term>
+
+        <listitem>
+          <para>Specifies the value of the TOS field. The
+          <replaceable>tos</replaceable> value can be any of the
+          following:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para><option>tos-minimize-delay</option></para>
+            </listitem>
+
+            <listitem>
+              <para><option>tos-maximuze-throughput</option></para>
+            </listitem>
+
+            <listitem>
+              <para><option>tos-maximize-reliability</option></para>
+            </listitem>
+
+            <listitem>
+              <para><option>tos-minimize-cost</option></para>
+            </listitem>
+
+            <listitem>
+              <para><option>tos-normal-service</option></para>
+            </listitem>
+
+            <listitem>
+              <para><replaceable>hex-number</replaceable></para>
+            </listitem>
+
+            <listitem>
+              <para><replaceable>hex-number</replaceable>/<replaceable>hex-number</replaceable></para>
+            </listitem>
+          </itemizedlist>
+
+          <para>The <replaceable>hex-number</replaceable>s must be exactly two
+          digits (e.g., 0x04)x.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">LENGTH</emphasis> (Optional) - [<emphasis
+        role="bold">-</emphasis>|<emphasis>number</emphasis>]</term>
+
+        <listitem>
+          <para>Must be a power of 2 between 32 and 8192 inclusive. Packets
+          with a total length that is strictly less than the specified
+          <replaceable>number</replaceable> will match the rule.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>Example</title>
+
+    <variablelist>
+      <varlistentry>
+        <term>Example 1:</term>
+
+        <listitem>
+          <para>Place all 'ping' traffic on interface 1 in class 10. Note that
+          ALL cannot be used because IPv4 ICMP and IPv6 ICMP are two different
+          protocols.</para>
+
+          <programlisting>        #CLASS    SOURCE    DEST         PROTO   DEST 
+       #                                        PORT
+
+       IPV4
+
+       1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-request
+       1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
+
+       IPV6
+ 
+       1:10      ::/0      ::/0         icmp6   echo-request
+       1:10      ::/0      ::/0         icmp6   echo-reply</programlisting>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </refsect1>
+
+  <refsect1>
+    <title>FILES</title>
+
+    <para>/etc/shorewall6/tcfilters</para>
+  </refsect1>
+
+  <refsect1>
+    <title>See ALSO</title>
+
+    <para><ulink
+    url="http://shorewall.net/traffic_shaping.htm">http://shorewall.net/traffic_shaping.htm</ulink></para>
+
+    <para><ulink
+    url="http://shorewall.net/MultiISP.html">http://shorewall.net/MultiISP.html</ulink></para>
+
+    <para><ulink
+    url="http://shorewall.net/PacketMarking.html">http://shorewall.net/PacketMarking.html</ulink></para>
+
+    <para></para>
+  </refsect1>
+</refentry>

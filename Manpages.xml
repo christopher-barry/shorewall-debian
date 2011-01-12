@@ -5,7 +5,7 @@
   <!--$Id: template.xml 5908 2007-04-12 23:04:36Z teastep $-->
 
   <articleinfo>
-    <title>Shorewall 4.4/4.5 Manpages</title>
+    <title>Shorewall 4.4 Manpages</title>
 
     <authorgroup>
       <author>
@@ -23,6 +23,8 @@
       <year>2008</year>
 
       <year>2009</year>
+
+      <year>2010</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -83,6 +85,10 @@
         the interfaces on the system and optionally associate them with
         zones.</member>
 
+        <member><ulink url="manpages/shorewall-ipsets.html">ipsets</ulink> -
+        Describes how to specify set names in Shorewall configuration
+        files.</member>
+
         <member><ulink url="manpages/shorewall-maclist.html">maclist</ulink> -
         Define MAC verification.</member>
 
@@ -121,6 +127,10 @@
         url="manpages/shorewall-route_rules.html">route_rules</ulink> - Define
         routing rules.</member>
 
+        <member><ulink url="manpages/shorewall-routes.html">routes</ulink> -
+        (Added in Shorewall 4.4.15) Add additional routes to provider routing
+        tables.</member>
+
         <member><ulink
         url="manpages/shorewall-routestopped.html">routestopped</ulink> -
         Specify connections to be permitted when Shorewall is in the stopped
@@ -128,6 +138,9 @@
 
         <member><ulink url="manpages/shorewall-rules.html">rules</ulink> -
         Specify exceptions to policies, including DNAT and REDIRECT.</member>
+
+        <member><ulink url="manpages/shorewall-secmarks.html">secmarks</ulink>
+        - Attach an SELinux context to a packet.</member>
 
         <member><ulink
         url="manpages/shorewall-tcclasses.html">tcclasses</ulink> - Define htb
@@ -188,6 +201,11 @@
       <simplelist>
         <member><ulink url="manpages/shorewall.html">shorewall</ulink> -
         /sbin/shorewall command syntax and semantics.</member>
+
+        <member><ulink
+        url="manpages/shorewall-init.html">shorewall-init</ulink> - Companion
+        package that allows for automatic start/stop of other Shorewall
+        products based on network events.</member>
 
         <member><ulink
         url="manpages/shorewall-lite.html">shorewall-lite</ulink> -

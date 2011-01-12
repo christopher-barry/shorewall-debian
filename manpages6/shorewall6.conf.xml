@@ -337,6 +337,36 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">COMPLETE=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall6 4.4.12. When you set this option to Yes,
+          you are asserting that the configuration is complete so that your
+          set of zones encompasses any hosts that can send or receive traffic
+          to/from/through the firewall. This causes Shorewall6 to omit the
+          rules that catch packets in which the source or destination IP
+          address is outside of any of your zones. Default is No. It is
+          recommended that this option only be set to Yes if:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para>You have defined an interface whose effective physical
+              setting is '+'.</para>
+            </listitem>
+
+            <listitem>
+              <para>That interface is assigned to a zone.</para>
+            </listitem>
+
+            <listitem>
+              <para>You have no CONTINUE policies or rules.</para>
+            </listitem>
+          </itemizedlist>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis
         role="bold">CONFIG_PATH</emphasis>=[<emphasis>directory</emphasis>[:<emphasis>directory</emphasis>]...]</term>
 
@@ -806,6 +836,36 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           that substring is not included then the rule number is not included.
           If not supplied or supplied as empty (LOGFORMAT="") then
           “Shorewall6:%s:%s:” is assumed.</para>
+
+          <note>
+            <para>The setting of LOGFORMAT has an effect of the permitted
+            length of zone names. See <ulink
+            url="shorewall6-zones.html">shorewall6-zones</ulink> (5).</para>
+          </note>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">LOGLIMIT=[</emphasis>[{<emphasis>s</emphasis>|<emphasis
+        role="bold">d</emphasis>}:]<emphasis>rate</emphasis><emphasis
+        role="bold">/</emphasis>{<emphasis
+        role="bold">sec</emphasis>|<emphasis
+        role="bold">min</emphasis>|<emphasis
+        role="bold">hour</emphasis>|<emphasis
+        role="bold">day</emphasis>}[:<emphasis>burst</emphasis>]]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.12. Limits the logging rate, either
+          overall, or by source or destination IP address.</para>
+
+          <para>If the value starts with 's:' then logging is limited per
+          source IP. If the value starts with 'd:', then logging is limited
+          per destination IP. Otherwise, the overall logging rate is
+          limited.</para>
+
+          <para>If <replaceable>burst</replaceable> is not specified, then a
+          value of 5 is assumed.</para>
         </listitem>
       </varlistentry>
 
@@ -825,6 +885,9 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">second</emphasis>}]</term>
 
         <listitem>
+          <para>As of Shorewall 4.4.12, these parameters are
+          deprecated.</para>
+
           <para>These parameters set the match rate and initial burst size for
           logged packets. Please see ip6tables(8) for a description of the
           behavior of these parameters (the ip6tables option --limit is set by
@@ -1288,7 +1351,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         <term><emphasis role="bold">TC_ENABLED=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis
         role="bold">No</emphasis>|<emphasis
-        role="bold">Internal</emphasis>]</term>
+        role="bold">Internal|Shared</emphasis>]</term>
 
         <listitem>
           <para>If you say <emphasis role="bold">Yes</emphasis> or <emphasis
@@ -1305,11 +1368,22 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           empty then Shorewall6 will use its builtin traffic shaper
           (tc4shorewall6 written by Arne Bernin.</para>
 
+          <para>Beginning with Shorewall 4.4.15, if you set TC_ENABLED=Shared
+          or shared, then you should create symbolic links from your
+          Shorewall6 configuration directory (normally
+          <filename>/etc/shorewall6/</filename>) to your Shorewall
+          <filename>tcdevices</filename> and <filename>tcclasses</filename>
+          files. This allows the compiler to have access to your Shorewall
+          traffic shaping configuration so that it can validate CLASSIFY rules
+          in <ulink url="shorewall-tcrules.html">shorewall6-tcrules</ulink>
+          (5).</para>
+
           <warning>
             <para>If you also run Shorewall and if you have
             TC_ENABLED=Internal in your <ulink
             url="../manpages/shorewall.conf.html">shorewall-conf</ulink>(5),
-            then you will want TC_ENABLED=No in this file.</para>
+            then you will want TC_ENABLED=No or TC_ENABLED=Shared in this
+            file.</para>
           </warning>
         </listitem>
       </varlistentry>
