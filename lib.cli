@@ -226,6 +226,18 @@ show_classifiers() {
 logwatch() # $1 = timeout -- if negative, prompt each time that
 	   #		     an 'interesting' packet count changes
 {
+    if [ -z "$LOGFILE" ]; then
+	LOGFILE=/var/log/messages
+
+	if [ -n "$(syslog_circular_buffer)" ]; then
+	    g_logread="logread | tac"
+	elif [ -r $LOGFILE ]; then
+	    g_logread="tac $LOGFILE"
+	else
+	    echo "LOGFILE ($LOGFILE) does not exist!" >&2
+	    exit 2
+	fi
+    fi
 
     host=$(echo $g_hostname | sed 's/\..*$//')
     oldrejects=$($IPTABLES -L -v -n | grep 'LOG')
@@ -422,6 +434,36 @@ list_zone() {
 }
 
 #
+# Show Filter - For Shorewall-lite, if there was an scfilter file at compile-time,
+#               then the compiler generated another version of this function and
+#               embedded it in the firewall.conf file. That version supersedes this
+#               one.
+#
+show_connections_filter() {
+    local filter
+    local command
+    local first
+
+    command=${SHOREWALL_SHELL}
+
+    filter=$(find_file scfilter)
+
+    if [ -f $filter ]; then
+	first=$(head -n1 $filter)
+
+	case $first in
+	    \#!*)
+		command=${first#\#!}
+		;;
+	esac
+
+	$command $filter
+    else
+	cat -
+    fi
+}
+
+#
 # Show Command Executor
 #
 show_command() {
@@ -508,15 +550,33 @@ show_command() {
 
     g_ipt_options="$g_ipt_options $g_ipt_options1"
 
+
     [ -n "$g_debugging" ] && set -x
     case "$1" in
 	connections)
 	    [ $# -gt 1 ] && usage 1
-	    local count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
-	    local max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
-	    echo "$g_product $SHOREWALL_VERSION Connections ($count out of $max) at $g_hostname - $(date)"
+
+	    if [ -d /proc/sys/net/netfilter/ ]; then
+		local count
+		local max
+		count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
+		max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
+		echo "$g_product $SHOREWALL_VERSION Connections ($count out of $max) at $g_hostname - $(date)"
+	    else
+		echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
+	    fi
+
 	    echo
-	    [ -f /proc/net/ip_conntrack ] && cat /proc/net/ip_conntrack || grep -v '^ipv6' /proc/net/nf_conntrack
+
+	    if qt mywhich conntrack ; then
+		conntrack -f ipv4 -L | show_connections_filter
+	    else
+		if [ -f /proc/net/ip_conntrack ]; then
+		    cat /proc/net/ip_conntrack | show_connections_filter
+		else
+		    grep -v '^ipv6' /proc/net/nf_conntrack | show_connections_filter
+		fi
+	    fi
 	    ;;
 	nat)
 	    [ $# -gt 1 ] && usage 1
@@ -541,6 +601,20 @@ show_command() {
 	    ;;
 	log)
 	    [ $# -gt 2 ] && usage 1
+
+	    if [ -z "$LOGFILE" ]; then
+		LOGFILE=/var/log/messages
+
+		if [ -n "$(syslog_circular_buffer)" ]; then
+		    g_logread="logread | tac"
+		elif [ -r $LOGFILE ]; then
+		    g_logread="tac $LOGFILE"
+		else
+		    echo "LOGFILE ($LOGFILE) does not exist!" >&2
+		    exit 2
+		fi
+	    fi
+
 	    echo "$g_product $SHOREWALL_VERSION Log ($LOGFILE) at $g_hostname - $(date)"
 	    echo
 	    show_reset
@@ -738,9 +812,39 @@ show_command() {
 }
 
 #
+# Dump Filter - For Shorewall-lite, if there was a dumpfilter file at compile-time,
+#               then the compiler generated another version of this function and
+#               embedded it in the firewall.conf file. That version supersedes this
+#               one.
+#
+dump_filter() {
+    local filter
+    local command
+    local first
+
+    command=${SHOREWALL_SHELL}
+
+    filter=$(find_file dumpfilter)
+
+    if [ -f $filter ]; then
+	first=$(head -n1 $filter)
+
+	case $first in
+	    \#!*)
+		command=${first#\#!}
+		;;
+	esac
+
+	$command $filter
+    else
+	cat -
+    fi
+}
+
+#
 # Dump Command Executor
 #
-dump_command() {
+do_dump_command() {
     local finished
     finished=0
 
@@ -780,6 +884,19 @@ dump_command() {
 		;;
 	esac
     done
+
+    if [ -z "$LOGFILE" ]; then
+	LOGFILE=/var/log/messages
+
+	if [ -n "$(syslog_circular_buffer)" ]; then
+	    g_logread="logread | tac"
+	elif [ -r $LOGFILE ]; then
+	    g_logread="tac $LOGFILE"
+	else
+	    echo "LOGFILE ($LOGFILE) does not exist!" >&2
+	    exit 2
+	fi
+    fi
 
     g_ipt_options="$g_ipt_options $g_ipt_options1"
 
@@ -871,6 +988,10 @@ dump_command() {
 	heading "TC Filters"
 	show_classifiers
 	fi
+}
+
+dump_command() {
+    do_dump_command | dump_filter
 }
 
 #
@@ -1027,6 +1148,10 @@ block() # $1 = command, $2 = Finished, $3 - $n addresses
     chain=$1
     local finished
     finished=$2
+    local which
+    which='-s'
+    local range
+    range='--src-range'
 
     if ! chain_exists dynamic; then
 	echo "Dynamic blacklisting is not enabled in the current $g_product configuration" >&2
@@ -1038,19 +1163,31 @@ block() # $1 = command, $2 = Finished, $3 - $n addresses
 
     while [ $# -gt 0 ]; do
 	case $1 in
+	    from)
+		which='-s'
+		range='--src-range'
+		shift
+		continue
+		;;
+	    to)
+		which='-d'
+		range='--dst-range'
+		shift
+		continue
+		;;
 	    *-*)
-		qt $IPTABLES -D dynamic -m iprange --src-range $1 -j reject
-		qt $IPTABLES -D dynamic -m iprange --src-range  $1 -j DROP
-		qt $IPTABLES -D dynamic -m iprange --src-range $1 -j logreject
-		qt $IPTABLES -D dynamic -m iprange --src-range $1 -j logdrop
-		$IPTABLES -A dynamic -m iprange --src-range $1 -j $chain || break 1
+		qt $IPTABLES -D dynamic -m iprange $range $1 -j reject
+		qt $IPTABLES -D dynamic -m iprange $range  $1 -j DROP
+		qt $IPTABLES -D dynamic -m iprange $range $1 -j logreject
+		qt $IPTABLES -D dynamic -m iprange $range $1 -j logdrop
+		$IPTABLES -A dynamic -m iprange $range $1 -j $chain || break 1
 		;;
 	    *)
-		qt $IPTABLES -D dynamic -s $1 -j reject
-		qt $IPTABLES -D dynamic -s $1 -j DROP
-		qt $IPTABLES -D dynamic -s $1 -j logreject
-		qt $IPTABLES -D dynamic -s $1 -j logdrop
-		$IPTABLES -A dynamic -s $1 -j $chain || break 1
+		qt $IPTABLES -D dynamic $which $1 -j reject
+		qt $IPTABLES -D dynamic $which $1 -j DROP
+		qt $IPTABLES -D dynamic $which $1 -j logreject
+		qt $IPTABLES -D dynamic $which $1 -j logdrop
+		$IPTABLES -A dynamic $which $1 -j $chain || break 1
 		;;
 	esac
 
@@ -1340,6 +1477,11 @@ allow_command() {
     [ -n "$g_debugging" ] && set -x
     [ $# -eq 1 ] && usage 1
     if shorewall_is_started ; then
+	local which
+	which='-s'
+	local range
+	range='--src-range'
+
 	if ! chain_exists dynamic; then
 	    echo "Dynamic blacklisting is not enabled in the current $g_product configuration" >&2
 	    exit 2
@@ -1349,11 +1491,21 @@ allow_command() {
 	while [ $# -gt 1 ]; do
 	    shift
 	    case $1 in
+		from)
+		    which='-s'
+		    range='--src-range'
+		    continue
+		    ;;
+		to)
+		    which='-d'
+		    range='--dst-range'
+		    continue
+		    ;;
 		*-*)
-		    if  qt $IPTABLES -D dynamic -m iprange --src-range $1 -j reject    ||\
-			qt $IPTABLES -D dynamic -m iprange --src-range $1 -j DROP      ||\
-			qt $IPTABLES -D dynamic -m iprange --src-range $1 -j logdrop   ||\
-			qt $IPTABLES -D dynamic -m iprange --src-range $1 -j logreject
+		    if  qt $IPTABLES -D dynamic -m iprange $range $1 -j reject    ||\
+			qt $IPTABLES -D dynamic -m iprange $range $1 -j DROP      ||\
+			qt $IPTABLES -D dynamic -m iprange $range $1 -j logdrop   ||\
+			qt $IPTABLES -D dynamic -m iprange $range $1 -j logreject
 			then
 			echo "$1 Allowed"
 		    else
@@ -1361,10 +1513,10 @@ allow_command() {
 		    fi
 		    ;;
 		*)
-		    if  qt $IPTABLES -D dynamic -s $1 -j reject    ||\
-			qt $IPTABLES -D dynamic -s $1 -j DROP      ||\
-			qt $IPTABLES -D dynamic -s $1 -j logdrop   ||\
-			qt $IPTABLES -D dynamic -s $1 -j logreject
+		    if  qt $IPTABLES -D dynamic $which $1 -j reject    ||\
+			qt $IPTABLES -D dynamic $which $1 -j DROP      ||\
+			qt $IPTABLES -D dynamic $which $1 -j logdrop   ||\
+			qt $IPTABLES -D dynamic $which $1 -j logreject
 			then
 			echo "$1 Allowed"
 		    else
@@ -1472,6 +1624,7 @@ determine_capabilities() {
     RECENT_MATCH=
     OWNER_MATCH=
     IPSET_MATCH=
+    OLD_IPSET_MATCH=
     CONNMARK=
     XCONNMARK=
     CONNMARK_MATCH=
@@ -1505,6 +1658,8 @@ determine_capabilities() {
     PERSISTENT_SNAT=
     FLOW_FILTER=
     FWMARK_RT_MASK=
+    MARK_ANYWHERE=
+    HEADER_MATCH=
 
     chain=fooX$$
 
@@ -1614,9 +1769,13 @@ determine_capabilities() {
 	qt ipset -X $chain # Just in case something went wrong the last time
 
 	if qt ipset -N $chain iphash ; then
-	    if qt $IPTABLES -A $chain -m set --set $chain src -j ACCEPT; then
+	    if qt $IPTABLES -A $chain -m set --match-set $chain src -j ACCEPT; then
+		qt $IPTABLES -D $chain -m set --match-set $chain src -j ACCEPT
+		IPSET_MATCH=Yes
+	    elif qt $IPTABLES -A $chain -m set --set $chain src -j ACCEPT; then
 		qt $IPTABLES -D $chain -m set --set $chain src -j ACCEPT
 		IPSET_MATCH=Yes
+		OLD_IPSET_MATCH=Yes
 	    fi
 	    qt ipset -X $chain
 	fi
@@ -1638,6 +1797,7 @@ determine_capabilities() {
     qt $IPTABLES -A $chain -g $chain1 && GOTO_TARGET=Yes
     qt $IPTABLES -A $chain -j LOGMARK && LOGMARK_TARGET=Yes
     qt $IPTABLES -A $chain -j LOG || LOG_TARGET=
+    qt $IPTABLES -A $chain -j MARK --set-mark 5 && MARK_ANYWHERE=Yes
 
     qt $IPTABLES -F $chain
     qt $IPTABLES -X $chain
@@ -1681,7 +1841,10 @@ report_capabilities() {
 	report_capability "IP range Match" $IPRANGE_MATCH
 	report_capability "Recent Match" $RECENT_MATCH
 	report_capability "Owner Match" $OWNER_MATCH
-	report_capability "Ipset Match" $IPSET_MATCH
+	if [ -n "$IPSET_MATCH" ]; then
+	    report_capability "Ipset Match" $IPSET_MATCH
+	    [ -n "$OLD_IPSET_MATCH" ] && report_capability "OLD_Ipset Match" $OLD_IPSET_MATCH
+	fi
 	report_capability "CONNMARK Target" $CONNMARK
 	[ -n "$CONNMARK" ] && report_capability "Extended CONNMARK Target" $XCONNMARK
 	report_capability "Connmark Match" $CONNMARK_MATCH
@@ -1714,6 +1877,8 @@ report_capabilities() {
 	report_capability "TPROXY Target" $TPROXY_TARGET
 	report_capability "FLOW Classifier" $FLOW_FILTER
 	report_capability "fwmark route mask" $FWMARK_RT_MASK
+	report_capability "Mark in any table" $MARK_ANYWHERE
+	report_capability "Header Match" $HEADER_MATCH
     fi
 
     [ -n "$PKTTYPE" ] || USEPKTTYPE=
@@ -1745,6 +1910,7 @@ report_capabilities1() {
     report_capability1 RECENT_MATCH
     report_capability1 OWNER_MATCH
     report_capability1 IPSET_MATCH
+    report_capability1 OLD_IPSET_MATCH
     report_capability1 CONNMARK
     report_capability1 XCONNMARK
     report_capability1 CONNMARK_MATCH
@@ -1777,6 +1943,8 @@ report_capabilities1() {
     report_capability1 TPROXY_TARGET
     report_capability1 FLOW_FILTER
     report_capability1 FWMARK_RT_MASK
+    report_capability1 MARK_ANYWHERE
+    report_capability1 HEADER_MATCH
 
     echo CAPVERSION=$SHOREWALL_CAPVERSION
     echo KERNELVERSION=$KERNELVERSION

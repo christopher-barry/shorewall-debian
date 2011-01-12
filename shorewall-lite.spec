@@ -1,6 +1,6 @@
 %define name shorewall-lite
-%define version 4.4.11
-%define release 6
+%define version 4.4.16
+%define release 0base
 
 Summary: Shoreline Firewall Lite is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -102,18 +102,72 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Mon Jan 03 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0base
+* Thu Dec 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0RC1
+* Thu Dec 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta8
+* Sun Dec 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta7
+* Mon Dec 20 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta6
+* Fri Dec 10 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta5
+* Sat Dec 04 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta4
+* Fri Dec 03 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta3
+* Fri Dec 03 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta2
+* Tue Nov 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta1
+* Fri Nov 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0base
+* Mon Nov 22 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0RC1
+* Mon Nov 15 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0Beta2
+* Sat Oct 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0Beta1
+* Sat Oct 23 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0base
+* Wed Oct 06 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0RC1
 * Fri Oct 01 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-6
-* Sun Sep 12 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-5
-* Sat Aug 28 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-4
-* Thu Aug 12 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-3
+- Updated to 4.4.14-0Beta4
+* Sun Sep 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0Beta3
+* Thu Sep 23 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0Beta2
+* Tue Sep 21 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0Beta1
+* Fri Sep 17 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0RC1
+* Fri Sep 17 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta6
+* Mon Sep 13 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta5
+* Sat Sep 04 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta4
+* Mon Aug 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta3
+* Wed Aug 25 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta2
+* Wed Aug 18 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta1
+* Sun Aug 15 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0base
+* Fri Aug 06 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0RC1
+* Sun Aug 01 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0Beta4
 * Sat Jul 31 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-2
-* Wed Jul 14 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-1
+- Updated to 4.4.12-0Beta3
+* Sun Jul 25 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0Beta2
+* Wed Jul 21 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0Beta1
 * Fri Jul 09 2010 Tom Eastep tom@shorewall.net
 - Updated to 4.4.11-0base
 * Mon Jul 05 2010 Tom Eastep tom@shorewall.net
