@@ -113,10 +113,6 @@ get_config() {
 
     [ -n "$FW" ] || FW=fw
 
-    [ -n "LOGFORMAT" ] && LOGFORMAT="${LOGFORMAT%%%*}"
-
-    [ -n "$LOGFORMAT" ] || LOGFORMAT="Shorewall:"
-
     if [ -n "$IPTABLES" ]; then
 	if [ ! -x "$IPTABLES" ]; then
 	    echo "   ERROR: The program specified in IPTABLES does not exist or is not executable" >&2
@@ -179,6 +175,15 @@ verify_firewall_script() {
 	
 	exit 2
     fi
+}
+
+#
+# Fatal error
+#
+startup_error() {
+    echo "   ERROR: $@" >&2
+    kill $$
+    exit 1
 }
 
 #
@@ -471,6 +476,12 @@ g_timestamp=
 g_recovering=
 g_logread=
 
+#
+# Make sure that these variables are cleared
+#
+VERBOSE=
+VERBOSITY=
+
 finished=0
 
 while [ $finished -eq 0 ]; do
@@ -635,17 +646,11 @@ case "$COMMAND" in
 	shift
 	start_command $@
 	;;
-    stop|clear)
+    stop|reset|clear)
 	[ $# -ne 1 ] && usage 1
 	verify_firewall_script
 	[ -n "$nolock" ] || mutex_on
 	run_it $g_firewall $debugging $COMMAND
-	[ -n "$nolock" ] || mutex_off
-	;;
-    reset)
-	verify_firewall_script
-	[ -n "$nolock" ] || mutex_on
-	run_it $SHOREWALL_SHELL $g_firewall $debugging $@
 	[ -n "$nolock" ] || mutex_off
 	;;
     restart)
