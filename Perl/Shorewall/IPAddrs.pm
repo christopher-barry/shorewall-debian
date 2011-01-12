@@ -73,7 +73,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_icmp6
 		 );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_11';
+our $VERSION = '4.4_14';
 
 #
 # Some IPv4/6 useful stuff
@@ -87,6 +87,7 @@ our $validate_address;
 our $validate_net;
 our $validate_range;
 our $validate_host;
+our $family;
 
 use constant { ALLIPv4             => '0.0.0.0/0' ,
 	       ALLIPv6             => '::/0' ,
@@ -123,8 +124,8 @@ sub valid_4address( $ ) {
 
     my @address = split /\./, $address;
     return 0 unless @address == 4;
-    for my $a ( @address ) {
-	return 0 unless $a =~ /^\d+$/ && $a < 256;
+    for ( @address ) {
+	return 0 unless /^\d+$/ && $_ < 256;
     }
 
     1;
@@ -157,8 +158,8 @@ sub decodeaddr( $ ) {
 
     my $result = shift @address;
 
-    for my $a ( @address ) {
-	$result = ( $result << 8 ) | $a;
+    for ( @address ) {
+	$result = ( $result << 8 ) | $_;
     }
 
     $result;
@@ -183,7 +184,16 @@ sub validate_4net( $$ ) {
     $net = '' unless defined $net;
 
     fatal_error "Missing address" if $net eq '';
-    fatal_error "An ipset name ($net) is not allowed in this context" if substr( $net, 0, 1 ) eq '+';
+
+    if ( $net =~ /\+(\[?)/ ) {
+	if ( $1 ) {
+	    fatal_error "An ipset list ($net) is not allowed in this context";
+	} elsif ( $net =~ /^\+[a-zA-Z][-\w]*$/ ) {
+	    fatal_error "An ipset name ($net) is not allowed in this context";
+	} else {
+	    fatal_error "Invalid ipset name ($net)";
+	}
+    }
 
     if ( defined $vlsm ) {
         fatal_error "Invalid VLSM ($vlsm)"            unless $vlsm =~ /^\d+$/ && $vlsm <= 32;
@@ -292,6 +302,11 @@ sub resolve_proto( $ ) {
 	$number = numeric_value ( $proto );
 	defined $number && $number <= 65535 ? $number : undef;
     } else {
+	#
+	# Allow 'icmp' as a synonym for 'ipv6-icmp' in IPv6 compilations
+	#
+	$proto= 'ipv6-icmp' if $proto eq 'icmp' && $family == F_IPV6;
+
 	defined( $number = $nametoproto{$proto} ) ? $number : scalar getprotobyname $proto;
     }
 }
@@ -439,7 +454,7 @@ sub expand_port_range( $$ ) {
 	#
 	# Validate the ports
 	#
-	( $first , $last ) = ( validate_port( $proto, $first ) , validate_port( $proto, $last ) );
+	( $first , $last ) = ( validate_port( $proto, $first || 1 ) , validate_port( $proto, $last ) );
 
 	$last++; #Increment last address for limit testing.
 	#
@@ -534,7 +549,15 @@ sub validate_6net( $$ ) {
     my ($net, $vlsm, $rest) = split( '/', $_[0], 3 );
     my $allow_name = $_[1];
 
-    fatal_error "An ipset name ($net) is not allowed in this context" if substr( $net, 0, 1 ) eq '+';
+    if ( $net =~ /\+(\[?)/ ) {
+	if ( $1 ) {
+	    fatal_error "An ipset list ($net) is not allowed in this context";
+	} elsif ( $net =~ /^\+[a-zA-Z][-\w]*$/ ) {
+	    fatal_error "An ipset name ($net) is not allowed in this context";
+	} else {
+	    fatal_error "Invalid ipset name ($net)";
+	}
+    }
 
     if ( defined $vlsm ) {
         fatal_error "Invalid VLSM ($vlsm)"              unless $vlsm =~ /^\d+$/ && $vlsm <= 128;
@@ -682,7 +705,7 @@ sub validate_host ($$ ) {
 #      able to re-initialize its dependent modules' state.
 #
 sub initialize( $ ) {
-    my $family = shift;
+    $family = shift;
 
     if ( $family == F_IPV4 ) {
 	$allip            = ALLIPv4;

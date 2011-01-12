@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.11.6
+VERSION=4.4.16
 
 usage() # $1 = exit status
 {
@@ -301,7 +301,7 @@ fi
 run_install $OWNERSHIP -m 0644 configfiles/zones ${DESTDIR}/usr/share/shorewall/configfiles
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/zones ]; then
-    run_install $OWNERSHIP -m 0744 configfiles/zones ${DESTDIR}/etc/shorewall
+    run_install $OWNERSHIP -m 0644 configfiles/zones ${DESTDIR}/etc/shorewall
     echo "Zones file installed as ${DESTDIR}/etc/shorewall/zones"
 fi
 
@@ -587,6 +587,16 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/tcfilters ]; then
 fi
 
 #
+# Install the secmarks file
+#
+run_install $OWNERSHIP -m 0644 configfiles/secmarks ${DESTDIR}/usr/share/shorewall/configfiles
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/secmarks ]; then
+    run_install $OWNERSHIP -m 0600 configfiles/secmarks ${DESTDIR}/etc/shorewall
+    echo "Secmarks file installed as ${DESTDIR}/etc/shorewall/secmarks"
+fi
+
+#
 # Install the default config path file
 #
 install_file configpath ${DESTDIR}/usr/share/shorewall/configpath 0644
@@ -727,6 +737,15 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/tcclear ]; then
     echo "Tcclear file installed as ${DESTDIR}/etc/shorewall/tcclear"
 fi
 #
+# Install the Scfilter file
+#
+run_install $OWNERSHIP -m 644 configfiles/scfilter ${DESTDIR}/usr/share/shorewall/configfiles
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/scfilter ]; then
+    run_install $OWNERSHIP -m 0600 configfiles/scfilter ${DESTDIR}/etc/shorewall
+    echo "Scfilter file installed as ${DESTDIR}/etc/shorewall/scfilter"
+fi
+#
 # Install the Standard Actions file
 #
 install_file actions.std ${DESTDIR}/usr/share/shorewall/actions.std 0644
@@ -796,6 +815,13 @@ install_file compiler.pl ${DESTDIR}/usr/share/shorewall/compiler.pl 0755
 
 echo
 echo "Compiler installed in ${DESTDIR}/usr/share/shorewall/compiler.pl"
+#
+# Install the params file helper
+#
+install_file getparams ${DESTDIR}/usr/share/shorewall/getparams 0755
+
+echo
+echo "Params file helper installed in ${DESTDIR}/usr/share/shorewall/getparams"
 #
 # Install the libraries
 #
@@ -868,11 +894,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${CYGWIN}${MAC}" ]; then
     if [ -n "$DEBIAN" ]; then
 	install_file default.debian /etc/default/shorewall 0644
 
-	if [ -x /sbin/insserv ]; then
-	    insserv /etc/init.d/shorewall
-	else
-	    ln -s ../init.d/shorewall /etc/rcS.d/S40shorewall
-	fi
+	update-rc.d shorewall defaults
 
 	echo "shorewall will start automatically at boot"
 	echo "Set startup=1 in /etc/default/shorewall to enable"

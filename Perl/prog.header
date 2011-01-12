@@ -89,42 +89,17 @@ setpolicy() # $1 = name of chain, $2 = policy
 }
 
 #
-# Set a standard chain to enable established and related connections
-#
-setcontinue() # $1 = name of chain
-{
-    run_iptables -A $1 -m state --state ESTABLISHED,RELATED -j ACCEPT
-}
-
-#
-# Flush one of the NAT table chains
-#
-flushnat() # $1 = name of chain
-{
-    run_iptables -t nat -F $1
-}
-
-#
-# Flush one of the Mangle table chains
-#
-flushmangle() # $1 = name of chain
-{
-    run_iptables -t mangle -F $1
-}
-
-#
-# Flush and delete all user-defined chains in the filter table
-#
-deleteallchains() {
-    run_iptables -F
-    run_iptables -X
-}
-
-#
 # Generate a list of all network interfaces on the system
 #
 find_all_interfaces() {
-    ${IP:-ip} link list | egrep '^[[:digit:]]+:' | cut -d ' ' -f2 | sed 's/:$//'
+    ${IP:-ip} link list | egrep '^[[:digit:]]+:' | cut -d ' ' -f2 | sed -r 's/(@.*)?:$//'
+}
+
+#
+# Generate a list of all network interfaces on the system that have an ipv4 address
+#
+find_all_interfaces1() {
+    ${IP:-ip} -4 addr list | egrep '^[[:digit:]]+:' | cut -d ' ' -f2 | sed -r 's/(@.*)?:$//'
 }
 
 #
@@ -533,11 +508,12 @@ undo_routing() {
 # Restore the default route that was in place before the initial 'shorewall start'
 #
 restore_default_route() {
+    local result
+
     if [ -z "$g_noroutes" -a -f ${VARDIR}/default_route ]; then
 	local default_route
 	default_route=
 	local route
-	local result
 	result=1
 
 	while read route ; do
@@ -617,14 +593,14 @@ conditionally_flush_conntrack() {
 delete_proxyarp() {
     if [ -f ${VARDIR}/proxyarp ]; then
 	while read address interface external haveroute; do
-	    qt arp -i $external -d $address pub
-	    [ -z "${haveroute}${g_noroutes}" ] && qt $IP -4 route del $address dev $interface
+	    qt $IP -4 neigh del proxy $address dev $external
+	    [ -z "${haveroute}${g_noroutes}" ] && qt $IP -4 route del $address/32 dev $interface
 	    f=/proc/sys/net/ipv4/conf/$interface/proxy_arp
 	    [ -f $f ] && echo 0 > $f
 	done < ${VARDIR}/proxyarp
-    fi
 
-    rm -f ${VARDIR}/proxyarp
+	rm -f ${VARDIR}/proxyarp
+    fi
 }
 
 #
@@ -638,6 +614,7 @@ clear_firewall() {
     setpolicy OUTPUT ACCEPT
 
     run_iptables -F
+    qt $IPTABLES -t raw -F
 
     echo 1 > /proc/sys/net/ipv4/ip_forward
 

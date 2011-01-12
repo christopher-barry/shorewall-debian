@@ -34,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.4_9';
+our $VERSION = '4.4_14';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -61,7 +61,7 @@ sub setup_tunnels() {
 	    }
 	}
 
-	my $options = $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,UNTRACKED -j ACCEPT" : "$globals{STATEMATCH} NEW -j ACCEPT";
+	my $options = $globals{UNTRACKED} ? "-m state --state NEW,UNTRACKED -j ACCEPT" : "$globals{STATEMATCH} NEW -j ACCEPT";
 
 	add_tunnel_rule $inchainref,  "-p 50 $source -j ACCEPT";
 	add_tunnel_rule $outchainref, "-p 50 $dest   -j ACCEPT";
@@ -277,22 +277,23 @@ sub setup_tunnels() {
     #
     # Setup_Tunnels() Starts Here
     #
-    my $fn = open_file 'tunnels';
+    if ( my $fn = open_file 'tunnels' ) {
 
-    first_entry "$doing $fn...";
+	first_entry "$doing $fn...";
 
-    while ( read_a_line ) {
+	while ( read_a_line ) {
 
-	my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 2, 4, 'tunnels file';
+	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 2, 4, 'tunnels file';
 
-	if ( $kind eq 'COMMENT' ) {
-	    process_comment;
-	} else {
-	    setup_one_tunnel $kind, $zone, $gateway, $gatewayzones;
+	    if ( $kind eq 'COMMENT' ) {
+		process_comment;
+	    } else {
+		setup_one_tunnel $kind, $zone, $gateway, $gatewayzones;
+	    }
 	}
-    }
 
-    clear_comment;
+	clear_comment;
+    }
 }
 
 1;

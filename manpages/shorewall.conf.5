@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 10/02/2010
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 01/11/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "10/02/2010" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "01/11/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -292,6 +292,44 @@ then Shorewall won\*(Aqt clear the current traffic control rules during [re]star
 \m[blue]\fBshorewall\-tcrules\fR\m[]\&\s-2\u[6]\d\s+2(5)\&. If not specified, CLEAR_TC=Yes is assumed\&.
 .RE
 .PP
+\fBCOMPLETE=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.12\&. When you set this option to Yes, you are asserting that the configuration is complete so that your set of zones encompasses any hosts that can send or receive traffic to/from/through the firewall\&. This causes Shorewall to omit the rules that catch packets in which the source or destination IP address is outside of any of your zones\&. Default is No\&. It is recommended that this option only be set to Yes if:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+You have defined an interface whose effective physical setting is \*(Aq+\*(Aq\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+That interface is assigned to a zone\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+You have no CONTINUE policies or rules\&.
+.RE
+.RE
+.PP
 \fBCONFIG_PATH\fR=[\fIdirectory\fR[:\fIdirectory\fR]\&.\&.\&.]
 .RS 4
 Specifies where configuration files other than shorewall\&.conf may be found\&. CONFIG_PATH is specifies as a list of directory names separated by colons (":")\&. When looking for a configuration file other than shorewall\&.conf:
@@ -434,21 +472,7 @@ Prior to version 3\&.2\&.0, it was not possible to use connection marking in
 \m[blue]\fBshorewall\-tcrules\fR\m[]\&\s-2\u[6]\d\s+2(5) if you had a multi\-ISP configuration that uses the track option\&.
 .sp
 You may set HIGH_ROUTE_MARKS=Yes in to effectively divide the packet mark and connection mark into two mark fields\&.
-.if n \{\
 .sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-From Shorewall 2\&.5\&.0 onward, this option is deprecated in favor of the PROVIDER_OFFSET option\&.
-.sp .5v
-.RE
 The width of the fields are determined by the setting of WIDE_TC_MARKS\&. If WIDE_TC_MARKS=No (the default):
 .sp
 .RS 4
@@ -739,6 +763,34 @@ The value of this variable generate the \-\-log\-prefix setting for Shorewall lo
 .\}
 .sp
 If the LOGFORMAT value contains the substring \(lq%d\(rq then the logging rule number is calculated and formatted in that position; if that substring is not included then the rule number is not included\&. If not supplied or supplied as empty (LOGFORMAT="") then \(lqShorewall:%s:%s:\(rq is assumed\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+The setting of LOGFORMAT has an effect of the permitted length of zone names\&. See
+\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[8]\d\s+2
+(5)\&.
+.sp .5v
+.RE
+.RE
+.PP
+\fBLOGLIMIT=[\fR[{\fIs\fR|\fBd\fR}:]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]]
+.RS 4
+Added in Shorewall 4\&.4\&.12\&. Limits the logging rate, either overall, or by source or destination IP address\&.
+.sp
+If the value starts with \*(Aqs:\*(Aq then logging is limited per source IP\&. If the value starts with \*(Aqd:\*(Aq, then logging is limited per destination IP\&. Otherwise, the overall logging rate is limited\&.
+.sp
+If
+\fIburst\fR
+is not specified, then a value of 5 is assumed\&.
 .RE
 .PP
 \fBLOGBURST=\fR[\fIburst\fR]
@@ -747,6 +799,8 @@ If the LOGFORMAT value contains the substring \(lq%d\(rq then the logging rule n
 .PP
 \fBLOGRATE=\fR[\fIrate\fR/{\fBminute\fR|\fBsecond\fR}]
 .RS 4
+Deprecated in Shorewall 4\&.4\&.12\&. These options are ignored when LOGLIMIT is specified\&.
+.sp
 These parameters set the match rate and initial burst size for logged packets\&. Please see iptables(8) for a description of the behavior of these parameters (the iptables option \-\-limit is set by LOGRATE and \-\-limit\-burst is set by LOGBURST)\&. If both parameters are set empty, no rate\-limiting will occur\&. If you supply one of these, then you should also supply the other\&.
 .sp
 Example:
@@ -1064,7 +1118,8 @@ Added in Shorewall 4\&.4\&.11 RC1\&. Specifies the path name of the Perl executa
 .PP
 \fBPKTTYPE=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-This option is included for compatibility with older Shorewall releases\&. Its setting has no effect\&.
+\fBObsolete\fR
+\- This option is included for compatibility with older Shorewall releases\&. Its setting has no effect\&.
 .RE
 .PP
 \fBRCP_COMMAND="\fR\fIcommand\fR\fB"\fR
@@ -1223,7 +1278,7 @@ This parameter should be set to the name of a file that the firewall should crea
 If specified, gives the pathname of the \*(Aqtc\*(Aq executable\&. If not specified, \*(Aqtc\*(Aq is assumed and the utility will be located using the current PATH setting\&.
 .RE
 .PP
-\fBTC_ENABLED=\fR[\fBYes\fR|\fBNo\fR|\fBInternal\fR|\fBSimple\fR]
+\fBTC_ENABLED=\fR[\fBYes\fR|\fBNo\fR|\fBInternal\fR|\fBSimple\fR|Shared]
 .RS 4
 If you say
 \fBYes\fR
@@ -1242,6 +1297,8 @@ If you set TC_ENABLED=Simple (Shorewall 4\&.4\&.6 and later), simple traffic sha
 \m[blue]\fBshorewall\-tcpri\fR\m[]\&\s-2\u[16]\d\s+2(5) is enabled\&.
 .sp
 If you set TC_ENABLED=Internal or internal or leave the option empty then Shorewall will use its builtin traffic shaper (tc4shorewall written by Arne Bernin\&.
+.sp
+Beginning with Shorewall 4\&.4\&.15, you can set TC_ENABLED=Shared\&. This allows you to configure the tcdevices and tcclasses in your Shorewall6 configuration yet make them available to the compiler when compiling your Shorewall configuration\&. In addition to setting TC_ENABLED=Shared, you need to create symbolic links from your Shorewall configuration directory (normally /etc/shorewall/) to the tcdevices and tcclasses files in your Shorewall6 configuration directory (normally /etc/shorewall6/)\&.
 .RE
 .PP
 \fBTC_EXPERT=\fR{\fBYes\fR|\fBNo\fR}
@@ -1407,21 +1464,6 @@ If not specified, then 2 is assumed\&.
 \fBWIDE_TC_MARKS=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 When set to No (the default), traffic shaping marks are 8 bytes wide (possible values are 1\-255)\&. When WIDE_TC_MARKS=Yes, traffic shaping marks are 14 bytes wide (values 1\-16383)\&. The setting of WIDE_TC_MARKS also has an effect on the HIGH_ROUTE_MARKS option (see above)\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-From Shorewall 2\&.5\&.0 onware, this option is deprecated in favor of the TC_BITS option\&.
-.sp .5v
-.RE
 .RE
 .PP
 \fBZONE2ZONE\fR={\fB2\fR|\fB\-\fR}
@@ -1433,7 +1475,7 @@ Added in Shorewall 4\&.4\&.4\&. This option determines how Shorewall constructs 
 /etc/shorewall/shorewall\&.conf
 .SH "SEE ALSO"
 .PP
-shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall\-interfaces(5), shorewall\-ipsec(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcinterfaces(5), shorewall\-tcpri(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
+shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcinterfaces(5), shorewall\-tcpri(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall-policy

@@ -27,24 +27,51 @@ require Exporter;
 use Shorewall::Config qw(:DEFAULT :internal);
 use Shorewall::Zones;
 use Shorewall::Chains qw( :DEFAULT :internal) ;
-use Shorewall::Actions;
 
 use strict;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( validate_policy apply_policy_rules complete_standard_chain setup_syn_flood_chains save_policies optimize_policy_chains);
+our @EXPORT = qw( validate_policy apply_policy_rules complete_standard_chain setup_syn_flood_chains save_policies optimize_policy_chains policy_actions );
 our @EXPORT_OK = qw(  );
-our $VERSION = '4.4_11';
+our $VERSION = '4.4_16';
 
 # @policy_chains is a list of references to policy chains in the filter table
 
 our @policy_chains;
 
+our %policy_actions;
+
+our %default_actions;
 #
 # Called by the compiler
 #
 sub initialize() {
-    @policy_chains = ();
+    @policy_chains  = ();
+    %policy_actions = ();
+    %default_actions  = ( DROP     => 'none' ,
+		 	  REJECT   => 'none' ,
+			  ACCEPT   => 'none' ,
+			  QUEUE    => 'none' );
+}
+
+#
+# Return a list of actions used by the policies
+#
+sub policy_actions() {
+    keys %policy_actions;
+}
+
+#
+# Split the passed target into the basic target and parameter
+#
+sub get_target_param( $ ) {
+    my ( $target, $param ) = split '/', $_[0];
+
+    unless ( defined $param ) {
+	( $target, $param ) = ( $1, $2 ) if $target =~ /^(.*?)[(](.*)[)]$/;
+    }
+
+    ( $target, $param );
 }
 
 #
@@ -143,6 +170,12 @@ sub print_policy($$$$) {
     }
 }
 
+sub use_action( $ ) {
+    my $action = shift;
+
+    $policy_actions{$action} = 1;
+}
+
 sub process_a_policy() {
 
     our %validpolicies;
@@ -169,18 +202,15 @@ sub process_a_policy() {
     fatal_error "Invalid default action ($default:$remainder)" if defined $remainder;
 
     ( $policy , my $queue ) = get_target_param $policy;
-
+    
     if ( $default ) {
 	if ( "\L$default" eq 'none' ) {
 	    $default = 'none';
 	} else {
 	    my $defaulttype = $targets{$default} || 0;
-
+	    
 	    if ( $defaulttype & ACTION ) {
-		unless ( $usedactions{$default} ) {
-		    $usedactions{$default} = 1;
-		    createactionchain $default;
-		}
+		use_action( $default );
 	    } else {
 		fatal_error "Unknown Default Action ($default)";
 	    }
@@ -310,21 +340,18 @@ sub validate_policy()
     my $firewall = firewall_zone;
     our @zonelist = $config{EXPAND_POLICIES} ? all_zones : ( all_zones, 'all' );
 
-    for my $option qw/DROP_DEFAULT REJECT_DEFAULT ACCEPT_DEFAULT QUEUE_DEFAULT NFQUEUE_DEFAULT/ {
+    for my $option qw( DROP_DEFAULT REJECT_DEFAULT ACCEPT_DEFAULT QUEUE_DEFAULT NFQUEUE_DEFAULT) {
 	my $action = $config{$option};
 	next if $action eq 'none';
 	my $actiontype = $targets{$action};
-
+												 
 	if ( defined $actiontype ) {
 	    fatal_error "Invalid setting ($action) for $option" unless $actiontype & ACTION;
 	} else {
 	    fatal_error "Default Action $option=$action not found";
 	}
 
-	unless ( $usedactions{$action} ) {
-	    $usedactions{$action} = 1;
-	    createactionchain $action;
-	}
+	use_action( $action );
 
 	$default_actions{$map{$option}} = $action;
     }
@@ -341,15 +368,16 @@ sub validate_policy()
 		    add_or_modify_policy_chain( $zone, $zone1 );
 		    add_or_modify_policy_chain( $zone1, $zone );
 		}
-	    }		
+	    }
 	}
     }
 
-    my $fn = open_file 'policy';
-
-    first_entry "$doing $fn...";
-
-    process_a_policy while read_a_line;
+    if ( my $fn = open_file 'policy' ) {
+	first_entry "$doing $fn...";
+	process_a_policy while read_a_line;
+    } else {
+	fatal_error q(The 'policy' file does not exist or has zero size);
+    }
 
     for $zone ( all_zones ) {
 	for my $zone1 ( all_zones ) {
@@ -490,13 +518,23 @@ sub complete_standard_chain ( $$$$ ) {
 # Create and populate the synflood chains corresponding to entries in /etc/shorewall/policy
 #
 sub setup_syn_flood_chains() {
+    my @zones = ( non_firewall_zones );
     for my $chainref ( @policy_chains ) {
 	my $limit = $chainref->{synparams};
 	if ( $limit && ! $filter_table->{syn_flood_chain $chainref} ) {
 	    my $level = $chainref->{loglevel};
-	    my $synchainref = new_chain 'filter' , syn_flood_chain $chainref;
+	    my $synchainref = @zones > 1 ? 
+		    new_chain 'filter' , syn_flood_chain $chainref :
+		    new_chain( 'filter' , '@' . $chainref->{name} );
 	    add_rule $synchainref , "${limit}-j RETURN";
-	    log_rule_limit $level , $synchainref , $chainref->{name} , 'DROP', '-m limit --limit 5/min --limit-burst 5 ' , '' , 'add' , ''
+	    log_rule_limit( $level ,
+			    $synchainref ,
+			    $chainref->{name} ,
+			    'DROP',
+			    $globals{LOGLIMIT} || '-m limit --limit 5/min --limit-burst 5 ' ,
+			    '' ,
+			    'add' ,
+			    '' )
 		if $level ne '';
 	    add_rule $synchainref, '-j DROP';
 	}
