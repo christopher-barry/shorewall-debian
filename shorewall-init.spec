@@ -1,6 +1,6 @@
 %define name shorewall-init
-%define version 4.4.11
-%define release 6
+%define version 4.4.16
+%define release 0base
 
 Summary: Shorewall-init adds functionality to Shoreline Firewall (Shorewall).
 Name: %{name}
@@ -53,6 +53,12 @@ fi
 if [ -f /etc/SuSE-release ]; then
     cp -pf /usr/share/shorewall-init/ifupdown /etc/sysconfig/network/if-up.d/shorewall
     cp -pf /usr/share/shorewall-init/ifupdown /etc/sysconfig/network/if-down.d/shorewall
+    if [ -d /etc/ppp ]; then
+	for directory in ip-up.d ip-down.d ipv6-up.d ipv6-down.d; do
+	    mkdir -p /etc/ppp/$directory
+	    cp -pf /usr/share/shorewall-init/ifupdown /etc/ppp/$directory/shorewall
+	done
+    fi
 else
     if [ -f /sbin/ifup-local -o -f /sbin/ifdown-local ]; then
 	if ! grep -q Shorewall /sbin/ifup-local || ! grep -q Shorewall /sbin/ifdown-local; then
@@ -64,6 +70,17 @@ else
     else
 	cp -pf /usr/share/shorewall-init/ifupdown /sbin/ifup-local
 	cp -pf /usr/share/shorewall-init/ifupdown /sbin/ifdown-local
+    fi
+
+    if [ -d /etc/ppp ]; then
+	if [ -f /etc/ppp/ip-up.local -o -f /etc/ppp/ip-down.local ]; then
+	    if ! grep -q Shorewall-based /etc/ppp/ip-up.local || ! grep -q Shorewall-based /etc/ppp//ip-down.local; then
+		echo "WARNING: /etc/ppp/ip-up.local and/or /etc/ppp/ip-down.local already exist; ppp devices will not be handled" >&2
+	    fi
+	else
+	    cp -pf /usr/share/shorewall-init/ifupdown /etc/ppp/ip-up.local
+	    cp -pf /usr/share/shorewall-init/ifupdown /etc/ppp/ip-down.local
+	fi
     fi
 
     if [ -d /etc/NetworkManager/dispatcher.d/ ]; then
@@ -83,6 +100,9 @@ if [ $1 -eq 0 ]; then
     [ -f /sbin/ifup-local ]   && grep -q Shorewall /sbin/ifup-local   && rm -f /sbin/ifup-local
     [ -f /sbin/ifdown-local ] && grep -q Shorewall /sbin/ifdown-local && rm -f /sbin/ifdown-local
 
+    [ -f /etc/ppp/ip-up.local ]   && grep -q Shorewall-based /etc/ppp/ip-up.local   && rm -f /etc/ppp/ip-up.local
+    [ -f /etc/ppp/ip-down.local ] && grep -q Shorewall-based /etc/ppp/ip-down.local && rm -f /etc/ppp/ip-down.local
+
     rm -f /etc/NetworkManager/dispatcher.d/01-shorewall
 fi
 
@@ -99,18 +119,72 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Mon Jan 03 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0base
+* Thu Dec 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0RC1
+* Thu Dec 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta8
+* Sun Dec 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta7
+* Mon Dec 20 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta6
+* Fri Dec 10 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta5
+* Sat Dec 04 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta4
+* Fri Dec 03 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta3
+* Fri Dec 03 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta2
+* Tue Nov 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.16-0Beta1
+* Fri Nov 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0base
+* Mon Nov 22 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0RC1
+* Mon Nov 15 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0Beta2
+* Sat Oct 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.15-0Beta1
+* Sat Oct 23 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0base
+* Wed Oct 06 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0RC1
 * Fri Oct 01 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-6
-* Sun Sep 12 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-5
-* Sat Aug 28 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-4
-* Thu Aug 12 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-3
+- Updated to 4.4.14-0Beta4
+* Sun Sep 26 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0Beta3
+* Thu Sep 23 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0Beta2
+* Tue Sep 21 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.14-0Beta1
+* Fri Sep 17 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0RC1
+* Fri Sep 17 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta6
+* Mon Sep 13 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta5
+* Sat Sep 04 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta4
+* Mon Aug 30 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta3
+* Wed Aug 25 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta2
+* Wed Aug 18 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.13-0Beta1
+* Sun Aug 15 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0base
+* Fri Aug 06 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0RC1
+* Sun Aug 01 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0Beta4
 * Sat Jul 31 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-2
-* Wed Jul 14 2010 Tom Eastep tom@shorewall.net
-- Updated to 4.4.11-1
+- Updated to 4.4.12-0Beta3
+* Sun Jul 25 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0Beta2
+* Wed Jul 21 2010 Tom Eastep tom@shorewall.net
+- Updated to 4.4.12-0Beta1
 * Fri Jul 09 2010 Tom Eastep tom@shorewall.net
 - Updated to 4.4.11-0base
 * Mon Jul 05 2010 Tom Eastep tom@shorewall.net

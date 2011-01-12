@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.11.6
+VERSION=4.4.16
 
 usage() # $1 = exit status
 {
@@ -285,11 +285,8 @@ fi
 if [ -z "$DESTDIR" ]; then
     if [ -n "$first_install" ]; then
 	if [ -n "$DEBIAN" ]; then
-	    if [ -x /sbin/insserv ]; then
-		insserv /etc/init.d/shorewall-init
-	    else
-		ln -sf ../init.d/shorewall-init /etc/rcS.d/S38shorewall-init
-	    fi
+	    
+	    update-rc.d shorewall-init defaults
 
 	    echo "Shorewall Init will start automatically at boot"
 	else
@@ -315,6 +312,7 @@ if [ -z "$DESTDIR" ]; then
 	    elif [ "$INIT" != rc.firewall ]; then #Slackware starts this automatically
 		cant_autostart
 	    fi
+
 	fi
     fi
 else
@@ -327,6 +325,32 @@ else
 	    ln -sf ../init.d/shorewall-init ${DESTDIR}/etc/rcS.d/S38shorewall-init
 	    echo "Shorewall Init will start automatically at boot"
 	fi
+    fi
+fi
+
+if [ -f ${DESTDIR}/etc/ppp ]; then
+    if [ -n "$DEBIAN" ] -o -n "$SUSE" ]; then
+	for directory in ip-up.d ip-down.d ipv6-up.d ipv6-down.d; do
+	    mkdir -p ${DESTDIR}/etc/ppp/$directory #SuSE doesn't create the IPv6 directories
+	    cp -fp ${DESTDIR}/usr/share/shorewall-init/ifupdown ${DESTDIR}/etc/ppp/$directory/shorewall
+	done
+    elif [ -n "$REDHAT" ]; then
+	#
+	# Must use the dreaded ip_xxx.local file
+	#
+	for file in ip-up.local ip-down.local; do
+	    FILE=${DESTDIR}/etc/ppp/$file
+	    if [ -f $FILE ]; then
+		if fgrep -q Shorewall-based $FILE ; then
+		    cp -fp ${DESTDIR}/usr/share/shorewall-init/ifupdown $FILE
+		else
+		    echo "$FILE already exists -- ppp devices will not be handled"
+		    break
+		fi
+	    else
+		cp -fp ${DESTDIR}/usr/share/shorewall-init/ifupdown $FILE
+	    fi
+	done
     fi
 fi
 

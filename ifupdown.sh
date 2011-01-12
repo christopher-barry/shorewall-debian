@@ -22,6 +22,52 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
+Debian_SuSE_ppp() {
+    NEWPRODUCTS=
+    INTERFACE="$1"
+
+    case $0 in
+	/etc/ppp/ip-*)
+	    #
+	    # IPv4
+	    #
+	    for product in $PRODUCTS; do
+		case $product in
+		    shorewall|shorewall-lite)
+			NEWPRODUCTS="$NEWPRODUCTS $product";
+			;;
+		esac
+	    done
+	    ;;
+	/etc/ppp/ipv6-*)
+	    #
+	    # IPv6
+	    #
+	    for product in $PRODUCTS; do
+		case $product in
+		    shorewall6|shorewall6-lite)
+			NEWPRODUCTS="$NEWPRODUCTS $product";
+			;;
+		esac
+	    done
+	    ;;
+	*)
+	    exit 0
+	    ;;
+    esac
+
+    PRODUCTS="$NEWPRODUCTS"
+
+    case $0 in
+	*up/*)
+	    COMMAND=up
+	    ;;
+	*)
+	    COMMAND=down
+	    ;;
+    esac
+}
+
 IFUPDOWN=0
 PRODUCTS=
 
@@ -34,57 +80,103 @@ fi
 [ "$IFUPDOWN" = 1 -a -n "$PRODUCTS" ] || exit 0
 
 if [ -f /etc/debian_version ]; then
-    #
-    # Debian ifupdown system
-    #
-    if [ "$MODE" = start ]; then
-	COMMAND=up
-    elif [ "$MODE" = stop ]; then
-	COMMAND=down
-    else
-	exit 0
-    fi
+    case $0 in
+	/etc/ppp*)
+	    #
+	    # Debian ppp
+	    #
+	    Debian_SuSE_ppp
+	    ;;
+	
+	*)
+            #
+            # Debian ifupdown system
+            #
+	    INTERFACE="$IFACE"
 
-    case "$PHASE" in
-	pre-*)
-	    exit 0
+	    if [ "$MODE" = start ]; then
+		COMMAND=up
+	    elif [ "$MODE" = stop ]; then
+		COMMAND=down
+	    else
+		exit 0
+	    fi
+
+	    case "$PHASE" in
+		pre-*)
+		    exit 0
+		    ;;
+	    esac
 	    ;;
     esac
 elif [ -f /etc/SuSE-release ]; then
-    #
-    # SuSE ifupdown system
-    #
-    IFACE="$2"
-
     case $0 in
-	*if-up.d*)
-	    COMMAND=up
+	/etc/ppp*)
+	    #
+	    # SUSE ppp
+	    #
+	    Debian_SuSE_ppp
 	    ;;
-	*if-down.d*)
-	    COMMAND=down
-	    ;;
+	
 	*)
-	    exit 0
+            #
+            # SuSE ifupdown system
+            #
+	    INTERFACE="$2"
+
+	    case $0 in
+		*if-up.d*)
+		    COMMAND=up
+		    ;;
+		*if-down.d*)
+		    COMMAND=down
+		    ;;
+		*)
+		    exit 0
+		    ;;
+	    esac
 	    ;;
     esac
 else
     #
     # Assume RedHat/Fedora/CentOS/Foobar/...
     #
-    IFACE="$1"
-    
-    case $0 in 
-	*ifup*)
-	    COMMAND=up
-	    ;;
-	*ifdown*)
-	    COMMAND=down
-	    ;;
-	*dispatcher.d*)
-	    COMMAND="$2"
+    case $0 in
+	/etc/ppp*)
+	    INTERFACE="$1"
+
+	    case $0 in
+		*ip-up.local)
+		    COMMAND=up
+		    ;;
+		*ip-down.local)
+		    COMMAND=down
+		    ;;
+		*)
+		    exit 0
+		    ;;
+	    esac
 	    ;;
 	*)
-	    exit 0
+	    #
+	    # RedHat ifup/down system
+	    #
+	    INTERFACE="$1"
+    
+	    case $0 in 
+		*ifup*)
+		    COMMAND=up
+		    ;;
+		*ifdown*)
+		    COMMAND=down
+		    ;;
+		*dispatcher.d*)
+		    COMMAND="$2"
+		    ;;
+		*)
+		    exit 0
+		    ;;
+	    esac
 	    ;;
     esac
 fi
@@ -95,7 +187,7 @@ for PRODUCT in $PRODUCTS; do
     if [ -x $VARDIR/firewall ]; then
 	  ( . /usr/share/$PRODUCT/lib.base
 	    mutex_on
-	    ${VARDIR}/firewall -V0 $COMMAND $IFACE || echo_notdone
+	    ${VARDIR}/firewall -V0 $COMMAND $INTERFACE || echo_notdone
 	    mutex_off
 	  )
     fi
