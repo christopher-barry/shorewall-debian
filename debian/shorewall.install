@@ -8,6 +8,8 @@ configfiles/clear	/usr/share/doc/shorewall/default-config
 configpath	/usr/share/shorewall
 configfiles/ecn	/usr/share/doc/shorewall/default-config
 configfiles/findgw	/usr/share/doc/shorewall/default-config
+helpers	/usr/share/doc/shorewall/default-config
+helpers	/usr/share/shorewall
 configfiles/hosts	/usr/share/doc/shorewall/default-config
 configfiles/initdone	/usr/share/doc/shorewall/default-config
 configfiles/init	/usr/share/doc/shorewall/default-config
@@ -21,6 +23,7 @@ Macros/macro.*	/usr/share/shorewall
 Makefile	/etc/shorewall
 Makefile-lite	/usr/share/shorewall
 configfiles/masq	/usr/share/doc/shorewall/default-config
+modules	/usr/share/doc/shorewall/default-config
 modules	/usr/share/shorewall
 configfiles/nat	/usr/share/doc/shorewall/default-config
 configfiles/netmap	/usr/share/doc/shorewall/default-config
@@ -34,12 +37,16 @@ configfiles/refresh	/usr/share/doc/shorewall/default-config
 configfiles/refreshed	/usr/share/doc/shorewall/default-config
 configfiles/restored	/usr/share/doc/shorewall/default-config
 configfiles/route_rules	/usr/share/doc/shorewall/default-config
+configfiles/routes	/usr/share/doc/shorewall/default-config
 configfiles/routestopped	/usr/share/doc/shorewall/default-config
 configfiles/rules	/usr/share/doc/shorewall/default-config
 Samples/README.txt	/usr/share/doc/shorewall/examples
+Samples/Universal	/usr/share/doc/shorewall/examples
 Samples/one-interface	/usr/share/doc/shorewall/examples
 Samples/two-interfaces	/usr/share/doc/shorewall/examples
 Samples/three-interfaces	/usr/share/doc/shorewall/examples
+configfiles/scfilter	/usr/share/doc/shorewall/default-config
+configfiles/secmarks	/usr/share/doc/shorewall/default-config
 configfiles/shorewall.conf	/etc/shorewall
 shorewall	/sbin
 configfiles/started	/usr/share/doc/shorewall/default-config

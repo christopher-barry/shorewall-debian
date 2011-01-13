@@ -1,6 +1,8 @@
 shorewall (4.4.16-1) unstable; urgency=low
 
   * New Upstream Version
+  * Drop macro.JAP patch from 4.4.11.6-3, which has been included upstream.
+  * Drop transition packages: shorewall-{shell,perl,common}
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 12 Jan 2011 18:51:08 -0500
 

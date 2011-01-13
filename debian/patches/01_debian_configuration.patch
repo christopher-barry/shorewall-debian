@@ -1,9 +1,9 @@
 Author: Lorenzo Martignoni <lorenzo.martignoni@poste.it>
 Description: Customize the shorewall.conf configuration file to be more like what is
 expected by Debian users.
---- a/configfiles/shorewall.conf
-+++ b/configfiles/shorewall.conf
-@@ -18,7 +18,7 @@
+--- shorewall-debian.orig/configfiles/shorewall.conf
++++ shorewall-debian/configfiles/shorewall.conf
+@@ -9,7 +9,7 @@
  #		       S T A R T U P   E N A B L E D
  ###############################################################################
  
@@ -12,7 +12,7 @@ expected by Debian users.
  
  ###############################################################################
  #		              V E R B O S I T Y
-@@ -72,7 +72,7 @@
+@@ -63,7 +63,7 @@
  
  SHOREWALL_SHELL=/bin/sh
  
@@ -21,7 +21,7 @@ expected by Debian users.
  
  MODULESDIR=
  
-@@ -105,7 +105,7 @@
+@@ -96,7 +96,7 @@
  #			F I R E W A L L	  O P T I O N S
  ###############################################################################
  
@@ -30,7 +30,7 @@ expected by Debian users.
  
  ADD_IP_ALIASES=No
  
-@@ -125,7 +125,7 @@
+@@ -116,7 +116,7 @@
  
  CLAMPMSS=No
  
