@@ -12,7 +12,7 @@ Package: shorewall6-lite
 Architecture: all
 Depends: iptables (>= 1.4.1), iproute, ${misc:Depends}
 Suggests: shorewall-doc, linux-image-2.6, make
-Conflicts: ipmasq, knetfilter, firewall-easy, filtergen, uif, webmin-firewall, ipmenu, gnome-lokkit, guarddog, guidedog, ferm, shorewall, shorewall-common
+Conflicts: ipmasq, knetfilter, firewall-easy, filtergen, uif, webmin-firewall, ipmenu, gnome-lokkit, guarddog, guidedog, ferm
 Recommends: wget
 Description: Shorewall (lite version with IPv6 support)
  Shorewall6 allows you to describe your firewall/gateway requirements using
