@@ -1,8 +1,9 @@
 shorewall-lite (4.4.16-1) unstable; urgency=low
 
   * New Upstream Version
+  * Drop unnecessary Conflict with shorewall
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 12 Jan 2011 17:46:25 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 15 Jan 2011 09:34:59 -0500
 
 shorewall-lite (4.4.11.6-1) unstable; urgency=low
 
