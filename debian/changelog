@@ -1,4 +1,4 @@
-shorewall-lite (4.4.11.6-1+squeeze1) unstable; urgency=high
+shorewall-lite (4.4.11.6-1+squeeze1) testing-proposed-updates; urgency=high
 
   * Sync init script with upstream (Closes: #610314)
 
