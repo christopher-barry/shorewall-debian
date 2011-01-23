@@ -1,12 +1,13 @@
 Shorewall Debian packaging README:
 ----------------------------------
 
-There are five (5) Shorewall packages released by upstream:
+There are six (6) Shorewall packages released by upstream:
   shorewall
   shorewall-lite
   shorewall6
   shorewall6-lite
   shorewall-doc
+  shorewall-init
 
 Each of the above packages released by upstream corresponds to a Debian
 package of the same name.  In order to keep from managing a separate git
@@ -17,6 +18,8 @@ repository:
   pristine-tar
   shorewall-doc/master
   shorewall-doc/upstream
+  shorewall-init/master
+  shorewall-init/upstream
   shorewall-lite/master
   shorewall-lite/upstream
   shorewall/master
@@ -25,6 +28,15 @@ repository:
   shorewall6-lite/upstream
   shorewall6/master
   shorewall6/upstream
+
+For distribution specific (e.g., lenny, or squeeze) work, if needed (e.g.,
+in the case of a security fix), the affected packages will replicate their
+master and upstream branches below a distribution-specific name.  For example:
+
+  squeeze/shorewall-lite/master
+  squeeze/shorewall-lite/upstream
+  squeeze/shorewall6-lite/master
+  squeeze/shorewall6-lite/upstream
 
 This repository is designed to be used with the git-buildpackage program,
 and so, each master branch is the Debian package branch, while each upstream
@@ -38,6 +50,6 @@ once):
 
 git branch --track pristine-tar origin/pristine-tar ; for i in `git branch -r |grep shorewall |cut -f3 -d' ' |cut -f2 -d'/' |sort -u ` ; do git branch --track $i/master origin/$i/master ; git branch --track $i/upstream origin/$i/upstream ; done
 
-To build one or more of the packages, please use the build.sh script found in
+To build one or more of the packages, please use the pkg.py script found in
 this directory.
 
