@@ -269,16 +269,16 @@ if op == 'import':
     for b in bugs_fixed_upstream:
         if b in bugs_all: bugs_all.remove(b) # avoid repeats below
         s = debianbts.get_status(b)
-        print "\tBug %s: %s" % (s[0].nr, s[0].summary)
+        print "\tBug %s (status: %s): %s" % (s[0].nr, s[0].status, s[0].summary)
     if len(bugs_upstream) > 0: print "\nBugs tagged 'upstream':"
     for b in bugs_upstream:
         if b in bugs_all: bugs_all.remove(b) # avoid repeats below
         s = debianbts.get_status(b)
-        print "\tBug %s: %s" % (s[0].nr, s[0].summary)
+        print "\tBug %s (status: %s): %s" % (s[0].nr, s[0].status, s[0].summary)
     if len(bugs_all) > 0: print "\nAll other bugs:"
     for b in bugs_all:
         s = debianbts.get_status(b)
-        print "\tBug %s: %s" % (s[0].nr, s[0].summary)
+        print "\tBug %s (status: %s): %s" % (s[0].nr, s[0].status, s[0].summary)
     print "\nPlease remember to check for and make note of closed bugs\n"
     print "**********" * 8 + "\n"
     os.system('git-status')
