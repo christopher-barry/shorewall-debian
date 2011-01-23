@@ -36,7 +36,7 @@ def usage():
     print '''
 pkg.py - Build the Debian packages of Shorewall
 
-Usage summary: pkg.py [import|build|tag] [options]
+Usage summary: pkg.py [import|build|tag|upload] [options]
 
     common options:
 
@@ -50,7 +50,7 @@ Usage summary: pkg.py [import|build|tag] [options]
         Print verbose output
 
     -d
-        Dry run; do not make any changes or commits to the repository
+        Dry run: do not make any changes or commits to the repository
 
     import: import a new upstream tarball into the repository
 
