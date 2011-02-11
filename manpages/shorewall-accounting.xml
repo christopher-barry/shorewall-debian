@@ -35,7 +35,7 @@
         <term><emphasis role="bold">ACTION</emphasis> - {<emphasis
         role="bold">COUNT</emphasis>|<emphasis
         role="bold">DONE</emphasis>|<emphasis>chain</emphasis>[:<emphasis
-        role="bold">{COUNT</emphasis>:JUMP}]|COUNT
+        role="bold">{COUNT</emphasis>|JUMP}]|ACCOUNT(<replaceable>table</replaceable>,<replaceable>network</replaceable>)|COMMENT
         <emphasis>comment</emphasis>}</term>
 
         <listitem>
@@ -73,7 +73,15 @@
                 chain specified in the CHAIN column. If <emphasis
                 role="bold">:COUNT</emphasis> is included, a counting rule
                 matching this entry will be added to
-                <emphasis>chain</emphasis></para>
+                <emphasis>chain</emphasis>. The <emphasis>chain</emphasis> may
+                not exceed 29 characters in length and may be composed of
+                letters, digits, dash ('-') and underscore ('_').</para>
+
+                <warning>
+                  <para>To avoid problems, we recomment that chain names that
+                  you create should begin with a capital letter and contain a
+                  digit, a dash ('-') or an underscore ('_').</para>
+                </warning>
               </listitem>
             </varlistentry>
 
@@ -83,6 +91,63 @@
               <listitem>
                 <para>Like the previous option without the <emphasis
                 role="bold">:COUNT</emphasis> part.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis
+              role="bold">ACCOUNT(</emphasis><replaceable>table</replaceable>,<replaceable>network</replaceable><emphasis
+              role="bold">)</emphasis></term>
+
+              <listitem>
+                <para>This action implements per-IP accounting and was added
+                in Shorewall 4.4.17. Requires the <emphasis>ACCOUNT
+                Target</emphasis> capability in your iptables and kernel (see
+                the output of <command>shorewall show
+                capabilities</command>).</para>
+
+                <variablelist>
+                  <varlistentry>
+                    <term><replaceable>table</replaceable></term>
+
+                    <listitem>
+                      <para>is the name of an accounting table (you choose the
+                      name). All rules specifying the same name will have
+                      their per-IP counters accumulated in the same
+                      table.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term><replaceable>network</replaceable></term>
+
+                    <listitem>
+                      <para>is an IPv4 network in CIDR notation (e.g.,
+                      192.168.1.0/24). The network can be as large as a /8
+                      (class A).</para>
+                    </listitem>
+                  </varlistentry>
+                </variablelist>
+
+                <para>One nice feature of per-IP accounting is that the
+                counters survive <command>shorewall restart</command>. This
+                has a downside, however. If you change the network associated
+                with an accounting table, then you must <command>shorewall
+                stop; shorewall start</command> to have a successful restart
+                (counters will be cleared).</para>
+
+                <para>The counters in a <replaceable>table</replaceable> are
+                printed using the <command>iptaccount</command> utility. For a
+                command synopsis, type:</para>
+
+                <para><command>iptaccount --help</command></para>
+
+                <para>As of February 2011, the ACCOUNT Target capability and
+                the iptaccount utility are only available when <ulink
+                url="http://xtables-addons.sourceforge.net/">xtables-addons</ulink>
+                is installed. See <ulink
+                url="http://www.shorewall.net/Accounting.html#perIP">http://www.shorewall.net/Accounting.html#perIP</ulink>
+                for additional information.</para>
               </listitem>
             </varlistentry>
 
@@ -111,7 +176,14 @@
           role="bold">accounting</emphasis> chain is assumed. This is the
           chain where the accounting rule is added. The
           <emphasis>chain</emphasis> will be created if it doesn't already
-          exist.</para>
+          exist. The <emphasis>chain</emphasis> may not exceed 29 characters
+          in length.</para>
+
+          <warning>
+            <para>To avoid problems, we recomment that chain names that you
+            create should begin with a capital letter and contain a digit, a
+            dash ('-') or an underscore ('_').</para>
+          </warning>
         </listitem>
       </varlistentry>
 
@@ -481,10 +553,10 @@
     </ulink></para>
 
     <para>shorewall(8), shorewall-actions(5), shorewall-blacklist(5),
-    shorewall-hosts(5), shorewall_interfaces(5), shorewall-ipsets(5), shorewall-maclist(5),
-    shorewall-masq(5), shorewall-nat(5), shorewall-netmap(5),
-    shorewall-params(5), shorewall-policy(5), shorewall-providers(5),
-    shorewall-proxyarp(5), shorewall-route_rules(5),
+    shorewall-hosts(5), shorewall_interfaces(5), shorewall-ipsets(5),
+    shorewall-maclist(5), shorewall-masq(5), shorewall-nat(5),
+    shorewall-netmap(5), shorewall-params(5), shorewall-policy(5),
+    shorewall-providers(5), shorewall-proxyarp(5), shorewall-route_rules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
     shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),

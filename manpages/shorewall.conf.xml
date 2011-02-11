@@ -548,9 +548,15 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
       <varlistentry>
         <term><emphasis role="bold">EXPORTPARAMS=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}
+        (Deprecated beginning with Shorewall 4.4.17)</term>
 
         <listitem>
+          <para>Beginning with Shorewall 4.4.17, the variables set in the
+          'params' file at compile time are available at run time with
+          EXPORTPARAMS=No. As a consequence, beginning with that version the
+          recommended setting is EXPORTPARAMS=No.</para>
+
           <para>It is quite difficult to code a 'params' file that assigns
           other than constant values such that it works correctly with
           Shorewall Lite. The EXPORTPARAMS option works around this problem.
@@ -582,8 +588,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           set FASTACCEPT=Yes then you may not include rules in the ESTABLISHED
           or RELATED sections of <ulink
           url="shorewall-rules.html">shorewall-rules</ulink>(5).</para>
-
-          <para></para>
 
           <note>
             <para>FASTACCEPT=Yes is incompatible with
@@ -1838,6 +1842,27 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
           <para>If USE_DEFAULT_RT is not set or if it is set to the empty
           string then USE_DEFAULT_RT=No is assumed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">EXPORTMODULES=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.17. When set to Yes when compiling for
+          use by Shorewall LIte (<command>shorewall load</command>,
+          <command>shorewall reload </command>or <command>shorewall
+          export</command> commands), the compiler will copy the modules or
+          helpers file from the administrative system into the script. When
+          set to No or not specified, the compiler will not copy the modules
+          or helpers file from <filename>/usr/share/shorewall</filename> but
+          will copy the found in another location on the CONFIG_PATH.</para>
+
+          <para>When compiling for direct use by Shorewall, causes the
+          contents of the local module or helpers file to be copied into the
+          compiled script. When set to No or not set, the compiled script
+          reads the file itself.</para>
         </listitem>
       </varlistentry>
 
