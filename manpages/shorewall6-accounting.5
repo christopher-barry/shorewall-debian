@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 01/20/2011
+.\"      Date: 02/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ACCOUNTI" "5" "01/20/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-ACCOUNTI" "5" "02/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -40,7 +40,7 @@ command\&.
 .PP
 The columns in the file are as follows\&.
 .PP
-\fBACTION\fR \- {\fBCOUNT\fR|\fBDONE\fR|\fIchain\fR[:\fB{COUNT|JUMP}\fR]|COMMENT}
+\fBACTION\fR \- {\fBCOUNT\fR|\fBDONE\fR|\fIchain\fR[:\fB{COUNT|JUMP}\fR]|COMMENT \fIcomment\fR}
 .RS 4
 What to do when a matching packet is found\&.
 .PP
@@ -63,7 +63,24 @@ Where
 is the name of a chain; shorewall6 will create the chain automatically if it doesn\*(Aqt already exist\&. Causes a jump to that chain to be added to the chain specified in the CHAIN column\&. If
 \fB:COUNT\fR
 is included, a counting rule matching this entry will be added to
+\fIchain\fR\&. The
 \fIchain\fR
+may not exceed 29 characters in length and may be composed of letters, digits, dash (\*(Aq\-\*(Aq) and underscore (\*(Aq_\*(Aq)\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBWarning\fR
+.ps -1
+.br
+To avoid problems, we recomment that chain names that you create should begin with a capital letter and contain a digit, a dash (\*(Aq\-\*(Aq) or an underscore (\*(Aq_\*(Aq)\&.
+.sp .5v
+.RE
 .RE
 .PP
 \fIchain\fR:JUMP
@@ -88,7 +105,24 @@ the
 \fBaccounting\fR
 chain is assumed\&. This is the chain where the accounting rule is added\&. The
 \fIchain\fR
-will be created if it doesn\*(Aqt already exist\&.
+will be created if it doesn\*(Aqt already exist\&. The
+\fIchain\fR
+may not exceed 29 characters in length\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBWarning\fR
+.ps -1
+.br
+To avoid problems, we recomment that chain names that you create should begin with a capital letter and contain a digit, a dash (\*(Aq\-\*(Aq) or an underscore (\*(Aq_\*(Aq)\&.
+.sp .5v
+.RE
 .RE
 .PP
 \fBSOURCE\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fB\fB[\fR\fR\fIaddress\fR\fB]\fR|\fIaddress\fR}

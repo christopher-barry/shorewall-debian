@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.16.1
+VERSION=4.4.17
 
 usage() # $1 = exit status
 {
@@ -392,13 +392,13 @@ fi
 #
 # Install the Modules file
 #
-run_install $OWNERSHIP -m 0600 modules ${DESTDIR}/usr/share/shorewall6/modules
+run_install $OWNERSHIP -m 0644 modules ${DESTDIR}/usr/share/shorewall6/modules
 echo "Modules file installed as ${DESTDIR}/usr/share/shorewall6/modules"
 
 #
 # Install the Module Helpers file
 #
-run_install $OWNERSHIP -m 0600 helpers ${DESTDIR}/usr/share/shorewall6/helpers
+run_install $OWNERSHIP -m 0644 helpers ${DESTDIR}/usr/share/shorewall6/helpers
 echo "Helper modules file installed as ${DESTDIR}/usr/share/shorewall6/helpers"
 
 #
@@ -496,6 +496,16 @@ run_install $OWNERSHIP -m 0644 tcdevices ${DESTDIR}/usr/share/shorewall6/configf
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/tcdevices ]; then
     run_install $OWNERSHIP -m 0600 tcdevices ${DESTDIR}/etc/shorewall6/tcdevices
     echo "TC Devices file installed as ${DESTDIR}/etc/shorewall6/tcdevices"
+fi
+
+#
+# Install the tcfilters file
+#
+run_install $OWNERSHIP -m 0644 tcfilters ${DESTDIR}/usr/share/shorewall6/configfiles/tcfilters
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/tcfilters ]; then
+    run_install $OWNERSHIP -m 0600 tcfilters ${DESTDIR}/etc/shorewall6/tcfilters
+    echo "TC Filters file installed as ${DESTDIR}/etc/shorewall6/tcfilters"
 fi
 
 #
