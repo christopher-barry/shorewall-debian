@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.4.16.1
+VERSION=4.4.17
 
 usage() # $1 = exit status
 {
@@ -65,7 +65,9 @@ echo "Uninstalling Shorewall Init $VERSION"
 INITSCRIPT=/etc/init.d/shorewall-init
 
 if [ -n "$INITSCRIPT" ]; then
-    if [ -x /sbin/insserv -o -x /usr/sbin/insserv ]; then
+    if [ -x /usr/sbin/updaterc.d ]; then
+	updaterc.d shorewall-init remove
+    elif [ -x /sbin/insserv -o -x /usr/sbin/insserv ]; then
         insserv -r $INITSCRIPT
     elif [ -x /sbin/chkconfig -o -x /usr/sbin/chkconfig ]; then
 	chkconfig --del $(basename $INITSCRIPT)
