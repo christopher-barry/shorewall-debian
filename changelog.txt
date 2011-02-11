@@ -1,12 +1,62 @@
-Changes in Shorewall 4.4.16.1
+Changes in Shorewall 4.4.17
 
-1)  Fix empty variable handling where /bin/sh is bash
+1)  Added sch_tbf to the modules files.
+
+Changes in Shorewall 4.4.17 RC 1
+
+1)  Documentation and release notes cleanup.
+
+2)  Ensure that manual and accounting chains aren't too long.
+
+3)  Tighten up the editing of ACCOUNT(...).
+
+4)  Add 'show ipa' command.
+
+5)  Several fixes to IPv6 tcfilters.
+
+6)  Correct three issues in per-IP accounting.
+
+Changes in Shorewall 4.4.17 Beta 3
+
+1)  Allow run-time address variables in the masq file.
+
+2)  Fix silly bug in expand_rule().
+
+3)  Correct two defects in compiler module loading.
+
+4)  Implement per-IP module loading.
+
+Changes in Shorewall 4.4.17 Beta 2
+
+1)  Handle line containing only INCLUDE.
+
+2)  Fix empty SHELL variable handling with bash.
+
+3)  Correct 'check -r' with OPTIMIZE=8
+
+4)  Add sch_prio to modules file.
+
+5)  Add 'USE_LOCAL_MODULES' option.
+
+6)  Implement run-time address variables (&interface)
+
+Changes in Shorewall 4.4.17 Beta 1
+
+1)  Improve readability of logging logic in expand_rule().
+
+2)  Improve efficency of oddball targets in process_rule1().
+
+3)  Export (param,value) pairs with EXPORTPARAMS=No.
+
+4)  Only produce 'done.' progress message on success.
+
+5)  Support INCLUDE in user exits.
+
+6)  Use updaterc.d during uninstall on Debian.
 
 Changes in Shorewall 4.4.16 RC 1
 
 1) Fix logging for jump to nat chain.
-
-2) Minor code refactoring.
 
 Changes in Shorewall 4.4.16 Beta 8
 
