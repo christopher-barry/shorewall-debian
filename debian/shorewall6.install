@@ -44,6 +44,7 @@ stop	/usr/share/doc/shorewall6/default-config
 tcclasses	/usr/share/doc/shorewall6/default-config
 tcclear	/usr/share/doc/shorewall6/default-config
 tcdevices	/usr/share/doc/shorewall6/default-config
+tcfilters	/usr/share/doc/shorewall6/default-config
 tcinterfaces	/usr/share/doc/shorewall6/default-config
 tcpri	/usr/share/doc/shorewall6/default-config
 tcrules	/usr/share/doc/shorewall6/default-config
