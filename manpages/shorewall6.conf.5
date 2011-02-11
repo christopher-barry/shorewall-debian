@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 01/20/2011
+.\"      Date: 02/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "01/20/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\&.CONF" "5" "02/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -365,8 +365,10 @@ net     all  DROP   info
 then the chain name is \*(Aqnet2all\*(Aq which is also the chain named in Shorewall6 log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall6 will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
 .RE
 .PP
-\fBEXPORTPARAMS=\fR{\fBYes\fR|\fBNo\fR}
+\fBEXPORTPARAMS=\fR{\fBYes\fR|\fBNo\fR} (Deprecated beginning with Shorewall 4\&.4\&.17)
 .RS 4
+Beginning with Shorewall 4\&.4\&.17, the variables set in the \*(Aqparams\*(Aq file at compile time are available at run time with EXPORTPARAMS=No\&. As a consequence, beginning with that version the recommended setting is EXPORTPARAMS=No\&.
+.sp
 It is quite difficult to code a \*(Aqparams\*(Aq file that assigns other than constant values such that it works correctly with Shorewall6 Lite\&. The EXPORTPARAMS option works around this problem\&. When EXPORTPARAMS=No, the \*(Aqparams\*(Aq file is not copied to the compiler output\&.
 .sp
 With EXPORTPARAMS=No, if you need to set environmental variables on the firewall system for use by your extension scripts, then do so in the init extension script\&.
@@ -1140,6 +1142,18 @@ option\&. The default value is \*(AqNo\*(Aq\&.
 Beginning in Shorewall 4\&.4\&.6, setting this option to \*(AqYes\*(Aq also simplifies PREROUTING rules in
 \m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[4]\d\s+2(5)\&. Previously, when TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \*(Aqmain\*(Aq routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The
 \m[blue]\fBshorewall6\-route_rules\fR\m[]\&\s-2\u[15]\d\s+2(5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
+.RE
+.PP
+\fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.17\&. When set to Yes when compiling for use by Shorewall6 LIte (\fBshorewall6 load\fR,
+\fBshorewall6 reload \fRor
+\fBshorewall6 export\fR
+commands), the compiler will copy the modules or helpers file from the administrative system into the script\&. When set to No or not specified, the compiler will not copy the modules or helpers file from
+/usr/share/shorewall6
+but will copy the found in another location on the CONFIG_PATH\&.
+.sp
+When compiling for direct use by Shorewall6, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
 .RE
 .PP
 \fBVERBOSITY=\fR[\fInumber\fR]

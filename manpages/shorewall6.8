@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 01/20/2011
+.\"      Date: 02/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "01/20/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "02/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -83,7 +83,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-f\fR] \fBcapabilities\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR {\fBactions|classifiers|connections|config|filters|macros|zones\fR}
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR {\fBactions|classifiers|connections|config|filters|ip|macros|zones\fR}
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR \fBpolicies\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -581,6 +581,11 @@ Dispays distribution\-specific defaults\&.
 Displays the IP connections currently being tracked by the firewall\&.
 .RE
 .PP
+\fBip\fR
+.RS 4
+Displays the system\*(Aqs IPv6 configuration\&.
+.RE
+.PP
 \fBlog\fR
 .RS 4
 Displays the last 20 Shorewall6 messages from the log file specified by the LOGFILE option in
@@ -606,6 +611,11 @@ option is passed directly through to ip6tables and causes actual packet and byte
 .RS 4
 Added in Shorewall 4\&.4\&.4\&. Displays the applicable policy between each pair of zones\&. Note that implicit intrazone ACCEPT policies are not displayed for zones associated with a single network where that network doesn\*(Aqt specify
 \fBrouteback\fR\&.
+.RE
+.PP
+\fBRouting\fR
+.RS 4
+Displays the system\*(Aqs IPv6 routing configuration\&.
 .RE
 .PP
 \fBtc\fR
