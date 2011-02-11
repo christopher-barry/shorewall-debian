@@ -52,7 +52,7 @@ our @EXPORT = qw(
 		 progress_message3
                 );
 
-our @EXPORT_OK = qw( $shorewall_dir initialize read_a_line1 set_config_path shorewall);
+our @EXPORT_OK = qw( $shorewall_dir initialize set_config_path shorewall);
 
 our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       finalize_script
@@ -103,6 +103,8 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       which
 				       qt
 				       ensure_config_path
+				       add_param
+				       export_params
 				       get_configuration
 				       require_capability
 				       have_capability
@@ -124,7 +126,6 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $debug
 				       %config
 				       %globals
-				       %params
 
 		                       F_IPV4
 		                       F_IPV6
@@ -135,7 +136,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_17';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -257,6 +258,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 FWMARK_RT_MASK  => 'fwmark route mask',
 		 MARK_ANYWHERE   => 'Mark in any table',
 		 HEADER_MATCH    => 'Header Match',
+		 ACCOUNT_TARGET  => 'ACCOUNT Target',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -276,6 +278,10 @@ our @openstack;
 # From the params file
 #
 our %params;
+#
+# Entries that the compiler adds to %params
+#
+our %compiler_params;
 #
 # Action parameters
 #
@@ -310,7 +316,7 @@ use constant { MIN_VERBOSITY => -1,
 	       MAX_VERBOSITY => 2 ,
 	       F_IPV4 => 4,
 	       F_IPV6 => 6,
-	   };
+	     };
 
 our %validlevels;             # Valid log levels.
 
@@ -333,310 +339,182 @@ sub initialize( $ ) {
 	( $product, $Product, $toolname, $toolNAME ) = qw( shorewall6 Shorewall6 ip6tables IP6TABLES );
     }
 
-    $verbosity = 0;            # Verbosity setting. -1 = silent, 0 = almost silent, 1 = major progress messages only, 2 = all progress messages (very noisy)
-    $log = undef;              # File reference for log file
-    $log_verbosity = -1;       # Verbosity of log.
-    $timestamp = '';           # If true, we are to timestamp each progress message
-    $script = 0;               # Script (output) file Handle Reference
+    $verbosity      = 0;       # Verbosity setting. -1 = silent, 0 = almost silent, 1 = major progress messages only, 2 = all progress messages (very noisy)
+    $log            = undef;   # File reference for log file
+    $log_verbosity  = -1;      # Verbosity of log.
+    $timestamp      = '';      # If true, we are to timestamp each progress message
+    $script         = 0;       # Script (output) file Handle Reference
     $script_enabled = 0;       # Writing to output file is disabled initially
-    $lastlineblank = 0;        # Avoid extra blank lines in the output
-    $indent1       = '';       # Current indentation tabs
-    $indent2       = '';       # Current indentation spaces
-    $indent        = '';       # Current total indentation
+    $lastlineblank  = 0;       # Avoid extra blank lines in the output
+    $indent1        = '';      # Current indentation tabs
+    $indent2        = '';      # Current indentation spaces
+    $indent         = '';      # Current total indentation
     ( $dir, $file ) = ('',''); # Script's Directory and Filename
-    $tempfile = '';            # Temporary File Name
-    $sillyname = '';           # Temporary ipchain
+    $tempfile       = '';      # Temporary File Name
+    $sillyname      = 
+    $sillyname1     = '';      # Temporary ipchains
 
     #
     # Misc Globals
     #
-    %globals  =   ( SHAREDIR => '/usr/share/shorewall' ,
-		    SHAREDIRPL => '/usr/share/shorewall/' ,
-		    CONFDIR =>  '/etc/shorewall',     # Run-time configuration directory
-		    CONFIGDIR => '',                  # Compile-time configuration directory (location of $product.conf)
-		    LOGPARMS => '',
-		    TC_SCRIPT => '',
-		    EXPORT => 0,
+    %globals  =   ( SHAREDIRPL => '/usr/share/shorewall/' ,
+		    CONFDIR    =>  '/etc/shorewall',     # Run-time configuration directory
+		    CONFIGDIR  => '',                  # Compile-time configuration directory (location of $product.conf)
+		    LOGPARMS   => '',
+		    TC_SCRIPT  => '',
+		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
-		    UNTRACKED => 0,
-		    VERSION => "4.4.16.1",
-		    CAPVERSION => 40415 ,
+		    UNTRACKED  => 0,
+		    VERSION    => "4.4.17",
+		    CAPVERSION => 40417 ,
 		  );
-
     #
     # From shorewall.conf file
     #
-    if ( $family == F_IPV4 ) {
-	$globals{PRODUCT} = 'shorewall';
+    %config =
+	( STARTUP_ENABLED => undef,
+	  VERBOSITY => undef,
+	  #
+	  # Logging
+	  #
+	  LOGFILE => undef,
+	  LOGFORMAT => undef,
+	  LOGTAGONLY => undef,
+	  LOGLIMIT => undef,
+	  LOGRATE => undef,
+	  LOGBURST => undef,
+	  LOGALLNEW => undef,
+	  BLACKLIST_LOGLEVEL => undef,
+	  RFC1918_LOG_LEVEL => undef,
+	  MACLIST_LOG_LEVEL => undef,
+	  TCP_FLAGS_LOG_LEVEL => undef,
+	  SMURF_LOG_LEVEL => undef,
+	  LOG_MARTIANS => undef,
+	  LOG_VERBOSITY => undef,
+	  STARTUP_LOG => undef,
+	  #
+	  # Location of Files
+	  #
+	  IP => undef,
+	  TC => undef,
+	  IPSET => undef,
+	  PERL => undef,
+	  #
+	  #PATH is inherited
+	  #
+	  PATH => undef,
+	  SHOREWALL_SHELL => undef,
+	  SUBSYSLOCK => undef,
+	  MODULESDIR => undef,
+	  #
+	  #CONFIG_PATH is inherited
+	  #
+	  CONFIG_PATH => undef,
+	  RESTOREFILE => undef,
+	  IPSECFILE => undef,
+	  LOCKFILE => undef,
+	  #
+	  # Default Actions/Macros
+	  #
+	  DROP_DEFAULT => undef,
+	  REJECT_DEFAULT => undef,
+	  ACCEPT_DEFAULT => undef,
+	  QUEUE_DEFAULT => undef,
+	  NFQUEUE_DEFAULT => undef,
+	  #
+	  # RSH/RCP Commands
+	  #
+	  RSH_COMMAND => undef,
+	  RCP_COMMAND => undef,
+	  #
+	  # Firewall Options
+	  #
+	  BRIDGING => undef,
+	  IP_FORWARDING => undef,
+	  ADD_IP_ALIASES => undef,
+	  ADD_SNAT_ALIASES => undef,
+	  RETAIN_ALIASES => undef,
+	  TC_ENABLED => undef,
+	  TC_EXPERT => undef,
+	  TC_PRIOMAP => undef,
+	  CLEAR_TC => undef,
+	  MARK_IN_FORWARD_CHAIN => undef,
+	  CLAMPMSS => undef,
+	  ROUTE_FILTER => undef,
+	  DETECT_DNAT_IPADDRS => undef,
+	  MUTEX_TIMEOUT => undef,
+	  ADMINISABSENTMINDED => undef,
+	  BLACKLISTNEWONLY => undef,
+	  DELAYBLACKLISTLOAD => undef,
+	  MODULE_SUFFIX => undef,
+	  DISABLE_IPV6 => undef,
+	  DYNAMIC_ZONES => undef,
+	  PKTTYPE=> undef,
+	  MACLIST_TABLE => undef,
+	  MACLIST_TTL => undef,
+	  SAVE_IPSETS => undef,
+	  MAPOLDACTIONS => undef,
+	  FASTACCEPT => undef,
+	  IMPLICIT_CONTINUE => undef,
+	  HIGH_ROUTE_MARKS => undef,
+	  USE_ACTIONS=> undef,
+	  OPTIMIZE => undef,
+	  EXPORTPARAMS => undef,
+	  SHOREWALL_COMPILER => undef,
+	  EXPAND_POLICIES => undef,
+	  KEEP_RT_TABLES => undef,
+	  DELETE_THEN_ADD => undef,
+	  MULTICAST => undef,
+	  DONT_LOAD => '',
+	  AUTO_COMMENT => undef ,
+	  MANGLE_ENABLED => undef ,
+	  RFC1918_STRICT => undef ,
+	  NULL_ROUTE_RFC1918 => undef ,
+	  USE_DEFAULT_RT => undef ,
+	  RESTORE_DEFAULT_ROUTE => undef ,
+	  FAST_STOP => undef ,
+	  AUTOMAKE => undef ,
+	  WIDE_TC_MARKS => undef,
+	  TRACK_PROVIDERS => undef,
+	  ZONE2ZONE => undef,
+	  ACCOUNTING => undef,
+	  OPTIMIZE_ACCOUNTING => undef,
+	  DYNAMIC_BLACKLIST => undef,
+	  LOAD_HELPERS_ONLY => undef,
+	  REQUIRE_INTERFACE => undef,
+	  FORWARD_CLEAR_MARK => undef,
+	  COMPLETE => undef,
+	  EXPORTMODULES => undef,
+	  #
+	  # Packet Disposition
+	  #
+	  MACLIST_DISPOSITION => undef,
+	  TCP_FLAGS_DISPOSITION => undef,
+	  BLACKLIST_DISPOSITION => undef,
+	  #
+	  # Mark Geometry
+	  #
+	  TC_BITS => undef,
+	  PROVIDER_BITS => undef,
+	  PROVIDER_OFFSET => undef,
+	  MASK_BITS => undef
+	);
 
-	%config =
-	    ( STARTUP_ENABLED => undef,
-	      VERBOSITY => undef,
-	      #
-	      # Logging
-	      #
-	      LOGFILE => undef,
-	      LOGFORMAT => undef,
-	      LOGTAGONLY => undef,
-	      LOGLIMIT => undef,
-	      LOGRATE => undef,
-	      LOGBURST => undef,
-	      LOGALLNEW => undef,
-	      BLACKLIST_LOGLEVEL => undef,
-	      RFC1918_LOG_LEVEL => undef,
-	      MACLIST_LOG_LEVEL => undef,
-	      TCP_FLAGS_LOG_LEVEL => undef,
-	      SMURF_LOG_LEVEL => undef,
-	      LOG_MARTIANS => undef,
-	      LOG_VERBOSITY => undef,
-	      STARTUP_LOG => undef,
-	      #
-	      # Location of Files
-	      #
-	      IPTABLES => undef,
-	      IP => undef,
-	      TC => undef,
-	      IPSET => undef,
-	      PERL => undef,
-	      #
-	      #PATH is inherited
-	      #
-	      PATH => undef,
-	      SHOREWALL_SHELL => undef,
-	      SUBSYSLOCK => undef,
-	      MODULESDIR => undef,
-	      #
-	      #CONFIG_PATH is inherited
-	      #
-	      CONFIG_PATH => undef,
-	      RESTOREFILE => undef,
-	      IPSECFILE => undef,
-	      LOCKFILE => undef,
-	      #
-	      # Default Actions/Macros
-	      #
-	      DROP_DEFAULT => undef,
-	      REJECT_DEFAULT => undef,
-	      ACCEPT_DEFAULT => undef,
-	      QUEUE_DEFAULT => undef,
-	      NFQUEUE_DEFAULT => undef,
-	      #
-	      # RSH/RCP Commands
-	      #
-	      RSH_COMMAND => undef,
-	      RCP_COMMAND => undef,
-	      #
-	      # Firewall Options
-	      #
-	      BRIDGING => undef,
-	      IP_FORWARDING => undef,
-	      ADD_IP_ALIASES => undef,
-	      ADD_SNAT_ALIASES => undef,
-	      RETAIN_ALIASES => undef,
-	      TC_ENABLED => undef,
-	      TC_EXPERT => undef,
-	      TC_PRIOMAP => undef,
-	      CLEAR_TC => undef,
-	      MARK_IN_FORWARD_CHAIN => undef,
-	      CLAMPMSS => undef,
-	      ROUTE_FILTER => undef,
-	      DETECT_DNAT_IPADDRS => undef,
-	      MUTEX_TIMEOUT => undef,
-	      ADMINISABSENTMINDED => undef,
-	      BLACKLISTNEWONLY => undef,
-	      DELAYBLACKLISTLOAD => undef,
-	      MODULE_SUFFIX => undef,
-	      DISABLE_IPV6 => undef,
-	      DYNAMIC_ZONES => undef,
-	      PKTTYPE=> undef,
-	      MACLIST_TABLE => undef,
-	      MACLIST_TTL => undef,
-	      SAVE_IPSETS => undef,
-	      MAPOLDACTIONS => undef,
-	      FASTACCEPT => undef,
-	      IMPLICIT_CONTINUE => undef,
-	      HIGH_ROUTE_MARKS => undef,
-	      USE_ACTIONS=> undef,
-	      OPTIMIZE => undef,
-	      EXPORTPARAMS => undef,
-	      SHOREWALL_COMPILER => undef,
-	      EXPAND_POLICIES => undef,
-	      KEEP_RT_TABLES => undef,
-	      DELETE_THEN_ADD => undef,
-	      MULTICAST => undef,
-	      DONT_LOAD => '',
-	      AUTO_COMMENT => undef ,
-	      MANGLE_ENABLED => undef ,
-	      RFC1918_STRICT => undef ,
-	      NULL_ROUTE_RFC1918 => undef ,
-	      USE_DEFAULT_RT => undef ,
-	      RESTORE_DEFAULT_ROUTE => undef ,
-	      FAST_STOP => undef ,
-	      AUTOMAKE => undef ,
-	      WIDE_TC_MARKS => undef,
-	      TRACK_PROVIDERS => undef,
-	      ZONE2ZONE => undef,
-	      ACCOUNTING => undef,
-	      OPTIMIZE_ACCOUNTING => undef,
-	      DYNAMIC_BLACKLIST => undef,
-	      LOAD_HELPERS_ONLY => undef,
-	      REQUIRE_INTERFACE => undef,
-	      FORWARD_CLEAR_MARK => undef,
-	      COMPLETE => undef,
-	      #
-	      # Packet Disposition
-	      #
-	      MACLIST_DISPOSITION => undef,
-	      TCP_FLAGS_DISPOSITION => undef,
-	      BLACKLIST_DISPOSITION => undef,
-	      #
-	      # Mark Geometry
-	      #
-	      TC_BITS => undef,
-	      PROVIDER_BITS => undef,
-	      PROVIDER_OFFSET => undef,
-	      MASK_BITS => undef
-	    );
+    %validlevels = ( DEBUG   => 7,
+		     INFO    => 6,
+		     NOTICE  => 5,
+		     WARNING => 4,
+		     WARN    => 4,
+		     ERR     => 3,
+		     ERROR   => 3,
+		     CRIT    => 2,
+		     ALERT   => 1,
+		     EMERG   => 0,
+		     PANIC   => 0,
+		     NONE    => '',
+		     NFLOG   => 'NFLOG',
+		     LOGMARK => 'LOGMARK' );
 
-	%validlevels = ( DEBUG   => 7,
-			 INFO    => 6,
-			 NOTICE  => 5,
-			 WARNING => 4,
-			 WARN    => 4,
-			 ERR     => 3,
-			 ERROR   => 3,
-			 CRIT    => 2,
-			 ALERT   => 1,
-			 EMERG   => 0,
-			 PANIC   => 0,
-			 NONE    => '',
-			 ULOG    => 'ULOG',
-			 NFLOG   => 'NFLOG',
-		         LOGMARK => 'LOGMARK' );
-    } else {
-	$globals{SHAREDIR} = '/usr/share/shorewall6';
-	$globals{CONFDIR}  = '/etc/shorewall6';
-	$globals{PRODUCT}  = 'shorewall6';
-
-	%config =
-	    ( STARTUP_ENABLED => undef,
-	      VERBOSITY => undef,
-	      #
-	      # Logging
-	      #
-	      LOGFILE => undef,
-	      LOGFORMAT => undef,
-	      LOGTAGONLY => undef,
-	      LOGLIMIT => undef,
-	      LOGRATE => undef,
-	      LOGBURST => undef,
-	      LOGALLNEW => undef,
-	      BLACKLIST_LOGLEVEL => undef,
-	      TCP_FLAGS_LOG_LEVEL => undef,
-	      SMURF_LOG_LEVEL => undef,
-	      LOG_VERBOSITY => undef,
-	      STARTUP_LOG => undef,
-	      #
-	      # Location of Files
-	      #
-	      IP6TABLES => undef,
-	      IP => undef,
-	      TC => undef,
-	      IPSET => undef,
-	      PERL => undef,
-	      #
-	      #PATH is inherited
-	      #
-	      PATH => undef,
-	      SHOREWALL_SHELL => undef,
-	      SUBSYSLOCK => undef,
-	      MODULESDIR => undef,
-	      #
-	      #CONFIG_PATH is inherited
-	      #
-	      CONFIG_PATH => undef,
-	      RESTOREFILE => undef,
-	      LOCKFILE => undef,
-	      #
-	      # Default Actions/Macros
-	      #
-	      DROP_DEFAULT => undef,
-	      REJECT_DEFAULT => undef,
-	      ACCEPT_DEFAULT => undef,
-	      QUEUE_DEFAULT => undef,
-	      NFQUEUE_DEFAULT => undef,
-	      #
-	      # RSH/RCP Commands
-	      #
-	      RSH_COMMAND => undef,
-	      RCP_COMMAND => undef,
-	      #
-	      # Firewall Options
-	      #
-	      IP_FORWARDING => undef,
-	      TC_ENABLED => undef,
-	      TC_EXPERT => undef,
-	      TC_PRIOMAP => undef,
-	      CLEAR_TC => undef,
-	      MARK_IN_FORWARD_CHAIN => undef,
-	      CLAMPMSS => undef,
-	      MUTEX_TIMEOUT => undef,
-	      ADMINISABSENTMINDED => undef,
-	      BLACKLISTNEWONLY => undef,
-	      MODULE_SUFFIX => undef,
-	      MAPOLDACTIONS => '',
-	      FASTACCEPT => undef,
-	      IMPLICIT_CONTINUE => undef,
-	      HIGH_ROUTE_MARKS => undef,
-	      OPTIMIZE => undef,
-	      EXPORTPARAMS => undef,
-	      EXPAND_POLICIES => undef,
-	      KEEP_RT_TABLES => undef,
-	      DELETE_THEN_ADD => undef,
-	      MULTICAST => undef,
-	      DONT_LOAD => '',
-	      AUTO_COMMENT => undef,
-	      MANGLE_ENABLED => undef ,
-	      AUTOMAKE => undef ,
-	      WIDE_TC_MARKS => undef,
-	      TRACK_PROVIDERS => undef,
-	      ZONE2ZONE => undef,
-	      ACCOUNTING => undef,
-	      OPTIMIZE_ACCOUNTING => undef,
-	      DYNAMIC_BLACKLIST => undef,
-	      LOAD_HELPERS_ONLY => undef,
-	      REQUIRE_INTERFACE => undef,
-	      FORWARD_CLEAR_MARK => undef,
-	      COMPLETE => undef,
-	      #
-	      # Packet Disposition
-	      #
-	      TCP_FLAGS_DISPOSITION => undef,
-	      BLACKLIST_DISPOSITION => undef,
-	      #
-	      # Mark Geometry
-	      #
-	      TC_BITS => undef,
-	      PROVIDER_BITS => undef,
-	      PROVIDER_OFFSET => undef,
-	      MASK_BITS => undef
-	    );
-
-	%validlevels = ( DEBUG   => 7,
-			 INFO    => 6,
-			 NOTICE  => 5,
-			 WARNING => 4,
-			 WARN    => 4,
-			 ERR     => 3,
-			 ERROR   => 3,
-			 CRIT    => 2,
-			 ALERT   => 1,
-			 EMERG   => 0,
-			 PANIC   => 0,
-			 NONE    => '',
-			 NFLOG   => 'NFLOG',
-		         LOGMARK => 'LOGMARK' );
-    }
     #
     # From parsing the capabilities file or capabilities detection
     #
@@ -692,6 +570,7 @@ sub initialize( $ ) {
 	       FWMARK_RT_MASK => undef,
 	       MARK_ANYWHERE => undef,
 	       HEADER_MATCH => undef,
+               ACCOUNT_TARGET => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -717,14 +596,31 @@ sub initialize( $ ) {
     $shorewall_dir = '';      #Shorewall Directory
 
     $debug = 0;
-
+    
     %params = ( root        => '',
 		system      => '',
 		command     => '',
 		files       => '',
 		destination => '' );
 
+    %compiler_params = ();
+
+    $compiler_params{$_} = 1 for keys %params;
+
     %actparms = ();
+
+    if ( $family == F_IPV4 ) {
+	$globals{SHAREDIR} = '/usr/share/shorewall';
+	$globals{CONFDIR}  = '/etc/shorewall';
+	$globals{PRODUCT}  = 'shorewall';
+	$config{IPTABLES}  = undef;
+	$validlevels{ULOG} = 'ULOG',
+    } else {
+	$globals{SHAREDIR} = '/usr/share/shorewall6';
+	$globals{CONFDIR}  = '/etc/shorewall6';
+	$globals{PRODUCT}  = 'shorewall6';
+	$config{IP6TABLES} = undef;
+    }
 }
 
 my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
@@ -814,7 +710,7 @@ sub fatal_error	{
     die "   ERROR: @_$currentlineinfo\n";
 }
 
-sub fatal_error1	{
+sub fatal_error1 {
     $| = 1;
 
     if ( $log ) {
@@ -1155,190 +1051,6 @@ sub pop_indent() {
 }
 
 #
-# Functions for copying files into the script
-#
-sub copy( $ ) {
-    assert( $script_enabled );
-
-    if ( $script ) {
-	my $file = $_[0];
-
-	open IF , $file or fatal_error "Unable to open $file: $!";
-
-	while ( <IF> ) {
-	    chomp;
-	    if ( /^\s*$/ ) {
-		print $script "\n" unless $lastlineblank;
-		$lastlineblank = 1;
-	    } else {
-		if  ( $indent ) {
-		    s/^(\s*)/$indent1$1$indent2/;
-		    s/        /\t/ if $indent2;
-		}
-
-		print $script $_;
-		print $script "\n";
-		$lastlineblank = 0;
-	    }
-	}
-
-	close IF;
-    }
-}
-
-#
-# This one handles line continuation and 'here documents'
-
-sub copy1( $ ) {
-    assert( $script_enabled );
-
-    my $result = 0;
-
-    if ( $script || $debug ) {
-	my $file = $_[0];
-
-	open IF , $file or fatal_error "Unable to open $file: $!";
-
-	my ( $do_indent, $here_documents ) = ( 1, '');
-
-	while ( <IF> ) {
-	    chomp;
-
-	    if ( /^${here_documents}\s*$/ ) {
-		if ( $script ) {
-		    print $script $here_documents if $here_documents;
-		    print $script "\n";
-		}
-
-		if ( $debug ) {
-		    print "GS-----> $here_documents" if $here_documents;
-		    print "GS----->\n";
-		}
-
-		$do_indent = 1;
-		$here_documents = '';
-		next;
-	    }
-
-	    if ( $do_indent && /.*<<\s*([^ ]+)s*(.*)/ ) {
-		$here_documents = $1;
-		s/^(\s*)/$indent1$1$indent2/;
-		s/        /\t/ if $indent2;
-		$do_indent = 0;
-
-		if ( $script ) {
-		    print $script $_;
-		    print $script "\n";
-		}
-
-		if ( $debug ) {
-		    s/\n/\nGS-----> /g;
-		    print "GS-----> $_\n";
-		}
-
-		$result = 1;
-		next;
-	    }
-
-	    if ( $indent && $do_indent ) {
-		s/^(\s*)/$indent1$1$indent2/;
-		s/        /\t/ if $indent2;
-	    }
-
-	    if ( $script ) {
-		print $script $_;
-		print $script "\n";
-	    }
-
-	    $do_indent = ! ( $here_documents || /\\$/ );
-
-	    $result = 1 unless $result || /^\s*$/ || /^\s*#/;
-
-	    if ( $debug ) {
-		s/\n/\nGS-----> /g;
-		print "GS-----> $_\n";
-	    }
-	}
-
-	close IF;
-    }
-
-    $lastlineblank = 0;
-
-    $result;
-}
-
-#
-# This one drops header comments and replaces them with a three-line banner
-#
-sub copy2( $$ ) {
-    my ( $file, $trace ) = @_;
-
-    assert( $script_enabled );
-    my $empty = 1;
-
-    if ( $script || $trace ) {
-	my $file = $_[0];
-
-	open IF , $file or fatal_error "Unable to open $file: $!";
-
-	while ( <IF> ) {
-	    $empty = 0, last unless /^#/;
-	}
-
-	unless ( $empty ) {
-	    emit <<EOF;
-################################################################################
-#   Functions imported from $file
-################################################################################
-EOF
-	    chomp;
-	    emit( $_ ) unless /^\s*$/;
-
-	    while ( <IF> ) {
-		chomp;
-		if ( /^\s*$/ ) {
-		    unless ( $lastlineblank ) {
-			print $script "\n" if $script;
-			print "GS----->\n" if $trace;
-		    }
-
-		    $lastlineblank = 1;
-		} else {
-		    if  ( $indent ) {
-			s/^(\s*)/$indent1$1$indent2/;
-			s/        /\t/ if $indent2;
-		    }
-
-		    if ( $script ) {
-			print $script $_;
-			print $script "\n";
-		    }
-
-		    if ( $trace ) {
-			s/\n/GS-----> \n/g;
-			print "GS-----> $_\n";
-		    }
-
-		    $lastlineblank = 0;
-		}
-	    }
-
-	    close IF;
-
-	    unless ( $lastlineblank ) {
-		print $script "\n" if $script;
-		print "GS----->\n" if $trace;
-	    }
-
-	    emit( '################################################################################',
-		  "#   End of imports from $file",
-		  '################################################################################' );
-	}
-    }
-}
-
-#
 # Create the temporary script file -- the passed file name is the name of the final file.
 # We create a temporary file in the same directory so that we can use rename to finalize it.
 #
@@ -1628,6 +1340,216 @@ sub close_file() {
 }
 
 #
+# Functions for copying files into the script
+#
+sub copy( $ ) {
+    assert( $script_enabled );
+
+    if ( $script ) {
+	my $file = $_[0];
+
+	open IF , $file or fatal_error "Unable to open $file: $!";
+
+	while ( <IF> ) {
+	    chomp;
+	    if ( /^\s*$/ ) {
+		print $script "\n" unless $lastlineblank;
+		$lastlineblank = 1;
+	    } else {
+		if  ( $indent ) {
+		    s/^(\s*)/$indent1$1$indent2/;
+		    s/        /\t/ if $indent2;
+		}
+
+		print $script $_;
+		print $script "\n";
+		$lastlineblank = 0;
+	    }
+	}
+
+	close IF;
+    }
+}
+
+#
+# This variant of copy handles line continuation, 'here documents' and INCLUDE
+#
+sub copy1( $ ) {
+    assert( $script_enabled );
+
+    my $result = 0;
+
+    if ( $script || $debug ) {
+	my ( $do_indent, $here_documents ) = ( 1, '');
+
+	open_file( $_[0] );
+	
+	while ( $currentfile ) {
+	    while ( <$currentfile> ) {
+		$currentlinenumber++;
+
+		chomp;
+
+		if ( /^${here_documents}\s*$/ ) {
+		    if ( $script ) {
+			print $script $here_documents if $here_documents;
+			print $script "\n";
+		    }
+
+		    if ( $debug ) {
+			print "GS-----> $here_documents" if $here_documents;
+			print "GS----->\n";
+		    }
+
+		    $do_indent = 1;
+		    $here_documents = '';
+		    next;
+		}
+
+		if ( $do_indent && /.*<<\s*([^ ]+)s*(.*)/ ) {
+		    $here_documents = $1;
+		    s/^(\s*)/$indent1$1$indent2/;
+		    s/        /\t/ if $indent2;
+		    $do_indent = 0;
+
+		    if ( $script ) {
+			print $script $_;
+			print $script "\n";
+		    }
+
+		    if ( $debug ) {
+			s/\n/\nGS-----> /g;
+			print "GS-----> $_\n";
+		    }
+
+		    $result = 1;
+		    next;
+		}
+
+		if ( $do_indent ) {
+		    if ( /^\s*INCLUDE\b/ ) {
+			my @line = split / /;
+
+			fatal_error "Invalid INCLUDE command"    if @line != 2;
+			fatal_error "INCLUDEs nested too deeply" if @includestack >= 4;
+
+			my $filename = find_file $line[1];
+
+			fatal_error "INCLUDE file $filename not found" unless -f $filename;
+			fatal_error "Directory ($filename) not allowed in INCLUDE" if -d _;
+
+			if ( -s _ ) {
+			    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber ];
+			    $currentfile = undef;
+			    do_open_file $filename;
+			} else {
+			    $currentlinenumber = 0;
+			}
+
+			next;
+		    }
+			
+		    if ( $indent ) {
+			s/^(\s*)/$indent1$1$indent2/;
+			s/        /\t/ if $indent2;
+		    }
+		}
+
+		if ( $script ) {
+		    print $script $_;
+		    print $script "\n";
+		}
+
+		$do_indent = ! ( $here_documents || /\\$/ );
+
+		$result = 1 unless $result || /^\s*$/ || /^\s*#/;
+
+		if ( $debug ) {
+		    s/\n/\nGS-----> /g;
+		    print "GS-----> $_\n";
+		}
+	    }
+
+	    close_file;
+	}
+    }
+
+    $lastlineblank = 0;
+
+    $result;
+}
+
+#
+# This one drops header comments and replaces them with a three-line banner
+#
+sub copy2( $$ ) {
+    my ( $file, $trace ) = @_;
+
+    assert( $script_enabled );
+    my $empty = 1;
+
+    if ( $script || $trace ) {
+	my $file = $_[0];
+
+	open IF , $file or fatal_error "Unable to open $file: $!";
+
+	while ( <IF> ) {
+	    $empty = 0, last unless /^#/;
+	}
+
+	unless ( $empty ) {
+	    emit <<EOF;
+################################################################################
+#   Functions imported from $file
+################################################################################
+EOF
+	    chomp;
+	    emit( $_ ) unless /^\s*$/;
+
+	    while ( <IF> ) {
+		chomp;
+		if ( /^\s*$/ ) {
+		    unless ( $lastlineblank ) {
+			print $script "\n" if $script;
+			print "GS----->\n" if $trace;
+		    }
+
+		    $lastlineblank = 1;
+		} else {
+		    if  ( $indent ) {
+			s/^(\s*)/$indent1$1$indent2/;
+			s/        /\t/ if $indent2;
+		    }
+
+		    if ( $script ) {
+			print $script $_;
+			print $script "\n";
+		    }
+
+		    if ( $trace ) {
+			s/\n/GS-----> \n/g;
+			print "GS-----> $_\n";
+		    }
+
+		    $lastlineblank = 0;
+		}
+	    }
+
+	    close IF;
+
+	    unless ( $lastlineblank ) {
+		print $script "\n" if $script;
+		print "GS----->\n" if $trace;
+	    }
+
+	    emit( '################################################################################',
+		  "#   End of imports from $file",
+		  '################################################################################' );
+	}
+    }
+}
+
+#
 # The following two functions allow module clients to nest opens. This happens frequently
 # in the Rules module.
 #
@@ -1885,7 +1807,7 @@ sub read_a_line(;$) {
 
 	    my $count = 0;
 	    #
-	    # Expand Shell Variables using %params and %ENV
+	    # Expand Shell Variables using %params and %actparms
 	    #
 	    #                            $1      $2   $3      -     $4
 	    while ( $currentline =~ m( ^(.*?) \$({)? (\w+) (?(2)}) (.*)$ )x ) {
@@ -2168,12 +2090,16 @@ sub load_kernel_modules( ) {
 	my $uname = `uname -r`;
 	fatal_error "The command 'uname -r' failed" unless $? == 0;
 	chomp $uname;
-	$modulesdir = "/lib/modules/$uname/kernel/net/ipv4/netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset";
+	$modulesdir = "/lib/modules/$uname/kernel/net/ipv4/netfilter:/lib/modules/$uname/kernel/net/ipv6/netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset";
     }
 
-    my @moduledirectories = split /:/, $modulesdir;
+    my @moduledirectories; 
 
-    if ( $moduleloader && open_file( $config{LOAD_HELPERS_ONLY} ? 'helpers' : 'modules' ) ) {
+    for ( split /:/, $modulesdir ) {
+	push @moduledirectories, $_ if -d $_;
+    }
+
+    if ( $moduleloader &&  @moduledirectories && open_file( $config{LOAD_HELPERS_ONLY} ? 'helpers' : 'modules' ) ) {
 	my %loadedmodules;
 
 	$loadedmodules{$_}++ for split_list( $config{DONT_LOAD}, 'module' );
@@ -2206,7 +2132,7 @@ sub load_kernel_modules( ) {
 			    } else {
 				system( "modprobe $module $arguments" );
 			    }
-
+				    
 			    $loadedmodules{ $module } = 1;
 			}
 		    }
@@ -2533,8 +2459,17 @@ sub Header_Match() {
     qt1( "$iptables -A $sillyname -m ipv6header --header 255 -j ACCEPT" );
 }
 
+sub Account_Target() {
+    if ( $family == F_IPV4 ) {
+	qt1( "$iptables -A $sillyname -j ACCOUNT --addr 192.168.1.0/29 --tname $sillyname" );
+    } else {
+	qt1( "$iptables -A $sillyname -j ACCOUNT --addr 1::/122 --tname $sillyname" );
+    }
+}
+
 our %detect_capability =
-    ( ADDRTYPE => \&Addrtype,
+    ( ACCOUNT_TARGET =>\&Account_Target,
+      ADDRTYPE => \&Addrtype,
       CLASSIFY_TARGET => \&Classify_Target,
       COMMENTS => \&Comments,
       CONNLIMIT_MATCH => \&Connlimit_Match,
@@ -2707,6 +2642,7 @@ sub determine_capabilities() {
 	$capabilities{FLOW_FILTER}     = detect_capability( 'FLOW_FILTER' );
 	$capabilities{FWMARK_RT_MASK}  = detect_capability( 'FWMARK_RT_MASK' );
 	$capabilities{MARK_ANYWHERE}   = detect_capability( 'MARK_ANYWHERE' );
+	$capabilities{ACCOUNT_TARGET}  = detect_capability( 'ACCOUNT_TARGET' );
 
 
 	qt1( "$iptables -F $sillyname" );
@@ -2741,7 +2677,7 @@ sub ensure_config_path() {
 
 	open_file $f;
 
-	$params{CONFDIR} = $globals{CONFDIR};
+	add_param( CONFDIR => $globals{CONFDIR} );
 
 	while ( read_a_line ) {
 	    if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
@@ -3025,6 +2961,44 @@ sub get_params() {
 }
 
 #
+# Add an entry to %params and to %compiler_params
+#
+sub add_param( $$ ) {
+    my ( $param, $value ) = @_;
+
+    $params{$param} = $value;
+    $compiler_params{$param} = 1;
+}
+
+#
+# emit param=value for each param set in the params file
+#
+sub export_params() {
+    my $count = 0;
+
+    while ( my ( $param, $value ) = each %params ) {
+	#
+	# Don't export params added by the compiler
+	#
+	next if exists $compiler_params{$param};
+	#
+	# Don't export pairs from %ENV
+	#
+	if ( exists $ENV{$param} && defined $ENV{$param} ) {
+	    next if $value eq $ENV{$param};
+	}
+
+	emit "#\n# From the params file\n#" unless $count++;
+
+	if ( $value =~ /\s/ ) {
+	    emit "$param='$value'";
+	} else {
+	    emit "$param=$value";
+	}
+    }
+}
+
+#
 # - Read the shorewall.conf file
 # - Read the capabilities file, if any
 # - establish global hashes %config , %globals and %capabilities
@@ -3247,6 +3221,7 @@ sub get_configuration( $ ) {
     default_yes_no 'REQUIRE_INTERFACE'          , '';
     default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability 'MARK' ? 'Yes' : '';
     default_yes_no 'COMPLETE'                   , '';
+    default_yes_no 'EXPORTMODULES'              , '';
 
     require_capability 'MARK' , 'FOREWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 

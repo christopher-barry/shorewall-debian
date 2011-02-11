@@ -43,7 +43,7 @@ use Shorewall::Misc;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_17';
 
 our $export;
 
@@ -229,7 +229,11 @@ sub generate_script_2() {
 
     set_chain_variables;
 
-    append_file 'params' if $config{EXPORTPARAMS};
+    if ( $config{EXPORTPARAMS} ) {
+	append_file 'params';
+    } else {
+	export_params;
+    }
 
     emit ( '',
 	   "g_stopping=",
@@ -307,7 +311,6 @@ sub generate_script_2() {
 #
 #    Generate code for loading the various files in /var/lib/shorewall[6][-lite]
 #    Generate code to add IP addresses under ADD_IP_ALIASES and ADD_SNAT_ALIASES
-#
 #    Generate the 'setup_netfilter()' function that runs iptables-restore.
 #    Generate the 'define_firewall()' function.
 #
@@ -333,10 +336,10 @@ sub generate_script_3($) {
 
     save_progress_message 'Initializing...';
 
-    if ( $export ) {
-	my $fn = find_file $config{LOAD_HELPERS_ONLY} ? 'helpers' : 'modules';
+    if ( $export || $config{EXPORTMODULES} ) {
+	my $fn = find_file( $config{LOAD_HELPERS_ONLY} ? 'helpers' : 'modules' );
 
-	if ( -f $fn && ! $fn =~ "^$globals{SHAREDIR}/" ) {
+	if ( -f $fn && ( $config{EXPORTMODULES} || ( $export && ! $fn =~ "^$globals{SHAREDIR}/" ) ) ) {
 	    emit 'echo MODULESDIR="$MODULESDIR" > ${VARDIR}/.modulesdir';
 	    emit 'cat > ${VARDIR}/.modules << EOF';
 	    open_file $fn;
@@ -344,13 +347,15 @@ sub generate_script_3($) {
 	    emit_unindented $currentline while read_a_line;
 
 	    emit_unindented 'EOF';
-	    emit 'reload_kernel_modules < ${VARDIR}/.modules';
+	    emit '', 'reload_kernel_modules < ${VARDIR}/.modules';
 	} else {
 	    emit 'load_kernel_modules Yes';
 	}
     } else {
 	emit 'load_kernel_modules Yes';
     }
+
+    emit '';
 
     if ( $family == F_IPV4 ) {
 	load_ipsets;
@@ -384,8 +389,13 @@ sub generate_script_3($) {
 	emit "disable_ipv6\n" if $config{DISABLE_IPV6};
 
     } else {
-	emit ( '[ "$COMMAND" = refresh ] && run_refresh_exit || run_init_exit',
+	emit ( 'if [ "$COMMAND" = refresh ]; then' ,
+	       '   run_refresh_exit' ,
+	       'else' ,
+	       '    run_init_exit',
+	       'fi',
 	       '' );
+
 	save_dynamic_chains;
 	mark_firewall_not_started;
 
@@ -635,7 +645,7 @@ sub compiler {
     #
     validate_policy;
     #
-    # Process default actions
+    # Process policy actions
     #
     process_actions2;
     #
@@ -779,7 +789,7 @@ sub compiler {
 	#
 	generate_matrix;
 
-	if ( $config{OPTIMIZE} & 0xD ) {
+	if ( $config{OPTIMIZE} & 0xE ) {
 	    progress_message2 'Optimizing Ruleset...';
 	    #
 	    # Optimize Policy Chains
@@ -848,7 +858,7 @@ sub compiler {
 	    #
 	    generate_matrix;
 
-	    if ( $config{OPTIMIZE} & 6 ) {
+	    if ( $config{OPTIMIZE} & 0xE ) {
 		progress_message2 'Optimizing Ruleset...';
 		#
 		# Optimize Policy Chains
@@ -857,7 +867,7 @@ sub compiler {
 		#
 		# Ruleset Optimization
 		#
-		optimize_ruleset if $config{OPTIMIZE} & 4;
+		optimize_ruleset if $config{OPTIMIZE} & 0xC;
 	    }
 
 	    enable_script if $debug;

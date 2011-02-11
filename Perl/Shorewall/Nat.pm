@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_14';
+our $VERSION = '4.4_17';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -155,6 +155,7 @@ sub process_one_masq( )
 	my $exceptionrule = '';
 	my $randomize     = '';
 	my $persistent    = '';
+	my $conditional   = 0;
 	#
 	# Parse the ADDRESSES column
 	#
@@ -186,7 +187,14 @@ sub process_one_masq( )
 		} else {
 		    my $addrlist = '';
 		    for my $addr ( split_list $addresses , 'address' ) {
-			if ( $addr =~ /^.*\..*\..*\./ ) {
+			if ( $addr =~ /^&(.+)$/ ) {
+			    $target = 'SNAT ';
+			    if ( $conditional = conditional_rule( $chainref, $addr ) ) {
+				$addrlist .= '--to-source ' . get_interface_address $1;
+			    } else {
+				$addrlist .= '--to-source ' . record_runtime_address $1;
+			    }
+			} elsif ( $addr =~ /^.*\..*\..*\./ ) {
 			    $target = 'SNAT ';
 			    my ($ipaddr, $rest) = split ':', $addr;
 			    if ( $ipaddr =~ /^(.+)-(.+)$/ ) {
@@ -197,8 +205,11 @@ sub process_one_masq( )
 			    $addrlist .= "--to-source $addr ";
 			    $exceptionrule = do_proto( $proto, '', '' ) if $addr =~ /:/;
 			} else {
-			    $addr =~ s/^://;
-			    $addrlist .= "--to-ports $addr ";
+			    my $ports = $addr; 
+			    $ports =~ s/^://;
+			    $ports =~ s/:/-/;
+			    validate_portpair( $proto, $ports );
+			    $addrlist .= "--to-ports $ports ";
 			    $exceptionrule = do_proto( $proto, '', '' );
 			}
 		    }
@@ -226,10 +237,7 @@ sub process_one_masq( )
 		     '' ,
 		     $exceptionrule );
 
-	if ( $detectaddress ) {
-	    decr_cmd_level( $chainref );
-	    add_commands( $chainref , 'fi' );
-	}
+	conditional_rule_end( $chainref ) if $detectaddress || $conditional;
 
 	if ( $add_snat_aliases ) {
 	    my ( $interface, $alias , $remainder ) = split( /:/, $fullinterface, 3 );
