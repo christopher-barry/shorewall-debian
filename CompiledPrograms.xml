@@ -431,6 +431,26 @@ clean:
         <programlisting><command>ln -sf shorewall-lite /sbin/shorewall</command></programlisting>
       </blockquote>
 
+      <section>
+        <title>Module Loading</title>
+
+        <para>As with a normal Shorewall configuration, the shorewall.conf
+        file can specify LOAD_HELPERS_ONLY which determines if the
+        <filename>modules</filename> file (LOAD_HELPERS_ONLY=No) or
+        <filename>helpers</filename> file (LOAD_HELPERS_ONLY=Yes) is used.
+        Normally, the file on the firewall system is used. If you want to
+        specify modules at compile time on the Administrative System, then you
+        must place a copy of the appropriate file
+        (<filename>modules</filename> or <filename>helpers</filename>) in the
+        firewall's configuration directory before compilation.</para>
+
+        <para>In Shorewall 4.4.17, the EXPORTMODULES option was added to
+        shorewall.conf (and shorewall6.conf). When EXPORTMODULES=Yes, any
+        <filename>modules</filename> or <filename>helpers</filename> file
+        found on the CONFIG_PATH on the Administrative System during
+        compilation will be used.</para>
+      </section>
+
       <section id="Converting">
         <title>Converting a system from Shorewall to Shorewall Lite</title>
 
@@ -510,8 +530,10 @@ clean:
             <para>The <filename>params</filename> file is not processed at run
             time if you set EXPORTPARAMS=No in
             <filename>shorewall.conf</filename>. For run-time setting of shell
-            variables, use the <filename>init</filename> extension
-            script.</para>
+            variables, use the <filename>init</filename> extension script.
+            Beginning with Shorewall 4.4.17, the variables set in the
+            <filename>params</filename> file are available in the firewall
+            script when EXPORTPARAMS=No.</para>
 
             <para>If the <filename>params</filename> file needs to set shell
             variables based on the configuration of the firewall system, you
@@ -612,8 +634,10 @@ clean:
               <filename>shorewall.conf</filename>. For run-time setting of
               shell variables, use the <filename>init</filename> extension
               script. Although the default setting is EXPORTPARAMS=Yes for
-              compatibility, the recommended setting is
-              EXPORTPARAMS=No.</para>
+              compatibility, the recommended setting is EXPORTPARAMS=No.
+              Beginning with Shorewall 4.4.17, the variables set in the
+              <filename>params</filename> file are available in the firewall
+              script when EXPORTPARAMS=No.</para>
 
               <para>If the <filename>params</filename> file needs to set shell
               variables based on the configuration of the firewall system, you

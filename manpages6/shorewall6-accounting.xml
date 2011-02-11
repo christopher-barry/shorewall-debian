@@ -35,7 +35,8 @@
         <term><emphasis role="bold">ACTION</emphasis> - {<emphasis
         role="bold">COUNT</emphasis>|<emphasis
         role="bold">DONE</emphasis>|<emphasis>chain</emphasis>[:<emphasis
-        role="bold">{COUNT|JUMP}</emphasis>]|COMMENT}</term>
+        role="bold">{COUNT|JUMP}</emphasis>]|COMMENT
+        <replaceable>comment</replaceable>}</term>
 
         <listitem>
           <para>What to do when a matching packet is found.</para>
@@ -72,7 +73,15 @@
                 chain specified in the CHAIN column. If <emphasis
                 role="bold">:COUNT</emphasis> is included, a counting rule
                 matching this entry will be added to
-                <emphasis>chain</emphasis></para>
+                <emphasis>chain</emphasis>. The <emphasis>chain</emphasis> may
+                not exceed 29 characters in length and may be composed of
+                letters, digits, dash ('-') and underscore ('_').</para>
+
+                <warning>
+                  <para>To avoid problems, we recomment that chain names that
+                  you create should begin with a capital letter and contain a
+                  digit, a dash ('-') or an underscore ('_').</para>
+                </warning>
               </listitem>
             </varlistentry>
 
@@ -110,7 +119,14 @@
           role="bold">accounting</emphasis> chain is assumed. This is the
           chain where the accounting rule is added. The
           <emphasis>chain</emphasis> will be created if it doesn't already
-          exist.</para>
+          exist. The <emphasis>chain</emphasis> may not exceed 29 characters
+          in length.</para>
+
+          <warning>
+            <para>To avoid problems, we recomment that chain names that you
+            create should begin with a capital letter and contain a digit, a
+            dash ('-') or an underscore ('_').</para>
+          </warning>
         </listitem>
       </varlistentry>
 

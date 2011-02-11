@@ -620,6 +620,12 @@ ACCEPT      net:\
         role="bold">loc</emphasis> zone — <emphasis
         role="bold">loc:[2002:ce7c:92b4:1:a00:27ff:feb1:46a9]</emphasis></para>
       </listitem>
+
+      <listitem>
+        <para>The primary IP address of eth0 in the $FW zone - <emphasis
+        role="bold">$FW:&amp;eth0</emphasis> (see <link
+        linkend="Rvariables">Run-time Address Variables</link> below)</para>
+      </listitem>
     </orderedlist>
   </section>
 
@@ -636,12 +642,75 @@ ACCEPT      net:\
     <para>INCLUDE's may be nested to a level of 3 -- further nested INCLUDE
     directives are ignored with a warning message.</para>
 
+    <para>Beginning with Shorewall 4.4.17, the INCLUDE directive may also
+    appear in the following <ulink
+    url="shorewall_extension_scripts.htm">extension scripts</ulink>:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>clear</para>
+      </listitem>
+
+      <listitem>
+        <para>findgw</para>
+      </listitem>
+
+      <listitem>
+        <para>init</para>
+      </listitem>
+
+      <listitem>
+        <para>isusable</para>
+      </listitem>
+
+      <listitem>
+        <para>refresh</para>
+      </listitem>
+
+      <listitem>
+        <para>refreshed</para>
+      </listitem>
+
+      <listitem>
+        <para>restore</para>
+      </listitem>
+
+      <listitem>
+        <para>restored</para>
+      </listitem>
+
+      <listitem>
+        <para>start</para>
+      </listitem>
+
+      <listitem>
+        <para>started</para>
+      </listitem>
+
+      <listitem>
+        <para>stop</para>
+      </listitem>
+
+      <listitem>
+        <para>stopped</para>
+      </listitem>
+
+      <listitem>
+        <para>tcclear</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>When used in these scripts, the INCLUDEd files are copied into the
+    compiled firewall script.</para>
+
     <caution>
-      <para>If you are using <ulink
+      <para>Prior to Shorewall 4.4.17, if you are using <ulink
       url="CompiledPrograms.html%23Lite">Shorewall Lite</ulink> , it is not
       advisable to use INCLUDE in the <filename>params</filename> file in an
-      export directory. If you do that, you must ensure that the included file
-      is also present on the firewall system's <filename
+      export directory if you set EXPORTPARAMS=Yes in <ulink
+      url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5). If you do
+      that, you must ensure that the included file is also present on the
+      firewall system's <filename
       class="directory">/etc/shorewall-lite/</filename> directory.</para>
 
       <para>If you only need the <filename>params</filename> file at compile
@@ -649,7 +718,21 @@ ACCEPT      net:\
       <filename>shorewall.conf</filename>. That prevents the
       <filename>params</filename> file from being copied into the compiled
       script. With EXPORTPARAMS=No, it is perfectly okay to use INCLUDE in the
-      <filename>params</filename> file.</para>
+      <filename>params</filename> file. Note that with Shorewall 4.4.17 and
+      later:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>The variables set at compile time are available at run-time
+          even with EXPORTPARAMS=No.</para>
+        </listitem>
+
+        <listitem>
+          <para>The INCLUDE directive in the <filename>params</filename> file
+          is processed at compile time and the INCLUDEd file is copied into
+          the compiled script.</para>
+        </listitem>
+      </itemizedlist>
     </caution>
 
     <example id="include">
@@ -860,8 +943,9 @@ SHELL cat /etc/shorewall/rules.d/*.rules</programlisting></para>
         run-time. If you have set EXPORTPARAMS=No in
         <filename>shorewall.conf</filename>, then the
         <filename><filename>params</filename></filename> file is only
-        processed by the compiler; it is not run by the compiled
-        script.</para>
+        processed by the compiler; it is not run by the compiled script.
+        Beginning with Shorewall 4.4.17, the values of the variables set at
+        compile time are available at run time with EXPORTPRARMS=No.</para>
       </listitem>
 
       <listitem>
@@ -876,14 +960,103 @@ SHELL cat /etc/shorewall/rules.d/*.rules</programlisting></para>
         <para>The <command>shorewall-lite call</command> command allows you to
         to call interactively any Shorewall function that you can call in an
         extension script.</para>
+
+        <note>
+          <para>Within your configuration files, only the $VAR and ${VAR}
+          forms of variable expansion are supported. You may not use the more
+          exotic forms supported by the shell (${VAR:=val}, ${VAR:-val},
+          ...)</para>
+        </note>
       </listitem>
     </orderedlist>
 
-    <note>
-      <para>Within your configuration files, only the $VAR and ${VAR} forms of
-      variable expansion are supported. You may not use the more exotic forms
-      supported by the shell (${VAR:=val}, ${VAR:-val}, ...)</para>
-    </note>
+    <para id="Rvariables">Given that shell variables are expanded at compile
+    time, there is no way to cause such variables to be expended at run time.
+    Prior to Shorewall 4.4.17, this made it difficult (to impossible) to
+    include dynamic IP addresses in a <ulink
+    url="CompiledPrograms.html">Shorewall-lite</ulink> configuration.</para>
+
+    <para>Version 4.4.17 implemented <firstterm>Run-time address
+    variables</firstterm>. In configuration files, these variables are
+    expressed as an apersand ('&amp;') followed by the logical name of an
+    interface defined in shorewall-interfaces (5). Wildcard interfaces (those
+    ending in '+') are not supported and will cause a compilation
+    error.</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>Example:</term>
+
+        <listitem>
+          <para><emphasis role="bold">&amp;eth0</emphasis> would represent the
+          primary IP address of eth0.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>Run-time address variables may be used in the SOURCE and DEST column
+    of the following configuration files:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para><ulink
+        url="manapges/shorewall-accounting.html">shorewall-accounting</ulink>
+        (5)</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink url="Actions.html">Action</ulink> files</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink
+        url="manpages/shorewall-accounting.html">shorewall-blacklist</ulink>
+        (5)</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink url="Macros.html">Macro</ulink> files</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink
+        url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5)</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink
+        url="manpages/shorewall-tcrules.html">shorewall-tcrules</ulink>
+        (5)</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink url="manpages/shorewall-tos.html">shorewall-tos</ulink>
+        (5)</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>They may also appear in the ORIGINAL DEST column of:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para><ulink
+        url="manapges/shorewall-accounting.html">shorewall-accounting</ulink>
+        (5)</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink url="Macros.html">Macro</ulink> files</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink
+        url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5)</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>For optional interfaces, if the interface is not usable at the time
+    that the firewall starts the all-zero address will be used (0.0.0.0 in
+    IPv4 and :: in IPv6), resulting in no packets matching the rule.</para>
   </section>
 
   <section id="Embedded">
