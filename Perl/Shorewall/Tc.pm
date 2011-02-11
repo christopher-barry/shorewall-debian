@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_17';
 
 our %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -543,6 +543,8 @@ sub process_simple_device() {
 	    $command .= ' latency 200ms';
 	}
 
+	$command .= ' mpu 64'; #Assume Ethernet
+
 	if ( defined $peak && $peak ne '' ) {
 	    fatal_error "Invalid peak ($peak)" unless $peak =~ /^\d+(?:\.\d+)?(k|kb|m|mb|mbit|kbit|b)?$/;
 	    $command .= " peakrate $peak";
@@ -804,7 +806,8 @@ sub validate_tc_class( ) {
 	#
 	$parentref = $tcref->{$parentclass};
 	fatal_error "Unknown Parent class ($parentclass)" unless $parentref && $parentref->{occurs} == 1;
-	fatal_error "The parent class ($parentclass) specifies UMAX and/or DMAX; it cannot serve as a parent" if $parentref->{dmax};
+	fatal_error "The class ($parentclass) specifies UMAX and/or DMAX; it cannot serve as a parent" if $parentref->{dmax};
+	fatal_error "The class ($parentclass) specifies flow; it cannot serve as a parent"             if $parentref->{flow}; 
 	$parentref->{leaf} = 0;
 	$ratemax  = $parentref->{rate};
 	$ratename = q(the parent class's RATE);
@@ -978,7 +981,7 @@ sub process_tc_filter() {
 
     if ( $dest ne '-' ) {
 	my ( $net , $mask ) = decompose_net( $dest );
-	$rule .= "\\\n   match $ip dst $net/$mask";
+	$rule .= "\\\n   match $ip32 dst $net/$mask";
     }
 
     if ( $tos ne '-' ) {

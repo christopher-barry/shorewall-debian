@@ -34,6 +34,8 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( ALLIPv4
                   ALLIPv6
+		  NILIPv4
+		  NILIPv6
 	          IPv4_MULTICAST
 	          IPv6_MULTICAST
 	          IPv6_LINKLOCAL
@@ -44,6 +46,7 @@ our @EXPORT = qw( ALLIPv4
 	          IPv6_SITE_ALLNODES
 	          IPv6_SITE_ALLRTRS
 		  ALLIP
+		  NILIP
 		  ALL
 		  TCP
 		  UDP
@@ -56,6 +59,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_address
 		  validate_net
 		  decompose_net
+		  compare_nets
 		  validate_host
 		  validate_range
 		  ip_range_explicit
@@ -63,6 +67,9 @@ our @EXPORT = qw( ALLIPv4
 		  allipv4
 		  allipv6
 		  allip
+		  nilipv4
+		  nilipv6
+		  nilip
 		  rfc1918_networks
 		  resolve_proto
 		  proto_name
@@ -73,7 +80,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_icmp6
 		 );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_14';
+our $VERSION = '4.4_17';
 
 #
 # Some IPv4/6 useful stuff
@@ -82,6 +89,10 @@ our @allipv4 = ( '0.0.0.0/0' );
 our @allipv6 = ( '::/0' );
 our $allip;
 our @allip;
+our @nilipv4 = ( '0.0.0.0' );
+our @nilipv6 = ( '::' );
+our $nilip;
+our @nilip;
 our $valid_address;
 our $validate_address;
 our $validate_net;
@@ -91,6 +102,8 @@ our $family;
 
 use constant { ALLIPv4             => '0.0.0.0/0' ,
 	       ALLIPv6             => '::/0' ,
+	       NILIPv4             => '0.0.0.0' ,
+	       NILIPv6             => '::' ,
 	       IPv4_MULTICAST      => '224.0.0.0/4' ,
 	       IPv6_MULTICAST      => 'ff00::/8' ,
 	       IPv6_LINKLOCAL      => 'fe80::/10' ,
@@ -268,9 +281,18 @@ sub decompose_net( $ ) {
     my $net = $_[0];
 
     ( $net, my $vlsm ) = validate_net( $net , 0 );
-    ( encodeaddr( $net) , $vlsm );
+    ( ( $family == F_IPV4 ? encodeaddr( $net) : normalize_6addr( $net ) )  , $vlsm );
 
 }
+
+sub compare_nets( $$ ) {
+    my ( @net1, @net2 );
+
+    @net1 = decompose_net( $_[0] );
+    @net2 = decompose_net( $_[1] );
+    
+    $net1[0] eq $net2[0] && $net1[1] == $net2[1];
+}			    
 
 sub allipv4() {
     @allipv4;
@@ -278,6 +300,14 @@ sub allipv4() {
 
 sub allipv6() {
     @allipv6;
+}
+
+sub nilipv4() {
+    @nilipv4;
+}
+
+sub nilipv6() {
+    @nilipv6;
 }
 
 sub rfc1918_networks() {
@@ -567,6 +597,15 @@ sub validate_6net( $$ ) {
 	fatal_error "Invalid Network address ($_[0])" if $_[0] =~ '/' || ! defined $net;
 	validate_6address $net, $allow_name;
     }
+
+    if ( defined wantarray ) {
+	assert ( ! $allow_name );
+	if ( wantarray ) {
+	    ( $net , $vlsm );
+	} else {
+	    "$net/$vlsm";
+	}
+    }
 }
 
 #
@@ -674,6 +713,14 @@ sub allip() {
     @allip;
 }
 
+sub NILIP() {
+    $nilip;
+}
+
+sub nilip() {
+    @nilip;
+}
+
 sub valid_address ( $ ) {
     $valid_address->(@_);
 }
@@ -710,6 +757,8 @@ sub initialize( $ ) {
     if ( $family == F_IPV4 ) {
 	$allip            = ALLIPv4;
 	@allip            = @allipv4;
+	$nilip            = NILIPv4;
+	@nilip            = @nilipv4;
 	$valid_address    = \&valid_4address;
 	$validate_address = \&validate_4address;
 	$validate_net     = \&validate_4net;
@@ -718,6 +767,8 @@ sub initialize( $ ) {
     } else {
 	$allip            = ALLIPv6;
 	@allip            = @allipv6;
+	$nilip            = NILIPv6;
+	@nilip            = @nilipv6;
 	$valid_address    = \&valid_6address;
 	$validate_address = \&validate_6address;
 	$validate_net     = \&validate_6net;

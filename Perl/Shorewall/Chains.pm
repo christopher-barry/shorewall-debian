@@ -145,6 +145,9 @@ our %EXPORT_TAGS = (
 				       do_helper
 				       do_headers
 				       have_ipset_rules
+				       record_runtime_address
+				       conditional_rule
+				       conditional_rule_end
 				       match_source_dev
 				       match_dest_dev
 				       iprange_match
@@ -184,7 +187,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_17';
 
 #
 # Chain Table
@@ -266,6 +269,7 @@ use constant { STANDARD => 1,              #defined by Netfilter
 # Valid Targets -- value is a combination of one or more of the above
 #
 our %targets;
+
 #
 # expand_rule() restrictions
 #
@@ -307,6 +311,8 @@ our %interfacegateways;     # Gateway of default route out of the interface
 # Built-in Chains
 #
 our @builtins = qw(PREROUTING INPUT FORWARD OUTPUT POSTROUTING);
+
+our %builtins;
 
 #
 # Mode of the emitter (part of this module that converts rules in the chain table into iptables-restore input)
@@ -392,6 +398,8 @@ sub initialize( $ ) {
     %interfacebcasts    = ();
     %interfaceacasts    = ();
     %interfacegateways  = ();
+
+    $builtins{$_} = 1 for @builtins;
 
     $global_variables   = 0;
     $idiotcount         = 0;
@@ -1149,20 +1157,28 @@ sub delete_jumps ( $$ ) {
     my $from  = $fromref->{name};
     my $rules = $fromref->{rules};
     my $refs  = $toref->{references}{$from};
-    #
-    # A C-style for-loop with indexing seems to work best here, given that we are
-    # deleting elements from the array over which we are iterating.
-    #
-    for ( my $rule = 0; $rule <= $#{$rules}; $rule++ ) {
-	if (  $rules->[$rule] =~ / -[gj] ${to}(\s+-m comment .*)?\s*$/ ) {
-	    trace( $fromref, 'D', $rule + 1, $rules->[$rule] ) if $debug;
-	    splice(  @$rules, $rule, 1 );
-	    last unless --$refs > 0;
-	    $rule--;
-	}
-    }
 
-    assert( ! $refs );
+    #
+    # The 'from' chain may have had no references and has been deleted already so
+    # we need to check
+    #
+    if ( $fromref->{referenced} ) {
+	#
+	#
+	# A C-style for-loop with indexing seems to work best here, given that we are
+	# deleting elements from the array over which we are iterating.
+	#
+	for ( my $rule = 0; $rule <= $#{$rules}; $rule++ ) {
+	    if (  $rules->[$rule] =~ / -[gj] ${to}(\s+-m comment .*)?\s*$/ ) {
+		trace( $fromref, 'D', $rule + 1, $rules->[$rule] ) if $debug;
+		splice(  @$rules, $rule, 1 );
+		last unless --$refs > 0;
+		$rule--;
+	    }
+	}
+
+	assert( ! $refs );
+    }
 
     delete $toref->{references}{$from};
 
@@ -1257,11 +1273,13 @@ sub ensure_accounting_chain( $$ )
     if ( $chainref ) {
 	fatal_error "Non-accounting chain ($chain) used in an accounting rule" unless $chainref->{accounting};
     } else {
+	fatal_error "Chain name ($chain) too long" if length $chain > 29;
+	fatal_error "Invalid Chain name ($chain)" if $builtin_target{$chain} || $builtins{$chain} || ! $chain =~ /^[-\w]+$/;
 	$chainref = new_chain 'filter' , $chain;
 	$chainref->{accounting} = 1;
 	$chainref->{referenced} = 1;
 	$chainref->{ipsec}      = $ipsec;
-	$chainref->{dont_optimize} = 1 unless $config{OPTIMIZE_ACCOUNTING};
+	$chainref->{dont_optimize} = 1 unless $config{OPTIMIZE_ACCOUNTING} && $chain ne 'accounting';
 
 	if ( $chain ne 'accounting' ) {
 	    my $file = find_file $chain;
@@ -1344,6 +1362,8 @@ sub new_nat_chain($) {
 
 sub new_manual_chain($) {
     my $chain = $_[0];
+    fatal_error "Chain name ($chain) too long" if length $chain > 29;
+    fatal_error "Invalid Chain name ($chain)" if $builtin_target{$chain} || $builtins{$chain} || ! $chain =~ /^[-\w]+$/;
     fatal_error "Duplicate Chain Name ($chain)" if $targets{$chain} || $filter_table->{$chain};
     $targets{$chain} = CHAIN;
     ( my $chainref = ensure_filter_chain( $chain, 0) )->{manual} = 1;
@@ -2678,6 +2698,47 @@ sub have_ipset_rules() {
     $ipset_rules;
 }
 
+sub get_interface_address( $ );
+
+sub record_runtime_address( $ ) {
+    my $interface = shift;
+    fatal_error "Unknown interface address variable (&$interface)" unless known_interface( $interface );
+    fatal_error "Invalid interface address variable (&$interface)" if $interface =~ /\+$/;
+    get_interface_address( $interface ) . ' ';
+}
+
+#
+# If the passed address is a run-time address variable for an optional interface, then
+# begin a conditional rule block that tests the address for nil.
+#
+sub conditional_rule( $$ ) {
+    my ( $chainref, $address ) = @_;
+
+    if ( $address =~ /^!?&(.+)$/ ) {
+	my $interface = $1;
+	if ( my $ref = known_interface $interface ) {
+	    if ( $ref->{options}{optional} ) {
+		my $variable = get_interface_address( $interface );
+		add_commands( $chainref , "if [ $variable != " . NILIP . ' ]; then' );
+		incr_cmd_level $chainref;
+		return 1;
+	    }
+	};
+    }
+
+    0;
+}
+
+#
+# If end a conditional in a chain
+#
+
+sub conditional_rule_end( $ ) {
+    my $chainref = shift;
+    decr_cmd_level $chainref;
+    add_commands( $chainref , "fi\n" );
+}	
+
 sub mysplit( $ );
 
 #
@@ -2713,8 +2774,14 @@ sub match_source_net( $;$ ) {
 
 	$result;
     } elsif ( $net =~ s/^!// ) {
-	validate_net $net, 1;
-	"! -s $net ";
+	if ( $net =~ /^&(.+)/ ) {
+	    '! -s ' . record_runtime_address $1;
+	} else {
+	    validate_net $net, 1;
+	    "! -s $net ";
+	}
+    } elsif ( $net =~ /^&(.+)/ ) {
+	'-s ' . record_runtime_address $1;
     } else {
 	validate_net $net, 1;
 	$net eq ALLIP ? '' : "-s $net ";
@@ -2748,10 +2815,15 @@ sub match_dest_net( $ ) {
 	}
 
 	$result;
-    } elsif ( $net =~ /^!/ ) {
-	$net =~ s/!//;
-	validate_net $net, 1;
-	"! -d $net ";
+    } elsif ( $net =~ s/^!// ) {
+	if ( $net =~ /^&(.+)/ ) {
+	    '! -d ' . record_runtime_address $1;
+	} else {
+	    validate_net $net, 1;
+	    "! -d $net ";
+	}
+    } elsif ( $net =~ /^&(.+)/ ) {
+	'-d ' . record_runtime_address $1;
     } else {
 	validate_net $net, 1;
 	$net eq ALLIP ? '' : "-d $net ";
@@ -2768,10 +2840,20 @@ sub match_orig_dest ( $ ) {
     return '' unless have_capability( 'CONNTRACK_MATCH' );
 
     if ( $net =~ s/^!// ) {
-	validate_net $net, 1;
+	if ( $net =~ /^&(.+)/ ) {
+	    $net = record_runtime_address $1;
+	} else {
+	    validate_net $net, 1;
+	}
+
 	have_capability( 'OLD_CONNTRACK_MATCH' ) ? "-m conntrack --ctorigdst ! $net " : "-m conntrack ! --ctorigdst $net ";
     } else {
-	validate_net $net, 1;
+	if ( $net =~ /^&(.+)/ ) {
+	    $net = record_runtime_address $1;
+	} else {
+	    validate_net $net, 1;
+	}
+
 	$net eq ALLIP ? '' : "-m conntrack --ctorigdst $net ";
     }
 }
@@ -3421,6 +3503,8 @@ sub handle_network_list( $$ ) {
 
 }
 
+
+
 ################################################################################################################
 #
 # This function provides a uniform way to generate Netfilter[6] rules (something the original Shorewall
@@ -3500,7 +3584,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    if ( $source =~ /^(.+?):(.+)$/ ) {
 		$iiface = $1;
 		$inets  = $2;
-	    } elsif ( $source =~ /\+|~|\..*\./ ) {
+	    } elsif ( $source =~ /\+|&|~|\..*\./ ) {
 		$inets = $source;
 	    } else {
 		$iiface = $source;
@@ -3509,12 +3593,12 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    $iiface = $1;
 	    $inets  = $2;
 	} elsif ( $source =~ /:/ ) {
-	    if ( $source =~ /^<(.+)>$/ || $source =~ /^<\[.+\]>$/ ) {
+	    if ( $source =~ /^<(.+)>$/ || $source =~ /^\[(.+)\]$/ ) {
 		$inets = $1;
 	    } else {
 		$inets = $source;
 	    }
-	} elsif ( $source =~ /\+|~|\..*\./ ) {
+	} elsif ( $source =~ /(?:\+|&|~|\..*\.)/ ) {
 	    $inets = $source;
 	} else {
 	    $iiface = $source;
@@ -3591,7 +3675,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    if ( $dest =~ /^(.+?):(.+)$/ ) {
 		$diface = $1;
 		$dnets  = $2;
-	    } elsif ( $dest =~ /\+|~|\..*\./ ) {
+	    } elsif ( $dest =~ /\+|&|~|\..*\./ ) {
 		$dnets = $dest;
 	    } else {
 		$diface = $dest;
@@ -3605,7 +3689,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    } else {
 		$dnets = $dest;
 	    }
-	} elsif ( $dest =~ /\+|~|\..*\./ ) {
+	} elsif ( $dest =~ /^(?:\+|&|\..*\.)/ ) {
 	    $dnets = $dest;
 	} else {
 	    $diface = $dest;
@@ -3768,9 +3852,23 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    #
 	    my $exclude = '-j MARK --or-mark ' . in_hex( $globals{EXCLUSION_MASK} );
 
-	    add_rule $chainref, ( match_source_net $_ , $restriction ) . $exclude for ( mysplit $iexcl );
-	    add_rule $chainref, ( match_dest_net $_ )                  . $exclude for ( mysplit $dexcl );
-	    add_rule $chainref, ( match_orig_dest $_ )                 . $exclude for ( mysplit $oexcl );
+	    for ( mysplit $iexcl ) {
+		my $cond = conditional_rule( $chainref, $_ );
+		add_rule $chainref, ( match_source_net $_ , $restriction ) . $exclude;
+		conditional_rule_end( $chainref ) if $cond;
+	    }
+
+	    for ( mysplit $dexcl ) {
+		my $cond = conditional_rule( $chainref, $_ );
+		add_rule $chainref, ( match_dest_net $_ ) . $exclude;
+		conditional_rule_end( $chainref ) if $cond;
+	    }
+
+	    for ( mysplit $oexcl ) {
+		my $cond = conditional_rule( $chainref, $_ );
+		add_rule $chainref, ( match_orig_dest $_ ) . $exclude;
+		conditional_rule_end( $chainref ) if $cond;
+	    }
 	    #
 	    # Augment the rule to include 'not excluded'
 	    #
@@ -3786,25 +3884,47 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    # Use the current rule and send all possible matches to the exclusion chain
 	    #
 	    for my $onet ( mysplit $onets ) {
+		
+		my $cond = conditional_rule( $chainref, $onet );
 
 		$onet = match_orig_dest $onet;
 
 		for my $inet ( mysplit $inets ) {
 
+		    my $cond = conditional_rule( $chainref, $inet );
+		    
 		    my $source_match = match_source_net( $inet, $restriction ) if have_capability( 'KLUDGEFREE' );
 
 		    for my $dnet ( mysplit $dnets ) {
 			$source_match = match_source_net( $inet, $restriction ) unless have_capability( 'KLUDGEFREE' );
 			add_jump( $chainref, $echainref, 0, join( '', $rule, $source_match, match_dest_net( $dnet ), $onet ), 1 );
 		    }
+		    
+		    conditional_rule_end( $chainref ) if $cond;
 		}
+
+		conditional_rule_end( $chainref ) if $cond;
 	    }
 	    #
 	    # Generate RETURNs for each exclusion
 	    #
-	    add_rule $echainref, ( match_source_net $_ , $restriction ) . '-j RETURN' for ( mysplit $iexcl );
-	    add_rule $echainref, ( match_dest_net $_ )                  . '-j RETURN' for ( mysplit $dexcl );
-	    add_rule $echainref, ( match_orig_dest $_ )                 . '-j RETURN' for ( mysplit $oexcl );
+	    for ( mysplit $iexcl ) {
+		my $cond = conditional_rule( $echainref, $_ );
+		add_rule $echainref, ( match_source_net $_ , $restriction ) . '-j RETURN';
+		conditional_rule_end( $echainref ) if $cond;
+	    }
+
+	    for ( mysplit $dexcl ) {
+		my $cond = conditional_rule( $echainref, $_ );
+		add_rule $echainref, ( match_dest_net $_ ) . '-j RETURN';
+		conditional_rule_end( $echainref ) if $cond;
+	    }
+
+	    for ( mysplit $oexcl ) {
+		my $cond = conditional_rule( $echainref, $_ );
+		add_rule $echainref, ( match_orig_dest $_ ) . '-j RETURN';
+		conditional_rule_end( $echainref ) if $cond;
+	    }
 	    #
 	    # Log rule
 	    #
@@ -3831,10 +3951,15 @@ sub expand_rule( $$$$$$$$$$;$ )
 	# No non-trivial exclusions or we're using marks to handle them
 	#
 	for my $onet ( mysplit $onets ) {
+	    my $cond = conditional_rule( $chainref, $onet );
+
 	    $onet = match_orig_dest $onet;
+	    
 	    for my $inet ( mysplit $inets ) {
 		my $source_match;
 
+		my $cond = conditional_rule( $chainref, $inet );
+		
 		$source_match = match_source_net( $inet, $restriction ) if have_capability( 'KLUDGEFREE' );
 
 		for my $dnet ( mysplit $dnets ) {
@@ -3842,54 +3967,58 @@ sub expand_rule( $$$$$$$$$$;$ )
 		    my $dest_match = match_dest_net( $dnet );
 		    my $matches = join( '', $rule, $source_match, $dest_match, $onet );
 
-		    if ( $loglevel ne '' ) {
-			unless ( $disposition eq 'LOG' || $disposition eq 'COUNT' ) {
-			    unless ( $logname || $target =~ /^RETURN\b/ ) {
-				#
-				# Find/Create a chain that both logs and applies the target action
-				# and jump to the log chain if all of the rule's conditions are met
- 				#
-				add_jump( $chainref,
-					  logchain( $chainref, $loglevel, $logtag, $exceptionrule , $disposition, $target ),
-					  $builtin_target{$disposition},
-					  $matches,
-					  1 );
-			    } else {
-				log_rule_limit(
-					       $loglevel ,
-					       $chainref ,
-					       $logname || $chain,
-					       $disposition eq 'reject' ? 'REJECT' : $disposition ,
-					       '',
-					       $logtag,
-					       'add',
-					       $matches );
+		    my $cond = conditional_rule( $chainref, $dnet );
 
-				add_rule( $fromref = $chainref, $matches . $jump, 1 );
-			    }
-			} else {
-			    #
-			    # The log rule must be added with matches to the rule chain
-			    #
-			    log_rule_limit(
-					   $loglevel ,
-					   $chainref ,
-					   $chain,
-					   $disposition eq 'reject' ? 'REJECT' : $disposition ,
-					   '' ,
-					   $logtag ,
-					   'add' ,
-					   $matches
-					  );
-			}
-		    } else {
+		    if ( $loglevel eq '' ) {
 			#
 			# No logging -- add the target rule with matches to the rule chain
 			#
 			add_rule( $fromref = $chainref, $matches . $jump , 1 );
+		    } elsif ( $disposition eq 'LOG' || $disposition eq 'COUNT' ) {
+			#
+			# The log rule must be added with matches to the rule chain
+			#
+			log_rule_limit(
+				       $loglevel ,
+				       $chainref ,
+				       $chain,
+				       $disposition eq 'reject' ? 'REJECT' : $disposition ,
+				       '' ,
+				       $logtag ,
+				       'add' ,
+				       $matches
+				      );
+		    } elsif ( $logname || $target =~ /^RETURN\b/ ) {
+			log_rule_limit(
+				       $loglevel ,
+				       $chainref ,
+				       $logname || $chain,
+				       $disposition eq 'reject' ? 'REJECT' : $disposition ,
+				       '',
+				       $logtag,
+				       'add',
+				       $matches );
+			
+			add_rule( $fromref = $chainref, $matches . $jump, 1 );
+		    } else {
+			#
+			# Find/Create a chain that both logs and applies the target action
+			# and jump to the log chain if all of the rule's conditions are met
+			#
+			add_jump( $chainref,
+				  logchain( $chainref, $loglevel, $logtag, $exceptionrule , $disposition, $target ),
+				  $builtin_target{$disposition},
+				  $matches,
+				  1 );
 		    }
+
+		    conditional_rule_end( $chainref ) if $cond;
 		}
+
+		conditional_rule_end( $chainref ) if $cond;
 	    }
+
+	    conditional_rule_end( $chainref ) if $cond;
 	}
     }
     #

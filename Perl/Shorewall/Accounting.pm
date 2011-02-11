@@ -35,14 +35,20 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4.14';
+our $VERSION = '4.4.17';
+
+#
+# Per-IP accounting tables. Each entry contains the associated network.
+#
+our %tables;
 
 #
 # Called by the compiler to [re-]initialize this module's state
 #
 sub initialize() {
-    our $jumpchainref;
-    $jumpchainref = undef;
+    our $jumpchainref    = undef;
+    %tables              = ();
+    our %accountingjumps = ();
 }
 
 #
@@ -50,7 +56,8 @@ sub initialize() {
 #
 sub process_accounting_rule( ) {
 
-    our $jumpchainref;
+    our $jumpchainref = 0;
+    our %accountingjumps;
 
     my ($action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers ) = split_line1 1, 11, 'Accounting File';
 
@@ -102,6 +109,29 @@ sub process_accounting_rule( ) {
     unless ( $action eq 'COUNT' ) {
 	if ( $action eq 'DONE' ) {
 	    $target = 'RETURN';
+	} elsif ( $action =~ /^ACCOUNT\(/ ) {
+	    if ( $action =~ /^ACCOUNT\((.+)\)$/ ) {
+		require_capability 'ACCOUNT_TARGET' , 'ACCOUNT Rules' , '';
+		my ( $table, $net, $rest ) = split/,/, $1;
+		fatal_error "Invalid Network Address (${net},${rest})" if defined $rest;
+		fatal_error "Missing Table Name"             unless defined $table && $table ne '';;
+		fatal_error "Invalid Table Name ($table)"    unless $table =~ /^([-\w.]+)$/;
+		fatal_error "Missing Network Address"        unless defined $net;
+		fatal_error "Invalid Network Address ($net)" unless defined $net   && $net =~ '/(\d+)$';
+		fatal_error "Netmask ($1) out of range"      unless $1 >= 8;
+		validate_net $net, 0;
+
+		my $prevnet = $tables{$table};
+		if ( $prevnet ) {
+		    fatal_error "Previous net associated with $table ($prevnet) does not match this one ($net)" unless compare_nets( $net , $prevnet );
+		} else {
+		    $tables{$table} = $net;
+		}
+
+		$target = "ACCOUNT --addr $net --tname $table";
+	    } else {
+		fatal_error "Invalid ACCOUNT Action";
+	    }
 	} else {
 	    ( $action, my $cmd ) = split /:/, $action;
 	    if ( $cmd ) {
@@ -120,7 +150,11 @@ sub process_accounting_rule( ) {
 
     my $restriction = NO_RESTRICT;
 
-    $source = ALLIP if $source eq 'any' || $source eq 'all';
+    if ( $source eq 'any' || $source eq 'all' ) {
+	$source = ALLIP;
+    } else {
+	fatal_error "MAC addresses are not allowed in the accounting file" if $source =~ /~/;
+    }
 
     if ( have_bridges ) {
 	my $fw = firewall_zone;
@@ -175,6 +209,10 @@ sub process_accounting_rule( ) {
 	$rule .= do_ipsec( $dir , $ipsec );
     }
 
+    $accountingjumps{$jumpchainref->{name}}{$chain} = 1 if $jumpchainref;
+
+    fatal_error "$chain is not an accounting chain" unless $chainref->{accounting};
+    
     $restriction = $dir eq 'in' ? INPUT_RESTRICT : OUTPUT_RESTRICT if $dir;
 
     expand_rule
@@ -224,6 +262,8 @@ sub process_accounting_rule( ) {
 
 sub setup_accounting() {
 
+    our %accountingjumps;
+
     if ( my $fn = open_file 'accounting' ) {
 
 	first_entry "$doing $fn...";
@@ -264,6 +304,30 @@ sub setup_accounting() {
 
 	for ( accounting_chainrefs ) {
 	    warning_message "Accounting chain $_->{name} has no references" unless keys %{$_->{references}};
+	}
+
+	if ( my $chainswithjumps = keys %accountingjumps ) {
+	    my $progress = 1;
+
+	    while ( $chainswithjumps && $progress ) {
+		$progress = 0;
+		for my $chain1 (  keys %accountingjumps ) {
+		    if ( keys %{$accountingjumps{$chain1}} ) {
+			for my $chain2 ( keys %{$accountingjumps{$chain1}} ) {
+			    delete $accountingjumps{$chain1}{$chain2}, $progress = 1 unless $accountingjumps{$chain2};
+			}
+		    } else {
+			delete $accountingjumps{$chain1};
+			$chainswithjumps--;
+			$progress = 1;
+		    }
+		}
+	    }
+
+	    if ( $chainswithjumps ) {
+		my @chainswithjumps = keys %accountingjumps;
+		fatal_error "Jump loop involving the following chains: @chainswithjumps";
+	    }
 	}
     }
 }

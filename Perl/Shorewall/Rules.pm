@@ -44,7 +44,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_17';
 
 our %macros;
 
@@ -689,71 +689,70 @@ sub process_action( $) {
     if ( $targets{$action} & BUILTIN ) {
 	$level = '' if $level =~ /none!?/;
 	$builtinops{$action}->( $chainref, $level, $tag, $param );
-	return;
+    } else {
+	my $actionfile = find_file "action.$action";
+	my $format = 1;
+
+	fatal_error "Missing Action File ($actionfile)" unless -f $actionfile;
+
+	progress_message2 "$doing $actionfile for chain $chainref->{name}...";
+
+	push_open $actionfile;
+
+	my $oldparms = push_params( $param );
+
+	$active{$wholeaction}++;
+	push @actionstack, $wholeaction;
+
+	while ( read_a_line ) {
+
+	    my ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers );
+
+	    if ( $format == 1 ) {
+		($target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) = split_line1 1, 9, 'action file', $rule_commands;
+		$origdest = $connlimit = $time = $headers = '-';
+	    } else {
+		($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers ) = split_line1 1, 13, 'action file', $rule_commands;
+	    }
+
+	    if ( $target eq 'COMMENT' ) {
+		process_comment;
+		next;
+	    }
+
+	    if ( $target eq 'FORMAT' ) {
+		fatal_error "FORMAT must be 1 or 2" unless $source =~ /^[12]$/;
+		$format = $source;
+		next;
+	    }
+
+	    process_rule1( $chainref,
+			   merge_levels( "$action:$level:$tag", $target ),
+			   '',
+			   $source,
+			   $dest,
+			   $proto,
+			   $ports,
+			   $sports,
+			   $origdest,
+			   $rate,
+			   $user,
+			   $mark,
+			   $connlimit,
+			   $time,
+			   $headers,
+			   0 );
+	}
+
+	clear_comment;
+
+	$active{$wholeaction}--;
+	pop @actionstack;
+
+	pop_open;
+
+	pop_params( $oldparms );
     }
-
-    my $actionfile = find_file "action.$action";
-    my $format = 1;
-
-    fatal_error "Missing Action File ($actionfile)" unless -f $actionfile;
-
-    progress_message2 "$doing $actionfile for chain $chainref->{name}...";
-
-    push_open $actionfile;
-
-    my $oldparms = push_params( $param );
-
-    $active{$wholeaction}++;
-    push @actionstack, $wholeaction;
-
-    while ( read_a_line ) {
-
-	my ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers );
-
-	if ( $format == 1 ) {
-	    ($target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) = split_line1 1, 9, 'action file', $rule_commands;
-	    $origdest = $connlimit = $time = $headers = '-';
-	} else {
-	    ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers ) = split_line1 1, 13, 'action file', $rule_commands;
-	}
-
-	if ( $target eq 'COMMENT' ) {
-	    process_comment;
-	    next;
-	}
-
-	if ( $target eq 'FORMAT' ) {
-	    fatal_error "FORMAT must be 1 or 2" unless $source =~ /^[12]$/;
-	    $format = $source;
-	    next;
-	}
-
-	process_rule1( $chainref,
-		       merge_levels( "$action:$level:$tag", $target ),
-		       '',
-		       $source,
-		       $dest,
-		       $proto,
-		       $ports,
-		       $sports,
-		       $origdest,
-		       $rate,
-		       $user,
-		       $mark,
-		       $connlimit,
-		       $time,
-		       $headers,
-		       0 );
-    }
-
-    clear_comment;
-
-    $active{$wholeaction}--;
-    pop @actionstack;
-
-    pop_open;
-
-    pop_params( $oldparms );
 }
 
 #
@@ -1021,31 +1020,40 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ ) {
     #
     my $log_action = $action;
 
-    if ( $actiontype & REDIRECT ) {
-	my $z = $actiontype & NATONLY ? '' : firewall_zone;
-	if ( $dest eq '-' ) {
-	    $dest = $inaction ? '' : join( '', $z, '::' , $ports =~ /[:,]/ ? '' : $ports );
-	} elsif ( $inaction ) {
-	    $dest = ":$dest";
-	} else {
-	    $dest = join( '', $z, '::', $dest ) unless $dest =~ /^[^\d].*:/;
-	}
-    } elsif ( $action eq 'REJECT' ) {
-	$action = 'reject';
-    } elsif ( $action eq 'CONTINUE' ) {
-	$action = 'RETURN';
-    } elsif ( $action eq 'COUNT' ) {
-	$action = '';
-    } elsif ( $actiontype & LOGRULE ) {
-	fatal_error 'LOG requires a log level' unless defined $loglevel and $loglevel ne '';
-    } elsif ( $actiontype & SET ) {
-	my %xlate = ( ADD => 'add-set' , DEL => 'del-set' );
+    unless ( $actiontype & ( ACTION | MACRO | NFQ | CHAIN ) ) {
+	my $bt = $basictarget;
 
-	my ( $setname, $flags, $rest ) = split ':', $param, 3;
-	fatal_error "Invalid ADD/DEL parameter ($param)" if $rest;
-	fatal_error "Expected ipset name ($setname)" unless $setname =~ s/^\+// && $setname =~ /^[a-zA-Z]\w*$/;
-	fatal_error "Invalid flags ($flags)" unless defined $flags && $flags =~ /^(dst|src)(,(dst|src)){0,5}$/;
-	$action = join( ' ', 'SET --' . $xlate{$basictarget} , $setname , $flags );
+	$bt =~ s/[-+!]$//;
+
+	my %functions = ( REDIRECT => sub () {
+			      my $z = $actiontype & NATONLY ? '' : firewall_zone;
+			      if ( $dest eq '-' ) {
+				  $dest = $inaction ? '' : join( '', $z, '::' , $ports =~ /[:,]/ ? '' : $ports );
+			      } elsif ( $inaction ) {
+				  $dest = ":$dest";
+			      } else {
+				  $dest = join( '', $z, '::', $dest ) unless $dest =~ /^[^\d].*:/;
+			      }
+			  } ,
+			  REJECT => sub { $action = 'reject'; } ,
+			  CONTINUE => sub { $action = 'RETURN'; } ,
+			  COUNT => sub { $action = ''; } ,
+			  LOG => sub { fatal_error 'LOG requires a log level' unless defined $loglevel and $loglevel ne ''; } ,
+		     );
+
+	my $function = $functions{ $bt };
+
+	if ( $function ) {
+	    $function->();
+	} elsif ( $actiontype & SET ) {
+	    my %xlate = ( ADD => 'add-set' , DEL => 'del-set' );
+	    
+	    my ( $setname, $flags, $rest ) = split ':', $param, 3;
+	    fatal_error "Invalid ADD/DEL parameter ($param)" if $rest;
+	    fatal_error "Expected ipset name ($setname)" unless $setname =~ s/^\+// && $setname =~ /^[a-zA-Z]\w*$/;
+	    fatal_error "Invalid flags ($flags)" unless defined $flags && $flags =~ /^(dst|src)(,(dst|src)){0,5}$/;
+	    $action = join( ' ', 'SET --' . $xlate{$basictarget} , $setname , $flags );
+	}
     }
     #
     # Isolate and validate source and destination zones

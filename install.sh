@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.16.1
+VERSION=4.4.17
 
 usage() # $1 = exit status
 {
@@ -442,13 +442,13 @@ fi
 #
 # Install the Modules file
 #
-run_install $OWNERSHIP -m 0600 modules ${DESTDIR}/usr/share/shorewall
+run_install $OWNERSHIP -m 0644 modules ${DESTDIR}/usr/share/shorewall
 echo "Modules file installed as ${DESTDIR}/usr/share/shorewall/modules"
 
 #
 # Install the Module Helpers file
 #
-run_install $OWNERSHIP -m 0600 helpers ${DESTDIR}/usr/share/shorewall
+run_install $OWNERSHIP -m 0644 helpers ${DESTDIR}/usr/share/shorewall
 echo "Helper modules file installed as ${DESTDIR}/usr/share/shorewall/helpers"
 
 #
