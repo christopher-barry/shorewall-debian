@@ -1,3 +1,9 @@
+shorewall (4.4.17-2) UNRELEASED; urgency=low
+
+  * Updated Italian translation, thanks to Antonino Arcudi (Closes: #613963)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 18 Feb 2011 18:12:59 -0500
+
 shorewall (4.4.17-1) unstable; urgency=low
 
   * New Upstream Version
