@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.17
+VERSION=4.4.18
 
 usage() # $1 = exit status
 {
@@ -294,13 +294,18 @@ if [ -f wait4ifup ]; then
 fi
 
 #
-# Install the Modules file
+# Install the Modules files
 #
 
 if [ -f modules ]; then
     run_install $OWNERSHIP -m 0600 modules ${DESTDIR}/usr/share/shorewall-lite
     echo "Modules file installed as ${DESTDIR}/usr/share/shorewall-lite/modules"
 fi
+
+for f in modules.*; do
+    run_install $OWNERSHIP -m 0644 $f ${DESTDIR}/usr/share/shorewall-lite/$f
+    echo "Module file $f installed as ${DESTDIR}/usr/share/shorewall-lite/$f"
+done
 
 #
 # Install the Man Pages
