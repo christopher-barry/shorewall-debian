@@ -1,3 +1,56 @@
+Changes in Shorewall 4.4.18 Final
+
+1)  Correct handling of IPv6 host address in a net context.
+
+2)  Restore <burst> in tcdevices.
+
+3)  Correct handling of non-present interfaces and tcfilters.
+
+Changes in Shorewall 4.4.18 RC 1
+
+1)  Update Version.
+
+Changes in Shorewall 4.4.18 Beta 4
+
+1)  Fix trivalue handling AGAIN.
+
+2)  Change default value of MODULE_PREFIX.
+
+3)  Combine Policy and Rules Modules
+
+4)  Move section processing to the Rules modules.
+
+Changes in Shorewall 4.4.18 Beta 3
+
+1)  Change default chain in FORWARD section of the accounting file.
+
+2)  Restrict USER/GROUP to OUTPUT section.
+
+3)  Restore prohibition of MAC addresses in unsectioned config.
+
+4)  Fix several optimizer problems.
+
+Changes in Shorewall 4.4.18 Beta 2
+
+1)  Fix the 'local' Provider option in IPv6
+
+2)  Remove hardcoded 0.0.0.0/0 from Providers.pm
+
+3)  Correct an optimizer defect having to do with jumps containing a
+    comment.
+
+Changes in Shorewall 4.4.18 Beta 1
+
+1)  Split up modules file.
+
+2)  Add sections to the accounting file.
+
+Changes in Shorewall 4.4.17
+
+1)  Secure helper and modules files for non-root access.
+
+2)  Rename USE_LOCAL_MODULES to EXPORTMODULES
+
 Changes in Shorewall 4.4.17
 
 1)  Added sch_tbf to the modules files.
