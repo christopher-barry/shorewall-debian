@@ -20,6 +20,8 @@ Makefile	/etc/shorewall6
 Makefile-lite	/usr/share/shorewall6
 modules	/usr/share/doc/shorewall6/default-config
 modules	/usr/share/shorewall6
+modules.*	/usr/share/doc/shorewall6/default-config
+modules.*	/usr/share/shorewall6
 notrack	/usr/share/doc/shorewall6/default-config
 params	/usr/share/doc/shorewall6/default-config
 policy	/usr/share/doc/shorewall6/default-config
