@@ -25,6 +25,8 @@ Makefile-lite	/usr/share/shorewall
 configfiles/masq	/usr/share/doc/shorewall/default-config
 modules	/usr/share/doc/shorewall/default-config
 modules	/usr/share/shorewall
+modules.*	/usr/share/doc/shorewall/default-config
+modules.*	/usr/share/shorewall
 configfiles/nat	/usr/share/doc/shorewall/default-config
 configfiles/netmap	/usr/share/doc/shorewall/default-config
 configfiles/notrack	/usr/share/doc/shorewall/default-config
