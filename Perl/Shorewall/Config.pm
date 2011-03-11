@@ -126,6 +126,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $debug
 				       %config
 				       %globals
+				       %config_files
 
 		                       F_IPV4
 		                       F_IPV6
@@ -136,7 +137,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_17';
+our $VERSION = '4.4_18';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -262,6 +263,50 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
+
+our %config_files = ( #accounting      => 1,
+		      actions          => 1,
+		      blacklist        => 1,
+		      clear            => 1,
+		      ecn              => 1,
+		      findgw           => 1,
+		      hosts            => 1,
+		      init             => 1,
+		      initdone         => 1,
+		      interfaces       => 1,
+		      isusable         => 1,
+		      maclist          => 1,
+		      masq             => 1,
+		      nat              => 1,
+		      netmap           => 1,
+		      notrack          => 1,
+		      params           => 1,
+		      policy           => 1,
+		      providers        => 1,
+		      proxyarp         => 1,
+		      refresh          => 1,
+		      refreshed        => 1,
+		      restored         => 1,
+		      route_rules      => 1,
+		      routes           => 1,
+		      routestopped     => 1,
+		      rules            => 1,
+		      scfilter         => 1,
+		      secmarks         => 1,
+		      start            => 1,
+		      started          => 1,
+		      stop             => 1,
+		      stopped          => 1,
+		      tcclasses        => 1,
+		      tcclear          => 1,
+		      tcdevices        => 1,
+		      tcfilters        => 1,
+		      tcinterfaces     => 1,
+		      tcpri            => 1,
+		      tcrules          => 1,
+		      tos              => 1,
+		      tunnels          => 1,
+		      zones            => 1 );
 #
 # Directories to search for configuration files
 #
@@ -365,7 +410,7 @@ sub initialize( $ ) {
 		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.17",
+		    VERSION    => "4.4.18",
 		    CAPVERSION => 40417 ,
 		  );
     #
@@ -2022,9 +2067,10 @@ sub default_log_level( $$ ) {
 #
 sub check_trivalue( $$ ) {
     my ( $var, $default) = @_;
-    my $val = lc( $config{$var} || '' );
+    my $val = $config{$var};
 
     if ( defined $val ) {
+	$val = lc $val;
 	if ( $val eq 'yes' || $val eq 'on' ) {
 	    $config{$var} = 'on';
 	} elsif ( $val eq 'no' || $val eq 'off' ) {
@@ -2037,7 +2083,7 @@ sub check_trivalue( $$ ) {
 	    fatal_error "Invalid value ($val) for $var";
 	}
     } else {
-	$config{var} = $default
+	$config{$var} = $default
     }
 }
 
@@ -3029,7 +3075,7 @@ sub get_configuration( $ ) {
     #
     # get_capabilities requires that the true settings of these options be established
     #
-    default 'MODULE_PREFIX', 'o gz ko o.gz ko.gz';
+    default 'MODULE_PREFIX', 'ko ko.gz o o.gz gz';
     default_yes_no 'LOAD_HELPERS_ONLY'          , '';
 
     get_capabilities( $export );

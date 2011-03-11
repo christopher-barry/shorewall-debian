@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcdevices
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 02/09/2011
+.\"      Date: 03/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCDEVICES" "5" "02/09/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCDEVICES" "5" "03/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -117,13 +117,22 @@ interface number
 to each interface (the first entry in the file is interface 1, the second is interface 2 and so on) You can explicitly specify the interface number by prefixing the interface name with the number and a colon (":")\&. Example: 1:eth0\&.
 .RE
 .PP
-\fBIN\-BANDWIDTH\fR \- \fIbandwidth\fR
+\fBIN\-BANDWIDTH\fR \- \fIbandwidth\fR[:\fIburst\fR]
 .RS 4
 The incoming
 \fIbandwidth\fR
 of that interface\&. Please note that you are not able to do traffic shaping on incoming traffic, as the traffic is already received before you could do so\&. But this allows you to define the maximum traffic allowed for this interface in total, if the rate is exceeded, the packets are dropped\&. You want this mainly if you have a DSL or Cable connection to avoid queuing at your providers side\&.
 .sp
 If you don\*(Aqt want any traffic to be dropped, set this to a value to zero in which case Shorewall will not create an ingress qdisc\&.Must be set to zero if the REDIRECTED INTERFACES column is non\-empty\&.
+.sp
+The optional burst option was added in Shorewall 4\&.4\&.13\&. The default
+\fIburst\fR
+is 10kb\&. A larger
+\fIburst\fR
+can help make the
+\fIbandwidth\fR
+more accurate; often for fast lines, the enforced rate is well below the specified
+\fIbandwidth\fR\&.
 .RE
 .PP
 \fBOUT\-BANDWIDTH\fR \- \fIbandwidth\fR

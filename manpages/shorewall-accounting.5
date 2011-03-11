@@ -2,12 +2,12 @@
 .\"     Title: shorewall-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 02/09/2011
+.\"      Date: 03/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ACCOUNTIN" "5" "02/09/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-ACCOUNTIN" "5" "03/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -66,21 +66,6 @@ is included, a counting rule matching this entry will be added to
 \fIchain\fR\&. The
 \fIchain\fR
 may not exceed 29 characters in length and may be composed of letters, digits, dash (\*(Aq\-\*(Aq) and underscore (\*(Aq_\*(Aq)\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBWarning\fR
-.ps -1
-.br
-To avoid problems, we recomment that chain names that you create should begin with a capital letter and contain a digit, a dash (\*(Aq\-\*(Aq) or an underscore (\*(Aq_\*(Aq)\&.
-.sp .5v
-.RE
 .RE
 .PP
 \fIchain\fR:JUMP
@@ -145,21 +130,6 @@ chain is assumed\&. This is the chain where the accounting rule is added\&. The
 will be created if it doesn\*(Aqt already exist\&. The
 \fIchain\fR
 may not exceed 29 characters in length\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBWarning\fR
-.ps -1
-.br
-To avoid problems, we recomment that chain names that you create should begin with a capital letter and contain a digit, a dash (\*(Aq\-\*(Aq) or an underscore (\*(Aq_\*(Aq)\&.
-.sp .5v
-.RE
 .RE
 .PP
 \fBSOURCE\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fIaddress\fR|\fIaddress\fR}
