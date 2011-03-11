@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_17';
+our $VERSION = '4.4_18';
 
 our %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -648,11 +648,26 @@ sub validate_tc_device( ) {
 	    fatal_error "Invalid device name ($rdevice)" if $rdevice =~ /[:+]/;
 	    my $rdevref = $tcdevices{$rdevice};
 	    fatal_error "REDIRECTED device ($rdevice) has not been defined in this file" unless $rdevref;
-	    fatal_error "IN-BANDWIDTH must be zero for REDIRECTED devices" if $rdevref->{in_bandwidth} ne '0kbit';
+	    fatal_error "IN-BANDWIDTH must be zero for REDIRECTED devices" if $rdevref->{in_bandwidth} != 0;
 	}
     }
 
-    $tcdevices{$device} = { in_bandwidth  => rate_to_kbit( $inband ) . 'kbit',
+    my $in_burst = '10kb';
+
+    if ( $inband =~ /:/ ) {
+	my ( $in_band, $burst ) = split /:/, $inband, 2;
+
+	if ( defined $burst && $burst ne '' ) {
+	    fatal_error "Invalid IN-BANDWIDTH" if $burst =~ /:/;
+	    fatal_error "Invalid burst ($burst)" unless $burst =~ /^\d+(k|kb|m|mb|mbit|kbit|b)?$/;
+	    $in_burst = $burst;
+	}
+
+	$inband = $in_band;
+    }
+
+    $tcdevices{$device} = { in_bandwidth  => rate_to_kbit( $inband ),
+			    in_burst      => $in_burst,
 			    out_bandwidth => rate_to_kbit( $outband ) . 'kbit',
 			    number        => $devnumber,
 			    classify      => $classify,
@@ -759,7 +774,7 @@ sub validate_tc_class( ) {
 	    }
 
 	    fatal_error "Invalid interface/class number ($devclass)" unless defined $classnumber && $classnumber;
-	    fatal_error "Duplicate interface/class number ($devclass)" if defined $devnums[ $classnumber ];
+	    fatal_error "Duplicate interface:class number ($number:$classnumber}" if $tcclasses{$device}{$classnumber};
 	} else {
 	    fatal_error "Missing interface NUMBER";
 	}
@@ -951,6 +966,8 @@ sub process_tc_filter() {
 
     my ($device, $class, $rest ) = split /:/, $devclass, 3;
 
+    our $lastdevice;
+
     fatal_error "Invalid INTERFACE:CLASS ($devclass)" if defined $rest || ! ($device && $class );
 
     my ( $ip, $ip32, $prio , $lo ) = $family == F_IPV4 ? ('ip', 'ip', 10, 2 ) : ('ipv6', 'ip6', 11 , 4 );
@@ -971,6 +988,17 @@ sub process_tc_filter() {
 
     fatal_error "Unknown CLASS ($devclass)"                  unless $tcref && $tcref->{occurs};
     fatal_error "Filters may not specify an occurring CLASS" if $tcref->{occurs} > 1;
+
+    if ( $devref->{physical} ne $lastdevice ) {
+	if ( $lastdevice ) {
+	    pop_indent;
+	    emit "fi\n";
+	}
+
+	$lastdevice = $devref->{physical};
+	emit "if interface_is_up $lastdevice; then";
+	push_indent;
+    }
 
     my $rule = "filter add dev $devref->{physical} protocol $ip parent $devnum:0 prio $prio u32";
 
@@ -1186,6 +1214,8 @@ sub process_tcfilters() {
 
     my $fn = open_file 'tcfilters';
 
+    our $lastdevice = '';
+
     if ( $fn ) {
 	my @family = ( $family );
 	
@@ -1213,6 +1243,12 @@ sub process_tcfilters() {
 	}
 
 	Shorewall::IPAddrs::initialize( $family = pop @family );
+
+	if ( $lastdevice ) {
+	    pop_indent;
+	    emit "fi\n";
+	}
+
     }
 }
 
@@ -1378,26 +1414,9 @@ sub setup_traffic_shaping() {
 		      qq(fi) );
 	    }
 
-	    my $in_burst = '10kb';
-	    my $inband;
-
-	    if ( $devref->{in_bandwidth} =~ /:/ ) {
-		my ( $in_band, $burst ) = split /:/, $devref->{in_bandwidth}, 2;
-
-		if ( defined $burst && $burst ne '' ) {
-		    fatal_error "Invalid IN-BANDWIDTH" if $burst =~ /:/;
-		    fatal_error "Invalid burst ($burst)" unless $burst =~ /^\d+(k|kb|m|mb|mbit|kbit|b)?$/;
-		    $in_burst = $burst;
-		}
-
-		$inband = rate_to_kbit( $in_band );
-	    } else {
-		$inband = rate_to_kbit $devref->{in_bandwidth};
-	    }
-
-	    if ( $inband ) {
+	    if ( $devref->{in_bandwidth} ) {
 		emit ( "run_tc qdisc add dev $device handle ffff: ingress",
-		       "run_tc filter add dev $device parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate ${inband}kbit burst $in_burst drop flowid :1"
+		       "run_tc filter add dev $device parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate $devref->{in_bandwidth}kbit burst $devref->{in_burst} drop flowid :1"
 		     );
 	    }
 

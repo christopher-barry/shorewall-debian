@@ -12,7 +12,7 @@
 #       as published by the Free Software Foundation.
 #
 #       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
+#       but WITHOUT ANY WARRANTY; without even the implied warranty ofs
 #       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 #       GNU General Public License for more details.
 #
@@ -30,7 +30,7 @@ use Shorewall::Config qw(:DEFAULT :internal);
 use Shorewall::IPAddrs;
 use Shorewall::Zones;
 use Shorewall::Chains qw(:DEFAULT :internal);
-use Shorewall::Policy;
+use Shorewall::Rules;
 use Shorewall::Proc;
 
 use strict;
@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_18';
 
 our $family;
 
@@ -1091,7 +1091,7 @@ sub generate_matrix() {
 	#
 	if ( $zoneref->{options}{in}{blacklist} ) {
 	    my $blackref = $filter_table->{blacklst};
-	    add_jump ensure_filter_chain( rules_chain( $zone, $_ ), 1 ) , $blackref , 0, $state, 0, -1 for firewall_zone, @vservers;
+	    add_jump ensure_rules_chain( rules_chain( $zone, $_ ) ) , $blackref , 0, $state, 0, -1 for firewall_zone, @vservers;
 
 	    if ( $simple ) {
 		#
@@ -1102,7 +1102,7 @@ sub generate_matrix() {
 		    my $ruleschainref = $filter_table->{$ruleschain};
 
 		    if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
-			add_jump( ensure_filter_chain( $ruleschain, 1 ), $blackref, 0, $state, 0, -1 );
+			add_jump( ensure_rules_chain( $ruleschain ), $blackref, 0, $state, 0, -1 );
 		    }
 		}
 	    }
@@ -1110,14 +1110,14 @@ sub generate_matrix() {
 
 	if ( $zoneref->{options}{out}{blacklist} ) {
 	    my $blackref = $filter_table->{blackout};
-	    add_jump ensure_filter_chain( rules_chain( firewall_zone, $zone ), 1 ) , $blackref , 0, $state, 0, -1;
+	    add_jump ensure_rules_chain( rules_chain( firewall_zone, $zone ) ) , $blackref , 0, $state, 0, -1;
 
 	    for my $zone1 ( @zones, @vservers ) {
 		my $ruleschain    = rules_chain( $zone1, $zone );
 		my $ruleschainref = $filter_table->{$ruleschain};
 
 		if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
-		    add_jump( ensure_filter_chain( $ruleschain, 1 ), $blackref, 0, $state, 0, -1 );
+		    add_jump( ensure_rules_chain( $ruleschain ), $blackref, 0, $state, 0, -1 );
 		}
 	    }
 	}
