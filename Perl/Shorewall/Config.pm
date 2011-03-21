@@ -410,7 +410,7 @@ sub initialize( $ ) {
 		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.18",
+		    VERSION    => "4.4.18.1",
 		    CAPVERSION => 40417 ,
 		  );
     #
@@ -2942,30 +2942,33 @@ sub get_params() {
 			s/"$//;
 			$params{$variable} .= $_;
 		    } else {
+			chomp;
 			warning_message "Param line ($_) ignored" unless $bug++;
 		    }
 		}	
 	    }
-	} elsif ( $params[0] =~ /^export (.*?)="/ ) {
+	} elsif ( $params[0] =~ /^export (.*?)="/ || $params[0] =~ /^export ([^\s=]+)\s*$/ ) {
 	    #
 	    # getparams interpreted by older (e.g., RHEL 5) Bash
 	    #
 	    # - Variable names preceded by 'export '
 	    # - Variable values are delimited by double quotes
 	    # - Embedded single quotes are escaped with '\'
+	    # - Valueless variables ( e.g., 'export foo') are supported
 	    #
 	    for ( @params ) {
 		if ( /^export (.*?)="(.*[^\\])"$/ ) {
 		    $params{$1} = $2 unless $1 eq '_';
 		} elsif ( /^export (.*?)="(.*)$/ ) {
 		    $params{$variable=$1} = $2 eq '"' ? '' : "${2}\n";
-		} elsif ( /^export (.*)\s+$/ || /^export (.*)=""$/ ) {
+		} elsif ( /^export ([^\s=]+)\s*$/ || /^export (.*)=""$/ ) {
 		    $params{$1} = '';
 		} else {
 		    if ($variable) {
 			s/"$//;
 			$params{$variable} .= $_;
 		    } else {
+			chomp;
 			warning_message "Param line ($_) ignored" unless $bug++;
 		    }
 		}	
@@ -2990,6 +2993,7 @@ sub get_params() {
 			s/'$//;
 			$params{$variable} .= $_;
 		    } else {
+			chomp;
 			warning_message "Param line ($_) ignored" unless $bug++;
 		    }				
 		}
@@ -3379,7 +3383,7 @@ sub get_configuration( $ ) {
 	my @priomap = split ' ',$val;
 	fatal_error "Invalid TC_PRIOMAP ($val)" unless @priomap == 16;
 	for ( @priomap ) {
-	    fatal_error "Invalid TC_PRIOMAP entry ($_)" unless /[1-3]/;
+	    fatal_error "Invalid TC_PRIOMAP entry ($_)" unless /^[1-3]$/;
 	    $_--;
 	}
 
