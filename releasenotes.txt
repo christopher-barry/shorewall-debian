@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 1 8
+                     S H O R E W A L L  4 . 4 . 1 8 . 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +12,28 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.18.1
+
+1)  An issue with params processing on RHEL6 has been corrected. The
+    problem manifested as the following type of warning:
+
+       WARNING: Param line (export OLDPWD) ignored at 
+                /usr/share/shorewall/Shorewall/Config.pm line
+                2993.
+
+2)  The editing of the value of the TC_PRIOMAP option has been
+    tightened. Previously, many invalid settings were allowed,
+    resulting in run-time tc command failures.
+
+3)  The Shorewall Lite and Shorewall6 Lite installers now install the
+    'helpers' modules file. Previously, this file was not installed 
+    with the result that both 'shorewall[6]-lite show capabilities' and
+    'shorecap' failed.
+
+4)  Previously, if an icmp or icmp6 type which included both a type and
+    a code was used in the tcfilters file, 'start' and 'restart' would
+    fail with a 'tc' error.
 
 4.4.18 Final
 
