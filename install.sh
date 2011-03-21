@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.18
+VERSION=4.4.18.1
 
 usage() # $1 = exit status
 {
@@ -300,6 +300,11 @@ fi
 if [ -f modules ]; then
     run_install $OWNERSHIP -m 0600 modules ${DESTDIR}/usr/share/shorewall-lite
     echo "Modules file installed as ${DESTDIR}/usr/share/shorewall-lite/modules"
+fi
+
+if [ -f helpers ]; then
+    run_install $OWNERSHIP -m 0600 helpers ${DESTDIR}/usr/share/shorewall-lite
+    echo "Helper modules file installed as ${DESTDIR}/usr/share/shorewall-lite/helpers"
 fi
 
 for f in modules.*; do
