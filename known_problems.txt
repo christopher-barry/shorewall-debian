@@ -24,3 +24,30 @@
     run-time error occurs.
 
     Corrected in Shorewall 4.4.18.1
+
+5)  If a bridge interface has subordinate ports defined in
+    /etc/shorewall/interface, then an ipsec entry (either ipsec zone or
+    the 'ipsec' option specified) in /etc/shorewall/hosts results in
+    the compiler generating an incorrect Netfilter configuration.
+ 
+    Workaround: Change the hosts entry to specify one of the bridge
+    ports. If the specified network spans more than one port, then
+    replicate for each port.
+ 
+    Will be corrected in Shorewall 4.4.19
+
+6)  SAVE_IPSETS=Yes doesn't work unless there is a dynamic zone
+    defined.
+
+    Workaround: Create a dummy dynamic zone.
+
+    Corrected in Shorewall 4.4.18.2
+
+7)  If a logical name is given to a bridge and the ports on the bridge
+    are defined in /etc/shorewall/interfaces, then the compiler may
+    generate matches that use the logical name rather than the physical
+    name.
+
+    Workaround: Do not use logical names on bridges with ports.
+
+    Corrected in Shorewall 4.4.18.2

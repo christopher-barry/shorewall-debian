@@ -387,8 +387,8 @@ our %builtin_target = ( ACCEPT      => 1,
 #   2. The compiler can run multiple times in the same process so it has to be
 #      able to re-initialize its dependent modules' state.
 #
-sub initialize( $ ) {
-    $family = shift;
+sub initialize( $$ ) {
+    ( $family, my $hard ) = @_;
 
     %chain_table = ( raw    => {},
 		     mangle => {},
@@ -428,7 +428,7 @@ sub initialize( $ ) {
     $idiotcount1        = 0;
     $warningcount       = 0;
     $hashlimitset       = 0;
-    $ipset_rules        = 0;
+    $ipset_rules        = 0 if $hard;
     #
     # The chain table is initialized via a call to initialize_chain_table() after the configuration and capabilities have been determined.
     #
@@ -2657,7 +2657,9 @@ sub match_source_dev( $ ) {
     $interface = $interfaceref->{physical} if $interfaceref;
     return '' if $interface eq '+';
     if ( $interfaceref && $interfaceref->{options}{port} ) {
-	"-i $interfaceref->{bridge} -m physdev --physdev-in $interface ";
+	my $bridgeref = find_interface $interfaceref->{bridge};
+
+	"-i $bridgeref->{physical} -m physdev --physdev-in $interface ";
     } else {
 	"-i $interface ";
     }
@@ -2672,10 +2674,12 @@ sub match_dest_dev( $ ) {
     $interface = $interfaceref->{physical} if $interfaceref;
     return '' if $interface eq '+';
     if ( $interfaceref && $interfaceref->{options}{port} ) {
+	my $bridgeref = find_interface $interfaceref->{bridge};
+
 	if ( have_capability( 'PHYSDEV_BRIDGE' ) ) {
-	    "-o $interfaceref->{bridge} -m physdev --physdev-is-bridged --physdev-out $interface ";
+	    "-o $bridgeref->{physical} -m physdev --physdev-is-bridged --physdev-out $interface ";
 	} else {
-	    "-o $interfaceref->{bridge} -m physdev --physdev-out $interface ";
+	    "-o $bridgeref->{physical} -m physdev --physdev-out $interface ";
 	}
     } else {
 	"-o $interface ";
