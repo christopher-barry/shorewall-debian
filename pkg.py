@@ -28,7 +28,8 @@
 
 import sys, os, re, getopt
 # For manipulating the Git repo programmatically with git-buildpackage
-import gbp.git_utils, gbp.deb_utils
+from gbp.git import GitRepository
+from gbp.deb import parse_changelog
 # For accessing the Debian BTS and programmatically manipulating the bugs
 import debianbts
 
@@ -190,7 +191,7 @@ if len(op) == 0:
     sys.exit(1)
 
 # Instantiate a git-buildpackage repository object
-gbp_repo = gbp.git_utils.GitRepository(os.getcwd())
+gbp_repo = GitRepository(os.getcwd())
 
 # Set up our branch and tag nomenclature
 upstream_branch = 'upstream'
@@ -269,19 +270,23 @@ if op == 'import':
     for b in bugs_fixed_upstream:
         if b in bugs_all: bugs_all.remove(b) # avoid repeats below
         s = debianbts.get_status(b)
-        print "\tBug %s (status: %s): %s" % (s[0].nr, s[0].status, s[0].summary)
+        if not s[0].done:
+            print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
     if len(bugs_upstream) > 0: print "\nBugs tagged 'upstream':"
     for b in bugs_upstream:
         if b in bugs_all: bugs_all.remove(b) # avoid repeats below
         s = debianbts.get_status(b)
-        print "\tBug %s (status: %s): %s" % (s[0].nr, s[0].status, s[0].summary)
+        if not s[0].done:
+            print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
     if len(bugs_all) > 0: print "\nAll other bugs:"
     for b in bugs_all:
         s = debianbts.get_status(b)
-        print "\tBug %s (status: %s): %s" % (s[0].nr, s[0].status, s[0].summary)
+        if not s[0].done:
+            print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
     print "\nPlease remember to check for and make note of closed bugs\n"
     print "**********" * 8 + "\n"
-    os.system('git-status')
+    os.system("dch --newversion %s-1 New Upstream Version" % pkg_ver)
+    os.system('git status')
 
 elif op == 'build':
     # Make sure that the user specified one or more packages to build
@@ -331,7 +336,7 @@ elif op == 'tag':
         p_upstream_branch = p + '/' + upstream_branch
         if verbose: print "Checking out to branch: %s" % p_debian_branch
         gbp_repo.set_branch(p_debian_branch)
-        tag_ver = gbp.deb_utils.parse_changelog('debian/changelog')['Version']
+        tag_ver = parse_changelog('debian/changelog')['Version']
         p_debian_tag = p + '/' + debian_tag + '/' + tag_ver
         # There does not appear to be a programmatic interface to
         # git-buildpackage for actually building packages, so this hacky call
