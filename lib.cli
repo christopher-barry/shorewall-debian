@@ -631,6 +631,12 @@ show_command() {
 	    echo "$g_product $SHOREWALL_VERSION Traffic Control at $g_hostname - $(date)"
 	    echo
 	    shift
+
+	    if [ -z "$1" ]; then
+		$IPTABLES -t mangle -L -n -v
+		echo
+	    fi
+
 	    show_tc $1
 	    ;;
 	classifiers|filters)
@@ -687,8 +693,17 @@ show_command() {
 	    ;;
 	config)
 	    . ${SHAREDIR}/configpath
-	    echo "Default CONFIG_PATH is $CONFIG_PATH"
-	    [ -n "$LITEDIR" ] && echo "LITEDIR is $LITEDIR"
+	    if [ -n "$g_filemode" ]; then
+		echo "CONFIG_PATH=$CONFIG_PATH"
+		echo "VARDIR=$VARDIR"
+		echo "LIBEXEC=$g_libexec"
+		[ -n "$LITEDIR" ] && echo "LITEDIR=$LITEDIR"
+	    else
+		echo "Default CONFIG_PATH is $CONFIG_PATH"
+		echo "Default VARDIR is $VARDIR"
+		echo "LIBEXEC is $g_libexec"
+		[ -n "$LITEDIR" ] && echo "LITEDIR is $LITEDIR"
+	    fi
 	    ;;
 	chain)
 	    shift
