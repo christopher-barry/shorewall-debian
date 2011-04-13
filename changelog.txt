@@ -1,14 +1,60 @@
-Changes in Shorewall 4.4.18.2
+Changes in Shorewall 4.4.19 Final
 
-1)  Fix SAVE_IPSETS=Yes without dynamic zones.
+1)  Update release documents.
 
-Changes in Shorewall 4.4.18.1
+2)  Correct split_line() error message for the proxyndp line.
 
-1)  Fix params processing bug.
+Changes in Shorewall 4.4.19 RC 1
 
-2)  Tighten editing of TC_PRIOMAP value.
+1)  Correct release notes.
 
-3)  Fix the Lite installers
+2)  Display mangle table in the output from 'shorewall show tc'.
+
+3)  Allow simple TC to work on both IPv4 and IPv6
+
+4)  Fix an optimizer bug in Shorewall::Chains::replace_references().
+
+5)  Correct missing jump to 'dnat'.
+
+Changes in Shorewall 4.4.19 Beta 5
+
+1)  Fix logical naming and bridge.
+
+Changes in Shorewall 4.4.19 Beta 4
+
+1)  Handle mis-configured ipsec host group on a bridge.
+
+2)  Significantly improve bridge/ports handling.
+
+3)  Allow port-lists in /etc/shorewall/rules.
+
+Changes in Shorewall 4.4.19 Beta 3
+
+1)  Allow /usr executables to be installed in a designated location.
+
+2)  Allow Shorewall perl modules to be installed in a designated
+    location.
+
+Changes in Shorewall 4.4.19 Beta 2
+
+1)  Minor rework of init-log creation in the installer.
+
+2)  Add VRRP macro.
+
+3)  Fix more params processing bugs.
+
+4)  Do a better job of editing ICMP type lists.
+
+5)  Allow /usr executables to be installed in a designated location.
+
+6)  Allow Shorewall perl modules to be installed in a designated
+    location.
+
+Changes in Shorewall 4.4.19 Beta 1
+
+1)  Place ACK packets in the highest priority band.
+
+2)  Break ICMP lists into individual rules.
 
 Changes in Shorewall 4.4.18 Final
 

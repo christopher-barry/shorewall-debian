@@ -21,7 +21,6 @@
 #	along with this program; if not, write to the Free Software
 #	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-
 package Shorewall::Compiler;
 require Exporter;
 use Shorewall::Config qw(:DEFAULT :internal);
@@ -42,7 +41,7 @@ use Shorewall::Misc;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_18';
+our $VERSION = '4.4_19';
 
 our $export;
 
@@ -369,7 +368,7 @@ sub generate_script_3($) {
 
 	mark_firewall_not_started;
 
-	emit ('',
+	emit ( '',
 	       'delete_proxyarp',
 	       ''
 	     );
