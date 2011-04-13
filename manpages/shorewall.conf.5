@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 04/03/2011
+.\"      Date: 04/12/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "04/03/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "04/12/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -428,6 +428,18 @@ net     all  DROP   info
 then the chain name is \*(Aqnet2all\*(Aq which is also the chain named in Shorewall log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
 .RE
 .PP
+\fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 4\&.4\&.17\&. When set to Yes when compiling for use by Shorewall Lite (\fBshorewall load\fR,
+\fBshorewall reload \fRor
+\fBshorewall export\fR
+commands), the compiler will copy the modules or helpers file from the administrative system into the script\&. When set to No or not specified, the compiler will not copy the modules or helpers file from
+/usr/share/shorewall
+but will copy the found in another location on the CONFIG_PATH\&.
+.sp
+When compiling for direct use by Shorewall, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
+.RE
+.PP
 \fBEXPORTPARAMS=\fR{\fBYes\fR|\fBNo\fR} (Deprecated beginning with Shorewall 4\&.4\&.17)
 .RS 4
 Beginning with Shorewall 4\&.4\&.17, the variables set in the \*(Aqparams\*(Aq file at compile time are available at run time with EXPORTPARAMS=No\&. As a consequence, beginning with that version the recommended setting is EXPORTPARAMS=No\&.
@@ -464,7 +476,7 @@ FASTACCEPT=Yes is incompatible with BLACKLISTNEWONLY=No\&.
 .PP
 \fBFORWARD_CLEAR_MARK=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (CLEAR_FORWARD_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
+Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (FORWARD_CLEAR_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
 .RE
 .PP
 \fBHIGH_ROUTE_MARKS=\fR{\fBYes\fR|\fBNo\fR}
@@ -1441,18 +1453,6 @@ You should disable all default route management outside of Shorewall\&. If a def
 .RE
 .sp
 If USE_DEFAULT_RT is not set or if it is set to the empty string then USE_DEFAULT_RT=No is assumed\&.
-.RE
-.PP
-\fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
-.RS 4
-Added in Shorewall 4\&.4\&.17\&. When set to Yes when compiling for use by Shorewall LIte (\fBshorewall load\fR,
-\fBshorewall reload \fRor
-\fBshorewall export\fR
-commands), the compiler will copy the modules or helpers file from the administrative system into the script\&. When set to No or not specified, the compiler will not copy the modules or helpers file from
-/usr/share/shorewall
-but will copy the found in another location on the CONFIG_PATH\&.
-.sp
-When compiling for direct use by Shorewall, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
 .RE
 .PP
 \fBVERBOSITY=\fR[\fInumber\fR]

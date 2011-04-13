@@ -80,7 +80,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_icmp6
 		 );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_17';
+our $VERSION = '4.4_19';
 
 #
 # Some IPv4/6 useful stuff
@@ -330,7 +330,7 @@ sub resolve_proto( $ ) {
 
     if ( $proto =~ /^\d+$/ || $proto =~ /^0x/ ) {
 	$number = numeric_value ( $proto );
-	defined $number && $number <= 65535 ? $number : undef;
+	defined $number && $number <= 255 ? $number : undef;
     } else {
 	#
 	# Allow 'icmp' as a synonym for 'ipv6-icmp' in IPv6 compilations

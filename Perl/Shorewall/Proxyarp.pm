@@ -35,7 +35,7 @@ our @EXPORT = qw(
 		  );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_19';
 
 our @proxyarp;
 
@@ -118,7 +118,7 @@ sub setup_proxy_arp() {
 
 	while ( read_a_line ) {
 
-	    my ( $address, $interface, $external, $haveroute, $persistent ) = split_line 3, 5, 'proxyarp file';
+	    my ( $address, $interface, $external, $haveroute, $persistent ) = split_line 3, 5, $file_opt;
 
 	    if ( $first_entry ) {
 		progress_message2 "$doing $fn...";
