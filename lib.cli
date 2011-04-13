@@ -478,7 +478,7 @@ show_command() {
     case "$1" in
 	connections)
 	    [ $# -gt 1 ] && usage 1
-	    if mywhich conntrack ; then
+	    if qt mywhich conntrack ; then
 		echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
 		echo
 		conntrack -f ipv6 -L | show_connections_filter
@@ -591,8 +591,17 @@ show_command() {
 	    ;;
 	config)
 	    . ${SHAREDIR}/configpath
-	    echo "Default CONFIG_PATH is $CONFIG_PATH"
-	    [ -n "$LITEDIR" ] && echo "LITEDIR is $LITEDIR"
+	    if [ -n "$g_filemode" ]; then
+		echo "CONFIG_PATH=$CONFIG_PATH"
+		echo "VARDIR=$VARDIR"
+		echo "LIBEXEC=$g_libexec"
+		[ -n "$LITEDIR" ] && echo "LITEDIR=$LITEDIR"
+	    else
+		echo "Default CONFIG_PATH is $CONFIG_PATH"
+		echo "Default VARDIR is $VARDIR"
+		echo "LIBEXEC is $g_libexec"
+		[ -n "$LITEDIR" ] && echo "LITEDIR is $LITEDIR"
+	    fi
 	    ;;
 	chain)
 	    shift
