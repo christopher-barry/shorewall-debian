@@ -1,8 +1,9 @@
-shorewall6 (4.4.18.2-2) UNRELEASED; urgency=low
+shorewall6 (4.4.19-1) unstable; urgency=low
 
+  * New Upstream Version (Closes: #622155)
   * Update Dutch debconf translation, thanks to Jeroen Schot (Closes: #622364)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 12 Apr 2011 18:28:55 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 12 Apr 2011 21:47:36 -0400
 
 shorewall6 (4.4.18.2-1) unstable; urgency=low
 
