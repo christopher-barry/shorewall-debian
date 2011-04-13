@@ -1,6 +1,6 @@
 shorewall-lite: non-standard-dir-perm var/lib/shorewall-lite/ 0750 != 0755
-shorewall-lite: script-not-executable ./usr/share/shorewall-lite/lib.base
-shorewall-lite: script-not-executable ./usr/share/shorewall-lite/lib.cli
-shorewall-lite: script-not-executable ./usr/share/shorewall-lite/lib.common
+shorewall-lite: script-not-executable usr/share/shorewall-lite/lib.base
+shorewall-lite: script-not-executable usr/share/shorewall-lite/lib.cli
+shorewall-lite: script-not-executable usr/share/shorewall-lite/lib.common
 # Shorewall needs to continue in runlevel 1 because networking may still be up
 shorewall-lite: init.d-script-possible-missing-stop
