@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 04/03/2011
+.\"      Date: 04/12/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "04/03/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-RULES" "5" "04/12/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -501,13 +501,16 @@ Protocol \-
 implies
 \fBtcp\fR
 plus the SYN flag must be set and the RST,ACK and FIN flags must be reset\&.
+.sp
+Beginning with Shorewall6 4\&.4\&.19, this column can contain a comma\-separated list of protocol\-numbers and/or protocol names (e\&.g\&.,
+\fBtcp,udp\fR)\&.
 .RE
 .PP
 \fBDEST PORT(S) \fR(Optional) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
 Destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&. Note that prior to Shorewall6 4\&.4\&.19, only a single ICMP type may be listsed\&.
 .sp
 If the protocol is
 \fBipp2p\fR, this column is interpreted as an ipp2p option without the leading "\-\-" (example
@@ -793,40 +796,6 @@ Accept SMTP requests from the DMZ to the internet
          #ACTION SOURCE  DEST PROTO      DEST    SOURCE  ORIGINAL
          #                               PORT    PORT(S) DEST
          ACCEPT  dmz     net       tcp   smtp
-.fi
-.if n \{\
-.RE
-.\}
-.RE
-.PP
-Example 2:
-.RS 4
-Allow all ssh and http connection requests from the internet to local system 2002:cec792b4:1::44
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-        #ACTION SOURCE  DEST                    PROTO   DEST    SOURCE  ORIGINAL
-        #                                               PORT    PORT(S) DEST
-        DNAT    net     loc:2002:cec792b4:1::44 tcp     ssh,http
-.fi
-.if n \{\
-.RE
-.\}
-.RE
-.PP
-Example 3:
-.RS 4
-Allow http connection requests from the internet to local system 2002:cec792b4:1::44 with a limit of 3 per second and a maximum burst of 10
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-        #ACTION SOURCE DEST                      PROTO  DEST  SOURCE  ORIGINAL RATE
-        #                                               PORT  PORT(S) DEST     LIMIT
-        DNAT    net    loc:<2002:cec792b4:1::44> tcp    http  \-       \-        3/sec:10
 .fi
 .if n \{\
 .RE

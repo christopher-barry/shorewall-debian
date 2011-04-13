@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 04/03/2011
+.\"      Date: 04/12/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "04/03/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\&.CONF" "5" "04/12/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -346,23 +346,16 @@ is disabled\&. Default is
 \fBYes\fR\&.
 .RE
 .PP
-\fBEXPAND_POLICIES=\fR{\fBYes\fR|\fBNo\fR}
+\fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
-Normally, when the SOURCE or DEST columns in shorewall6\-policy(5) contains \*(Aqall\*(Aq, a single policy chain is created and the policy is enforced in that chain\&. For example, if the policy entry is
+Added in Shorewall 4\&.4\&.17\&. When set to Yes when compiling for use by Shorewall6 Lite (\fBshorewall6 load\fR,
+\fBshorewall6 reload \fRor
+\fBshorewall6 export\fR
+commands), the compiler will copy the modules or helpers file from the administrative system into the script\&. When set to No or not specified, the compiler will not copy the modules or helpers file from
+/usr/share/shorewall6
+but will copy the found in another location on the CONFIG_PATH\&.
 .sp
-.if n \{\
-.RS 4
-.\}
-.nf
-#SOURCE DEST POLICY LOG
-#                   LEVEL
-net     all  DROP   info
-.fi
-.if n \{\
-.RE
-.\}
-.sp
-then the chain name is \*(Aqnet2all\*(Aq which is also the chain named in Shorewall6 log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall6 will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
+When compiling for direct use by Shorewall6, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
 .RE
 .PP
 \fBEXPORTPARAMS=\fR{\fBYes\fR|\fBNo\fR} (Deprecated beginning with Shorewall 4\&.4\&.17)
@@ -401,7 +394,7 @@ FASTACCEPT=Yes is incompatible with BLACKLISTNEWONLY=No\&.
 .PP
 \fBFORWARD_CLEAR_MARK=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (CLEAR_FORWARD_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
+Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (FORWARD_CLEAR_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
 .RE
 .PP
 \fBHIGH_ROUTE_MARKS=\fR{\fBYes\fR|\fBNo\fR}
@@ -1142,18 +1135,6 @@ option\&. The default value is \*(AqNo\*(Aq\&.
 Beginning in Shorewall 4\&.4\&.6, setting this option to \*(AqYes\*(Aq also simplifies PREROUTING rules in
 \m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[4]\d\s+2(5)\&. Previously, when TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \*(Aqmain\*(Aq routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The
 \m[blue]\fBshorewall6\-route_rules\fR\m[]\&\s-2\u[15]\d\s+2(5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
-.RE
-.PP
-\fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
-.RS 4
-Added in Shorewall 4\&.4\&.17\&. When set to Yes when compiling for use by Shorewall6 LIte (\fBshorewall6 load\fR,
-\fBshorewall6 reload \fRor
-\fBshorewall6 export\fR
-commands), the compiler will copy the modules or helpers file from the administrative system into the script\&. When set to No or not specified, the compiler will not copy the modules or helpers file from
-/usr/share/shorewall6
-but will copy the found in another location on the CONFIG_PATH\&.
-.sp
-When compiling for direct use by Shorewall6, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
 .RE
 .PP
 \fBVERBOSITY=\fR[\fInumber\fR]
