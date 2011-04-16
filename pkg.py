@@ -305,14 +305,17 @@ elif op == 'build':
         build_cmd += ' --git-upstream-branch=' + p_upstream_branch
         build_cmd += ' --git-builder="' + build_prog + '"'
         if verbose: build_cmd += ' --git-verbose'
-        tmpdir = os.environ['TMPDIR']
-        tmp = os.environ['TMP']
-        if os.access(tmpdir, os.R_OK):
+        try:
+            tmpdir = os.environ['TMPDIR']
+            os.access(tmpdir, os.R_OK)
             build_cmd += ' --git-export-dir=$TMPDIR/build-area --git-pristine-tar '
-        elif os.access(tmp, os.R_OK):
-            build_cmd += ' --git-export-dir=$TMP/build-area --git-pristine-tar '
-        else:
-            build_cmd += ' --git-export-dir=../build-area --git-pristine-tar '
+        except KeyError, NameError:
+            try:
+                tmp = os.environ['TMP']
+                os.access(tmp, os.R_OK)
+                build_cmd += ' --git-export-dir=$TMP/build-area --git-pristine-tar '
+            except KeyError, NameError:
+                build_cmd += ' --git-export-dir=../build-area --git-pristine-tar '
         build_cmd += build_prog_opts
         if verbose: print "Building with this command:\n%s" % build_cmd
         if dry_run:
