@@ -1,3 +1,9 @@
+shorewall (4.4.19.1-2) unstable; urgency=low
+
+  * New Danish debconf translation, thanks to Joe Dalton (Closes: #624665)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 30 Apr 2011 16:11:53 -0400
+
 shorewall (4.4.19.1-1) unstable; urgency=low
 
   * New Upstream Version
