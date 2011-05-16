@@ -252,10 +252,18 @@ sub process_tc_rule( ) {
 	    require_capability ('CONNMARK' , "CONNMARK Rules", '' ) if $connmark;
 
 	} else {
-	    fatal_error "Invalid MARK ($originalmark)"   unless $mark =~ /^([0-9]+|0x[0-9a-f]+)$/ and $designator =~ /^([0-9]+|0x[0-9a-f]+)$/;
+	    fatal_error "Invalid MARK ($originalmark)"   unless $mark =~ /^([0-9a-fA-F]+)$/ and $designator =~ /^([0-9a-fA-F]+)$/;
 
 	    if ( $config{TC_ENABLED} eq 'Internal' || $config{TC_ENABLED} eq 'Shared' ) {
+		$originalmark = join( ':', normalize_hex( $mark ), normalize_hex( $designator ) );
 		fatal_error "Unknown Class ($originalmark)}" unless ( $device = $classids{$originalmark} );
+		fatal_error "IFB Classes may not be specified in tcrules" if @{$tcdevices{$device}{redirected}};
+
+		if ( $dest eq '-' ) {
+		    $dest = $device;
+		} else {
+		    $dest = join( ':', $device, $dest ) unless $dest =~ /^[[:alpha:]]/;
+		}
 	    }
 
 	    $chain   = 'tcpost';
@@ -403,6 +411,8 @@ sub process_tc_rule( ) {
 	    }
 	}
     }
+
+    fatal_error "USER/GROUP only allowed in the OUTPUT chain" unless ( $user eq '-' || ( $chain eq 'tcout' || $chain eq 'tcpost' ) ); 
 
     if ( ( my $result = expand_rule( ensure_chain( 'mangle' , $chain ) ,
 				     $restrictions{$chain} | $restriction,
@@ -602,15 +612,16 @@ sub validate_tc_device( ) {
 	fatal_error "Invalid NUMBER:INTERFACE ($device:$number:$rest)" if defined $rest;
 
 	if ( defined $number ) {
+	    $number = normalize_hex( $number );
 	    $devnumber = hex_value( $number );
-	    fatal_error "Invalid interface NUMBER ($number)" unless defined $devnumber && $devnumber;
+	    fatal_error "Invalid device NUMBER ($number)" unless defined $devnumber && $devnumber && $devnumber < 256;
 	    fatal_error "Duplicate interface number ($number)" if defined $devnums[ $devnumber ];
 	    $devnum = $devnumber if $devnumber > $devnum;
 	} else {
 	    fatal_error "Missing interface NUMBER";
 	}
-    } else {
-	$devnumber = ++$devnum;
+    } elsif ( ( $devnumber = ++$devnum ) > 255 ) {
+	fatal_error "Attempting to assign a device number > 255";
     }
 
     $devnums[ $devnumber ] = $device;
@@ -745,7 +756,6 @@ sub dev_by_number( $ ) {
     }
 
     ( $dev , $devref );
-
 }
 
 sub validate_tc_class( ) {
@@ -761,7 +771,7 @@ sub validate_tc_class( ) {
 	( $device, my ($number, $subnumber, $rest ) )  = split /:/, $device, 4;
 	fatal_error "Invalid INTERFACE:CLASS ($devclass)" if defined $rest;
 
-	if ( $device =~ /^(\d+|0x[\da-fA-F]+)$/ ) {
+	if ( $device =~ /^[\da-fA-F]+$/ && ! $tcdevices{$device} ) {
 	    ( $number , $classnumber ) = ( hex_value $device, hex_value $number );
 	    ( $device , $devref) = dev_by_number( $number );
 	} else {
@@ -777,7 +787,8 @@ sub validate_tc_class( ) {
 		$classnumber = hex_value $subnumber;
 	    }
 
-	    fatal_error "Invalid interface/class number ($devclass)" unless defined $classnumber && $classnumber;
+	    fatal_error "Invalid interface/class number ($devclass)" unless defined $classnumber && $classnumber && $classnumber < 0x8000;
+	    fatal_error "Reserved class number (1)" if $classnumber == 1;
 	    fatal_error "Duplicate interface:class number ($number:$classnumber}" if $tcclasses{$device}{$classnumber};
 	} else {
 	    fatal_error "Missing interface NUMBER";
@@ -976,9 +987,15 @@ sub process_tc_filter() {
 
     my ( $ip, $ip32, $prio , $lo ) = $family == F_IPV4 ? ('ip', 'ip', 10, 2 ) : ('ipv6', 'ip6', 11 , 4 );
 
-    ( $device , my $devref ) = dev_by_number( $device );
+    my $devref;
 
-    my $devnum = $devref->{number};
+    if ( $device =~ /^[\da-fA-F]+$/ && ! $tcdevices{$device} ) {
+	( $device, $devref ) = dev_by_number( hex_value( $device ) );
+    } else {
+	( $device , $devref ) = dev_by_number( $device );
+    }
+
+    my $devnum = in_hexp $devref->{number};
 
     my $tcref = $tcclasses{$device};
 
@@ -1051,7 +1068,7 @@ sub process_tc_filter() {
 
     if ( $portlist eq '-' && $sportlist eq '-' ) {
 	emit( "\nrun_tc $rule\\" ,
-	      "   flowid $devref->{number}:$class" ,
+	      "   flowid $devnum:$class" ,
 	      '' );
     } else {
 	fatal_error "Ports may not be specified without a PROTO" unless $protonumber;
@@ -1113,7 +1130,7 @@ sub process_tc_filter() {
 
 		    emit( "\nrun_tc $rule\\" ,
 			  "   $rule1\\" ,
-			  "   flowid $devref->{number}:$class" );
+			  "   flowid $devnum:$class" );
 		}
 	    }
 	} else {
@@ -1131,7 +1148,7 @@ sub process_tc_filter() {
 		    $rule1   .= "\\\n   match icmp code $icmpcode 0xff" if defined $icmpcode;
 		    emit( "\nrun_tc ${rule}\\" ,
 			  "$rule1\\" ,
-			  "   flowid $devref->{number}:$class" );
+			  "   flowid $devnum:$class" );
 		} elsif ( $protonumber == IPv6_ICMP ) {
 		    fatal_error "IPv6 ICMP not allowed with IPv4" unless $family == F_IPV4;
 		    fatal_error "SOURCE PORT(S) are not allowed with IPv6 ICMP" if $sportlist ne '-';
@@ -1142,7 +1159,7 @@ sub process_tc_filter() {
 		    $rule1   .= "\\\n   match icmp6 code $icmpcode 0xff" if defined $icmpcode;
 		    emit( "\nrun_tc ${rule}\\" ,
 			  "$rule1\\" ,
-			  "   flowid $devref->{number}:$class" );
+			  "   flowid $devnum:$class" );
 		} else {
 		    my @portlist = expand_port_range $protonumber , $portrange;
 
@@ -1162,7 +1179,7 @@ sub process_tc_filter() {
 			if ( $sportlist eq '-' ) {
 			    emit( "\nrun_tc ${rule}\\" ,
 				  "   $rule1\\" ,
-				  "   flowid $devref->{number}:$class" );
+				  "   flowid $devnum:$class" );
 			} else {
 			    for my $sportrange ( split_list $sportlist , 'port list' ) {
 				my @sportlist = expand_port_range $protonumber , $sportrange;
@@ -1183,7 +1200,7 @@ sub process_tc_filter() {
 				    emit( "\nrun_tc ${rule}\\",
 					  "   $rule1\\" ,
 					  "   $rule2\\" ,
-					  "   flowid $devref->{number}:$class" );
+					  "   flowid $devnum:$class" );
 				}
 			    }
 			}
@@ -1376,6 +1393,8 @@ sub setup_traffic_shaping() {
 	my $devnum  = in_hexp $devref->{number};
 	my $r2q     = int calculate_r2q $devref->{out_bandwidth};
 
+	fatal_error "No default class defined for device $device" unless $devref->{default};
+
 	$device = physical_name $device;
 
 	my $dev = chain_base( $device );
@@ -1513,7 +1532,7 @@ sub setup_traffic_shaping() {
 	    #
 	    # options
 	    #
-	    emit "run_tc filter add dev $device parent $devref->{number}:0 protocol ip prio " . ( $priority | 10 ) ." u32 match ip protocol 6 0xff match u8 0x05 0x0f at 0 match u16 0x0000 0xffc0 at 2 match u8 0x10 0xff at 33 flowid $classid" if $tcref->{tcp_ack};
+	    emit "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio " . ( $priority | 10 ) ." u32 match ip protocol 6 0xff match u8 0x05 0x0f at 0 match u16 0x0000 0xffc0 at 2 match u8 0x10 0xff at 33 flowid $classid" if $tcref->{tcp_ack};
 
 	    for my $tospair ( @{$tcref->{tos}} ) {
 		my ( $tos, $mask ) = split q(/), $tospair;

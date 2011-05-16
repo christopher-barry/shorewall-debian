@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 1 9 . 1
+                      S H O R E W A L L  4 . 4 . 1 9 . 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +12,94 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.19.3
+
+1)  The changes in 4.4.19.1 that corrected long-standing issues with
+    default route save/restore were incompatible with 'gawk'. When
+    'gawk' was installed (rather than 'mawk'), awk syntax errors having
+    to do with the symbol 'default' were issued.
+
+    This incompatibility has been corrected.
+
+2)  Previously, an entry in the USER/GROUP column in the rules and
+    tcrules files could cause run-time start/restart failures if the
+    rule(s) being added did not have the firewall as the source (rules
+    file) and were not being added to the POSTROUTING chain (:T
+    designator in the tcrules file). This error is now caught by
+    the compiler.
+
+3)  Shorewall now insures that a route to a default gateway exists in
+    the main table before it attempts to add a default route through
+    that gateway in a provider table. This prevents start/restart
+    failures in the rare event that such a route does not exist.
+
+4)  CLASSIFY TC rules can apply to traffic exiting only the interface
+    associated with the class-id specified in the first column. In a
+    Multi-ISP configuration, a naive user might create this TC rule:
+
+        1:2     -       1.2.3.4
+
+    This will work fine when 1.2.3.4 can only be routed out of a single
+    interface. However, if we assume that eth0 is interface 1, then the
+    above rule only works for traffic leaving via eth0. 
+
+    Beginning with this release, the Shorewall compiler will interpret
+    the above rule as this one:
+
+        1.2     -       eth0:1.2.3.4
+
+4.4.19.2
+
+1)  In Shorewall-shell, there was the ability to specify IPSET names in
+    the ORIGINAL DEST column of DNAT and REDIRECT rules. That ability,
+    inadvertently dropped in Shorewall-perl, has been restored.
+
+    CAUTION: When an IPSET is used in this way, the server port is
+    opened from the SOURCE zone. 
+
+    Example:
+
+	DNAT	net	dmz:10.1.1.2	tcp	80	-	+foo
+
+    will implicitly add this rule
+
+	ACCEPT	net	dmz:10.1.1.2	tcp	80
+
+2)  Several problems with complex TC have been corrected:
+
+    a) The following entry in /etc/shorewall/tcclasses
+
+       	A:1 - 10*full/100:50ms 20*full/100 1 tcp-ack
+
+       produced this error:
+
+        ERROR: Unknown INTERFACE (A) : /etc/shorewall/tcclasses
+
+       This has been corrected.
+
+    b) Shorewall reserves class number 1 for the root class of the
+       queuing discipline. Definining class 1 in
+       /etc/shorewall/tcclasses was previoulsly escaping detection by
+       the compiler, resulting in a run-time error.
+
+    c) The compiler did not complain if a CLASSID specified in the MARK
+       column of tcrules referred to an IFB class. Such a rule would be
+       nonsensical since packets are passed through the IFB before
+       they are passed through any marking rules. Such a configuration
+       now results in a compilation error.
+
+    d) Where there are more than 10 tcdevices, tcfilter entries could
+       generate invalid rules.
+
+3)  Double exclusion involving ipset lists was previously not detected,
+    resulting in anomalous behavior.
+
+    Example:
+
+	ACCEPT:info $FW net:!10.1.0.7,10.1.0.9,+[!my-host[src]]]
+
+    Such cases now result in a compilation error.
 
 4.4.19.1
 
