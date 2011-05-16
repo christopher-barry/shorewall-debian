@@ -2870,7 +2870,7 @@ sub conditional_rule_end( $ ) {
     add_commands( $chainref , "fi\n" );
 }	
 
-sub mysplit( $ );
+sub mysplit( $;$ );
 
 #
 # Match a Source.
@@ -2901,7 +2901,7 @@ sub match_source_net( $;$\$ ) {
 
     if ( $net =~ /^\+\[(.+)\]$/ ) {
 	my $result = '';
-	my @sets = mysplit $1;
+	my @sets = mysplit $1, 1;
 
 	require_capability 'KLUDGEFREE', 'Multiple ipset matches', '' if @sets > 1;
 
@@ -2951,7 +2951,7 @@ sub match_dest_net( $ ) {
 
     if ( $net =~ /^\+\[(.+)\]$/ ) {
 	my $result = '';
-	my @sets = mysplit $1;
+	my @sets = mysplit $1, 1;
 
 	require_capability 'KLUDGEFREE', 'Multiple ipset matches', '' if @sets > 1;
 
@@ -3229,10 +3229,14 @@ sub addnatjump( $$$ ) {
 # Split a comma-separated source or destination host list but keep [...] together. Used for spliting address lists
 # where an element of the list might be +ipset[flag,...] or +[ipset[flag,...],...]
 #
-sub mysplit( $ ) {
-    my @input = split_list $_[0], 'host';
+sub mysplit( $;$ ) {
+    my ( $input, $loose ) = @_;
 
-    return @input unless $_[0] =~ /\[/;
+    my @input = split_list $input, 'host';
+
+    return @input unless $input =~ /\[/;
+
+    my $exclude = 0;
 
     my @result;
 
@@ -3245,7 +3249,14 @@ sub mysplit( $ ) {
 		$element .= ( ',' . shift @input );
 	    }
 
+	    unless ( $loose ) {
+		fatal_error "Invalid host list ($input)" if $exclude && $element =~ /!/;
+		$exclude ||= $element =~ /^!/ || $element =~ /\]!/;
+	    }
+
 	    fatal_error "Mismatched [...] ($element)" unless $element =~ tr/[/[/ == $element =~ tr/]/]/;
+	} else {
+	    $exclude ||= $element =~ /!/ unless $loose;
 	}
 
 	push @result, $element;
@@ -3961,7 +3972,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	( $inets, $iexcl ) = handle_network_list( $inets, 'SOURCE' );
 
 	unless ( $inets || $iexcl =~ /^\+\[/ || ( $iiface && $restriction & POSTROUTE_RESTRICT ) ) {
-	    my @iexcl = mysplit $iexcl;
+	    my @iexcl = mysplit $iexcl, 1;
 	    if ( @iexcl == 1 ) {
 		$rule .= match_source_net "!$iexcl" , $restriction;
 		$iexcl = '';
@@ -3979,7 +3990,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	( $dnets, $dexcl ) = handle_network_list( $dnets, 'DEST' );
 
 	unless ( $dnets || $dexcl =~ /^\+\[/ ) {
-	    my @dexcl = mysplit $dexcl;
+	    my @dexcl = mysplit $dexcl, 1;
 	    if ( @dexcl == 1 ) {
 		$rule .= match_dest_net "!$dexcl";
 		$dexcl = '';

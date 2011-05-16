@@ -61,6 +61,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       disable_script
 		                       numeric_value
 		                       numeric_value1
+				       normalize_hex
 		                       hex_value
 		                       in_hex
 		                       in_hex2
@@ -411,7 +412,7 @@ sub initialize( $ ) {
 		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.19.1",
+		    VERSION    => "4.4.19.3",
 		    CAPVERSION => 40417 ,
 		  );
     #
@@ -817,6 +818,16 @@ sub hex_value( $ ) {
     no warnings;
     oct '0x' . $val;
     use warnings;
+}
+
+#
+# Strip off superfluous leading zeros from a hex number
+#
+sub normalize_hex( $ ) {
+    my $val = lc shift;
+
+    $val =~ s/^0// while $val =~ /^0/ && length $val > 1;
+    $val;
 }
 
 #
