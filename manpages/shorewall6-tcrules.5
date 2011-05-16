@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 04/14/2011
+.\"      Date: 05/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCRULES" "5" "04/14/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCRULES" "5" "05/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -102,6 +102,10 @@ follow the mark value then the chain is determined as follows:
 \- Otherwise, the chain is determined by the setting of MARK_IN_FORWARD_CHAIN in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .sp
+Please note that
+\fB:I\fR
+is included for completeness and affects neither traffic shaping nor policy routing\&.
+.sp
 If your kernel and ip6tables include CONNMARK support then you can also mark the connection rather than the packet\&.
 .sp
 The mark value may be optionally followed by "/" and a mask value (used to determine those bits of the connection mark to actually be set)\&. The mark and optional mask are then followed by one of:+
@@ -124,6 +128,11 @@ Mark the connection in the PREROUTING chain\&.
 CT
 .RS 4
 Mark the connection in the POSTROUTING chain
+.RE
+.PP
+CI
+.RS 4
+Mark the connection in the INPUT chain\&. This option is included for completeness and has no applicability to traffic shaping or policy routing\&.
 .RE
 .sp
 \fBSpecial considerations for If HIGH_ROUTE_MARKS=Yes in \fR\fB\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2\fR\fB(5\fR)\&.
@@ -292,7 +301,7 @@ To stop the comment from being attached to further rules, simply include COMMENT
 .PP
 \fBSOURCE\fR \- {\fB\-\fR|{\fIinterface\fR|\fB$FW\fR}|[{\fIinterface\fR|\fB$FW\fR}:]<\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.}[\fIexclusion\fR]>
 .RS 4
-Source of the packet\&. A comma\-separated list of interface names, IP addresses, MAC addresses and/or subnets for packets being routed through a common path\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>)\&. For example, all packets for connections masqueraded to eth0 from other interfaces can be matched in a single rule with several alternative SOURCE criteria\&. However, a connection whose packets gets to eth0 in a different way, e\&.g\&., direct from the firewall itself, needs a different rule\&.
+Source of the packet\&. A comma\-separated list of interface names, IP addresses, MAC addresses and/or subnets for packets being routed through a common path\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>) or an ipset\&. For example, all packets for connections masqueraded to eth0 from other interfaces can be matched in a single rule with several alternative SOURCE criteria\&. However, a connection whose packets gets to eth0 in a different way, e\&.g\&., direct from the firewall itself, needs a different rule\&.
 .sp
 Accordingly, use $\fBFW\fR
 in its own separate rule for packets originating on the firewall\&. In such a rule, the MARK column may NOT specify either
@@ -315,7 +324,7 @@ You may exclude certain hosts from the set already defined through use of an
 .PP
 \fBDEST\fR \- {\fB\-\fR|{\fIinterface\fR|$FW}[{\fIinterface\fR|$FW}:]<\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.}[\fIexclusion\fR]>
 .RS 4
-Destination of the packet\&. Comma separated list of IP addresses and/or subnets\&. If your kernel and ip6tables include iprange match support, IP address ranges are also allowed\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>)\&. If the
+Destination of the packet\&. Comma separated list of IP addresses and/or subnets\&. If your kernel and ip6tables include iprange match support, IP address ranges are also allowed\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>) or an ipset\&. If the
 \fBMARK\fR
 column specificies a classification of the form
 \fImajor\fR:\fIminor\fR
@@ -389,7 +398,7 @@ program must not be run by a member of the \*(Aqkids\*(Aq group
 .RE
 .RE
 .PP
-\fBTEST\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
+\fBTEST\fR(Optional) \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
 .RS 4
 Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
 .sp
@@ -433,7 +442,7 @@ is omitted, than any packet that is
 or longer will match\&.
 .RE
 .PP
-\fBTOS\fR \- \fItos\fR
+\fBTOS\fR (Optional) \- \fItos\fR
 .RS 4
 Type of service\&. Either a standard name, or a numeric value to match\&.
 .sp
@@ -452,7 +461,7 @@ Type of service\&. Either a standard name, or a numeric value to match\&.
 .\}
 .RE
 .PP
-\fBCONNBYTES\fR \- [!]\fImin\fR:[\fImax\fR[:{\fBO\fR|\fBR\fR|\fBB\fR}[:{\fBB\fR|\fBP\fR|\fBA\fR}]]]
+\fBCONNBYTES\fR (Optional) \- [!]\fImin\fR:[\fImax\fR[:{\fBO\fR|\fBR\fR|\fBB\fR}[:{\fBB\fR|\fBP\fR|\fBA\fR}]]]
 .RS 4
 Connection Bytes; defines a byte or packet range that the connection must fall within in order for the rule to match\&.
 .sp
@@ -475,7 +484,7 @@ The second letter determines what the range refers to\&.\fBB\fR \- Bytes .sp \fB
 is assumed\&.
 .RE
 .PP
-\fBHELPER \- \fR\fIhelper\fR
+\fBHELPER (Optional) \- \fR\fIhelper\fR
 .RS 4
 Names a Netfiler protocol
 helper

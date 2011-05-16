@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcclasses
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 04/14/2011
+.\"      Date: 05/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCCLASSE" "5" "04/14/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCCLASSE" "5" "05/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -111,7 +111,7 @@ DO NOT add a unit to the rate if it is calculated !
 .PP
 The columns in the file are as follows\&.
 .PP
-\fBINTERFACE\fR \- \fIinterface\fR[:\fIclass\fR]
+\fBINTERFACE\fR \- \fIinterface\fR[[:\fIparent\fR]:\fIclass\fR]
 .RS 4
 Name of
 \fIinterface\fR\&. Each interface may be listed only once in this file\&. You may NOT specify the name of an alias (e\&.g\&., eth0:0) here; see
@@ -127,7 +127,7 @@ You may NOT specify wildcards here, e\&.g\&. if you have multiple ppp interfaces
 Please note that you can only use interface names in here that have a bandwidth defined in the
 \m[blue]\fBshorewall6\-tcdevices\fR\m[]\&\s-2\u[1]\d\s+2(5) file\&.
 .sp
-Normally, all classes defined here are sub\-classes of a root class that is implicitly defined from the entry in
+Normally, all classes defined here are sub\-classes of a root class (class number 1) that is implicitly defined from the entry in
 \m[blue]\fBshorewall6\-tcdevices\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. You can establish a class hierarchy by specifying a
 \fIparent\fR
 class \-\- the number of a class that you have previously defined\&. The sub\-class may borrow unused bandwidth from its parent\&.
