@@ -259,6 +259,11 @@ sub process_tc_rule( ) {
 		fatal_error "Unknown Class ($originalmark)}" unless ( $device = $classids{$originalmark} );
 		fatal_error "IFB Classes may not be specified in tcrules" if @{$tcdevices{$device}{redirected}};
 
+		unless ( $tcclasses{$device}{hex_value $designator}{leaf} ) {
+		    warning_message "Non-leaf Class ($originalmark) - tcrule ignored";
+		    return;
+		}
+
 		if ( $dest eq '-' ) {
 		    $dest = $device;
 		} else {
@@ -835,9 +840,11 @@ sub validate_tc_class( ) {
 	# Nested Class
 	#
 	$parentref = $tcref->{$parentclass};
-	fatal_error "Unknown Parent class ($parentclass)" unless $parentref && $parentref->{occurs} == 1;
-	fatal_error "The class ($parentclass) specifies UMAX and/or DMAX; it cannot serve as a parent" if $parentref->{dmax};
-	fatal_error "The class ($parentclass) specifies flow; it cannot serve as a parent"             if $parentref->{flow}; 
+	my $parentnum = in_hexp $parentclass;
+	fatal_error "Unknown Parent class ($parentnum)" unless $parentref && $parentref->{occurs} == 1;
+	fatal_error "The class ($parentnum) specifies UMAX and/or DMAX; it cannot serve as a parent" if $parentref->{dmax};
+	fatal_error "The class ($parentnum) specifies flow; it cannot serve as a parent"             if $parentref->{flow};
+	fatal_error "The default class ($parentnum) may not have sub-classes"                        if $devref->{default} == $parentclass;
 	$parentref->{leaf} = 0;
 	$ratemax  = $parentref->{rate};
 	$ratename = q(the parent class's RATE);
@@ -856,6 +863,7 @@ sub validate_tc_class( ) {
 	$dmax = convert_delay( $dmax );
 	$umax = convert_size( $umax );
 	fatal_error "DMAX must be specified when UMAX is specified" if $umax && ! $dmax;
+	$parentclass ||= 1;
     } else {
 	$rate = convert_rate ( $ratemax, $rate, 'RATE' , $ratename );
     }
@@ -1010,6 +1018,13 @@ sub process_tc_filter() {
     fatal_error "Unknown CLASS ($devclass)"                  unless $tcref && $tcref->{occurs};
     fatal_error "Filters may not specify an occurring CLASS" if $tcref->{occurs} > 1;
 
+    unless ( $tcref->{leaf} ) {
+	warning_message "Filter specifying a non-leaf CLASS ($devnum:$class) ignored";
+	return;
+    }
+
+    my $have_rule = 0;
+
     if ( $devref->{physical} ne $lastdevice ) {
 	if ( $lastdevice ) {
 	    pop_indent;
@@ -1026,11 +1041,13 @@ sub process_tc_filter() {
     if ( $source ne '-' ) {
 	my ( $net , $mask ) = decompose_net( $source );
 	$rule .= "\\\n   match $ip32 src $net/$mask";
+	$have_rule = 1;
     }
 
     if ( $dest ne '-' ) {
 	my ( $net , $mask ) = decompose_net( $dest );
 	$rule .= "\\\n   match $ip32 dst $net/$mask";
+	$have_rule = 1;
     }
 
     if ( $tos ne '-' ) {
@@ -1049,6 +1066,7 @@ sub process_tc_filter() {
 	}
 
 	$rule .= "\\\n  match $ip32 tos $tosval $mask";
+	$have_rule = 1;
     }
 
     if ( $length ne '-' ) {
@@ -1056,6 +1074,7 @@ sub process_tc_filter() {
 	my $mask = $validlengths{$len};
 	fatal_error "Invalid LENGTH ($length)" unless $mask;
 	$rule .="\\\n   match u16 0x0000 $mask at $lo";
+	$have_rule = 1;
     }
 
     my $protonumber = 0;
@@ -1063,13 +1082,20 @@ sub process_tc_filter() {
     unless ( $proto eq '-' ) {
 	$protonumber = resolve_proto $proto;
 	fatal_error "Unknown PROTO ($proto)" unless defined $protonumber;
-	$rule .= "\\\n   match $ip32 protocol $protonumber 0xff" if $protonumber;
+	if ( $protonumber ) {
+	    $rule .= "\\\n   match $ip32 protocol $protonumber 0xff";
+	    $have_rule = 1;
+	}
     }
 
     if ( $portlist eq '-' && $sportlist eq '-' ) {
-	emit( "\nrun_tc $rule\\" ,
-	      "   flowid $devnum:$class" ,
-	      '' );
+	if ( $have_rule ) {
+	    emit( "\nrun_tc $rule\\" ,
+		  "   flowid $devnum:$class" ,
+		  '' );
+	} else {
+	    warning_message "Degenerate tcfilter ignored";
+	}
     } else {
 	fatal_error "Ports may not be specified without a PROTO" unless $protonumber;
 	our $lastrule;
@@ -1280,6 +1306,13 @@ sub process_tc_priority() {
 	process_comment;
 	return;
     }
+
+    fatal_error "Invalid tcpri entry" if ( $proto     eq '-' &&
+					   $ports     eq '-' &&
+					   $address   eq '-' &&
+					   $interface eq '-' &&
+					   $helper    eq '-' );
+
 
     my $val = numeric_value $band;
 

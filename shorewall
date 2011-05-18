@@ -363,11 +363,12 @@ compiler() {
 	PERL=/usr/bin/perl
     fi
 
-    if [ $g_perllib = share/shorewall ]; then
-	$PERL $debugflags /usr/$g_libexec/shorewall/compiler.pl $options $@
-    else
-	PERL5LIB=$g_perllib $PERL $debugflags /usr/$g_libexec/shorewall/compiler.pl $options $@
+    if [ $g_perllib != ${g_libexec}/shorewall ]; then
+	PERL5LIB=/usr/$g_perllib
+	export PERL5LIB
     fi
+    
+    $PERL $debugflags /usr/$g_libexec/shorewall/compiler.pl $options $@
 }
 
 #
@@ -825,6 +826,8 @@ refresh_command() {
 	    g_refreshchains="$g_refreshchains,$1"
 	    shift
 	done
+    else
+	g_refreshchains=:refresh:
     fi
 
     shorewall_is_started || fatal_error "Shorewall is not running"
@@ -1469,7 +1472,7 @@ g_verbose_offset=0
 g_use_verbosity=
 g_debug=
 g_export=
-g_refreshchains=
+g_refreshchains=:none:
 
 #
 # Make sure that these variables are cleared
