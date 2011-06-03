@@ -1,3 +1,10 @@
+shorewall6 (4.4.19.4-2) unstable; urgency=low
+
+  * New debconf translation, Brazilian Portugese, thanks to Eder L. Marques
+    (Closes: #629115)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 03 Jun 2011 18:16:36 -0400
+
 shorewall6 (4.4.19.4-1) unstable; urgency=low
 
   * New Upstream Version

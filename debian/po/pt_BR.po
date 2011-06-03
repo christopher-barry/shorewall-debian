@@ -1,35 +1,32 @@
 # shorewall6 Brazilian Portuguese translation
 # Copyright (C) 2008 shorewall6's COPYRIGHT HOLDER
 # This file is distributed under the same license as the shorewall6 package.
-# Eder L. Marques (frolic) <frolic@debian-ce.org>, 2008.
 #
+# Eder L. Marques <eder@edermarques.net>, 2008-2011.
 msgid ""
 msgstr ""
-"Project-Id-Version: shorewall6 4.0.10-3\n"
+"Project-Id-Version: shorewall6 4.4.19.4-1\n"
 "Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
 "POT-Creation-Date: 2009-03-09 01:12+0000\n"
-"PO-Revision-Date: 2008-05-27 16:16-0300\n"
-"Last-Translator: Eder L. Marques (frolic) <frolic@debian-ce.org>\n"
-"Language-Team: l10n Portuguese <debian-l10n-portuguese@lists.debian.org>\n"
+"PO-Revision-Date: 2011-05-29 17:45-0300\n"
+"Last-Translator: Eder L. Marques <eder@edermarques.net>\n"
+"Language-Team: Brazilian Portuguese <debian-l10n-portuguese@lists.debian.org>"
+"\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"pt_BR utf-8\n"
-"X-Generator: KBabel 1.11.4\n"
-"Plural-Forms:  nplurals=2; plural=(n > 1);\n"
+"Language: pt_BR\n"
 
 #. Type: note
 #. Description
 #: ../shorewall6.templates:2001
-#, fuzzy
 #| msgid "No automatic restart for Shorewall"
 msgid "No automatic restart for Shorewall6"
-msgstr "Sem reinicialização automática para o Shorewall"
+msgstr "Sem reinicialização automática para o Shorewall6"
 
 #. Type: note
 #. Description
 #: ../shorewall6.templates:2001
-#, fuzzy
 #| msgid ""
 #| "Shorewall will not be restarted automatically after being upgraded, to "
 #| "prevent changes in configuration files causing network outages."
@@ -37,14 +34,13 @@ msgid ""
 "Shorewall6 will not be restarted automatically after being upgraded, to "
 "prevent changes in configuration files causing network outages."
 msgstr ""
-"O shorewall não será reinicializado automaticamente após ser atualizado, "
+"O Shorewall6 não será reinicializado automaticamente após ser atualizado, "
 "para prevenir que mudanças nos arquivos de configuração causem "
 "indisponibilidade da rede."
 
 #. Type: note
 #. Description
 #: ../shorewall6.templates:2001
-#, fuzzy
 #| msgid ""
 #| "You should check Shorewall's configuration files and restart it with "
 #| "'invoke-rc.d shorewall6 restart'."
@@ -52,21 +48,19 @@ msgid ""
 "You should check Shorewall6's configuration files and restart it with "
 "'invoke-rc.d shorewall6 restart'."
 msgstr ""
-"Você deve checar os arquivos de configuração do Shorewall e reinicializá-lo "
-"com 'invoke-rc.d shorewall6 restart'. "
+"Você deve checar os arquivos de configuração do Shorewall6 e reinicializá-lo "
+"com 'invoke-rc.d shorewall6 restart'."
 
 #. Type: boolean
 #. Description
 #: ../shorewall6.templates:3001
-#, fuzzy
 #| msgid "Restart Shorewall?"
 msgid "Restart Shorewall6?"
-msgstr "Reinicializar o Shorewall?"
+msgstr "Reinicializar o Shorewall6?"
 
 #. Type: boolean
 #. Description
 #: ../shorewall6.templates:3001
-#, fuzzy
 #| msgid ""
 #| "To avoid the risk of failures and network outages these files should be "
 #| "checked carefully before the firewall is restarted."
@@ -74,38 +68,35 @@ msgid ""
 "To avoid the risk of failures and network outages, configuration files "
 "should be checked carefully before the firewall is restarted."
 msgstr ""
-"Para evitar o risco de falhas e indisponibilidade da rede esses arquivos "
-"deveriam ser checados cuidadosamente antes do firewall ser reinicializado."
+"Para evitar o risco de falhas e indisponibilidade da rede, os arquivos "
+"de configuração devem ser checados cuidadosamente antes do firewall ser "
+"reinicializado."
 
 #. Type: boolean
 #. Description
 #: ../shorewall6.templates:3001
-#, fuzzy
 #| msgid "Please choose whether you want to restart Shorewall immediately."
 msgid "Please choose whether you want to restart Shorewall6 immediately."
 msgstr ""
-"Por favor, escolha se você quer reinicializar o Shorewall imediatamente."
+"Por favor, escolha se você quer reinicializar o Shorewall6 imediatamente."
 
 #. Type: error
 #. Description
 #: ../shorewall6.templates:4001
-#, fuzzy
 #| msgid "Invalid Shorewall configuration detected"
 msgid "Invalid Shorewall6 configuration detected"
-msgstr "Configuração inválida do Shorewall detectada"
+msgstr "Configuração inválida do Shorewall6 detectada"
 
 #. Type: error
 #. Description
 #: ../shorewall6.templates:4001
-#, fuzzy
 #| msgid "Shorewall is configured to restart on upgrades."
 msgid "Shorewall6 is configured to restart on upgrades."
-msgstr "O Shorewall é configurado para reinicializar em atualizações."
+msgstr "O Shorewall6 é configurado para reinicializar em atualizações."
 
 #. Type: error
 #. Description
 #: ../shorewall6.templates:4001
-#, fuzzy
 #| msgid ""
 #| "However, the current configuration for Shorewall is invalid and it will "
 #| "fail to restart. You should fix the program's configuration, then restart "
@@ -115,7 +106,7 @@ msgid ""
 "fail to restart. You should fix the program's configuration, then restart it "
 "with 'invoke-rc.d shorewall6 restart'."
 msgstr ""
-"Contudo, a configuração atual do Shorewall é inválida e ele irá falhar em "
+"Contudo, a configuração atual do Shorewall6 é inválida e ele falhará em "
 "reinicializar. Você deve corrigir a configuração do programa, e então "
 "reinicializá-lo com 'invoke-rc.d shorewall6 restart'."
 
