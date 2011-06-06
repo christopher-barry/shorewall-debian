@@ -79,7 +79,7 @@
     <variablelist>
       <varlistentry>
         <term><emphasis
-        role="bold">ACCEPT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">ACCEPT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -89,7 +89,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">DROP_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">DROP_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -99,7 +99,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">REJECT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">NFQUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -109,7 +109,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">QUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">QUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -119,7 +119,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">NFQUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">REJECT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -182,6 +182,19 @@
           url="shorewall-accounting.html">shorewall-accounting</ulink>(5)). If
           not specified or set to the empty value, ACCOUNTING=Yes is
           assumed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">ACCOUNTING_TABLE=</emphasis>[<emphasis
+        role="bold">filter</emphasis>|<emphasis
+        role="bold">mangle</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. This setting determines which
+          Netfilter table the accounting rules are added in. By default,
+          ACCOUNTING_TABLE=filter is assumed. See also <ulink
+          url="shorewall-accounting.html">shorewall-accounting</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -289,20 +302,10 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">BIGDPORTLISTS=</emphasis>[<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
-
-        <listitem>
-          <para>Setting this option to 'Yes' allows you to include arbitrarily
-          long destination port lists in all configuration files.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><emphasis
         role="bold">BLACKLIST_DISPOSITION=</emphasis>[<emphasis
-        role="bold">DROP</emphasis>|<emphasis
-        role="bold">REJECT</emphasis>]</term>
+        role="bold">DROP</emphasis>|A_DROP|<emphasis
+        role="bold">REJECT|A_REJECT</emphasis>]</term>
 
         <listitem>
           <para>This parameter determines the disposition of packets from
@@ -310,6 +313,10 @@
           be dropped or REJECT if the packets are to be replied with an ICMP
           port unreachable reply or a TCP RST (tcp only). If you do not assign
           a value or if you assign an empty value then DROP is assumed.</para>
+
+          <para>A_DROP and A_REJECT are audited versions of DROP and REJECT
+          respectively and were added in Shorewall 4.4.20. They require
+          AUDIT_TARGET in the kernel and iptables.</para>
         </listitem>
       </varlistentry>
 
@@ -783,6 +790,20 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">IPSECFILE=zones</emphasis></term>
+
+        <listitem>
+          <para>This option indicates that zone-related ipsec information is
+          found in the zones file (<ulink
+          url="shorewall-zones.html">shorewall-zones</ulink>(5)). The option
+          indicates to the compiler that this is not a legacy configuration
+          where the ipsec information was contained in a separate file. The
+          value of this option must not be changed and the option must not be
+          deleted.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis
         role="bold">IPSET</emphasis>=[<emphasis>pathname</emphasis>]</term>
 
@@ -828,6 +849,22 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           command.</para>
 
           <para>The default is KEEP_RT_TABLES=No.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">LEGACY_FASTSTART=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. If not specified, the default is
+          Yes which preserves the legacy behavior of <command>start
+          -f</command> (the modification times of the files in
+          <filename>/etc/shorewall</filename> are compare with that of
+          <filename>/var/lib/shorewall/restore)</filename>. If set to No, then
+          the times are compared with that of /var/lib/shorewall/firewall,
+          which is consistant with the way that <command>restart -f</command>
+          works.</para>
         </listitem>
       </varlistentry>
 
@@ -1071,7 +1108,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         <term><emphasis role="bold">MACLIST_DISPOSITION=</emphasis>[<emphasis
         role="bold">ACCEPT</emphasis>|<emphasis
         role="bold">DROP</emphasis>|<emphasis
-        role="bold">REJECT</emphasis>]</term>
+        role="bold">REJECT</emphasis>|A_DROP|A_REJECT]</term>
 
         <listitem>
           <para>Determines the disposition of connections requests that fail
@@ -1080,6 +1117,10 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           or DROP (ignore the connection request). If not set or if set to the
           empty value (e.g., MACLIST_DISPOSITION="") then
           MACLIST_DISPOSITION=REJECT is assumed.</para>
+
+          <para>A_DROP and A_REJECT are audited versions of DROP and REJECT
+          respectively and were added in Shorewall 4.4.20. They require
+          AUDIT_TARGET in the kernel and iptables.</para>
         </listitem>
       </varlistentry>
 
@@ -1108,8 +1149,8 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           <para>This problem can be worked around by setting
           MACLIST_TABLE=mangle which will cause Mac verification to occur out
           of the PREROUTING chain. Because REJECT isn't available in that
-          environment, you may not specify MACLIST_DISPOSITION=REJECT with
-          MACLIST_TABLE=mangle.</para>
+          environment, you may not specify MACLIST_DISPOSITION=REJECT or
+          MACLIST_DISPOSITION=A_REJECT with MACLIST_TABLE=mangle.</para>
         </listitem>
       </varlistentry>
 
@@ -1143,6 +1184,18 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           <para>If MACLIST_TTL is not specified or is specified as empty (e.g,
           MACLIST_TTL="" or is specified as zero then 'maclist' lookups will
           not be cached).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">MANGLE_ENABLED=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Determines whether Shorewall will generate rules in the
+          Netfilter mangle table. Setting MANGLE_ENABLED=No disables all
+          Shorewall features that require the mangle table. The default is
+          MANGLE_ENABLED=Yes.</para>
         </listitem>
       </varlistentry>
 
@@ -1417,17 +1470,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">PKTTYPE=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
-
-        <listitem>
-          <para><emphasis role="bold">Obsolete</emphasis> - This option is
-          included for compatibility with older Shorewall releases. Its
-          setting has no effect.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><emphasis
         role="bold">RCP_COMMAND="</emphasis><replaceable>command</replaceable><emphasis
         role="bold">"</emphasis></term>
@@ -1588,6 +1630,41 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">SFILTER_DISPOSITION=</emphasis>[<emphasis
+        role="bold">DROP</emphasis>|<emphasis
+        role="bold">REJECT</emphasis>|A_DROP|A_REJECT]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. Determines the disposition of
+          packets matching the <option>filter</option> option (see <ulink
+          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)) and
+          of <firstterm>hairpin</firstterm> packets on interfaces without the
+          <option>routeback</option> option.<footnote>
+              <para>Hairpin packets are packets that are routed out of the
+              same interface that they arrived on.</para>
+            </footnote> interfaces without the routeback option.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">SFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+
+        <listitem>
+          <para>Added on Shorewall 4.4.20. Determines the logging of packets
+          matching the <option>filter</option> option (see <ulink
+          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)) and
+          of <firstterm>hairpin</firstterm> packets on interfaces without the
+          <option>routeback</option> option.<footnote>
+              <para>Hairpin packets are packets that are routed out of the
+              same interface that they arrived on.</para>
+            </footnote> interfaces without the routeback option. The default
+          is <option>info</option>. If you don't wish for these packets to be
+          logged, use FILTER_LOG_LEVEL=none.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis
         role="bold">SHOREWALL_SHELL=</emphasis>[<emphasis>pathname</emphasis>]</term>
 
@@ -1597,6 +1674,20 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           not specified or specified as a null value, /bin/sh is assumed.
           Using a light-weight shell such as ash or dash can significantly
           improve performance.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SMURF_DISPOSITION=</emphasis>[<emphasis
+        role="bold">DROP</emphasis>|A_DROP]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. The default setting is DROP which
+          causes smurf packets (see the nosmurfs option in <ulink
+          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)) to
+          be dropped. A_DROP causes the packets to be audited prior to being
+          dropped and requires AUDIT_TARGET support in the kernel and
+          iptables.</para>
         </listitem>
       </varlistentry>
 
@@ -1744,7 +1835,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">TCP_FLAGS_DISPOSITION=</emphasis>[<emphasis
         role="bold">ACCEPT</emphasis>|<emphasis
         role="bold">DROP</emphasis>|<emphasis
-        role="bold">REJECT</emphasis>]</term>
+        role="bold">REJECT</emphasis>|A_DROP|A_REJECT]</term>
 
         <listitem>
           <para>Determines the disposition of TCP packets that fail the checks
@@ -1755,6 +1846,10 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           response) or DROP (ignore the packet). If not set or if set to the
           empty value (e.g., TCP_FLAGS_DISPOSITION="") then
           TCP_FLAGS_DISPOSITION=DROP is assumed.</para>
+
+          <para>A_DROP and A_REJECT are audited versions of DROP and REJECT
+          respectively and were added in Shorewall 4.4.20. They require
+          AUDIT_TARGET in the kernel and iptables.</para>
         </listitem>
       </varlistentry>
 

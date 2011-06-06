@@ -78,7 +78,7 @@
     <variablelist>
       <varlistentry>
         <term><emphasis
-        role="bold">ACCEPT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">ACCEPT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -88,7 +88,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">DROP_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">DROP_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -98,7 +98,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">REJECT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">NFQUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -108,7 +108,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">QUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">QUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -118,7 +118,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">NFQUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis>macro</emphasis>|<emphasis
+        role="bold">REJECT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -184,6 +184,19 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">ACCOUNTING_TABLE=</emphasis>[<emphasis
+        role="bold">filter</emphasis>|<emphasis
+        role="bold">mangle</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. This setting determines which
+          Netfilter table the accounting rules are added in. By default,
+          ACCOUNTING_TABLE=filter is assumed. See also <ulink
+          url="shorewall-accounting.html">shorewall-accounting</ulink>(5).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">ADMINISABSENTMINDED=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
@@ -240,8 +253,8 @@
       <varlistentry>
         <term><emphasis
         role="bold">BLACKLIST_DISPOSITION=</emphasis>[<emphasis
-        role="bold">DROP</emphasis>|<emphasis
-        role="bold">REJECT</emphasis>]</term>
+        role="bold">DROP</emphasis>|A_DROP|<emphasis
+        role="bold">REJECT|A_REJECT</emphasis>]</term>
 
         <listitem>
           <para>This parameter determines the disposition of packets from
@@ -440,6 +453,26 @@
           <command>shorewall6 reject</command>, <command>shorewall6
           logdrop</command> and <command>shorewall6 logreject</command> is
           disabled. Default is <emphasis role="bold">Yes</emphasis>.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">EXPAND_POLICIES=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Normally, when the SOURCE or DEST columns in
+          shorewall-policy(5) contains 'all', a single policy chain is created
+          and the policy is enforced in that chain. For example, if the policy
+          entry is<programlisting>#SOURCE DEST POLICY LOG
+#                   LEVEL
+net     all  DROP   info</programlisting>then the chain name is 'net2all'
+          which is also the chain named in Shorewall log messages generated as
+          a result of the policy. If EXPAND_POLICIES=Yes, then Shorewall will
+          create a separate chain for each pair of zones covered by the
+          policy. This makes the resulting log messages easier to interpret
+          since the chain in the messages will have a name of the form 'a2b'
+          where 'a' is the SOURCE zone and 'b' is the DEST zone.</para>
         </listitem>
       </varlistentry>
 
@@ -725,6 +758,22 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">LEGACY_FASTSTART=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Added in Shorewall6 4.4.20. If not specified, the default is
+          Yes which preserves the legacy behavior of <command>start
+          -f</command> (the modification times of the files in
+          <filename>/etc/shorewall6</filename> are compare with that of
+          <filename>/var/lib/shorewall6/restore</filename>). If set to No,
+          then the times are compared with that of
+          /var/lib/shorewall6/firewall, which is consistant with the way that
+          <command>restart -f</command> works.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">LOAD_HELPERS_ONLY=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -935,7 +984,7 @@
         <term><emphasis role="bold">MACLIST_DISPOSITION=</emphasis>[<emphasis
         role="bold">ACCEPT</emphasis>|<emphasis
         role="bold">DROP</emphasis>|<emphasis
-        role="bold">REJECT</emphasis>]</term>
+        role="bold">REJECT</emphasis>|A_DROP|A_REJECT]</term>
 
         <listitem>
           <para>Determines the disposition of connections requests that fail
@@ -944,6 +993,10 @@
           or DROP (ignore the connection request). If not set or if set to the
           empty value (e.g., MACLIST_DISPOSITION="") then
           MACLIST_DISPOSITION=REJECT is assumed.</para>
+
+          <para>A_DROP and A_REJECT are audited versions of DROP and REJECT
+          respectively and were added in Shorewall 4.4.20. They require
+          AUDIT_TARGET in the kernel and ip6tables.</para>
         </listitem>
       </varlistentry>
 
@@ -974,6 +1027,51 @@
           of the PREROUTING chain. Because REJECT isn't available in that
           environment, you may not specify MACLIST_DISPOSITION=REJECT with
           MACLIST_TABLE=mangle.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">MACLIST_TTL=[</emphasis><emphasis>number</emphasis>]</term>
+
+        <listitem>
+          <para>The performance of configurations with a large numbers of
+          entries in <ulink
+          url="shorewall-maclist.html">shorewall-maclist</ulink>(5) can be
+          improved by setting the MACLIST_TTL variable in <ulink
+          url="shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+
+          <para>If your iptables and kernel support the "Recent Match" (see
+          the output of "shorewall check" near the top), you can cache the
+          results of a 'maclist' file lookup and thus reduce the overhead
+          associated with MAC Verification.</para>
+
+          <para>When a new connection arrives from a 'maclist' interface, the
+          packet passes through then list of entries for that interface in
+          <ulink url="shorewall-maclist.html">shorewall-maclist</ulink>(5). If
+          there is a match then the source IP address is added to the 'Recent'
+          set for that interface. Subsequent connection attempts from that IP
+          address occurring within $MACLIST_TTL seconds will be accepted
+          without having to scan all of the entries. After $MACLIST_TTL from
+          the first accepted connection request from an IP address, the next
+          connection request from that IP address will be checked against the
+          entire list.</para>
+
+          <para>If MACLIST_TTL is not specified or is specified as empty (e.g,
+          MACLIST_TTL="" or is specified as zero then 'maclist' lookups will
+          not be cached).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">MANGLE_ENABLED=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Determines whether Shorewall will generate rules in the
+          Netfilter mangle table. Setting MANGLE_ENABLED=No disables all
+          Shorewall features that require the mangle table. The default is
+          MANGLE_ENABLED=Yes.</para>
         </listitem>
       </varlistentry>
 
@@ -1265,19 +1363,6 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">SAVE_IPSETS=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
-
-        <listitem>
-          <para>If SAVE_IPSETS=Yes, then the current contents of your ipsets
-          will be saved by the <emphasis role="bold">shorewall6
-          save</emphasis> command. Regardless of the setting of SAVE_IPSETS,
-          if saved ipset contents are available then they will be restored by
-          <emphasis role="bold">shorewall6 restore</emphasis>.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><emphasis
         role="bold">SHOREWALL_SHELL=</emphasis>[<emphasis>pathname</emphasis>]</term>
 
@@ -1286,6 +1371,20 @@
           interpret the compiled script. If not specified or specified as a
           null value, /bin/sh is assumed. Using a light-weight shell such as
           ash or dash can significantly improve performance.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SMURF_DISPOSITION=</emphasis>[<emphasis
+        role="bold">DROP</emphasis>|A_DROP]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. The default setting is DROP which
+          causes smurf packets (see the nosmurfs option in <ulink
+          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)) to
+          be dropped. A_DROP causes the packets to be audited prior to being
+          dropped and requires AUDIT_TARGET support in the kernel and
+          ip6tables.</para>
         </listitem>
       </varlistentry>
 
@@ -1299,6 +1398,41 @@
           url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)).
           If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not
           logged.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SFILTER_DISPOSITION=</emphasis>[<emphasis
+        role="bold">DROP</emphasis>|<emphasis
+        role="bold">REJECT</emphasis>|A_DROP|A_REJECT]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.20. Determines the disposition of
+          packets matching the <option>filter</option> option (see <ulink
+          url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5))
+          and of <firstterm>hairpin</firstterm> packets on interfaces without
+          the <option>routeback</option> option.<footnote>
+              <para>Hairpin packets are packets that are routed out of the
+              same interface that they arrived on.</para>
+            </footnote> interfaces without the routeback option.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">SFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+
+        <listitem>
+          <para>Added on Shorewall 4.4.20. Determines the logging of packets
+          matching the <option>filter</option> option (see <ulink
+          url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5))
+          and of <firstterm>hairpin</firstterm> packets on interfaces without
+          the <option>routeback</option> option.<footnote>
+              <para>Hairpin packets are packets that are routed out of the
+              same interface that they arrived on.</para>
+            </footnote> interfaces without the routeback option. The default
+          is <option>info</option>. If you don't wish for these packets to be
+          logged, use FILTER_LOG_LEVEL=none.</para>
         </listitem>
       </varlistentry>
 
