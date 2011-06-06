@@ -1,0 +1,57 @@
+#
+# Shorewall version 4 - Proxyndp File
+#
+# For information about entries in this file, type "man shorewall6-proxyndp"
+#
+# See http://shorewall.net/ProxyARP.htm for additional information.
+#
+##################################################################################
+#           
+#    This file was added in Shoreall 4.4.16 and is used to define
+#    Proxy NDP. There is one entry in this file for each IPv6
+#    address to be proxied.
+#           
+#    The columns in the file are as follows.
+#           
+#    ADDRESS - address
+#           IPv6 Address.
+#           
+#    INTERFACE - interface (Optional)
+#           Local interface where system with the ip address in
+#           ADDRESS is connected. Only required when the HAVEROUTE
+#           column is left empty or is set to no or No.
+#           
+#    EXTERNAL - interface
+#           External Interface to be used to access this system from
+#           the Internet.
+#           
+#    HAVEROUTE - [-|Yes|No]
+#           If there is already a route from the firewall to the
+#           host whose address is given, enter Yes or yes in this
+#           column. Otherwise, enter no or No or leave the column
+#           empty and Shorewall will add the route for you. If
+#           Shorewall6 adds the route, its persistence depends on
+#           the value of thePERSISTENT column contains Yes;
+#           otherwise, shorewall6 stop or shorewall clear6 will
+#           delete the route.
+#           
+#    PERSISTENT - [-|Yes|No]
+#           If HAVEROUTE is No or no, then the value of this column
+#           determines if the route added by Shorewall persists
+#           after a shorewall6 stop or a shorewall6 clear. If this
+#           column contains Yes or yes then the route persists; If
+#           the column is empty or contains No or no then the route
+#           is deleted by shorewall6 stop or shorewall6 clear.
+#           
+#           Example
+#           
+#    Example 1:
+#           Host with IPv6 2001:470:b:227::44 is connected to
+#           interface eth1 and we want hosts attached via eth0 to be
+#           able to access it using that address.
+#           
+#        #ADDRESS             INTERFACE       EXTERNAL
+#        2001:470:b:227::44   eth1            eth0
+#           
+##################################################################################
+#ADDRESS		INTERFACE	EXTERNAL	HAVEROUTE	PERSISTENT

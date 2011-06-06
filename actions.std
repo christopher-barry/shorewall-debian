@@ -19,6 +19,9 @@
 #
 ###############################################################################
 #ACTION
+A_Drop	            # Audited Default Action for DROP policy
+A_Reject	    # Audited Default Action for REJECT policy
+A_AllowICMPs	    # Audited Accept needed ICMP6 types
 AllowICMPs	    # Accept needed ICMP6 types
 Drop		    # Default Action for DROP policy
 Reject		    # Default Action for REJECT policy

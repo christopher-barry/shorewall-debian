@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-INTERFAC" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -212,6 +212,13 @@ If you use
 This option allows DHCP datagrams to enter and leave the interface\&.
 .RE
 .PP
+filter=(\fInet\fR[,\&.\&.\&.])
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. This option should be used on bridges or other interfaces with the
+\fBrouteback\fR
+option\&. On these interfaces, it should list those local networks that are not routed out of the bridge or interface\&.
+.RE
+.PP
 \fBforward\fR[={0|1}]
 .RS 4
 Sets the /proc/sys/net/ipv6/conf/interface/forwarding option to the specified value\&. If no value is supplied, then 1 is assumed\&.
@@ -289,6 +296,9 @@ Added in Shorewall 4\&.4\&.10\&. When specified, the firewall will fail to start
 \fBrouteback\fR
 .RS 4
 If specified, indicates that shorewall6 should include rules that allow traffic arriving on this interface to be routed back out that same interface\&. This option is also required when you have used a wildcard in the INTERFACE column if you want to allow traffic between the interfaces that match the wildcard\&.
+.sp
+Beginning with Shorewall 4\&.4\&.20, if you specify this option, then you should also specify
+\fBfilter\fR; see above\&.
 .RE
 .PP
 \fBsourceroute[={0|1}]\fR
