@@ -1,7 +1,7 @@
 # Explicitely locate lock file.
 --- shorewall-debian.orig/lib.base
 +++ shorewall-debian/lib.base
-@@ -106,7 +106,8 @@
+@@ -105,7 +105,8 @@
      local try
      try=0
      local lockf
@@ -11,7 +11,7 @@
  
      MUTEX_TIMEOUT=${MUTEX_TIMEOUT:-60}
  
-@@ -137,7 +138,8 @@
+@@ -136,7 +137,8 @@
  #
  mutex_off()
  {
