@@ -4,7 +4,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2000-2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Shorewall documentation is available at http://shorewall.sourceforge.net
 #
@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.4.19.4
+VERSION=4.4.20
 
 usage() # $1 = exit status
 {
@@ -72,7 +72,7 @@ else
     VERSION=""
 fi
 
-[ -n "${LIBEXEC:=share}" ]
+[ -n "${LIBEXEC:=/usr/share}" ]
 
 echo "Uninstalling Shorewall Lite $VERSION"
 
@@ -109,7 +109,7 @@ rm -rf /etc/shorewall-lite-*.bkout
 rm -rf /var/lib/shorewall-lite
 rm -rf /var/lib/shorewall-lite-*.bkout
 rm -rf /usr/share/shorewall-lite
-rm -rf /usr/${LIBEXEC}/shorewall-lite
+rm -rf ${LIBEXEC}/shorewall-lite
 rm -rf /usr/share/shorewall-lite-*.bkout
 rm -f  /etc/logrotate.d/shorewall-lite
 

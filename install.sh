@@ -4,7 +4,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2000-2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Shorewall documentation is available at http://shorewall.net
 #
@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.19.4
+VERSION=4.4.20
 
 usage() # $1 = exit status
 {
@@ -123,7 +123,16 @@ done
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 
-[ -n "${LIBEXEC:=share}" ]
+[ -n "${LIBEXEC:=/usr/share}" ]
+
+case "$LIBEXEC" in
+    /*)
+	;;
+    *)
+	LIBEXEC=/usr/${LIBEXEC}
+	;;
+esac
+
 #
 # Determine where to install the firewall script
 #
@@ -229,7 +238,7 @@ echo  "Shorewall Lite script installed in ${DESTDIR}${DEST}/$INIT"
 #
 mkdir -p ${DESTDIR}/etc/shorewall-lite
 mkdir -p ${DESTDIR}/usr/share/shorewall-lite
-mkdir -p ${DESTDIR}/usr/${LIBEXEC}/shorewall-lite
+mkdir -p ${DESTDIR}${LIBEXEC}/shorewall-lite
 mkdir -p ${DESTDIR}/var/lib/shorewall-lite
 
 chmod 755 ${DESTDIR}/etc/shorewall-lite
@@ -282,20 +291,20 @@ echo "Common functions linked through ${DESTDIR}/usr/share/shorewall-lite/functi
 # Install Shorecap
 #
 
-install_file shorecap ${DESTDIR}/usr/${LIBEXEC}/shorewall-lite/shorecap 0755
+install_file shorecap ${DESTDIR}${LIBEXEC}/shorewall-lite/shorecap 0755
 
 echo
-echo "Capability file builder installed in ${DESTDIR}/usr/${LIBEXEC}/shorewall-lite/shorecap"
+echo "Capability file builder installed in ${DESTDIR}${LIBEXEC}/shorewall-lite/shorecap"
 
 #
 # Install wait4ifup
 #
 
 if [ -f wait4ifup ]; then
-    install_file wait4ifup ${DESTDIR}/usr/${LIBEXEC}/shorewall-lite/wait4ifup 0755
+    install_file wait4ifup ${DESTDIR}${LIBEXEC}/shorewall-lite/wait4ifup 0755
 
     echo
-    echo "wait4ifup installed in ${DESTDIR}/usr/${LIBEXEC}/shorewall-lite/wait4ifup"
+    echo "wait4ifup installed in ${DESTDIR}${LIBEXEC}/shorewall-lite/wait4ifup"
 fi
 
 #

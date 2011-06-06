@@ -739,6 +739,9 @@ show_command() {
 		case $1 in
 		    actions)
 			[ $# -gt 1 ] && usage 1
+			echo "A_ACCEPT            # Audit and accept the connection"
+			echo "A_DROP              # Audit and drop the connection"
+			echo "A_REJECT            # Audit and reject the connection "
 			echo "allowBcast          # Silently Allow Broadcast/multicast"
 			echo "allowInvalid        # Accept packets that are in the INVALID conntrack state."
 			echo "allowinUPnP         # Allow UPnP inbound (to firewall) traffic"
@@ -746,12 +749,8 @@ show_command() {
 			echo "dropBcast           # Silently Drop Broadcast/multicast"
 			echo "dropInvalid         # Silently Drop packets that are in the INVALID conntrack state"
 			echo "dropNotSyn          # Silently Drop Non-syn TCP packets"
-			echo "drop1918src         # Drop packets with an RFC 1918 source address"
-			echo "drop1918dst         # Drop packets with an RFC 1918 original dest address"
 			echo "forwardUPnP         # Allow traffic that upnpd has redirected from"
 			echo "rejNotSyn           # Silently Reject Non-syn TCP packets"
-			echo "rej1918src          # Reject packets with an RFC 1918 source address"
-			echo "rej1918dst          # Reject packets with an RFC 1918 original dest address"
 
 			if [ -f ${CONFDIR}/actions ]; then
 			    cat ${SHAREDIR}/actions.std ${CONFDIR}/actions | grep -Ev '^\#|^$'
@@ -1707,6 +1706,7 @@ determine_capabilities() {
     MARK_ANYWHERE=
     HEADER_MATCH=
     ACCOUNT_TARGET=
+    AUDIT_TARGET=
 
     chain=fooX$$
 
@@ -1846,6 +1846,7 @@ determine_capabilities() {
     qt $IPTABLES -A $chain -j LOG || LOG_TARGET=
     qt $IPTABLES -A $chain -j MARK --set-mark 5 && MARK_ANYWHERE=Yes
     qt $IPTABLES -A $chain -j ACCOUNT --addr 192.168.1.0/29 --tname $chain && ACCOUNT_TARGET=Yes
+    qt $IPTABLES -A $chain -j AUDIT --type drop && AUDIT_TARGET=Yes
 
     qt $IPTABLES -F $chain
     qt $IPTABLES -X $chain
@@ -1928,6 +1929,7 @@ report_capabilities() {
 	report_capability "Mark in any table" $MARK_ANYWHERE
 	report_capability "Header Match" $HEADER_MATCH
         report_capability "ACCOUNT Target" $ACCOUNT_TARGET
+	report_capability "AUDIT Target" $AUDIT_TARGET
     fi
 
     [ -n "$PKTTYPE" ] || USEPKTTYPE=
@@ -1995,6 +1997,7 @@ report_capabilities1() {
     report_capability1 MARK_ANYWHERE
     report_capability1 HEADER_MATCH
     report_capability1 ACCOUNT_TARGET
+    report_capability1 AUDIT_TARGET
 
     echo CAPVERSION=$SHOREWALL_CAPVERSION
     echo KERNELVERSION=$KERNELVERSION
