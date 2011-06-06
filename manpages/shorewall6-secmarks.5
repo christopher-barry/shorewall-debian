@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-secmarks
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-SECMARKS" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-SECMARKS" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -79,7 +79,7 @@ The remainder of the line is treated as a comment which is attached to subsequen
 .RE
 .RE
 .PP
-\fBCHAIN \- {P|I|F|O|T}[:{N|E|ER}]\fR
+\fBCHAIN \- {P|I|F|O|T}[:{N|I|NI|E|ER}]\fR
 .RS 4
 .RS 4
 P \- PREROUTING
@@ -96,9 +96,15 @@ O \- OUTPUT
 .RS 4
 T \- POSTROUTING
 .RE
-It may be optionally followed by a colon and an indication of the connection state(s) at which the context is to be applied:
+It may be optionally followed by a colon and an indication of the Netfilter connection state(s) at which the context is to be applied:
 .RS 4
 :N \- NEW connection
+.RE
+.RS 4
+:I \- INVALID connection
+.RE
+.RS 4
+:NI \- New or INVALID connection
 .RE
 .RS 4
 :E \- ESTABLISHED connection

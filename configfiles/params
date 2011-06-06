@@ -1,0 +1,79 @@
+#
+# Shorewall6 version 4 - Params File
+#
+# /etc/shorewall6/params
+#
+#	Assign any variables that you need here.
+#
+#	It is suggested that variable names begin with an upper case letter
+#	to distinguish them from variables used internally within the
+#	Shorewall6 programs
+#
+#	Example:
+#
+#		NET_IF=eth0
+#		NET_OPTIONS=dhcp,nosmurfs
+#
+#	Example (/etc/shorewall6/interfaces record):
+#
+#		net	$NET_IF		-	$NET_OPTIONS
+#
+#	The result will be the same as if the record had been written
+#
+#		net	eth0		-	dhcp,nosmurfs
+#
+###############################################################################
+#           
+#    Assign any shell variables that you need in this file.
+#           
+#    It is suggested that variable names begin with an upper case
+#    letter to distinguish them from variables used internally
+#    within the Shorewall programs
+#           
+#    The following variable names must be avoided. Those in bold
+#    font must be avoided in all Shorewall versions; those in
+#    regular font must be avoided in versions prior to 4.4.8.
+#    Any option from shorewall6.conf (5)
+#    COMMAND
+#    CONFDIR
+#    DEBUG
+#    ECHO_E
+#    ECHO_N
+#    EXPORT
+#    FAST
+#    FILEMODE
+#    HOSTNAME
+#    IPT_OPTIONS
+#    NOROUTES
+#    PREVIEW
+#    PRODUCT
+#    PROFILE
+#    PURGE
+#    RECOVERING
+#    RESTOREPATH
+#    RING_BELL
+#    SHAREDIR
+#    Any name beginning with SHOREWALL_ or SW_
+#    STOPPING
+#    TEST
+#    TIMESTAMP
+#    USE_VERBOSITY
+#    VARDIR
+#    VERBOSE
+#    VERBOSE_OFFSET
+#    VERSION
+#           
+#    Example params file:
+#           NET_IF=eth0
+#           NET_OPTIONS=dhcp,nosmurfs
+#           
+#    Example shorewall6-interfaces(5) file.
+#           ZONE    INTERFACE       BROADCAST       OPTIONS
+#           net     $NET_IF         -               $NET_OPTIONS
+#           
+#    This is the same as if the interfaces file had contained:
+#           ZONE    INTERFACE       BROADCAST       OPTIONS
+#           net     eth0            -               dhcp,nosmurfs
+#           
+###############################################################################
+#LAST LINE -- DO NOT REMOVE

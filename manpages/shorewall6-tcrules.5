@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCRULES" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCRULES" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -301,7 +301,7 @@ To stop the comment from being attached to further rules, simply include COMMENT
 .PP
 \fBSOURCE\fR \- {\fB\-\fR|{\fIinterface\fR|\fB$FW\fR}|[{\fIinterface\fR|\fB$FW\fR}:]<\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.}[\fIexclusion\fR]>
 .RS 4
-Source of the packet\&. A comma\-separated list of interface names, IP addresses, MAC addresses and/or subnets for packets being routed through a common path\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>) or an ipset\&. For example, all packets for connections masqueraded to eth0 from other interfaces can be matched in a single rule with several alternative SOURCE criteria\&. However, a connection whose packets gets to eth0 in a different way, e\&.g\&., direct from the firewall itself, needs a different rule\&.
+Source of the packet\&. A comma\-separated list of interface names, IP addresses, MAC addresses and/or subnets for packets being routed through a common path\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>)\&. For example, all packets for connections masqueraded to eth0 from other interfaces can be matched in a single rule with several alternative SOURCE criteria\&. However, a connection whose packets gets to eth0 in a different way, e\&.g\&., direct from the firewall itself, needs a different rule\&.
 .sp
 Accordingly, use $\fBFW\fR
 in its own separate rule for packets originating on the firewall\&. In such a rule, the MARK column may NOT specify either
@@ -324,7 +324,7 @@ You may exclude certain hosts from the set already defined through use of an
 .PP
 \fBDEST\fR \- {\fB\-\fR|{\fIinterface\fR|$FW}[{\fIinterface\fR|$FW}:]<\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.}[\fIexclusion\fR]>
 .RS 4
-Destination of the packet\&. Comma separated list of IP addresses and/or subnets\&. If your kernel and ip6tables include iprange match support, IP address ranges are also allowed\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>) or an ipset\&. If the
+Destination of the packet\&. Comma separated list of IP addresses and/or subnets\&. If your kernel and ip6tables include iprange match support, IP address ranges are also allowed\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>)\&. If the
 \fBMARK\fR
 column specificies a classification of the form
 \fImajor\fR:\fIminor\fR

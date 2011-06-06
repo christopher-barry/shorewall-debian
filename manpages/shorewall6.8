@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -33,11 +33,11 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcheck\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fB\-r\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcheck\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fB\-r\fR] [\fB\-T\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBclear\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcompile\fR [\fB\-e\fR] [\fB\-d\fR] [\fIdirectory\fR] [\fIpathname\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBcompile\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-T\fR] [\fIdirectory\fR] [\fIpathname\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdrop\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -69,7 +69,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreset\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
 .HP \w'\fBshorewall6\fR\ 'u
@@ -91,7 +91,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-m\fR] \fBlog\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR\ [\fB\-c\fR]] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -181,6 +181,10 @@ command\-line option\&.
 The
 \fB\-r\fR
 option was added in Shorewall 4\&.5\&.2 and causes the compiler to print the generated ruleset to standard out\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.4\&.20 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
 .RE
 .PP
 \fBclear\fR
@@ -215,6 +219,10 @@ The
 option causes the compiler to be profiled via the Perl
 \fB\-wd:DProf\fR
 command\-line option\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.4\&.20 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
 .RE
 .PP
 \fBdrop\fR
@@ -478,8 +486,25 @@ The
 option causes Shorewall6 to avoid updating the routing table(s)\&.
 .sp
 The
+\fB\-p\fR
+option causes the connection tracking table to be flushed; the
+\fBconntrack\fR
+utility must be installed to use this option\&.
+.sp
+The
+\fB\-d \fRoption causes the compiler to run under the Perl debugger\&.
+.sp
+The
 \fB\-f\fR
-option suppresses the compilation step and simply reused the compiled script which last started/restarted Shorewall6\&.
+option suppresses the compilation step and simply reused the compiled script which last started/restarted Shorewall, provided that /etc/shorewall6 and its contents have not been modified since the last start/restart\&.
+.sp
+The
+\fB\-c\fR
+option was added in Shorewall 4\&.4\&.20 and performs the compilation step unconditionally, overriding the AUTOMAKE setting in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. When both
+\fB\-f\fR
+and
+\fB\-c \fRare present, the result is determined by the option that appears last\&.
 .RE
 .PP
 \fBrestore\fR
@@ -644,9 +669,20 @@ is given, a
 \fIdirectory\fR
 may not be specified\&.
 .sp
+Update: In Shorewall6 4\&.4\&.20, a new LEGACY_FASTSTART option was added to
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. When LEGACY_FASTSTART=No, the modificaiotn times of files in /etc/shorewall6 are compared with that of /var/lib/shorewall6/firewall (the compiled script that last started/restarted the firewall)\&.
+.sp
 The
 \fB\-n\fR
 option causes Shorewall6 to avoid updating the routing table(s)\&.
+.sp
+The
+\fB\-c\fR
+option was added in Shorewall 4\&.4\&.20 and performs the compilation step unconditionally, overriding the AUTOMAKE setting in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. When both
+\fB\-f\fR
+and
+\fB\-c \fRare present, the result is determined by the option that appears last\&.
 .RE
 .PP
 \fBstop\fR

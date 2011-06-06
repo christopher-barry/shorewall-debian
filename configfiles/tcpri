@@ -1,0 +1,87 @@
+#
+# Shorewall6 version 4 - Tcpri File
+#
+# For information about entries in this file, type "man shorewall6-tcpri"
+#
+# See http://shorewall.net/simple_traffic_shaping.htm for additional
+# information.
+#
+###############################################################################
+#           
+#    This file is used to specify the priority band of traffic for
+#    simple traffic shaping (TC_ENABLED=Simple in
+#    shorewall6.conf(5)). The priority band of each packet is
+#    determined by the last entry that the packet matches. If a
+#    packet doesn't match any entry in this file, then its priority
+#    will be determined by its TOS field. The default mapping is as
+#    follows but can be changed by setting the TC_PRIOMAP option in
+#    shorewall6.conf(5).
+#           TOS     Bits  Means                    Linux Priority    BAND
+#           ------------------------------------------------------------
+#           0x0     0     Normal Service           0 Best Effort     2
+#           0x2     1     Minimize Monetary Cost   1 Filler          3
+#           0x4     2     Maximize Reliability     0 Best Effort     2
+#           0x6     3     mmc+mr                   0 Best Effort     2
+#           0x8     4     Maximize Throughput      2 Bulk            3
+#           0xa     5     mmc+mt                   2 Bulk            3
+#           0xc     6     mr+mt                    2 Bulk            3
+#           0xe     7     mmc+mr+mt                2 Bulk            3
+#           0x10    8     Minimize Delay           6 Interactive     1
+#           0x12    9     mmc+md                   6 Interactive     1
+#           0x14    10    mr+md                    6 Interactive     1
+#           0x16    11    mmc+mr+md                6 Interactive     1
+#           0x18    12    mt+md                    4 Int. Bulk       2
+#           0x1a    13    mmc+mt+md                4 Int. Bulk       2
+#           0x1c    14    mr+mt+md                 4 Int. Bulk       2
+#           0x1e    15    mmc+mr+mt+md             4 Int. Bulk       2
+#           
+#    The columns in the file are as follows.
+#           
+#    BAND - {1|2|3}
+#           Classifies matching traffic as High Priority (1), Medium
+#           Priority (2) or Low Priority (3). For those interfaces
+#           listed in shorewall6-tcinterfaces(5), Priority 2 traffic
+#           will be deferred so long and there is Priority 1 traffic
+#           queued and Priority 3 traffic will be deferred so long
+#           as there is Priority 1 or Priority 2 traffic to send.
+#           
+#    PROTO - protocol
+#           Optional. The name or number of an IPv4 protocol.
+#           
+#    PORT(S) - port [,...]
+#           Optional. May only be given if the the PROTO is TCP (6),
+#           UDP (17), DCCP (33), SCTP (132) or UDPLITE (136). A list
+#           of one or more port numbers or service names from
+#           /etc/services. Port ranges of the form lowport:highport
+#           may also be included.
+#           
+#    ADDRESS - [address]
+#           Optional. The IP or MAC address that the traffic
+#           originated from. MAC addresses must be given in
+#           Shorewall format. If this column contains an address,
+#           then the PROTO, PORT(S) and INTERFACE column must be
+#           empty ("-").
+#           
+#    INTERFACE - [interface]
+#           Optional. The logical name of an interface that traffic
+#           arrives from. If given, the PROTO, PORT(S) and ADDRESS
+#           columns must be empty ("-").
+#           
+#           Note
+#           
+#           INTERFACE classification of packets occurs before
+#           classification by PROTO/PORT(S)/ADDRESS. So it is highly
+#           recommended to place entries that specify INTERFACE at
+#           the top of the file so that the rule about last entry
+#           matches is preserved.
+#           
+#    HELPER - [helper]
+#           Optional. Names a Netfiler protocol helper module such
+#           as ftp, sip, amanda, etc. A packet will match if it was
+#           accepted by the named helper module. You can also append
+#           "-" and a port number to the helper module name (e.g.,
+#           ftp-21) to specify the port number that the original
+#           connection was made on.
+#           
+###############################################################################
+#BAND	PROTO	PORT(S)		ADDRESS		IN-INTERFACE	HELPER
