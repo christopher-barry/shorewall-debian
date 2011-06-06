@@ -38,8 +38,10 @@
         <listitem>
           <para>Host address, network address, MAC address, IP address range
           (if your kernel and ip6tables contain iprange match support) or
-          ipset name prefaced by "+" (if your kernel supports ipset
-          match).</para>
+          ipset name prefaced by "+" (if your kernel supports ipset match).
+          Exclusion (<ulink
+          url="shorewall6-exclusion.html">shorewall6-exclusion</ulink>(5)) is
+          supported.</para>
 
           <para>MAC addresses must be prefixed with "~" and use "-" as a
           separator.</para>
@@ -76,7 +78,7 @@
 
       <varlistentry>
         <term>OPTIONS (Optional - Added in 4.4.12) -
-        {-|{dst|src}[,...]}</term>
+        {-|{dst|src|whitelist|audit}[,...]}</term>
 
         <listitem>
           <para>If specified, indicates whether traffic
@@ -120,6 +122,18 @@
               </listitem>
             </orderedlist>
           </note>
+
+          <para>In Shorewall 4.4.20, the <emphasis
+          role="bold">whitelist</emphasis> option was added. When <emphasis
+          role="bold">whitelist</emphasis> is specified, packets/connections
+          that match the entry are not matched against the remaining entries
+          in the file.</para>
+
+          <para>The <emphasis role="bold">audit</emphasis> option was also
+          added in 4.4.20 and causes packets matching the entry to be audited.
+          The <emphasis role="bold">audit</emphasis> option may not be
+          specified in whitelist entries and require AUDIT_TARGET support in
+          the kernel and ip6tables.</para>
         </listitem>
       </varlistentry>
     </variablelist>

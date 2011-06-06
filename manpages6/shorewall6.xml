@@ -46,6 +46,8 @@
 
       <arg><option>-r</option></arg>
 
+      <arg><option>-T</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -72,6 +74,8 @@
       <arg><option>-e</option></arg>
 
       <arg><option>-d</option></arg>
+
+      <arg><option>-T</option></arg>
 
       <arg><replaceable>directory</replaceable></arg>
 
@@ -302,6 +306,8 @@
 
       <arg><option>-f</option></arg>
 
+      <arg><option>-c</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -457,7 +463,7 @@
 
       <arg><option>-n</option></arg>
 
-      <arg><option>-f</option></arg>
+      <arg><option>-f</option><arg><option>-c</option></arg></arg>
 
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
@@ -590,6 +596,10 @@
           <para>The <option>-r</option> option was added in Shorewall 4.5.2
           and causes the compiler to print the generated ruleset to standard
           out.</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.4.20
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
         </listitem>
       </varlistentry>
 
@@ -636,6 +646,10 @@
           <para>The <option>-p</option> option causes the compiler to be
           profiled via the Perl <option>-wd:DProf</option> command-line
           option.</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.4.20
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
         </listitem>
       </varlistentry>
 
@@ -922,9 +936,24 @@
           <para>The <option>-n</option> option causes Shorewall6 to avoid
           updating the routing table(s).</para>
 
+          <para>The <option>-p</option> option causes the connection tracking
+          table to be flushed; the <command>conntrack</command> utility must
+          be installed to use this option.</para>
+
+          <para>The <option>-d </option>option causes the compiler to run
+          under the Perl debugger.</para>
+
           <para>The <option>-f</option> option suppresses the compilation step
           and simply reused the compiled script which last started/restarted
-          Shorewall6.</para>
+          Shorewall, provided that /etc/shorewall6 and its contents have not
+          been modified since the last start/restart.</para>
+
+          <para>The <option>-c</option> option was added in Shorewall 4.4.20
+          and performs the compilation step unconditionally, overriding the
+          AUTOMAKE setting in <ulink
+          url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When both
+          <option>-f</option> and <option>-c </option>are present, the result
+          is determined by the option that appears last.</para>
         </listitem>
       </varlistentry>
 
@@ -1176,8 +1205,23 @@
           role="bold">-f</emphasis> is given, a
           <replaceable>directory</replaceable> may not be specified.</para>
 
+          <para>Update: In Shorewall6 4.4.20, a new LEGACY_FASTSTART option
+          was added to <ulink
+          url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When
+          LEGACY_FASTSTART=No, the modificaiotn times of files in
+          /etc/shorewall6 are compared with that of
+          /var/lib/shorewall6/firewall (the compiled script that last
+          started/restarted the firewall).</para>
+
           <para>The <option>-n</option> option causes Shorewall6 to avoid
           updating the routing table(s).</para>
+
+          <para>The <option>-c</option> option was added in Shorewall 4.4.20
+          and performs the compilation step unconditionally, overriding the
+          AUTOMAKE setting in <ulink
+          url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When both
+          <option>-f</option> and <option>-c </option>are present, the result
+          is determined by the option that appears last.</para>
         </listitem>
       </varlistentry>
 
