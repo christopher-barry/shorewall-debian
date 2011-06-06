@@ -1,10 +1,10 @@
-#!/bin/sh
+\#!/bin/sh
 #
 # Script to back uninstall Shoreline Firewall
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2000-2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Shorewall documentation is available at http://shorewall.sourceforge.net
 #
@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.4.19.4
+VERSION=4.4.20
 
 usage() # $1 = exit status
 {
@@ -60,7 +60,7 @@ else
     VERSION=""
 fi
 
-[ -n "${LIBEXEC:=share}" ]
+[ -n "${LIBEXEC:=/usr/share}" ]
 
 echo "Uninstalling Shorewall Init $VERSION"
 
@@ -107,7 +107,7 @@ if [ -d /etc/ppp ]; then
 fi
 
 rm -rf /usr/share/shorewall-init
-rm -rf /usr/${LIBEXEC}/shorewall-init
+rm -rf ${LIBEXEC}/shorewall-init
 
 echo "Shorewall Init Uninstalled"
 
