@@ -4,7 +4,8 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999,2000,2001,2002,2003,2004,2005,2006,2007,2008,2009,2010,2011 - 
+#         Tom Eastep (teastep@shorewall.net)
 #
 #	This file should be placed in /sbin/shorewall.
 #
@@ -25,7 +26,7 @@
 #
 #       For a list of supported commands, type 'shorewall help'
 #
-#####################################################################################################
+################################################################################################
 #
 # Set the configuration variables from shorewall.conf
 #
@@ -298,10 +299,26 @@ get_config() {
 	    fi
 	    ;;
     esac
+
+    case $LEGACY_FASTSTART in
+	Yes|yes)
+	    ;;
+	No|no)
+	    LEGACY_FASTSTART=
+	    ;;
+	*)
+	    if [ -n "$LEGACY_FASTSTART" ]; then
+		echo "   ERROR: Invalid LEGACY_FASTSTART setting ($LEGACY_FASTSTART)" >&2
+		exit 1
+	    fi
+
+	    LEGACY_FASTSTART=Yes
+	    ;;
+    esac
 }
 
 #
-# Fatal error
+# Issue an error message and die
 #
 startup_error() {
     echo "   ERROR: $@" >&2
@@ -310,9 +327,18 @@ startup_error() {
 }
 
 #
+# Determine if there are config files newer than the passed object
+#
+uptodate() {
+    [ -f $1 ] && [ -z "$(find ${CONFDIR} -newer $1)" ]
+}
+
+#
 # Run the compiler
 #
 compiler() {
+    local pc
+    pc=$g_libexec/shorewall/compiler.pl
 
     if [ $(id -u) -ne 0 ]; then
 	if [ -z "$SHOREWALL_DIR" -o "$SHOREWALL_DIR" = /etc/shorewall ]; then
@@ -353,6 +379,7 @@ compiler() {
     [ -n "$g_preview" ] && options="$options --preview"
     [ "$g_debugging" = trace ] && options="$options --debug"
     [ -n "$g_refreshchains" ] && options="$options --refresh=$g_refreshchains"
+    [ -n "$g_confess" ] && options="$options --confess"
 
     if [ -n "$PERL" ]; then
 	if [ ! -x "$PERL" ]; then
@@ -363,12 +390,13 @@ compiler() {
 	PERL=/usr/bin/perl
     fi
 
-    if [ $g_perllib != ${g_libexec}/shorewall ]; then
-	PERL5LIB=/usr/$g_perllib
+    if [ $g_perllib = ${g_libexec}/shorewall ]; then
+	$PERL $debugflags $pc $options $@
+    else
+	PERL5LIB=$g_perllib
 	export PERL5LIB
+	$PERL $debugflags $pc $options $@
     fi
-    
-    $PERL $debugflags /usr/$g_libexec/shorewall/compiler.pl $options $@
 }
 
 #
@@ -377,7 +405,7 @@ compiler() {
 start_command() {
     local finished
     finished=0
-    local restorefile
+    local object
 
     do_it() {
 	local rc
@@ -437,6 +465,10 @@ start_command() {
 			    g_purge=Yes
 			    option=${option%p}
 			    ;;
+			c*)
+			    AUTOMAKE=
+			    option=${option#c}
+			    ;;			    
 			*)
 			    usage 1
 			    ;;
@@ -473,25 +505,19 @@ start_command() {
     esac
 
     if [ -n "${g_fast}${AUTOMAKE}" ]; then
-	if qt mywhich make; then
-	    restorefile=$RESTOREFILE
-
-	    if [ -z "$g_fast" ]; then
-		#
-		# Automake -- use the last compiled script
-		#
-		RESTOREFILE=firewall
-	    fi
-
-	    export RESTOREFILE
-
-	    if ! make -qf ${CONFDIR}/Makefile; then
-		g_fast=
-		AUTOMAKE=
-	    fi
-
-	    RESTOREFILE=$restorefile
+	if [ -z "$g_fast" -o -z "$LEGACY_FASTSTART" ]; then
+	    #
+	    # Automake or LEGACY_FASTSTART=No -- use the last compiled script
+	    #
+	    object=firewall
 	else
+	    #
+	    # 'start -f' with LEGACY_FASTSTART=Yes -- use last saved configuration
+	    #
+	    object=$RESTOREFILE
+	fi
+
+	if ! uptodate ${VARDIR}/$object; then
 	    g_fast=
 	    AUTOMAKE=
 	fi
@@ -549,6 +575,10 @@ compile_command() {
 			d*)
 			    g_debug=Yes;
 			    option=${option#d}
+			    ;;
+			T*)
+			    g_confess=Yes
+			    option=${option#T}
 			    ;;
 			-)
 			    finished=1
@@ -632,8 +662,12 @@ check_command() {
 			    option=${option#d}
 			    ;;
 			r*)
-			    g_preview=Yes;
+			    g_preview=Yes
 			    option=${option#r}
+			    ;;
+			T*)
+			    g_confess=Yes
+			    option=${option#T}
 			    ;;
 			*)
 			    usage 1
@@ -704,6 +738,10 @@ restart_command() {
 			    g_fast=Yes
 			    option=${option#f}
 			    ;;
+			c*)
+			    AUTOMAKE=
+			    option=${option#c}
+			    ;;			    
 			n*)
 			    g_noroutes=Yes
 			    option=${option#n}
@@ -752,15 +790,7 @@ restart_command() {
     [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
 
     if [ -z "$g_fast" -a -n "$AUTOMAKE" ]; then
-	if qt mywhich make; then
-	    #
-	    # RESTOREFILE is exported by get_config()
-	    #
-	    restorefile=$RESTOREFILE
-	    RESTOREFILE=firewall
-	    make -qf ${CONFDIR}/Makefile && g_fast=Yes
-	    RESTOREFILE=$restorefile
-	fi
+	uptodate ${VARDIR}/firewall && g_fast=Yes
     fi
 
     if [ -z "$g_fast" ]; then
@@ -854,6 +884,7 @@ refresh_command() {
 safe_commands() {
     local finished
     finished=0
+    local command
 
     # test is the shell supports timed read
     read -t 0 junk 2> /dev/null
@@ -956,7 +987,7 @@ safe_commands() {
 
     [ -n "$nolock" ] || mutex_on
 
-    if ${VARDIR}/.$command $g_debugging $command; then
+    if run_it ${VARDIR}/.$command $g_debugging $command; then
 
 	echo -n "Do you want to accept the new firewall configuration? [y/n] "
 
@@ -964,9 +995,9 @@ safe_commands() {
 	    echo "New configuration has been accepted"
 	else
 	    if [ "$command" = "restart" ]; then
-		${VARDIR}/.safe restore
+		run_it ${VARDIR}/.safe restore
 	    else
-		${VARDIR}/.$command clear
+		run_it ${VARDIR}/.$command clear
 	    fi
 
 	    [ -n "$nolock" ] || mutex_off
@@ -1092,13 +1123,13 @@ try_command() {
 
     [ -n "$nolock" ] || mutex_on
 
-    if ${VARDIR}/.$command $command && [ -n "$timeout" ]; then
+    if run_it ${VARDIR}/.$command $command && [ -n "$timeout" ]; then
 	sleep $timeout
 
 	if [ "$command" = "restart" ]; then
-	    ${VARDIR}/.try restore
+	    run_it ${VARDIR}/.try restore
 	else
-	    ${VARDIR}/.$command clear
+	    run_it ${VARDIR}/.$command clear
 	fi
     fi
 
@@ -1143,7 +1174,7 @@ reload_command() # $* = original arguments less the command.
     local root
     root=root
     local libexec
-    libexec=share
+    libexec=/usr/share
 
     litedir=/var/lib/shorewall-lite
 
@@ -1206,7 +1237,16 @@ reload_command() # $* = original arguments less the command.
 
     temp=$(rsh_command /sbin/shorewall-lite show config 2> /dev/null | grep ^LIBEXEC | sed 's/LIBEXEC is //')
 
-    [ -n "$temp" ] && libexec="$temp"
+    if [ -n "$temp" ]; then
+	case $temp in
+	    /*)
+		libexec="$temp"
+		;;
+	    *)
+		libexec=/usr/$temp
+		;;
+	esac
+    fi
 
     if [ -z "$getcaps" ]; then
 	SHOREWALL_DIR=$(resolve_file $directory)
@@ -1224,7 +1264,7 @@ reload_command() # $* = original arguments less the command.
 	[ -n "$DONT_LOAD" ] && DONT_LOAD="$(echo $DONT_LOAD | tr ',' ' ')"
 
 	progress_message "Getting Capabilities on system $system..."
-	if ! rsh_command "MODULESDIR=$MODULESDIR MODULE_SUFFIX=\"$MODULE_SUFFIX\" IPTABLES=$IPTABLES DONT_LOAD=\"$DONT_LOAD\" /usr/$libexec/shorewall-lite/shorecap" > $directory/capabilities; then
+	if ! rsh_command "MODULESDIR=$MODULESDIR MODULE_SUFFIX=\"$MODULE_SUFFIX\" IPTABLES=$IPTABLES DONT_LOAD=\"$DONT_LOAD\" $libexec/shorewall-lite/shorecap" > $directory/capabilities; then
 	    fatal_error "ERROR: Capturing capabilities on system $system failed"
 	fi
     fi
@@ -1364,7 +1404,7 @@ usage() # $1 = exit status
     echo "   reject <address> ..."
     echo "   reload [ -s ] [ -c ] [ -r <root user> ] [ <directory> ] <system>"
     echo "   reset [ <chain> ... ]"
-    echo "   restart [ -n ] [ -p ] [ -f ] [ <directory> ]"
+    echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ][ <directory> ]"
     echo "   restore [ -n ] [ <file name> ]"
     echo "   save [ <file name> ]"
     echo "   show [ -x ] [ -t {filter|mangle|nat} ] [ {chain [<chain> [ <chain> ... ]"
@@ -1385,7 +1425,7 @@ usage() # $1 = exit status
     echo "   show tc [ device ]"
     echo "   show vardir"
     echo "   show zones"
-    echo "   start [ -f ] [ -n ] [ -p ] [ <directory> ]"
+    echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ <directory> ]"
     echo "   stop"
     echo "   status"
     echo "   try <directory> [ <timeout> ]"
@@ -1473,6 +1513,7 @@ g_use_verbosity=
 g_debug=
 g_export=
 g_refreshchains=:none:
+g_confess=
 
 #
 # Make sure that these variables are cleared
@@ -1587,8 +1628,8 @@ CONFDIR=/etc/shorewall
 g_product="Shorewall"
 g_recovering=
 g_timestamp=
-g_libexec=share
-g_perllib=share/shorewall
+g_libexec=/usr/share
+g_perllib=/usr/share/shorewall
 
 [ -f ${CONFDIR}/vardir ] && . ${CONFDIR}/vardir
 
@@ -1644,9 +1685,9 @@ case "$COMMAND" in
 	start_command $@
 	;;
     stop|clear)
-	get_config
 	[ $# -ne 1 ] && usage 1
-	[ -x $g_firewall ] || fatal_error "Shorewall has never been started"
+	get_config
+	[ -x $g_firewall ] || fatal_error "Shorewall6 has never been started"
 	[ -n "$nolock" ] || mutex_on
 	run_it $g_firewall $g_debugging $COMMAND
 	[ -n "$nolock" ] || mutex_off

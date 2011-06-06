@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -45,9 +45,9 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_19';
+our $VERSION = '4.4_20';
 
-our $family;
+my $family;
 
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -203,7 +203,10 @@ sub setup_blacklist() {
     my $chainref;
     my $chainref1;
     my ( $level, $disposition ) = @config{'BLACKLIST_LOGLEVEL', 'BLACKLIST_DISPOSITION' };
-    my $target = $disposition eq 'REJECT' ? 'reject' : $disposition;
+    my $audit       = $disposition =~ /^A_/;
+    my $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
+    my $orig_target = $target;
+    
     #
     # We go ahead and generate the blacklist chains and jump to them, even if they turn out to be empty. That is necessary
     # for 'refresh' to work properly.
@@ -215,12 +218,26 @@ sub setup_blacklist() {
 	if ( defined $level && $level ne '' ) {
 	    my $logchainref = new_standard_chain 'blacklog';
 
+	    $target =~ s/A_//;
+	    $target = 'reject' if $target eq 'REJECT';
+
 	    log_rule_limit( $level , $logchainref , 'blacklst' , $disposition , "$globals{LOGLIMIT}" , '', 'add',	'' );
+
+	    if ( $audit ) {
+		if ( $config{FAKE_AUDIT} ) {
+		    add_rule( $logchainref, '-j AUDIT -m comment --comment "--type ' . lc $target . '"' );
+		} else {
+		    add_rule( $logchainref, '-j AUDIT --type ' . lc $target );
+		}
+	    }
 
 	    add_jump $logchainref, $target, 1;
 
 	    $target = 'blacklog';
-	}
+	} elsif ( $audit ) {
+	    require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$disposition", 's';
+	    $target = verify_audit( $disposition );
+	}	    
     }
 
   BLACKLIST:
@@ -245,12 +262,41 @@ sub setup_blacklist() {
 
 		my ( $networks, $protocol, $ports, $options ) = split_line 1, 4, 'blacklist file';
 
-		$options = 'src' if $options eq '-';
+		if ( $options eq '-' ) {
+		    $options = 'src';
+		} elsif ( $options eq 'audit' ) {
+		    $options = 'audit,src';
+		}
 
-		my ( $to, $from ) = ( 0, 0 );
+		my ( $to, $from, $whitelist, $auditone ) = ( 0, 0, 0, 0 );
 
-		for ( split /,/, $options ) {
-		    if ( $_ =~ /^(?:from|src)$/ ) {
+		my @options = split_list $options, 'option';
+
+		for ( @options ) {
+		    $whitelist++ if $_ eq 'whitelist';
+		    $auditone++  if $_ eq 'audit'; 
+		}
+
+		warning_message "Duplicate 'whitelist' option ignored" if $whitelist > 1;
+
+		my $tgt = $whitelist ? 'RETURN' : $target;
+
+		if ( $auditone ) {
+		    fatal_error "'audit' not allowed in whitelist entries" if $whitelist;
+
+		    if ( $audit ) {
+			warning_message "Superfluous 'audit' option ignored";
+		    } else {
+			warning_message "Duplicate 'audit' option ignored" if $auditone > 1;
+
+			
+
+			$tgt = verify_audit( 'A_' . $target, $orig_target, $target );
+		    }
+		}
+
+		for ( @options ) {
+		    if ( $_ =~ /^(?:src|from)$/ ) {
 			if ( $from++ ) {
 			    warning_message "Duplicate 'src' ignored";
 			} else {
@@ -262,9 +308,9 @@ sub setup_blacklist() {
 					    $networks,
 					    '',
 					    '' ,
-					    $target ,
+					    $tgt ,
 					    '' ,
-					    $target ,
+					    $tgt ,
 					    '' );
 			    } else {
 				warning_message '"src" entry ignored because there are no "blacklist in" zones';
@@ -282,16 +328,16 @@ sub setup_blacklist() {
 					    '',
 					    $networks,
 					    '' ,
-					    $target ,
+					    $tgt ,
 					    '' ,
-					    $target ,
+					    $tgt ,
 					    '' );
 			    } else {
 				warning_message '"dst" entry ignored because there are no "blacklist out" zones';
 			    }
 			}
 		    } else {
-			fatal_error "Invalid blacklist option($_)";
+			fatal_error "Invalid blacklist option($_)" unless $_ eq 'whitelist' || $_ eq 'audit';
 		    }
 		}
 
@@ -434,28 +480,71 @@ sub add_common_rules() {
     my $rule;
     my $list;
     my $chain;
+    my $dynamicref;
 
-    my $state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "-m state --state NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
+    my $state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
     my $level     = $config{BLACKLIST_LOGLEVEL};
-    my $rejectref = dont_move new_standard_chain 'reject';
+    my $rejectref = $filter_table->{reject};
 
     if ( $config{DYNAMIC_BLACKLIST} ) {
 	add_rule_pair dont_delete( new_standard_chain( 'logdrop' ) ),   ' ' , 'DROP'   , $level ;
 	add_rule_pair dont_delete( new_standard_chain( 'logreject' ) ), ' ' , 'reject' , $level ;
-	$chainref = dont_optimize( new_standard_chain( 'dynamic' ) );
-	add_jump $filter_table->{$_}, $chainref, 0, $state for qw( INPUT FORWARD );
-	add_commands( $chainref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
+	$dynamicref = dont_optimize( new_standard_chain( 'dynamic' ) );
+	add_jump $filter_table->{INPUT}, $dynamicref, 0, $state;
+	add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
     }
 
     setup_mss;
 
     if ( $config{FASTACCEPT} ) {
-	add_rule( $filter_table->{$_} , "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ) for qw( INPUT FORWARD OUTPUT );
+	add_rule( $filter_table->{$_} , "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ) for qw( INPUT OUTPUT );
+    }
+
+    my $policy   = $config{SFILTER_DISPOSITION};
+    $level       = $config{SFILTER_LOG_LEVEL};
+    my $audit    = $policy =~ s/^A_//;
+
+    if ( $level || $audit ) {
+	$chainref = new_standard_chain 'sfilter';
+
+	log_rule $level , $chainref , $policy , '' if $level ne '';
+	
+	add_rule( $chainref, '-j AUDIT --type ' . lc $policy ) if $audit;
+	
+	add_jump $chainref, $policy eq 'REJECT' ? 'reject' : $policy , 1;
+	
+	$target = 'sfilter';
+    } elsif ( ( $target = $policy ) eq 'REJECT' ) {
+	$target = 'reject';
     }
 
     for $interface ( grep $_ ne '%vserver%', all_interfaces ) {
 	ensure_chain( 'filter', $_ ) for first_chains( $interface ), output_chain( $interface );
+
+	my $interfaceref = find_interface $interface;
+
+	unless ( $interfaceref->{options}{ignore} ) {
+
+	    my @filters = @{$interfaceref->{filter}};
+	
+	    $chainref = $filter_table->{forward_chain $interface};
+	
+	    if ( @filters ) {
+		add_jump( $chainref , $target, 1, match_source_net( $_ ) ), $chainref->{filtered}++ for @filters;
+	    } elsif ( $interfaceref->{bridge} eq $interface ) {
+		add_jump( $chainref , $target, 1, match_dest_dev( $interface ) ), $chainref->{filtered}++ unless $interfaceref->{options}{routeback} || $interfaceref->{options}{routefilter};
+	    }
+	
+	    add_rule( $chainref, "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ), $chainref->{filtered}++ if $config{FASTACCEPT};
+	    add_jump( $chainref, $dynamicref, 0, $state ), $chainref->{filtered}++ if $dynamicref;
+
+	}
     }
+
+    #
+    # Delete 'sfilter' chain unless there are referenced to it
+    #
+    $chainref->{referenced} = 0 unless keys %{($chainref = $filter_table->{sfilter})->{references}};
 
     run_user_exit1 'initdone';
 
@@ -468,10 +557,10 @@ sub add_common_rules() {
 
 	$chainref = new_standard_chain 'smurfs';
 
-	my $smurfdest;
+	my $smurfdest = $config{SMURF_DISPOSITION};
 
 	if ( defined $config{SMURF_LOG_LEVEL} && $config{SMURF_LOG_LEVEL} ne '' ) {
-	    my $smurfref = new_chain( 'filter', $smurfdest = 'smurflog' );
+	    my $smurfref = new_chain( 'filter', 'smurflog' );
 
 	    log_rule_limit( $config{SMURF_LOG_LEVEL},
 			    $smurfref,
@@ -481,9 +570,19 @@ sub add_common_rules() {
 			    '',
 			    'add',
 			    '' );
+	    if ( $smurfdest eq 'A_DROP' ) {
+		if ( $config{FAKE_AUDIT} ) {
+		    add_rule( $smurfref, '-j AUDIT -m comment --comment "--type drop"' );
+		} else {
+		    add_rule( $smurfref, '-j AUDIT --type drop' );
+		}
+	    }
+ 
 	    add_rule( $smurfref, '-j DROP' );
+
+	    $smurfdest = 'smurflog';
 	} else {
-	    $smurfdest = 'DROP';
+	    verify_audit( $smurfdest ) if $smurfdest eq 'A_DROP';
 	}
 
 	if ( have_capability( 'ADDRTYPE' ) ) {
@@ -594,32 +693,45 @@ sub add_common_rules() {
     $list = find_hosts_by_option 'tcpflags';
 
     if ( @$list ) {
-	my $disposition;
+	my $level = $config{TCP_FLAGS_LOG_LEVEL};
+	my $disposition = $config{TCP_FLAGS_DISPOSITION};
+	my $audit = $disposition =~ /^A_/;
 
 	progress_message2 "$doing TCP Flags filtering...";
 
 	$chainref = new_standard_chain 'tcpflags';
 
-	if ( $config{TCP_FLAGS_LOG_LEVEL} ne ''  ) {
+	if ( $level  ) {
 	    my $logflagsref = new_standard_chain 'logflags';
 
 	    my $savelogparms = $globals{LOGPARMS};
 
 	    $globals{LOGPARMS} = "$globals{LOGPARMS}--log-ip-options ";
 
-	    log_rule $config{TCP_FLAGS_LOG_LEVEL} , $logflagsref , $config{TCP_FLAGS_DISPOSITION}, '';
-
+	    log_rule $level , $logflagsref , $config{TCP_FLAGS_DISPOSITION}, '';
+	    
 	    $globals{LOGPARMS} = $savelogparms;
 
-	    if ( $config{TCP_FLAGS_DISPOSITION} eq 'REJECT' ) {
+	    if ( $audit ) {
+		$disposition =~ s/^A_//;
+		
+		if ( $config{FAKE_AUDIT} ) {
+		    add_rule( $logflagsref, '-j AUDIT -m comment --comment "--type ' . lc $disposition . '"' );
+		} else {
+		    add_rule( $logflagsref, '-j AUDIT --type ' . lc $disposition );
+		}
+	    }
+
+	    if ( $disposition eq 'REJECT' ) {
 		add_rule $logflagsref , '-p 6 -j REJECT --reject-with tcp-reset';
 	    } else {
-		add_rule $logflagsref , "-j $config{TCP_FLAGS_DISPOSITION}";
+		add_rule $logflagsref , "-j $disposition";
 	    }
 
 	    $disposition = 'logflags';
-	} else {
-	    $disposition = $config{TCP_FLAGS_DISPOSITION};
+	} elsif ( $audit ) {
+	    require_capability( 'AUDIT_TARGET', "TCP_FLAGS_DISPOSITION=$disposition", 's' );
+	    verify_audit( $disposition );
 	}
 
 	add_jump $chainref , $disposition, 1, '-p tcp --tcp-flags ALL FIN,URG,PSH ';
@@ -703,6 +815,7 @@ sub setup_mac_lists( $ ) {
     my $target      = $globals{MACLIST_TARGET};
     my $level       = $config{MACLIST_LOG_LEVEL};
     my $disposition = $config{MACLIST_DISPOSITION};
+    my $audit       = $disposition =~ /^A_/;
     my $ttl         = $config{MACLIST_TTL};
 
     progress_message2 "$doing MAC Filtration -- Phase $phase...";
@@ -780,11 +893,29 @@ sub setup_mac_lists( $ ) {
 			    my $source = match_source_net $address;
 			    log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , "${mac}${source}"
 				if defined $level && $level ne '';
+			    
+			    if ( $audit && $disposition ne 'ACCEPT' ) {
+				if ( $config{FAKE_AUDIT} ) {
+				    add_rule( $chainref , '-j AUDIT -m comment --comment "--type ' . lc $disposition . '"' );
+				} else {
+				    add_rule( $chainref , '-j AUDIT --type ' . lc $disposition );
+				}
+			    }
+
 			    add_jump $chainref , $targetref->{target}, 0, "${mac}${source}";
 			}
 		    } else {
 			log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , $mac
 			    if defined $level && $level ne '';
+
+			if ( $audit && $disposition ne 'ACCEPT' ) {
+			    if ( $config{FAKE_AUDIT} ) {
+				add_rule( $chainref , '-j AUDIT -m comment --comment "--type ' . lc $disposition . '"' );
+			    } else {
+				add_rule( $chainref , '-j AUDIT --type ' . lc $disposition );
+			    }
+			}
+
 			add_jump $chainref , $targetref->{target}, 0, "$mac";
 		    }
 
@@ -1098,7 +1229,7 @@ sub generate_matrix() {
     my @vservers = vserver_zones;
     
     my $notrackref = $raw_table->{notrack_chain $fw};
-    my $state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "-m state --state NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
+    my $state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
     my $interface_jumps_added = 0;
 
     our %input_jump_added   = ();
@@ -1108,6 +1239,7 @@ sub generate_matrix() {
 
     progress_message2 'Generating Rule Matrix...';
     progress_message  '  Handling blacklisting and complex zones...';
+
     #
     # Special processing for complex and/or blacklisting configurations
     #

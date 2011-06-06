@@ -4,7 +4,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -41,13 +41,13 @@ use Shorewall::Misc;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_19';
+our $VERSION = '4.4_20';
 
-our $export;
+my $export;
 
-our $test;
+my $test;
 
-our $family;
+my $family;
 
 #
 # Initilize the package-globals in the other modules
@@ -523,8 +523,8 @@ EOF
 #
 sub compiler {
 
-    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview ) =
-       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0 );
+    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess ) =
+       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0 );
 
     $export = 0;
     $test   = 0;
@@ -557,6 +557,7 @@ sub compiler {
 		  log_verbosity => { store => \$log_verbosity, validate => \&validate_verbosity } ,
 		  test          => { store => \$test },
 		  preview       => { store => \$preview },
+		  confess       => { store => \$confess },
 		);
     #
     #                               P A R A M E T E R    P R O C E S S I N G
@@ -586,7 +587,7 @@ sub compiler {
     set_verbosity( $verbosity );
     set_log($log, $log_verbosity) if $log;
     set_timestamp( $timestamp );
-    set_debug( $debug );
+    set_debug( $debug , $confess );
     #
     #                      S H O R E W A L L . C O N F  A N D  C A P A B I L I T I E S
     #
@@ -609,7 +610,7 @@ sub compiler {
     # Chain table initialization depends on shorewall.conf and capabilities. So it must be deferred until
     # shorewall.conf has been processed and the capabilities have been determined.
     #
-    initialize_chain_table;
+    initialize_chain_table(1);
 
     #
     # Allow user to load Perl modules
@@ -635,7 +636,7 @@ sub compiler {
     #
     # Do action pre-processing.
     #
-    process_actions1;
+    process_actions;
     #
     #                                        P O L I C Y
     #                           (Produces no output to the compiled script)
@@ -670,14 +671,6 @@ sub compiler {
     # Do all of the zone-independent stuff (mostly /proc)
     #
     add_common_rules;
-    #
-    # Process policy actions
-    #
-    disable_script;
-
-    process_actions2;
-
-    enable_script;
     #
     # More /proc
     #
@@ -818,7 +811,7 @@ sub compiler {
 	# for stopping the firewall
 	#
 	Shorewall::Chains::initialize( $family, 0 , $export );
-	initialize_chain_table;
+	initialize_chain_table(0);
 	#
 	#                           S T O P _ F I R E W A L L
 	#         (Writes the stop_firewall() function to the compiled script)
@@ -882,7 +875,7 @@ sub compiler {
 	# environment that it would when called by compile_stop_firewall().
 	#
 	Shorewall::Chains::initialize( $family , 0 , $export );
-	initialize_chain_table;
+	initialize_chain_table(0);
 
 	if ( $debug ) {
 	    compile_stop_firewall( $test, $export );

@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -106,7 +106,7 @@ sub setup_route_filtering() {
 
 	my $val = '';
 
-	if ( $config{ROUTE_FILTER} ne '' ) {
+	if ( $config ne '' ) {
 	    $val = $config eq 'on' ? 1 : $config eq 'off' ? 0 : $config;
 
 	    emit ( 'for file in /proc/sys/net/ipv4/conf/*; do',
@@ -227,6 +227,10 @@ sub setup_forwarding( $$ ) {
 	}
 
 	emit '';
+
+	emit ( '        echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables' ,
+	       ''
+	     ) if have_bridges;
     } else {
 	if ( $config{IP_FORWARDING} eq 'on' ) {
 	    emit '        echo 1 > /proc/sys/net/ipv6/conf/all/forwarding';
@@ -237,6 +241,10 @@ sub setup_forwarding( $$ ) {
 	}
 
 	emit '';
+
+	emit ( '        echo 1 > /proc/sys/net/bridge/bridge-nf-call-ip6tables' ,
+	       ''
+	     ) if have_bridges;
 
 	my $interfaces = find_interfaces_by_option 'forward';
 

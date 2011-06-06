@@ -2,12 +2,12 @@
 .\"     Title: shorewall-blacklist
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-BLACKLIST" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-BLACKLIST" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -59,7 +59,7 @@ If specified, must be a protocol number or a protocol name from protocols(5)\&.
 May only be specified if the protocol is TCP (6) or UDP (17)\&. A comma\-separated list of destination port numbers or service names from services(5)\&.
 .RE
 .PP
-OPTIONS (Optional \- Added in 4\&.4\&.12) \- {\-|{dst|src}[,\&.\&.\&.]}
+OPTIONS (Optional \- Added in 4\&.4\&.12) \- {\-|{dst|src|whitelist|audit}[,\&.\&.\&.]}
 .RS 4
 If specified, indicates whether traffic
 \fIfrom\fR
@@ -132,6 +132,17 @@ option\&.
 .RE
 .sp .5v
 .RE
+In Shorewall 4\&.4\&.20, the
+\fBwhitelist\fR
+option was added\&. When
+\fBwhitelist\fR
+is specified, packets/connections that match the entry are not matched against the remaining entries in the file\&.
+.sp
+The
+\fBaudit\fR
+option was also added in 4\&.4\&.20 and causes packets matching the entry to be audited\&. The
+\fBaudit\fR
+option may not be specified in whitelist entries and require AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
 .SH "EXAMPLE"

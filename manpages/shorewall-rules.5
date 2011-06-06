@@ -2,12 +2,12 @@
 .\"     Title: shorewall-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-RULES" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-RULES" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -175,6 +175,11 @@ like ACCEPT but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
+A_ACCEPT, A_ACCEPT+ and A_ACCEPT!
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. Audited versions of ACCEPT, ACCEPT+ and ACCEPT! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
+.RE
+.PP
 \fBNONAT\fR
 .RS 4
 Excludes the connection from any subsequent
@@ -193,6 +198,11 @@ like DROP but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
+A_DROP and A_DROP!
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. Audited versions of DROP and DROP! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
+.RE
+.PP
 \fBREJECT\fR
 .RS 4
 disallow the request and return an icmp\-unreachable or an RST packet\&.
@@ -202,6 +212,11 @@ disallow the request and return an icmp\-unreachable or an RST packet\&.
 .RS 4
 like REJECT but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.RE
+.PP
+A_REJECT AND A_REJECT!
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. Audited versions of REJECT and REJECT! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
 \fBDNAT\fR
@@ -271,7 +286,13 @@ like QUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-NFQUEUE[(\fIqueuenumber\fR)]
+\fBNFLOG\fR[(\fInflog\-parameters\fR)]
+.RS 4
+queues matching packets to a backend logging daemon via a netlink socket then continues to the next rule\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[5]\d\s+2\&.
+.RE
+.PP
+\fBNFQUEUE\fR[(\fIqueuenumber\fR)]
 .RS 4
 Queues the packet to a user\-space application using the nfnetlink_queue mechanism\&. If a
 \fIqueuenumber\fR
@@ -284,7 +305,7 @@ like NFQUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-COUNT
+\fBCOUNT\fR
 .RS 4
 Simply increment the rule\*(Aqs packet and byte count and pass the packet to the next rule\&.
 .RE
@@ -299,7 +320,7 @@ the rest of the line will be attached as a comment to the Netfilter rule(s) gene
 The name of an
 \fIaction\fR
 declared in
-\m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[5]\d\s+2(5) or in /usr/share/shorewall/actions\&.std\&.
+\m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[6]\d\s+2(5) or in /usr/share/shorewall/actions\&.std\&.
 .RE
 .PP
 \fImacro\fR\fB[(\fR\fB\fImacrotarget\fR\fR\fB)]\fR
@@ -360,7 +381,7 @@ If the
 names an
 \fIaction\fR
 declared in
-\m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[5]\d\s+2(5) or in /usr/share/shorewall/actions\&.std then:
+\m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[6]\d\s+2(5) or in /usr/share/shorewall/actions\&.std then:
 .sp
 .RS 4
 .ie n \{\
@@ -448,7 +469,7 @@ or
 \fBDEST\fR
 column intra\-zone traffic is not affected\&. When
 \fBall+\fR[\fB\-\fR] is "used, intra\-zone traffic is affected\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported \-\- see see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
 .sp
 Except when
 \fBall\fR[\fB+\fR][\fB\-\fR] or
@@ -471,13 +492,13 @@ Hosts may also be specified as an IP address range using the syntax
 \fIlowaddress\fR\-\fIhighaddress\fR\&. This requires that your kernel and iptables contain iprange match support\&. If your kernel and iptables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of source bindings to be matched\&.
 .sp
 Beginning with Shorewall 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logican name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2
 (5)\&.
 .sp
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5))\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5))\&.
 .sp
 Examples:
 .PP
@@ -556,7 +577,7 @@ or
 column intra\-zone traffic is not affected\&. When
 \fBall+\fR
 is used, intra\-zone traffic is affected\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported \-\- see see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
 .sp
 \fBany\fR
 is equivalent to
@@ -621,7 +642,7 @@ above\&.
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5))\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5))\&.
 .sp
 Restrictions:
 .sp
@@ -646,7 +667,7 @@ and
 columns may specify an ipset name\&.
 .sp
 Beginning with Shorewall 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2
 (5)\&.
 .sp
 The
@@ -774,7 +795,7 @@ A comma\-separated list of addresses may also be used\&. This is most useful wit
 target where you want to redirect traffic destined for particular set of hosts\&. Finally, if the list of addresses begins with "!" (\fIexclusion\fR) then the rule will be followed only if the original destination address in the connection request does not match any of the addresses listed\&.
 .sp
 Beginning with Shorewall 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2
 (5)\&.
 .sp
 For other actions, this column may be included and may contain one or more addresses (host or network) separated by commas\&. Address ranges are not allowed\&. When this column is supplied, rules are generated that require that the original destination address matches one of the listed addresses\&. This feature is most useful when you want to generate a filter rule that corresponds to a
@@ -786,10 +807,10 @@ rule\&. In this usage, the list of addresses should not begin with "!"\&.
 It is also possible to specify a set of addresses then exclude part of those addresses\&. For example,
 \fB192\&.168\&.1\&.0/24!192\&.168\&.1\&.16/28\fR
 specifies the addresses 192\&.168\&.1\&.0\-182\&.168\&.1\&.15 and 192\&.168\&.1\&.32\-192\&.168\&.1\&.255\&. See
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
 .sp
 See
-\m[blue]\fBhttp://shorewall\&.net/PortKnocking\&.html\fR\m[]\&\s-2\u[8]\d\s+2
+\m[blue]\fBhttp://shorewall\&.net/PortKnocking\&.html\fR\m[]\&\s-2\u[9]\d\s+2
 for an example of using an entry in this column with a user\-defined action rule\&.
 .RE
 .PP
@@ -1129,7 +1150,7 @@ Shorewall does not impose as much structure on the Netfilter rules in the \*(Aqn
 .RE
 .\}
 .sp
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[7]\d\s+2(8):
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2(8):
 .sp
 .if n \{\
 .RS 4
@@ -1145,7 +1166,7 @@ Shorewall does not impose as much structure on the Netfilter rules in the \*(Aqn
 .RE
 .\}
 .sp
-\m[blue]\fBshorewall\-host\fR\m[]\&\s-2\u[9]\d\s+2(8):
+\m[blue]\fBshorewall\-host\fR\m[]\&\s-2\u[10]\d\s+2(8):
 .sp
 .if n \{\
 .RS 4
@@ -1255,26 +1276,31 @@ shorewall-nesting
 \%http://www.shorewall.net/manpages/shorewall-nesting.html
 .RE
 .IP " 5." 4
+http://www.shorewall.net/shorewall_logging.html
+.RS 4
+\%http://www.shorewall.net/shorewall.logging.html
+.RE
+.IP " 6." 4
 shorewall-actions
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-actions.html
 .RE
-.IP " 6." 4
+.IP " 7." 4
 shorewall-exclusion
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-exclusion.html
 .RE
-.IP " 7." 4
+.IP " 8." 4
 shorewall-interfaces
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-interfaces.html
 .RE
-.IP " 8." 4
+.IP " 9." 4
 http://shorewall.net/PortKnocking.html
 .RS 4
 \%http://www.shorewall.net/manpages/../PortKnocking.html
 .RE
-.IP " 9." 4
+.IP "10." 4
 shorewall-host
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-hosts.html

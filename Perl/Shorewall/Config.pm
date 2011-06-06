@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -130,6 +130,8 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       %globals
 				       %config_files
 
+				       @auditoptions
+
 		                       F_IPV4
 		                       F_IPV6
 
@@ -139,7 +141,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_19';
+our $VERSION = '4.4_20';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -148,67 +150,67 @@ our ($command, $doing, $done );
 #
 # VERBOSITY
 #
-our $verbosity;
+my $verbosity;
 #
 # Logging
 #
-our ( $log, $log_verbosity );
+my ( $log, $log_verbosity );
 #
 # Timestamp each progress message, if true.
 #
-our $timestamp;
+my $timestamp;
 #
 # Script (output) file handle
 #
-our $script;
+my $script;
 #
 # When 'true', writes to the script are enabled. Used to catch code emission between functions
 #
-our $script_enabled;
+my $script_enabled;
 #
 # True, if last line emitted is blank
 #
-our $lastlineblank;
+my $lastlineblank;
 #
 # Tabs to indent the output
 #
-our $indent1;
+my $indent1;
 #
 # Characters to indent the output
 #
-our $indent2;
+my $indent2;
 #
 # Total indentation
 #
-our $indent;
+my $indent;
 #
 # Script's Directory and File
 #
-our ( $dir, $file );
+my ( $dir, $file );
 #
 # Temporary output file's name
 #
-our $tempfile;
+my $tempfile;
 #
-# Misc Globals
+# Misc Globals exported to other modules
 #
 our %globals;
 #
-# From shorewall.conf file
+# From shorewall.conf file - exported to other modules.
 #
 our %config;
 #
 # Config options and global settings that are to be copied to output script
 #
-our @propagateconfig = qw/ DISABLE_IPV6 MODULESDIR MODULE_SUFFIX LOAD_HELPERS_ONLY SUBSYSLOCK LOG_VERBOSITY/;
+my @propagateconfig = qw/ DISABLE_IPV6 MODULESDIR MODULE_SUFFIX LOAD_HELPERS_ONLY SUBSYSLOCK LOG_VERBOSITY/;
 #
 # From parsing the capabilities file or detecting capabilities
 #
-our %capabilities;
+my %capabilities;
 #
 # Capabilities
 #
-our %capdesc = ( NAT_ENABLED     => 'NAT',
+my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 MANGLE_ENABLED  => 'Packet Mangling',
 		 MULTIPORT       => 'Multi-port Match' ,
 		 XMULTIPORT      => 'Extended Multi-port Match',
@@ -262,6 +264,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 MARK_ANYWHERE   => 'Mark in any table',
 		 HEADER_MATCH    => 'Header Match',
 		 ACCOUNT_TARGET  => 'ACCOUNT Target',
+		 AUDIT_TARGET    => 'AUDIT Target',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -310,54 +313,59 @@ our %config_files = ( #accounting      => 1,
 		      tunnels          => 1,
 		      zones            => 1 );
 #
+# Options that involve the the AUDIT target
+#
+our @auditoptions = qw( BLACKLIST_DISPOSITION MACLIST_DISPOSITION TCP_FLAGS_DISPOSITION );
+#
 # Directories to search for configuration files
 #
-our @config_path;
+my @config_path;
 #
 # Stash away file references here when we encounter INCLUDE
 #
-our @includestack;
+my @includestack;
 #
 # Allow nested opens
 #
-our @openstack;
+my @openstack;
 #
 # From the params file
 #
-our %params;
+my %params;
 #
 # Entries that the compiler adds to %params
 #
-our %compiler_params;
+my %compiler_params;
 #
 # Action parameters
 #
-our %actparms;
+my %actparms;
 
-our $currentline;             # Current config file line image
-our $currentfile;             # File handle reference
-our $currentfilename;         # File NAME
-our $currentlinenumber;       # Line number
-our $perlscript;              # File Handle Reference to current temporary file being written by an in-line Perl script
-our $perlscriptname;          # Name of that file.
-our @tempfiles;               # Files that need unlinking at END
-our $first_entry;             # Message to output or function to call on first non-blank line of a file
+our $currentline;            # Current config file line image
+my  $currentfile;            # File handle reference
+my  $currentfilename;        # File NAME
+my  $currentlinenumber;      # Line number
+my  $perlscript;             # File Handle Reference to current temporary file being written by an in-line Perl script
+my  $perlscriptname;         # Name of that file.
+my  @tempfiles;              # Files that need unlinking at END
+my  $first_entry;            # Message to output or function to call on first non-blank line of a file
 
-our $shorewall_dir;           # Shorewall Directory; if non-empty, search here first for files.
+my $shorewall_dir;           # Shorewall Directory; if non-empty, search here first for files.
 
-our $debug;                   # If true, use Carp to report errors with stack trace.
+our $debug;                  # Global debugging flag
+my  $confess;                # If true, use Carp to report errors with stack trace.   
 
-our $family;                  # Protocol family (4 or 6)
-our $toolname;                # Name of the tool to use (iptables or iptables6)
-our $toolNAME;                # Tool name in CAPS
-our $product;                 # Name of product that will run the generated script
-our $Product;                 # $product with initial cap.
+our $family;                 # Protocol family (4 or 6)
+our $toolname;               # Name of the tool to use (iptables or iptables6)
+my  $toolNAME;               # Tool name in CAPS
+our $product;                # Name of product that will run the generated script
+our $Product;                # $product with initial cap.
 
-our $sillyname;               # Name of temporary filter chains for testing capabilities
-our $sillyname1;
-our $iptables;                # Path to iptables/ip6tables
-our $tc;                      # Path to tc
-our $ip;                      # Path to ip
+my $sillyname;               # Name of temporary filter chains for testing capabilities
+my $sillyname1;
+my $iptables;                # Path to iptables/ip6tables
+my $tc;                      # Path to tc
+my $ip;                      # Path to ip
 
 use constant { MIN_VERBOSITY => -1,
 	       MAX_VERBOSITY => 2 ,
@@ -365,7 +373,7 @@ use constant { MIN_VERBOSITY => -1,
 	       F_IPV6 => 6,
 	     };
 
-our %validlevels;             # Valid log levels.
+my %validlevels;             # Valid log levels.
 
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -412,7 +420,7 @@ sub initialize( $ ) {
 		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.19.4",
+		    VERSION    => "4.4.20",
 		    CAPVERSION => 40417 ,
 		  );
     #
@@ -439,6 +447,7 @@ sub initialize( $ ) {
 	  LOG_MARTIANS => undef,
 	  LOG_VERBOSITY => undef,
 	  STARTUP_LOG => undef,
+	  SFILTER_LOG_LEVEL => undef,
 	  #
 	  # Location of Files
 	  #
@@ -526,18 +535,23 @@ sub initialize( $ ) {
 	  ZONE2ZONE => undef,
 	  ACCOUNTING => undef,
 	  OPTIMIZE_ACCOUNTING => undef,
+	  ACCOUNTING_TABLE => undef,
 	  DYNAMIC_BLACKLIST => undef,
 	  LOAD_HELPERS_ONLY => undef,
 	  REQUIRE_INTERFACE => undef,
 	  FORWARD_CLEAR_MARK => undef,
 	  COMPLETE => undef,
 	  EXPORTMODULES => undef,
+	  LEGACY_FASTSTART => undef,
+	  FAKE_AUDIT => undef,
 	  #
 	  # Packet Disposition
 	  #
 	  MACLIST_DISPOSITION => undef,
 	  TCP_FLAGS_DISPOSITION => undef,
 	  BLACKLIST_DISPOSITION => undef,
+	  SMURF_DISPOSITION => undef,
+	  SFILTER_DISPOSITION => undef,
 	  #
 	  # Mark Geometry
 	  #
@@ -617,7 +631,8 @@ sub initialize( $ ) {
 	       FWMARK_RT_MASK => undef,
 	       MARK_ANYWHERE => undef,
 	       HEADER_MATCH => undef,
-               ACCOUNT_TARGET => undef,
+	       ACCOUNT_TARGET => undef,
+	       AUDIT_TARGET => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -643,6 +658,7 @@ sub initialize( $ ) {
     $shorewall_dir = '';      #Shorewall Directory
 
     $debug = 0;
+    $confess = 0;
     
     %params = ( root        => '',
 		system      => '',
@@ -688,7 +704,7 @@ sub warning_message
 	printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
     }
 
-    if ( $debug ) {
+    if ( $confess ) {
 	print STDERR longmess( "   WARNING: @_$currentlineinfo" );
 	print $log   longmess( "   WARNING: @_$currentlineinfo\n" ) if $log;
     } else {
@@ -742,7 +758,7 @@ sub fatal_error	{
 	our @localtime = localtime;
 	printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
 
-	if ( $debug ) {
+	if ( $confess ) {
 	    print $log longmess( "   ERROR: @_$currentlineinfo\n" );
 	} else {
 	    print $log "   ERROR: @_$currentlineinfo\n";
@@ -753,7 +769,7 @@ sub fatal_error	{
     }
 
     cleanup;
-    confess "   ERROR: @_$currentlineinfo" if $debug;
+    confess "   ERROR: @_$currentlineinfo" if $confess;
     die "   ERROR: @_$currentlineinfo\n";
 }
 
@@ -1210,8 +1226,10 @@ sub set_config_path( $ ) {
 #
 # Set $debug
 #
-sub set_debug( $ ) {
-    $debug = shift;
+sub set_debug( $$ ) {
+    $debug   = shift;
+    $confess = shift;
+    $confess ||= $debug;
 }
 
 #
@@ -2524,8 +2542,13 @@ sub Account_Target() {
     }
 }
 
+sub Audit_Target() {
+    $config{FAKE_AUDIT} || qt1( "$iptables -A $sillyname -j AUDIT --type drop" );
+}
+
 our %detect_capability =
     ( ACCOUNT_TARGET =>\&Account_Target,
+      AUDIT_TARGET => \&Audit_Target,
       ADDRTYPE => \&Addrtype,
       CLASSIFY_TARGET => \&Classify_Target,
       COMMENTS => \&Comments,
@@ -2700,6 +2723,7 @@ sub determine_capabilities() {
 	$capabilities{FWMARK_RT_MASK}  = detect_capability( 'FWMARK_RT_MASK' );
 	$capabilities{MARK_ANYWHERE}   = detect_capability( 'MARK_ANYWHERE' );
 	$capabilities{ACCOUNT_TARGET}  = detect_capability( 'ACCOUNT_TARGET' );
+	$capabilities{AUDIT_TARGET}    = detect_capability( 'AUDIT_TARGET' );
 
 
 	qt1( "$iptables -F $sillyname" );
@@ -2917,7 +2941,7 @@ sub get_params() {
     if ( -f $fn ) {
 	progress_message2 "Processing $fn ...";
 
-	my $command = "$FindBin::Bin/getparams $fn " . join( ':', @config_path );
+	my $command = "$FindBin::Bin/getparams $fn " . join( ':', @config_path ) . " $family";
 	#
 	# getparams silently sources the params file under 'set -a', then executes 'export -p'
 	#
@@ -3277,13 +3301,23 @@ sub get_configuration( $ ) {
     default_yes_no 'AUTOMAKE'                   , '';
     default_yes_no 'WIDE_TC_MARKS'              , '';
     default_yes_no 'TRACK_PROVIDERS'            , '';
+
     default_yes_no 'ACCOUNTING'                 , 'Yes';
     default_yes_no 'OPTIMIZE_ACCOUNTING'        , '';
+    
+    if ( defined $config{ACCOUNTING_TABLE} ) {
+	my $value = $config{ACCOUNTING_TABLE};
+	fatal_error "Invalid ACCOUNTING_TABLE setting ($value)" unless $value eq 'filter' || $value eq 'mangle';
+    } else {
+	$config{ACCOUNTING_TABLE} = 'filter';
+    }
+
     default_yes_no 'DYNAMIC_BLACKLIST'          , 'Yes';
     default_yes_no 'REQUIRE_INTERFACE'          , '';
     default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability 'MARK' ? 'Yes' : '';
     default_yes_no 'COMPLETE'                   , '';
     default_yes_no 'EXPORTMODULES'              , '';
+    default_yes_no 'LEGACY_FASTSTART'           , '';
 
     require_capability 'MARK' , 'FOREWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 
@@ -3321,9 +3355,19 @@ sub get_configuration( $ ) {
 
     default 'BLACKLIST_DISPOSITION'    , 'DROP';
 
-    unless ( $config{BLACKLIST_DISPOSITION} eq 'DROP' || $config{BLACKLIST_DISPOSITION} eq 'REJECT' ) {
-	fatal_error q(BLACKLIST_DISPOSITION must be 'DROP' or 'REJECT');
+    unless ( ( $val = $config{BLACKLIST_DISPOSITION} ) =~ /^(?:A_)?DROP$/ || $config{BLACKLIST_DISPOSITION} =~ /^(?:A_)?REJECT/ ) {
+	fatal_error q(BLACKLIST_DISPOSITION must be 'DROP', 'A_DROP', 'REJECT' or 'A_REJECT');
     }
+
+    require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$val", 's' if $val =~ /^A_/;
+
+    default 'SMURF_DISPOSITION'    , 'DROP';
+
+    unless ( ( $val = $config{SMURF_DISPOSITION} ) =~ /^(?:A_)?DROP$/ ) {
+	fatal_error q(SMURF_DISPOSITION must be 'DROP' or 'A_DROP');
+    }
+
+    require_capability 'AUDIT_TARGET', "SMURF_DISPOSITION=$val", 's' if $val =~ /^A_/;
 
     default_log_level 'BLACKLIST_LOGLEVEL',  '';
     default_log_level 'MACLIST_LOG_LEVEL',   '';
@@ -3335,25 +3379,37 @@ sub get_configuration( $ ) {
     default_log_level 'SMURF_LOG_LEVEL',     '';
     default_log_level 'LOGALLNEW',           '';
 
-    $globals{MACLIST_TARGET} = 'reject';
+    default_log_level 'SFILTER_LOG_LEVEL', 'info';
+    
+    if ( $val = $config{SFILTER_DISPOSITION} ) {
+	fatal_error "Invalid SFILTER_DISPOSITION setting ($val)" unless $val =~ /^(A_)?(DROP|REJECT)$/;
+	require_capability 'AUDIT_TARGET' , "SFILTER_DISPOSITION=$val", 's' if $1;
+    } else {
+	$config{SFILTER_DISPOSITION} = 'DROP';
+    }
 
     if ( $val = $config{MACLIST_DISPOSITION} ) {
-	unless ( $val eq 'REJECT' ) {
-	    if ( $val eq 'DROP' ) {
-		$globals{MACLIST_TARGET} = 'DROP';
-	    } elsif ( $val eq 'ACCEPT' ) {
-		$globals{MACLIST_TARGET} = 'RETURN';
-	    } else {
-		fatal_error "Invalid value ($config{MACLIST_DISPOSITION}) for MACLIST_DISPOSITION"
-		}
+	if ( $val =~ /^(?:A_)?DROP$/ ) {
+	    $globals{MACLIST_TARGET} = $val;
+	} elsif ( $val eq 'REJECT' ) {
+	    $globals{MACLIST_TARGET} = 'reject';
+	} elsif ( $val eq 'A_REJECT' ) {
+	    $globals{MACLIST_TARGET} = $val;
+	} elsif ( $val eq 'ACCEPT' ) {
+	    $globals{MACLIST_TARGET} = 'RETURN';
+	} else {
+	    fatal_error "Invalid value ($config{MACLIST_DISPOSITION}) for MACLIST_DISPOSITION"
 	}
+
+	require_capability 'AUDIT_TARGET' , "MACLIST_DISPOSITION=$val", 's' if $val =~ /^A_/;
     } else {
-	$config{MACLIST_DISPOSITION} = 'REJECT';
+	$config{MACLIST_DISPOSITION}  = 'REJECT';
+	$globals{MACLIST_TARGET}      = 'reject';
     }
 
     if ( $val = $config{MACLIST_TABLE} ) {
 	if ( $val eq 'mangle' ) {
-	    fatal_error 'MACLIST_DISPOSITION=REJECT is not allowed with MACLIST_TABLE=mangle' if $config{MACLIST_DISPOSITION} eq 'REJECT';
+	    fatal_error 'MACLIST_DISPOSITION=$1 is not allowed with MACLIST_TABLE=mangle' if $config{MACLIST_DISPOSITION} =~ /^((?:A)?REJECT)$/;
 	} else {
 	    fatal_error "Invalid value ($val) for MACLIST_TABLE option" unless $val eq 'filter';
 	}
@@ -3362,10 +3418,12 @@ sub get_configuration( $ ) {
     }
 
     if ( $val = $config{TCP_FLAGS_DISPOSITION} ) {
-	fatal_error "Invalid value ($config{TCP_FLAGS_DISPOSITION}) for TCP_FLAGS_DISPOSITION" unless $val =~ /^(REJECT|ACCEPT|DROP)$/;
+	fatal_error "Invalid value ($config{TCP_FLAGS_DISPOSITION}) for TCP_FLAGS_DISPOSITION" unless $val =~ /^(?:(?:A_)?(?:REJECT|DROP)|ACCEPT)$/;
     } else {
 	$config{TCP_FLAGS_DISPOSITION} = 'DROP';
     }
+
+    require_capability 'AUDIT_TARGET' , "TCP_FLAGS_DISPOSITION=$val", 's' if $val =~ /^A_/;
 
     default 'TC_ENABLED' , $family == F_IPV4 ? 'Internal' : 'no';
 

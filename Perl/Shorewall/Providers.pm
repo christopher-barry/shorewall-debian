@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010.2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_providers @routemarked_interfaces handle_stickiness handle_optional_interfaces );
 our @EXPORT_OK = qw( initialize lookup_provider );
-our $VERSION = '4.4_16';
+our $VERSION = '4.4_20';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -43,23 +43,23 @@ use constant { LOCAL_TABLE   => 255,
 	       UNSPEC_TABLE  => 0
 	       };
 
-our @routemarked_providers;
-our %routemarked_interfaces;
+my  @routemarked_providers;
+my  %routemarked_interfaces;
 our @routemarked_interfaces;
-our %provider_interfaces;
+my  %provider_interfaces;
 
-our $balancing;
-our $fallback;
-our $first_default_route;
-our $first_fallback_route;
+my $balancing;
+my $fallback;
+my $first_default_route;
+my $first_fallback_route;
 
-our %providers;
+my %providers;
 
-our @providers;
+my @providers;
 
-our $family;
+my $family;
 
-our $lastmark;
+my $lastmark;
 
 use constant { ROUTEMARKED_SHARED => 1, ROUTEMARKED_UNSHARED => 2 };
 
@@ -140,13 +140,13 @@ sub copy_table( $$$ ) {
     my $filter = $family == F_IPV6 ? q(sed 's/ via :: / /' | ) : '';
 
     if ( $realm ) {
-	emit  ( "\$IP -$family route show table $duplicate | sed -r 's/ realm [[:alnum:]_]+//' | while read net route; do" )
+	emit  ( "\$IP -$family -o route show table $duplicate | sed -r 's/ realm [[:alnum:]_]+//' | while read net route; do" )
     } else {
-	emit  ( "\$IP -$family route show table $duplicate | ${filter}while read net route; do" )
+	emit  ( "\$IP -$family -o route show table $duplicate | ${filter}while read net route; do" )
     }
 
     emit ( '    case $net in',
-	   '        default|nexthop)',
+	   '        default)',
 	   '            ;;',
 	   '        *)',
 	   "            run_ip route add table $number \$net \$route $realm",
@@ -172,13 +172,13 @@ sub copy_and_edit_table( $$$$ ) {
     $copy =~ s/\+/*/;
 
     if ( $realm ) {
-	emit  ( "\$IP -$family route show table $duplicate | sed -r 's/ realm [[:alnum:]]+//' | while read net route; do" )
+	emit  ( "\$IP -$family -o route show table $duplicate | sed -r 's/ realm [[:alnum:]]+//' | while read net route; do" )
     } else {
-	emit  ( "\$IP -$family route show table $duplicate | ${filter}while read net route; do" )
+	emit  ( "\$IP -$family -o route show table $duplicate | ${filter}while read net route; do" )
     }
 
     emit (  '    case $net in',
-	    '        default|nexthop)',
+	    '        default)',
 	    '            ;;',
 	    '        *)',
 	    '            case $(find_device $route) in',
@@ -466,10 +466,18 @@ sub add_a_provider( ) {
 
     if ( $gateway ) {
 	$address = get_interface_address $interface unless $address;
-	emit "run_ip route replace $gateway src $address dev $physical ${mtu}";
-	emit "run_ip route replace $gateway src $address dev $physical ${mtu}table $number $realm";
+	if ( $family == F_IPV4 ) {
+	    emit "run_ip route replace $gateway src $address dev $physical ${mtu}";
+	    emit "run_ip route replace $gateway src $address dev $physical ${mtu}table $number $realm";
+	} else {
+	    emit "qt \$IP -6 route del $gateway src $address dev $physical ${mtu}";
+	    emit "run_ip route add $gateway src $address dev $physical ${mtu}";
+	    emit "qt \$IP -6 route del $gateway src $address dev $physical ${mtu}table $number $realm";
+	    emit "run_ip route add $gateway src $address dev $physical ${mtu}table $number $realm";
+	}
+   	
 	emit "run_ip route add default via $gateway src $address dev $physical ${mtu}table $number $realm";
-    }
+ }
 
     balance_default_route $balance , $gateway, $physical, $realm if $balance;
 
@@ -478,7 +486,12 @@ sub add_a_provider( ) {
     } elsif ( $default ) {
 	emit '';
 	if ( $gateway ) {
-	    emit qq(run_ip route replace default via $gateway src $address dev $physical table ) . DEFAULT_TABLE . qq( metric $number);
+	    if ( $family == F_IPV4 ) {
+		emit qq(run_ip route replace default via $gateway src $address dev $physical table ) . DEFAULT_TABLE . qq( metric $number);
+	    } else {
+		emit qq(qt \$IP -6 route del default via $gateway src $address dev $physical table ) . DEFAULT_TABLE . qq( metric $number);
+		emit qq(run_ip route add default via $gateway src $address dev $physical table ) . DEFAULT_TABLE . qq( metric $number);
+	    }
 	    emit qq(echo "qt \$IP -$family route del default via $gateway table ) . DEFAULT_TABLE . qq(" >> \${VARDIR}/undo_routing);
 	} else {
 	    emit qq(run_ip route add default table ) . DEFAULT_TABLE . qq( dev $physical metric $number);
@@ -758,7 +771,12 @@ sub finish_providers() {
 	}
 
 	emit  ( 'if [ -n "$DEFAULT_ROUTE" ]; then' );
-	emit  ( "    run_ip route replace default scope global table $table \$DEFAULT_ROUTE" );
+	if ( $family == F_IPV4 ) {
+	    emit  ( "    run_ip route replace default scope global table $table \$DEFAULT_ROUTE" );
+	} else {
+	    emit  ( "    qt \$IP -6 route del default scope global table $table \$DEFAULT_ROUTE" );
+	    emit  ( "    run_ip route add default scope global table $table \$DEFAULT_ROUTE" );
+	}
 
 	if ( $config{USE_DEFAULT_RT} ) {
 	    emit  ( "    while qt \$IP -$family route del default table " . MAIN_TABLE . '; do',
@@ -789,11 +807,17 @@ sub finish_providers() {
     }
 
     if ( $fallback ) {
-	emit  ( 'if [ -n "$FALLBACK_ROUTE" ]; then' ,
-		"    run_ip route replace default scope global table " . DEFAULT_TABLE . " \$FALLBACK_ROUTE" ,
-		"    progress_message \"Fallback route '\$(echo \$FALLBACK_ROUTE | sed 's/\$\\s*//')' Added\"",
-		'fi',
-		'' );
+	emit  ( 'if [ -n "$FALLBACK_ROUTE" ]; then' );
+	if ( $family == F_IPV4 ) {
+	    emit( "    run_ip route replace default scope global table " . DEFAULT_TABLE . " \$FALLBACK_ROUTE" );
+	} else {
+	    emit( "    qt \$IP -6 route del default scope global table " . DEFAULT_TABLE . " \$FALLBACK_ROUTE" );
+	    emit( "    run_ip route add default scope global table " . DEFAULT_TABLE . " \$FALLBACK_ROUTE" );
+	}
+
+	emit( "    progress_message \"Fallback route '\$(echo \$FALLBACK_ROUTE | sed 's/\$\\s*//')' Added\"",
+	      'fi',
+	      '' );
     }
 
     unless ( $config{KEEP_RT_TABLES} ) {
