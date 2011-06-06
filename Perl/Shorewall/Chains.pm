@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -66,6 +66,7 @@ our %EXPORT_TAGS = (
 				       NFQ
 				       CHAIN
 				       SET
+				       AUDIT
 				       NO_RESTRICT
 				       PREROUTE_RESTRICT
 				       DESTIFACE_DISALLOW
@@ -188,7 +189,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_19';
+our $VERSION = '4.4_20';
 
 #
 # Chain Table
@@ -224,6 +225,8 @@ our $VERSION = '4.4_19';
 #                                               action       => <action tuple that generated this chain>
 #                                               restricted   => Logical OR of restrictions of rules in this chain.
 #                                               restriction  => Restrictions on further rules in this chain.
+#                                               audit        => Audit the result.
+#                                               filtered     => Number of filter rules at the front of an interface forward chain
 #                                             } ,
 #                                <chain2> => ...
 #                              }
@@ -235,15 +238,15 @@ our $VERSION = '4.4_19';
 #
 #       Only 'referenced' chains get written to the iptables-restore input.
 #
-#       'loglevel', 'synparams', 'synchain' and 'default' only apply to policy chains.
+#       'loglevel', 'synparams', 'synchain', 'audit' and 'default' only apply to policy chains.
 #
 our %chain_table;
 our $raw_table;
 our $nat_table;
 our $mangle_table;
 our $filter_table;
-our $comment;
-our @comments;
+my  $comment;
+my  @comments;
 my  $export;
 
 #
@@ -260,7 +263,8 @@ use constant { STANDARD => 1,              #defined by Netfilter
 	       LOGRULE  => 256,            #'LOG','NFLOG'
 	       NFQ      => 512,            #'NFQUEUE'
 	       CHAIN    => 1024,           #Manual Chain
-	       SET      => 2048.           #SET
+	       SET      => 2048,           #SET
+	       AUDIT    => 4096,           #A_ACCEPT, etc
 	   };
 #
 # Valid Targets -- value is a combination of one or more of the above
@@ -281,14 +285,14 @@ use constant { NO_RESTRICT         => 0,   # FORWARD chain rule     - Both -i an
 #
 # See initialize() below for additional comments on these variables
 #
-our $iprangematch;
-our %chainseq;
-our $idiotcount;
-our $idiotcount1;
-our $warningcount;
-our $hashlimitset;
-our $global_variables;
-our $ipset_rules;
+my $iprangematch;
+my %chainseq;
+my $idiotcount;
+my $idiotcount1;
+my $warningcount;
+my $hashlimitset;
+my $global_variables;
+my $ipset_rules;
 
 #
 # Determines the commands for which a particular interface-oriented shell variable needs to be set
@@ -298,18 +302,18 @@ use constant { ALL_COMMANDS => 1, NOT_RESTORE => 2 };
 #
 # These hashes hold the shell code to set shell variables. The key is the name of the variable; the value is the code to generate the variable's contents
 #
-our %interfaceaddr;         # First interface address
-our %interfaceaddrs;        # All interface addresses
-our %interfacenets;         # Networks routed out of the interface
-our %interfacemacs;         # Interface MAC
-our %interfacebcasts;       # Broadcast addresses associated with the interface (IPv4)
-our %interfaceacasts;       # Anycast addresses associated with the interface (IPv6)
-our %interfacegateways;     # Gateway of default route out of the interface
+my %interfaceaddr;         # First interface address
+my %interfaceaddrs;        # All interface addresses
+my %interfacenets;         # Networks routed out of the interface
+my %interfacemacs;         # Interface MAC
+my %interfacebcasts;       # Broadcast addresses associated with the interface (IPv4)
+my %interfaceacasts;       # Anycast addresses associated with the interface (IPv6)
+my %interfacegateways;     # Gateway of default route out of the interface
 
 #
 # Built-in Chains
 #
-our @builtins = qw(PREROUTING INPUT FORWARD OUTPUT POSTROUTING);
+my @builtins = qw(PREROUTING INPUT FORWARD OUTPUT POSTROUTING);
 
 #
 # Mode of the emitter (part of this module that converts rules in the chain table into iptables-restore input)
@@ -318,7 +322,7 @@ use constant { NULL_MODE => 0 ,   # Emitting neither shell commands nor iptables
 	       CAT_MODE  => 1 ,   # Emitting iptables-restore input
 	       CMD_MODE  => 2 };  # Emitting shell commands.
 
-our $mode;
+my $mode;
 #
 # Address Family
 #
@@ -327,8 +331,9 @@ our $family;
 #
 # These are the current builtin targets
 #
-our %builtin_target = ( ACCEPT      => 1,
+my  %builtin_target = ( ACCEPT      => 1,
 			ACCOUNT     => 1,
+			AUDIT       => 1,
 			CHAOS       => 1,
 			CHECKSUM    => 1,
 			CLASSIFY    => 1,
@@ -340,6 +345,7 @@ our %builtin_target = ( ACCEPT      => 1,
 			DELUDE      => 1,
 			DHCPMAC     => 1,
 			DNAT        => 1,
+			DNETMAP     => 1,
 			DROP        => 1,
 			DSCP        => 1,
 			ECHO        => 1,
@@ -525,7 +531,6 @@ sub trace( $$$$ ) {
 #
 #    Chain reference , Command, ...
 #
-
 sub add_commands ( $$;@ ) {
     my $chainref    = shift @_;
     my $indentation = '    ' x $chainref->{cmdlevel};
@@ -622,7 +627,6 @@ sub handle_port_list( $$$$$$ ) {
 #
 # This much simpler function splits a rule with an icmp type list into discrete rules
 #
-
 sub handle_icmptype_list( $$$$ ) {
     my ($chainref, $first, $types, $rest) = @_;
     my @ports = split ',', $types;
@@ -822,7 +826,7 @@ sub decrement_reference_count( $$ ) {
 # The rules generated by interface options are added to the interfaces's input chain and
 # forward chain. Shorewall::Rules::generate_matrix() may decide to move those rules to
 # the head of a rules chain (behind any blacklist rule already there).
-
+#
 sub move_rules( $$ ) {
     my ($chain1, $chain2 ) = @_;
 
@@ -833,6 +837,12 @@ sub move_rules( $$ ) {
 	my $count     = @{$chain1->{rules}};
 	my $tableref  = $chain_table{$chain1->{table}};
 	my $blacklist = $chain2->{blacklist};
+	my $filtered;
+	my $filtered1 = $chain1->{filtered};
+	my $filtered2 = $chain2->{filtered};
+	my @filtered1;
+	my @filtered2;
+	my $rule;
 
 	assert( ! $chain1->{blacklist} );
 	#
@@ -843,9 +853,20 @@ sub move_rules( $$ ) {
 	for ( @{$chain1->{rules}} ) {
 	    adjust_reference_counts( $tableref->{$1}, $name1, $name2 ) if / -[jg] ([^\s]+)/;
 	}
+	#
+	# We set aside the filtered rules for the time being
+	#
+	$filtered = $filtered1;
+	
+	push @filtered1 , shift @{$chain1->{rules}} while $filtered--;
+
+	$chain1->{filtered} = 0;
+	
+	$filtered = $filtered2;
+	push @filtered2 , shift @{$chain2->{rules}} while $filtered--;
 
 	if ( $debug ) {
-	    my $rule = $blacklist;
+	    my $rule = $blacklist + $filtered2;
 	    trace( $chain2, 'A', ++$rule, $_ ) for @{$chain1->{rules}};
 	}
 
@@ -865,6 +886,37 @@ sub move_rules( $$ ) {
 	    shift @{$rules} while @{$rules} > 1 && $rules->[0] eq $rules->[1];
 	}
 
+	#
+	# Now insert the filter rules at the head of the chain (before blacklist rules)
+	#
+
+	if ( $filtered1 ) {
+	    if ( $debug ) {
+		$rule = $filtered2;
+		$filtered = 0;
+		trace( $chain2, 'I', ++$rule, $filtered1[$filtered++] ) while $filtered < $filtered1;
+	    }
+
+	    splice @{$rules}, 0, 0, @filtered1;
+	    
+	}
+    
+	#
+	# Restore the filters originally in chain2 but drop duplicates of those from $chain1
+	#
+      FILTER:
+	while ( @filtered2 ) {
+	    $filtered = pop @filtered2;
+	    
+	    for ( $rule = 0; $rule < $filtered1; $rule++ ) {
+		$filtered2--, next FILTER if ${$rules}[$rule] eq $filtered;
+	    }
+	    
+	    unshift @{$rules}, $filtered;
+	}
+	   
+	$chain2->{filtered} = $filtered1 + $filtered2;
+	
 	delete_chain $chain1;
 
 	$count;
@@ -874,7 +926,6 @@ sub move_rules( $$ ) {
 #
 # Replace the jump at the end of one chain (chain2) with the rules from another chain (chain1).
 #
-
 sub copy_rules( $$;$ ) {
     my ($chain1, $chain2, $nojump ) = @_;
 
@@ -1206,7 +1257,9 @@ sub new_chain($$)
 		     log            => 1,
 		     cmdlevel       => 0,
 		     references     => {},
-		     blacklist => 0 };
+		     blacklist      => 0,
+		     filtered       => 0
+		   };
 
     trace( $chainref, 'N', undef, '' ) if $debug;
 
@@ -1385,7 +1438,9 @@ sub ensure_accounting_chain( $$$ )
 {
     my ($chain, $ipsec, $restriction ) = @_;
 
-    my $chainref = $filter_table->{$chain};
+    my $table = $config{ACCOUNTING_TABLE};
+
+    my $chainref = $chain_table{$table}{$chain};
 
     if ( $chainref ) {
 	fatal_error "Non-accounting chain ($chain) used in an accounting rule" unless $chainref->{accounting};
@@ -1393,7 +1448,7 @@ sub ensure_accounting_chain( $$$ )
     } else {
 	fatal_error "Chain name ($chain) too long" if length $chain > 29;
 	fatal_error "Invalid Chain name ($chain)" unless $chain =~ /^[-\w]+$/ && ! ( $builtin_target{$chain} || $config_files{$chain} );
-	$chainref = new_chain 'filter' , $chain;
+	$chainref = new_chain $table , $chain;
 	$chainref->{accounting}  = 1;
 	$chainref->{referenced}  = 1;
 	$chainref->{restriction} = $restriction;
@@ -1501,8 +1556,9 @@ sub ensure_manual_chain($) {
 # Add all builtin chains to the chain table -- it is separate from initialize() because it depends on capabilities and configuration.
 # The function also initializes the target table with the pre-defined targets available for the specfied address family.
 #
-sub initialize_chain_table()
-{
+sub initialize_chain_table($) {
+    my $full = shift;
+
     if ( $family == F_IPV4 ) {
 	#
 	#   As new targets (Actions, Macros and Manual Chains) are discovered, they are added to the table
@@ -1510,11 +1566,17 @@ sub initialize_chain_table()
 	%targets = ('ACCEPT'          => STANDARD,
 		    'ACCEPT+'         => STANDARD  + NONAT,
 		    'ACCEPT!'         => STANDARD,
+		    'A_ACCEPT'        => STANDARD  + AUDIT,
+		    'A_ACCEPT+'       => STANDARD  + NONAT + AUDIT,
 		    'NONAT'           => STANDARD  + NONAT + NATONLY,
 		    'DROP'            => STANDARD,
 		    'DROP!'           => STANDARD,
+		    'A_DROP'          => STANDARD + AUDIT,
+		    'A_DROP!'         => STANDARD + AUDIT,
 		    'REJECT'          => STANDARD,
 		    'REJECT!'         => STANDARD,
+		    'A_REJECT'        => STANDARD + AUDIT,
+		    'A_REJECT!'       => STANDARD + AUDIT,
 		    'DNAT'            => NATRULE,
 		    'DNAT-'           => NATRULE  + NATONLY,
 		    'REDIRECT'        => NATRULE  + REDIRECT,
@@ -1589,6 +1651,14 @@ sub initialize_chain_table()
 	for my $chain qw(PREROUTING INPUT OUTPUT FORWARD POSTROUTING ) {
 	    new_builtin_chain 'mangle', $chain, 'ACCEPT';
 	}
+    }
+
+    if ( $full ) {
+	#
+	# Create these chains early in case they are needed by Policy actions
+	#
+	dont_delete new_standard_chain 'AUDIT', 0 if $config{FAKE_AUDIT};
+	dont_move   new_standard_chain 'reject';
     }
 }
 
@@ -2850,7 +2920,9 @@ sub record_runtime_address( $ ) {
 
 #
 # If the passed address is a run-time address variable for an optional interface, then
-# begin a conditional rule block that tests the address for nil.
+# begin a conditional rule block that tests the address for nil. Returns 1 if a conditional
+# block was opened. The caller stores the result, and if the result is true the caller 
+# invokes conditional_rule_end() when the conditional block is complete.
 #
 sub conditional_rule( $$ ) {
     my ( $chainref, $address ) = @_;
@@ -2871,7 +2943,8 @@ sub conditional_rule( $$ ) {
 }
 
 #
-# If end a conditional in a chain
+# End a conditional in a chain begun by conditional_rule(). Should only be called
+# if conditional_rule() returned true.
 #
 
 sub conditional_rule_end( $ ) {
@@ -4261,11 +4334,11 @@ sub promote_blacklist_rules() {
 		    # rule to the head of one of those chains
 		    $copied++;
 		    #
-		    # Copy the blacklist rule to the head of the parent chain unless it
-		    # already has a blacklist rule.
+		    # Copy the blacklist rule to the head of the parent chain (after any
+		    # filter rules) unless it already has a blacklist rule.
 		    #
 		    unless ( $chain2ref->{blacklist} ) {
-			unshift @{$chain2ref->{rules}}, $rule;
+			splice @{$chain2ref->{rules}}, $chain2ref->{filtered}, 0, $rule;
 			add_reference $chain2ref, $chainbref;
 			$chain2ref->{blacklist} = 1;
 		    }
@@ -4734,7 +4807,7 @@ sub create_chainlist_reload($) {
 		fatal_error "Built-in chains may not be refreshed" if $chainref->{builtin};
 		
 		if ( $chainseq{$table} && @{$chainref->{rules}} ) {
-		    warning_message "The entire $table table will be refreshed" unless $tables{$table}++;
+		    $tables{$table} = 1;
 		} else {
 		    $chains{$table}{$chain} = $chainref;
 		}

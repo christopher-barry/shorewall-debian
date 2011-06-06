@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -448,18 +448,6 @@ An interface name followed by a colon (":") followed by a comma\-separated list 
 $FW optionally followed by a colon (":") and a comma\-separated list of host or network IP addresses\&. Matches packets originating on the firewall\&. May not be used with a chain qualifier (:P, :F, etc\&.) in the MARK column\&.
 .RE
 .sp
-.RS 4
-.ie n \{\
-\h'-04' 5.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  5." 4.2
-.\}
-\fIaddress\-or\-range\fR
-may include ipsets\&.
-.RE
-.sp
 MAC addresses must be prefixed with "~" and use "\-" as a separator\&.
 .sp
 Example: ~00\-A0\-C9\-15\-39\-78
@@ -507,18 +495,6 @@ A comma\-separated list of host or network IP addresses\&. The list may include 
 .IP "  3." 4.2
 .\}
 Beginning with Shorewall 4\&.4\&.13, $FW may be specified by itself or qualified by an address list\&. This causes marking to occur in the INPUT chain\&.
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04' 4.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "  4." 4.2
-.\}
-\fIaddress\-or\-range\fR
-may include ipsets\&.
 .RE
 .sp
 You may exclude certain hosts from the set already defined through use of an

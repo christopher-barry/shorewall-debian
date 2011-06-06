@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -85,7 +85,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_19';
+our $VERSION = '4.4_20';
 
 #
 # IPSEC Option types
@@ -129,11 +129,11 @@ use constant { NOTHING    => 'NOTHING',
 #
 #     $firewall_zone names the firewall zone.
 #
-our @zones;
-our %zones;
-our $firewall_zone;
+my @zones;
+my %zones;
+my $firewall_zone;
 
-our %reservedName = ( all => 1,
+my  %reservedName = ( all => 1,
 		      any => 1,
 		      none => 1,
 		      SOURCE => 1,
@@ -153,7 +153,7 @@ our %reservedName = ( all => 1,
 #                                     zone        => <zone name>
 #                                     multizone   => undef|1   #More than one zone interfaces through this interface
 #                                     nets        => <number of nets in interface/hosts records referring to this interface>
-#                                     bridge      => <bridge>
+#                                     bridge      => <bridge name>
 #                                     ports       => <number of port on this bridge>
 #                                     ipsec       => undef|1 # Has an ipsec host group
 #                                     broadcasts  => 'none', 'detect' or [ <addr1>, <addr2>, ... ]
@@ -167,18 +167,18 @@ our %reservedName = ( all => 1,
 #    The purpose of the 'base' member is to ensure that the base names associated with the physical interfaces are assigned in
 #    the same order as the interfaces are encountered in the configuration files.
 #
-our @interfaces;
-our %interfaces;
-our %roots;
-our @bport_zones;
-our %ipsets;
-our %physical;
-our %basemap;
-our %mapbase;
-our $family;
-our $have_ipsec;
-our $baseseq;
-our $minroot;
+my @interfaces;
+my %interfaces;
+my %roots;
+my @bport_zones;
+my %ipsets;
+my %physical;
+my %basemap;
+my %mapbase;
+my $family;
+my $have_ipsec;
+my $baseseq;
+my $minroot;
 
 use constant { FIREWALL => 1,
 	       IP       => 2,
@@ -202,13 +202,13 @@ use constant { SIMPLE_IF_OPTION   => 1,
 	       IF_OPTION_WILDOK   => 64
 	   };
 
-our %validinterfaceoptions;
+my %validinterfaceoptions;
 
-our %defaultinterfaceoptions = ( routefilter => 1 , wait => 60 );
+my %defaultinterfaceoptions = ( routefilter => 1 , wait => 60 );
 
-our %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 );
+my %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 );
 
-our %validhostoptions;
+my %validhostoptions;
 
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -255,6 +255,7 @@ sub initialize( $ ) {
 				  required    => SIMPLE_IF_OPTION,
 				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				  routefilter => NUMERIC_IF_OPTION ,
+				  sfilter     => IPLIST_IF_OPTION,
 				  sourceroute => BINARY_IF_OPTION,
 				  tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  upnp        => SIMPLE_IF_OPTION,
@@ -284,6 +285,7 @@ sub initialize( $ ) {
 				    proxyndp    => BINARY_IF_OPTION,
 				    required    => SIMPLE_IF_OPTION,
 				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
+				    sfilter     => IPLIST_IF_OPTION,
 				    sourceroute => BINARY_IF_OPTION,
 				    tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    mss         => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
@@ -864,7 +866,8 @@ sub chain_base($) {
 #
 sub process_interface( $$ ) {
     my ( $nextinum, $export ) = @_;
-    my $netsref = '';
+    my $netsref   = '';
+    my $filterref = [];
     my ($zone, $originalinterface, $bcasts, $options ) = split_line 2, 4, 'interfaces file';
     my $zoneref;
     my $bridge = '';
@@ -1055,6 +1058,12 @@ sub process_interface( $$ ) {
 		    # Assume 'broadcast'
 		    #
 		    $hostoptions{broadcast} = 1;
+		} elsif ( $option eq 'sfilter' ) {
+		    warning_message "sfilter is ineffective with FASTACCEPT=Yes" if $config{FASTACCEPT};
+
+		    $filterref = [ split_list $value, 'address' ];
+		    
+		    validate_net( $_, 1) for @{$filterref}
 		} else {
 		    assert(0);
 		}
@@ -1102,6 +1111,7 @@ sub process_interface( $$ ) {
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
 						       bridge     => $bridge ,
+						       filter     => $filterref ,
 						       nets       => 0 ,
 						       number     => $nextinum ,
 						       root       => $root ,
@@ -1723,7 +1733,7 @@ sub process_host( ) {
 		fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^\+[a-zA-Z][-\w]*$/;
 	    }
 
-	    fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface})->{root};
+	    fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
 	} else {
 	    fatal_error "Invalid HOST(S) column contents: $hosts";
 	}

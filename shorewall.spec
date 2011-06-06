@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 4.4.19
-%define release 4
+%define version 4.4.20
+%define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -12,7 +12,7 @@ Group: Networking/Utilities
 Source: %{name}-%{version}.tgz
 URL: http://www.shorewall.net/
 BuildArch: noarch
-BuildRoot: %{_tmppath}/%{name}-%{version}-root
+BuildRoot: %{_tmppath}/%{name}-%{version}-root1
 Requires: iptables iproute perl
 Provides: shoreline_firewall = %{version}-%{release}
 Obsoletes: shorewall-common shorewall-perl shorewall-shell
@@ -84,7 +84,9 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/version
 %attr(0644,root,root) /usr/share/shorewall/actions.std
 %attr(0644,root,root) /usr/share/shorewall/action.Drop
+%attr(0644,root,root) /usr/share/shorewall/action.A_Drop
 %attr(0644,root,root) /usr/share/shorewall/action.Reject
+%attr(0644,root,root) /usr/share/shorewall/action.A_Reject
 %attr(0644,root,root) /usr/share/shorewall/action.template
 %attr(-   ,root,root) /usr/share/shorewall/functions
 %attr(0644,root,root) /usr/share/shorewall/lib.base
@@ -109,12 +111,20 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
-* Wed May 11 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.19-4
-* Sat May 07 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.19-3
-* Sat Apr 16 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.19-2
+* Tue May 31 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0base
+* Fri May 27 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0RC1
+* Tue May 24 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0Beta5
+* Sun May 22 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0Beta4
+* Thu May 19 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0Beta3
+* Wed May 18 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0Beta2
+* Fri Apr 15 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.20-0Beta1
 * Wed Apr 13 2011 Tom Eastep tom@shorewall.net
 - Updated to 4.4.19-1
 * Sat Apr 09 2011 Tom Eastep tom@shorewall.net

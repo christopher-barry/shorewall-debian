@@ -2,12 +2,12 @@
 .\"     Title: shorewall-secmarks
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 05/17/2011
+.\"      Date: 06/05/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-SECMARKS" "5" "05/17/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-SECMARKS" "5" "06/05/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -79,7 +79,7 @@ The remainder of the line is treated as a comment which is attached to subsequen
 .RE
 .RE
 .PP
-\fBCHAIN:STATE \- {P|I|F|O|T}[:{N|E|ER}]\fR
+\fBCHAIN:STATE \- {P|I|F|O|T}[:{N|I|NI|E|ER}]\fR
 .RS 4
 This column determines the CHAIN where the SElinux context is to be applied:
 .RS 4
@@ -97,9 +97,15 @@ O \- OUTPUT
 .RS 4
 T \- POSTROUTING
 .RE
-It may be optionally followed by a colon and an indication of the connection state(s) at which the context is to be applied:
+It may be optionally followed by a colon and an indication of the Netfilter connection state(s) at which the context is to be applied:
 .RS 4
 :N \- NEW connection
+.RE
+.RS 4
+:I \- INVALID connection
+.RE
+.RS 4
+:NI \- NEW or INVALID connection
 .RE
 .RS 4
 :E \- ESTABLISHED connection

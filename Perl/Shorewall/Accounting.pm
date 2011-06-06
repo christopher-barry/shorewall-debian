@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -35,37 +35,44 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4.18';
+our $VERSION = '4.4.20';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
 #
-our %tables;
+my %tables;
 
-our $jumpchainref;
-our %accountingjumps;
-our $asection;
-our $defaultchain;
-our $defaultrestriction;
-our $restriction;
-our $accounting_commands = { COMMENT => 0, SECTION => 2 };
-our $sectionname;
+my $jumpchainref;
+my %accountingjumps;
+my $asection;
+my $defaultchain;
+my $defaultrestriction;
+my $restriction;
+my $accounting_commands = { COMMENT => 0, SECTION => 2 };
+my $sectionname;
+my $acctable;
 
 #
 # Sections in the Accounting File
 #
 
 use constant {
-	      LEGACY  => 0,
-	      INPUT   => 1,
-	      OUTPUT  => 2,
-	      FORWARD => 3 };
+	      LEGACY      => 0,
+	      PREROUTING  => 1,
+	      INPUT       => 2,
+	      OUTPUT      => 3,
+	      FORWARD     => 4,
+	      POSTROUTING => 5
+	  };
 #
 # Map names to values
 #
-our %asections = ( INPUT   => INPUT,
-		   FORWARD => FORWARD,
-		   OUTPUT  => OUTPUT );
+our %asections = ( PREROUTING  => PREROUTING,
+		   INPUT       => INPUT,
+		   FORWARD     => FORWARD,
+		   OUTPUT      => OUTPUT,
+		   POSTROUTING => POSTROUTING
+		 );
 
 #
 # Called by the compiler to [re-]initialize this module's state
@@ -108,10 +115,19 @@ sub process_section ($) {
     } elsif ( $sectionname eq 'OUTPUT' ) {
 	$defaultchain = 'accountout';
 	$defaultrestriction = OUTPUT_RESTRICT;
-    } else {
+    } elsif ( $sectionname eq 'FORWARD' ) {
 	$defaultchain = 'accountfwd';
 	$defaultrestriction = NO_RESTRICT;
-    }
+     } else {
+	 fatal_error "The $sectionname SECTION is not allowed when ACCOUNTING_TABLE=filter" unless $acctable eq 'mangle';
+	 if ( $sectionname eq 'PREROUTING' ) {
+	     $defaultchain = 'accountpre';
+	     $defaultrestriction = PREROUTE_RESTRICT;
+	 } else {
+	     $defaultchain = 'accountpost';
+	     $defaultrestriction = POSTROUTE_RESTRICT;
+	 }
+     }
 
     $asection = $newsect;
 }
@@ -120,6 +136,8 @@ sub process_section ($) {
 # Accounting
 #
 sub process_accounting_rule( ) {
+
+    $acctable = $config{ACCOUNTING_TABLE};
 
     $jumpchainref = 0;
 
@@ -140,7 +158,7 @@ sub process_accounting_rule( ) {
     our $disposition = '';
 
     sub reserved_chain_name($) {
-	$_[0] =~ /^acc(?:ount(?:fwd|in|ing|out)|ipsecin|ipsecout)$/;
+	$_[0] =~ /^acc(?:ount(?:fwd|in|ing|out|pre|post)|ipsecin|ipsecout)$/;
     }
 
     sub ipsec_chain_name($) {
@@ -206,6 +224,8 @@ sub process_accounting_rule( ) {
 	    } else {
 		fatal_error "Invalid ACCOUNT Action";
 	    }
+	} elsif ( $action =~ /^NFLOG/ ) {
+	    $target = validate_level $action;
 	} else {
 	    ( $action, my $cmd ) = split /:/, $action;
 
@@ -261,7 +281,7 @@ sub process_accounting_rule( ) {
 	$dest = ALLIP if $dest   eq 'any' || $dest   eq 'all';
     }
 
-    my $chainref = $filter_table->{$chain};
+    my $chainref = $chain_table{$config{ACCOUNTING_TABLE}}{$chain};
     my $dir;
 
     if ( ! $chainref ) {
@@ -376,41 +396,51 @@ sub setup_accounting() {
 	clear_comment;
 
 	if ( $nonEmpty ) {
+	    my $tableref = $chain_table{$acctable};
+
 	    if ( have_bridges || $asection ) {
-		if ( $filter_table->{accountin} ) {
-		    add_jump( $filter_table->{INPUT}, 'accountin', 0, '', 0, 0 );
+		if ( $tableref->{accountin} ) {
+		    add_jump( $tableref->{INPUT}, 'accountin', 0, '', 0, 0 );
 		}
 
-		if ( $filter_table->{accounting} ) {
+		if ( $tableref->{accounting} ) {
 		    dont_optimize( 'accounting' );
 		    for my $chain ( qw/INPUT FORWARD/ ) {
-			add_jump( $filter_table->{$chain}, 'accounting', 0, '', 0, 0 );
+			add_jump( $tableref->{$chain}, 'accounting', 0, '', 0, 0 );
 		    }
 		}
 
-		if ( $filter_table->{accountfwd} ) {
-		    add_jump( $filter_table->{FORWARD}, 'accountfwd', 0, '', 0, 0 );
+		if ( $tableref->{accountfwd} ) {
+		    add_jump( $tableref->{FORWARD}, 'accountfwd', 0, '', 0, 0 );
 		}
 
-		if ( $filter_table->{accountout} ) {
-		    add_jump( $filter_table->{OUTPUT}, 'accountout', 0, '', 0, 0 );
+		if ( $tableref->{accountout} ) {
+		    add_jump( $tableref->{OUTPUT}, 'accountout', 0, '', 0, 0 );
 		}
-	    } elsif ( $filter_table->{accounting} ) {
+
+		if ( $tableref->{accountpre} ) {
+		    add_jump( $tableref->{PREROUTING}, 'accountpre', 0, '', 0, 0 );
+		}
+
+		if ( $tableref->{accountpost} ) {
+		    add_jump( $tableref->{POSTROUTING}, 'accountpost', 0, '', 0, 0 );
+		}
+	    } elsif ( $tableref->{accounting} ) {
 		dont_optimize( 'accounting' );
 		for my $chain ( qw/INPUT FORWARD OUTPUT/ ) {
-		    add_jump( $filter_table->{$chain}, 'accounting', 0, '', 0, 0 );
+		    add_jump( $tableref->{$chain}, 'accounting', 0, '', 0, 0 );
 		}
 	    }
 
-	    if ( $filter_table->{accipsecin} ) {
+	    if ( $tableref->{accipsecin} ) {
 		for my $chain ( qw/INPUT FORWARD/ ) {
-		    add_jump( $filter_table->{$chain}, 'accipsecin', 0,  '', 0, 0 );
+		    add_jump( $tableref->{$chain}, 'accipsecin', 0,  '', 0, 0 );
 		}
 	    }
 
-	    if ( $filter_table->{accipsecout} ) {
+	    if ( $tableref->{accipsecout} ) {
 		for my $chain ( qw/FORWARD OUTPUT/ ) {
-		    add_jump( $filter_table->{$chain}, 'accipsecout', 0, '', 0, 0 );
+		    add_jump( $tableref->{$chain}, 'accipsecout', 0, '', 0, 0 );
 		}
 	    }
 

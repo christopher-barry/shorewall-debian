@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -46,53 +46,59 @@ our @EXPORT = qw(
 		  save_policies
 		  ensure_rules_chain
 		  optimize_policy_chains
-		  process_actions1
-		  process_actions2
+		  process_actions
 		  process_rules
+		  verify_audit
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_19';
+our $VERSION = '4.4_20';
 #
 # Globals are documented in the initialize() function
 #
-our %sections;
+my %sections;
 
-our $section;
+my $section;
 
-our @policy_chains;
+my @policy_chains;
 
-our %policy_actions;
+my %default_actions;
 
-our %default_actions;
-
-our %macros;
+my %macros;
 
 our $family;
 
-our @builtins;
+my @builtins;
 
 #
 # Commands that can be embedded in a basic rule and how many total tokens on the line (0 => unlimited).
 #
-our $rule_commands = { COMMENT => 0, FORMAT => 2, SECTION => 2 };
+my $rule_commands = { COMMENT => 0, FORMAT => 2, SECTION => 2 };
 
 use constant { MAX_MACRO_NEST_LEVEL => 5 };
 
-our $macro_nest_level;
+my $macro_nest_level;
 
-our @actionstack;
-our %active;
+my @actionstack;
+my %active;
 
 #  Action Table
 #
 #     %actions{ actchain => used to eliminate collisions }
 #
-our %actions;
+my %actions;
 #
 # Contains an entry for each used <action>:<level>[:<tag>] that maps to the associated chain.
 #
-our %usedactions;
+my %usedactions;
+
+#
+# Policies for which AUDIT is allowed
+#
+my %auditpolicies = ( ACCEPT => 1,
+		      DROP   => 1,
+		      REJECT => 1
+		    );
 
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -109,10 +115,6 @@ sub initialize( $ ) {
     #
     # Chains created as a result of entries in the policy file
     @policy_chains  = ();
-    #
-    # Default Actions for policies
-    #
-    %policy_actions = ();
     #
     # This is updated from the *_DEFAULT settings in shorewall.conf. Those settings were stored
     # in the %config hash when shorewall[6].conf was processed.
@@ -185,13 +187,14 @@ sub get_target_param( $ ) {
 #
 # Convert a chain into a policy chain.
 #
-sub convert_to_policy_chain($$$$$)
+sub convert_to_policy_chain($$$$$$)
 {
-    my ($chainref, $source, $dest, $policy, $provisional ) = @_;
+    my ($chainref, $source, $dest, $policy, $provisional, $audit ) = @_;
 
     $chainref->{is_policy}   = 1;
     $chainref->{policy}      = $policy;
     $chainref->{provisional} = $provisional;
+    $chainref->{audit}       = $audit;
     $chainref->{policychain} = $chainref->{name};
     $chainref->{policypair}  = [ $source, $dest ];
 }
@@ -199,13 +202,13 @@ sub convert_to_policy_chain($$$$$)
 #
 # Create a new policy chain and return a reference to it.
 #
-sub new_policy_chain($$$$)
+sub new_policy_chain($$$$$)
 {
-    my ($source, $dest, $policy, $provisional) = @_;
+    my ($source, $dest, $policy, $provisional, $audit) = @_;
 
     my $chainref = new_chain( 'filter', rules_chain( ${source}, ${dest} ) );
 
-    convert_to_policy_chain( $chainref, $source, $dest, $policy, $provisional );
+    convert_to_policy_chain( $chainref, $source, $dest, $policy, $provisional, $audit );
 
     $chainref;
 }
@@ -229,6 +232,7 @@ sub set_policy_chain($$$$$)
 	    #
 	    $chainref1->{policychain} = $chain1;
 	    $chainref1->{loglevel}    = $chainref->{loglevel} if defined $chainref->{loglevel};
+	    $chainref1->{audit}       = $chainref->{audit}    if defined $chainref->{audit};
 
 	    if ( defined $chainref->{synparams} ) {
 		$chainref1->{synparams}   = $chainref->{synparams};
@@ -252,18 +256,18 @@ sub set_policy_chain($$$$$)
 #
 use constant { PROVISIONAL => 1 };
 
-sub add_or_modify_policy_chain( $$ ) {
-    my ( $zone, $zone1 ) = @_;
+sub add_or_modify_policy_chain( $$$ ) {
+    my ( $zone, $zone1, $audit ) = @_;
     my $chain    = rules_chain( ${zone}, ${zone1} );
     my $chainref = $filter_table->{$chain};
 
     if ( $chainref ) {
 	unless( $chainref->{is_policy} ) {
-	    convert_to_policy_chain( $chainref, $zone, $zone1, 'CONTINUE', PROVISIONAL );
+	    convert_to_policy_chain( $chainref, $zone, $zone1, 'CONTINUE', PROVISIONAL, $audit );
 	    push @policy_chains, $chainref;
 	}
     } else {
-	push @policy_chains, ( new_policy_chain $zone, $zone1, 'CONTINUE', PROVISIONAL );
+	push @policy_chains, ( new_policy_chain $zone, $zone1, 'CONTINUE', PROVISIONAL, $audit );
     }
 }
 
@@ -278,15 +282,7 @@ sub print_policy($$$$) {
     }
 }
 
-#
-# Add the passed action to %policy_actions
-#
-sub use_policy_action( $ ) {
-    my $action = shift;
-
-    $policy_actions{$action} = 1;
-}
-
+sub use_policy_action( $ );
 #
 # Process an entry in the policy file.
 #
@@ -309,6 +305,10 @@ sub process_a_policy() {
 
     fatal_error "Undefined zone ($server)" unless $serverwild || defined_zone( $server );
 
+    my $audit = ( $originalpolicy =~ s/:audit$// );
+
+    require_capability 'AUDIT_TARGET', ":audit", "s" if $audit;
+
     my ( $policy, $default, $remainder ) = split( /:/, $originalpolicy, 3 );
 
     fatal_error "Invalid or missing POLICY ($originalpolicy)" unless $policy;
@@ -317,6 +317,12 @@ sub process_a_policy() {
 
     ( $policy , my $queue ) = get_target_param $policy;
     
+    fatal_error "Invalid policy ($policy)" unless exists $validpolicies{$policy};
+
+    if ( $audit ) {
+	fatal_error "A $policy policy may not be audited" unless $auditpolicies{$policy};
+    }
+
     if ( $default ) {
 	if ( "\L$default" eq 'none' ) {
 	    $default = 'none';
@@ -328,8 +334,6 @@ sub process_a_policy() {
     } else {
 	$default = $default_actions{$policy} || '';
     }
-
-    fatal_error "Invalid policy ($policy)" unless exists $validpolicies{$policy};
 
     if ( defined $queue ) {
 	fatal_error "Invalid policy ($policy($queue))" unless $policy eq 'NFQUEUE';
@@ -367,11 +371,11 @@ sub process_a_policy() {
 	} elsif ( $chainref->{policy} ) {
 	    fatal_error qq(Policy "$client $server $policy" duplicates earlier policy "@{$chainref->{policypair}} $chainref->{policy}");
 	} else {
-	    convert_to_policy_chain( $chainref, $client, $server, $policy, 0 );
+	    convert_to_policy_chain( $chainref, $client, $server, $policy, 0 , $audit );
 	    push @policy_chains, ( $chainref ) unless $config{EXPAND_POLICIES} && ( $clientwild || $serverwild );
 	}
     } else {
-	$chainref = new_policy_chain $client, $server, $policy, 0;
+	$chainref = new_policy_chain $client, $server, $policy, 0, $audit;
 	push @policy_chains, ( $chainref ) unless $config{EXPAND_POLICIES} && ( $clientwild || $serverwild );
     }
 
@@ -473,16 +477,16 @@ sub process_policies()
     }
 
     for $zone ( all_zones ) {
-	push @policy_chains, ( new_policy_chain $zone,         $zone, 'ACCEPT', PROVISIONAL );
-	push @policy_chains, ( new_policy_chain firewall_zone, $zone, 'NONE',   PROVISIONAL ) if zone_type( $zone ) == BPORT;
+	push @policy_chains, ( new_policy_chain $zone,         $zone, 'ACCEPT', PROVISIONAL, 0 );
+	push @policy_chains, ( new_policy_chain firewall_zone, $zone, 'NONE',   PROVISIONAL, 0 ) if zone_type( $zone ) == BPORT;
 
 	my $zoneref = find_zone( $zone );
 
 	if ( $config{IMPLICIT_CONTINUE} && ( @{$zoneref->{parents}} || $zoneref->{type} == VSERVER ) ) {
 	    for my $zone1 ( all_zones ) {
 		unless( $zone eq $zone1 ) {
-		    add_or_modify_policy_chain( $zone, $zone1 );
-		    add_or_modify_policy_chain( $zone1, $zone );
+		    add_or_modify_policy_chain( $zone, $zone1, 0 );
+		    add_or_modify_policy_chain( $zone1, $zone , 0 );
 		}
 	    }
 	}
@@ -513,6 +517,14 @@ sub policy_rules( $$$$$ ) {
 	add_jump $chainref, $default, 0 if $default && $default ne 'none';
 	log_rule $loglevel , $chainref , $target , '' if $loglevel ne '';
 	fatal_error "Null target in policy_rules()" unless $target;
+	
+	if ( $chainref->{audit} ) {
+	    if ( $config{FAKE_AUDIT} ) {
+		add_rule( $chainref , '-j AUDIT -m comment --comment "--type ' . lc $target . '"' );
+	    } else { 
+		add_rule( $chainref , '-j AUDIT --type ' . lc $target );
+	    }
+	}
 
 	add_jump( $chainref , $target eq 'REJECT' ? 'reject' : $target, 1 ) unless $target eq 'CONTINUE';
     }
@@ -623,8 +635,6 @@ sub apply_policy_rules() {
 sub complete_standard_chain ( $$$$ ) {
     my ( $stdchainref, $zone, $zone2, $default ) = @_;
 
-    add_rule $stdchainref, "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" unless $config{FASTACCEPT};
-
     run_user_exit $stdchainref;
 
     my $ruleschainref = $filter_table->{rules_chain( ${zone}, ${zone2} ) } || $filter_table->{rules_chain( 'all', 'all' ) };
@@ -637,6 +647,8 @@ sub complete_standard_chain ( $$$$ ) {
 
     policy_rules $stdchainref , $policy , $loglevel, $defaultaction, 0;
 }
+
+sub require_audit($$;$);
 
 #
 # Create and populate the synflood chains corresponding to entries in /etc/shorewall/policy
@@ -1122,10 +1134,69 @@ sub map_old_actions( $ ) {
 }
 
 #
+# Create and populate the passed AUDIT chain if it doesn't exist. Return chain name
+
+sub ensure_audit_chain( $;$$ ) {
+    my ( $target, $action, $tgt ) = @_;
+
+    push_comment( '' );
+
+    my $ref = $filter_table->{$target};
+
+    unless ( $ref ) {
+	$ref = new_chain 'filter', $target;
+
+	unless ( $action ) {
+	    $action = $target;
+	    $action =~ s/^A_//;
+	}
+
+	$tgt ||= $action;
+
+	if ( $config{FAKE_AUDIT} ) {
+	    add_rule( $ref, '-j AUDIT -m comment --comment "--type ' . lc $action . '"' );
+	} else {
+	    add_rule $ref, '-j AUDIT --type ' . lc $action;
+	}
+
+	
+	if ( $tgt eq 'REJECT' ) {
+	    add_jump $ref , 'reject', 1;
+	} else {
+	    add_jump $ref , $tgt, 0;
+	}
+    }
+
+    pop_comment;
+
+    return $target;
+}
+
+#
+# Return the appropriate target based on whether the second argument is 'audit'
+#
+
+sub require_audit($$;$) {
+    my ($action, $audit, $tgt ) = @_;
+
+    return $action unless defined $audit and $audit ne '';
+
+    my $target = 'A_' . $action;
+
+    fatal_error "Invalid parameter ($audit)" unless $audit eq 'audit';
+
+    require_capability 'AUDIT_TARGET', 'audit', 's';
+
+    return ensure_audit_chain $target, $action, $tgt;
+}   
+  
+#
 # The following small functions generate rules for the builtin actions of the same name
 #
-sub dropBcast( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub dropBcast( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = require_audit ( 'DROP', $audit );
 
     if ( have_capability( 'ADDRTYPE' ) ) {
 	if ( $level ne '' ) {
@@ -1136,8 +1207,8 @@ sub dropBcast( $$$ ) {
 		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST , '-j DROP ' );
 	    }
 	}
-
-	add_rule $chainref, '-m addrtype --dst-type BROADCAST -j DROP';
+	
+	add_jump $chainref, $target, 0, "-m addrtype --dst-type BROADCAST ";
     } else {
 	if ( $family == F_IPV4 ) {
 	    add_commands $chainref, 'for address in $ALL_BCASTS; do';
@@ -1147,7 +1218,7 @@ sub dropBcast( $$$ ) {
 
 	incr_cmd_level $chainref;
 	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d $address ' if $level ne '';
-	add_rule $chainref, '-d $address -j DROP';
+	add_jump $chainref, $target, 0, "-d \$address ";
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
 
@@ -1155,14 +1226,16 @@ sub dropBcast( $$$ ) {
     }
 
     if ( $family == F_IPV4 ) {
-	add_rule $chainref, '-d 224.0.0.0/4 -j DROP';
+	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
     } else {
-	add_rule $chainref, join( ' ', '-d', IPv6_MULTICAST, '-j DROP' );
+	add_jump $chainref, $target, 0, join( ' ', '-d', IPv6_MULTICAST . ' ' );
     }
 }
 
-sub allowBcast( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub allowBcast( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = require_audit( 'ACCEPT', $audit );
 
     if ( $family == F_IPV4 && have_capability( 'ADDRTYPE' ) ) {
 	if ( $level ne '' ) {
@@ -1170,8 +1243,8 @@ sub allowBcast( $$$ ) {
 	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ';
 	}
 
-	add_rule $chainref, '-m addrtype --dst-type BROADCAST -j ACCEPT';
-	add_rule $chainref, '-d 224.0.0.0/4 -j ACCEPT';
+	add_jump $chainref, $target, 0, "-m addrtype --dst-type BROADCAST ";
+	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
     } else {
 	if ( $family == F_IPV4 ) {
 	    add_commands $chainref, 'for address in $ALL_BCASTS; do';
@@ -1181,63 +1254,78 @@ sub allowBcast( $$$ ) {
 
 	incr_cmd_level $chainref;
 	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d $address ' if $level ne '';
-	add_rule $chainref, '-d $address -j ACCEPT';
+	add_rule $chainref, "-d \$address -j $target";
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
 
 	if ( $family == F_IPV4 ) {
 	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
-	    add_rule $chainref, '-d 224.0.0.0/4 -j ACCEPT';
+	    add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
 	} else {
 	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d ' . IPv6_MULTICAST . ' ' if $level ne '';
-	    add_rule $chainref, join ( ' ', '-d', IPv6_MULTICAST, '-j ACCEPT' );
+	    add_jump $chainref, $target, 0, join ( ' ', '-d', IPv6_MULTICAST, ' ' );
 	}
     }
 }
 
-sub dropNotSyn ( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub dropNotSyn ( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = require_audit( 'DROP', $audit );
 
     log_rule_limit $level, $chainref, 'dropNotSyn' , 'DROP', '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
-    add_rule $chainref , '-p 6 ! --syn -j DROP';
+    add_jump $chainref , $target, 0, "-p 6 ! --syn ";
 }
 
-sub rejNotSyn ( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub rejNotSyn ( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = 'REJECT --reject-with tcp-reset';
+
+    if ( defined $audit && $audit ne '' ) {
+	$target = require_audit( 'REJECT' , $audit );
+    }
 
     log_rule_limit $level, $chainref, 'rejNotSyn' , 'REJECT', '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
-    add_rule $chainref , '-p 6 ! --syn -j REJECT --reject-with tcp-reset';
+    add_jump $chainref , $target, 0, '-p 6 ! --syn ';
 }
 
-sub dropInvalid ( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub dropInvalid ( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = require_audit( 'DROP', $audit );
 
     log_rule_limit $level, $chainref, 'dropInvalid' , 'DROP', '', $tag, 'add', "$globals{STATEMATCH} INVALID " if $level ne '';
-    add_rule $chainref , "$globals{STATEMATCH} INVALID -j DROP";
+    add_jump $chainref , $target, 0, "$globals{STATEMATCH} INVALID ";
 }
 
-sub allowInvalid ( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub allowInvalid ( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = require_audit( 'ACCEPT', $audit );
 
     log_rule_limit $level, $chainref, 'allowInvalid' , 'ACCEPT', '', $tag, 'add', "$globals{STATEMATCH} INVALID " if $level ne '';
-    add_rule $chainref , "$globals{STATEMATCH} INVALID -j ACCEPT";
+    add_rule $chainref , "$globals{STATEMATCH} INVALID -j $target";
 }
 
-sub forwardUPnP ( $$$ ) {
+sub forwardUPnP ( $$$$ ) {
     my $chainref = dont_optimize 'forwardUPnP';
+
     add_commands( $chainref , '[ -f ${VARDIR}/.forwardUPnP ] && cat ${VARDIR}/.forwardUPnP >&3' );
 }
 
-sub allowinUPnP ( $$$ ) {
-    my ($chainref, $level, $tag) = @_;
+sub allowinUPnP ( $$$$ ) {
+    my ($chainref, $level, $tag, $audit) = @_;
+
+    my $target = require_audit( 'ACCEPT', $audit );
 
     if ( $level ne '' ) {
 	log_rule_limit $level, $chainref, 'allowinUPnP' , 'ACCEPT', '', $tag, 'add', '-p 17 --dport 1900 ';
 	log_rule_limit $level, $chainref, 'allowinUPnP' , 'ACCEPT', '', $tag, 'add', '-p 6 --dport 49152 ';
     }
 
-    add_rule $chainref, '-p 17 --dport 1900 -j ACCEPT';
-    add_rule $chainref, '-p 6 --dport 49152 -j ACCEPT';
+    add_jump $chainref, $target, 0, '-p 17 --dport 1900 ';
+    add_jump $chainref, $target, 0, '-p 6 --dport 49152 ';
 }
 
 sub Limit( $$$$ ) {
@@ -1286,7 +1374,8 @@ my %builtinops = ( 'dropBcast'      => \&dropBcast,
 		   'allowInvalid'   => \&allowInvalid,
 		   'allowinUPnP'    => \&allowinUPnP,
 		   'forwardUPnP'    => \&forwardUPnP,
-		   'Limit'          => \&Limit, );
+		   'Limit'          => \&Limit,
+		 );
 
 #
 # This function is called prior to processing of the policy file. It:
@@ -1297,7 +1386,7 @@ my %builtinops = ( 'dropBcast'      => \&dropBcast,
 #   o Verifies that the corresponding action file exists
 #
 
-sub process_actions1() {
+sub process_actions() {
 
     progress_message2 "Locating Action Files...";
     #
@@ -1332,6 +1421,9 @@ sub process_actions1() {
 	    fatal_error "Missing Action File ($actionfile)" unless -f $actionfile;
 	}
     }
+
+    my $ref;
+
 }
 
 sub process_rule1 ( $$$$$$$$$$$$$$$$ );
@@ -1415,17 +1507,14 @@ sub process_action( $) {
 }
 
 #
-# This function creates and populates the chains for the policy actions.
+# Create a policy action if it doesn't already exist
 #
-sub process_actions2 () {
-    progress_message2 "$doing policy actions...";
-
-    for ( map normalize_action_name $_, ( grep ! ( $targets{$_} & BUILTIN ), keys %policy_actions ) ) {
-	if ( my $ref = use_action( $_ ) ) {
-	    process_action( $ref );
-	}
-    }
+sub use_policy_action( $ ) {
+    my $ref = use_action( normalize_action_name $_[0] );
+    
+    process_action( $ref ) if $ref;
 }
+
 ################################################################################
 # End of functions moved from the Actions module in 4.4.16
 ################################################################################
@@ -1541,6 +1630,17 @@ sub process_macro ( $$$$$$$$$$$$$$$$$ ) {
     clear_comment unless $nocomment;
 
     return $generated;
+}
+
+#
+# Confirm that we have AUDIT_TARGET capability and ensure the appropriate AUDIT chain.
+#
+sub verify_audit($;$$) {
+    my ($target, $audit, $tgt ) = @_;
+
+    require_capability 'AUDIT_TARGET', "$target rules", '';
+
+    return ensure_audit_chain $target, $audit, $tgt;
 }
 
 #
@@ -1997,7 +2097,8 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ ) {
 		      $target ,
 		      $loglevel ,
 		      $log_action ,
-		      $serverport ? do_proto( $proto, '', '' ) : '' );
+		      $serverport ? do_proto( $proto, '', '' ) : '',
+		    );
 	#
 	# After NAT:
 	#   - the destination port will be the server port ($ports) -- we did that above
@@ -2091,7 +2192,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ ) {
 		     $tgt,
 		     $loglevel ,
 		     $log_action ,
-		     '' ,
+		     '',
 		   );
 	#
 	# Possible optimization if the rule just generated was a simple jump to the nonat chain
@@ -2127,6 +2228,8 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ ) {
 	}
 
 	$rule .= "-m conntrack --ctorigdstport $origdstports " if have_capability( 'NEW_CONNTRACK_MATCH' ) && $origdstports;
+
+	verify_audit( $action ) if $actiontype & AUDIT;
 
 	expand_rule( ensure_chain( 'filter', $chain ) ,
 		     $restriction ,

@@ -8,6 +8,9 @@
 #
 # Builtin Actions are:
 #
+#    A_ACCEPT           # Audits then accepts a connection request
+#    A_DROP             # Audits then drops a connection request
+#    A_REJECT		# Audits then drops a connection request
 #    allowBcast		# Silently Allow Broadcast/multicast
 #    dropBcast		# Silently Drop Broadcast/multicast
 #    dropNotSyn		# Silently Drop Non-syn TCP packets
@@ -30,5 +33,7 @@
 #
 ###############################################################################
 #ACTION
+A_Drop 		    # Audited Default Action for DROP policy
+A_Reject	    # Audited Default action for REJECT policy
 Drop		    # Default Action for DROP policy
 Reject		    # Default Action for REJECT policy
