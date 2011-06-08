@@ -1,21 +1,21 @@
 # Set Debian configuration defaults.
 --- shorewall-debian.orig/configfiles/shorewall6.conf
 +++ shorewall-debian/configfiles/shorewall6.conf
-@@ -51,7 +51,7 @@
- #           
- #           The following options may be set in shorewall6.conf.
- #           
+@@ -10,7 +10,7 @@
+ #		       S T A R T U P   E N A B L E D
+ ###############################################################################
+ 
 -STARTUP_ENABLED=No
 +STARTUP_ENABLED=Yes
- #
- #    STARTUP_ENABLED={Yes|No}
- #           Determines if Shorewall6 is allowed to start. As
-@@ -370,7 +370,7 @@
- #           a light-weight shell such as ash or dash can
- #           significantly improve performance.
- #           
+ 
+ ###############################################################################
+ #		              V E R B O S I T Y
+@@ -72,7 +72,7 @@
+ 
+ SHOREWALL_SHELL=/bin/sh
+ 
 -SUBSYSLOCK=/var/lock/subsys/shorewall
 +SUBSYSLOCK=""
- #
- #    SUBSYSLOCK=[pathname]
- #           This parameter should be set to the name of a file that
+ 
+ TC=
+ 
