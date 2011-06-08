@@ -1,0 +1,31 @@
+#
+# Shorewall6 version 4 - routes File
+#
+# For information about entries in this file, type "man shorewall6-routes"
+#
+# For additional information, see http://www.shorewall.net/MultiISP.html
+##############################################################################
+#           
+#    This file was added in Shorewall 4.4.15 and is used to define
+#    routes to be added to provider routing tables.
+#           
+#    The columns in the file are as follows.
+#           
+#    PROVIDER
+#           The name or number of a provider defined in
+#           shorewall6-providers (5).
+#           
+#    DEST
+#           Destination host address or network address.
+#           
+#    GATEWAY (Optional)
+#           If specified, gives the IP address of the gateway to the
+#           DEST.
+#           
+#    DEVICE (Optional)
+#           Specifies the device route. If neither DEVICE nor
+#           GATEWAY is given, then the INTERFACE specified for the
+#           PROVIDER in shorewall6-providers (5).
+#           
+##############################################################################
+#PROVIDER		DEST			GATEWAY		DEVICE

@@ -8,17 +8,5 @@
 # Please see http://shorewall.net/Actions.html for additional information.
 #
 ###############################################################################
-#           
-#    This file allows you to define new ACTIONS for use in rules
-#    (see shorewall6-rules(5)). You define the ip6tables rules to be
-#    performed in an ACTION in /etc/shorewall6/action.action-name.
-#           
-#    ACTION names should begin with an upper-case letter to
-#    distinguish them from Shorewall-generated chain names and be
-#    composed of letters, digits or numbers. If you intend to log
-#    from the action then the name must be no longer than 11
-#    characters in length if you use the standard LOGFORMAT.
-#           
-###############################################################################
 #ACTION             COMMENT (place '# ' below the 'C' in comment followed by
 #                   v        a comment describing the action)
