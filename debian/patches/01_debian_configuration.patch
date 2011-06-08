@@ -3,39 +3,39 @@ Description: Customize the shorewall.conf configuration file to be more like wha
 expected by Debian users.
 --- shorewall-debian.orig/configfiles/shorewall.conf
 +++ shorewall-debian/configfiles/shorewall.conf
-@@ -51,7 +51,7 @@
- #           
- #           The following options may be set in shorewall.conf.
- #           
+@@ -9,7 +9,7 @@
+ #		       S T A R T U P   E N A B L E D
+ ###############################################################################
+ 
 -STARTUP_ENABLED=No
 +STARTUP_ENABLED=Yes
- #
- #    STARTUP_ENABLED={Yes|No}
- #           Determines if Shorewall is allowed to start. As released
-@@ -392,7 +392,7 @@
- #           such as ash or dash can significantly improve
- #           performance.
- #           
+ 
+ ###############################################################################
+ #		              V E R B O S I T Y
+@@ -73,7 +73,7 @@
+ 
+ SHOREWALL_SHELL=/bin/sh
+ 
 -SUBSYSLOCK=/var/lock/subsys/shorewall
 +SUBSYSLOCK=""
- #
- #    SUBSYSLOCK=[pathname]
- #           This parameter should be set to the name of a file that
-@@ -865,7 +865,7 @@
- #           saved or restored. Shorewall handles saving and
- #           restoring the routing (provider) marks.
- #           
+ 
+ TC=
+ 
+@@ -144,7 +144,7 @@
+ 
+ HIGH_ROUTE_MARKS=No
+ 
 -IP_FORWARDING=On
 +IP_FORWARDING=Keep
- #
- #    IP_FORWARDING=[On|Off|Keep]
- #           This parameter determines whether Shorewall enables or
-@@ -1154,7 +1154,7 @@
- #           are still deleted at a subsequent shorewall stop or
- #           shorewall restart.
- #           
+ 
+ KEEP_RT_TABLES=No
+ 
+@@ -180,7 +180,7 @@
+ 
+ RETAIN_ALIASES=No
+ 
 -ROUTE_FILTER=No
 +ROUTE_FILTER=Yes
- #
- #    ROUTE_FILTER=[Yes|No|Keep]
- #           If this parameter is given the value Yes or yes then
+ 
+ SAVE_IPSETS=No
+ 
