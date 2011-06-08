@@ -1,8 +1,8 @@
-shorewall (4.4.20-1) unstable; urgency=low
+shorewall (4.4.20.1-1) unstable; urgency=low
 
   * New Upstream Version
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 05 Jun 2011 20:53:58 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 07 Jun 2011 20:42:18 -0400
 
 shorewall (4.4.19.4-1) unstable; urgency=low
 
