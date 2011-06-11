@@ -1,3 +1,15 @@
+Changes in Shorewall 4.4.20.2
+
+1)  Reject degenerate tcpri entries.
+
+2)  Correct tc defect.
+
+3)  Apply sfilters to INPUT traffic.
+
+4)  Exclude ipsec traffic from sfilter.
+
+5)  Fix an interesting defect.
+
 Changes in Shorewall 4.4.20.1
 
 1)  Corrected FSF address.
