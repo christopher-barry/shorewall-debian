@@ -116,13 +116,6 @@
 #                 This option allows DHCP datagrams to enter and
 #                 leave the interface.
 #           
-#         filter=(net[,...])
-#                 Added in Shorewall 4.4.20. This option should be
-#                 used on bridges or other interfaces with the
-#                 routeback option. On these interfaces, it should
-#                 list those local networks that are not routed out
-#                 of the bridge or interface.
-#           
 #         forward[={0|1}]
 #                 Sets the
 #                 /proc/sys/net/ipv6/conf/interface/forwarding
@@ -207,6 +200,13 @@
 #                 This option does not work with a wild-card
 #                 interface name (e.g., eth0.+) in the INTERFACE
 #                 column.
+#           
+#         sfilter=(net[,...])
+#                 Added in Shorewall 4.4.20. This option should be
+#                 used on bridges or other interfaces with the
+#                 routeback option. On these interfaces, it should
+#                 list those local networks that are not routed out
+#                 of the bridge or interface.
 #           
 #         tcpflags
 #                 Packets arriving on this interface are checked for
