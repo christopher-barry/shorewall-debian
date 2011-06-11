@@ -1309,6 +1309,13 @@ sub process_tc_priority() {
 	return;
     }
 
+    fatal_error "Invalid tcpri entry" if ( $proto     eq '-' &&
+					   $ports     eq '-' &&
+					   $address   eq '-' &&
+					   $interface eq '-' &&
+					   $helper    eq '-' );
+
+
     my $val = numeric_value $band;
 
     fatal_error "Invalid PRIORITY ($band)" unless $val && $val <= 3;
@@ -1402,7 +1409,7 @@ sub setup_traffic_shaping() {
 	validate_tc_device while read_a_line;
     }
 
-    my $sfq = $devnum;
+    my $sfq = 0;
     my $sfqinhex;
 
     $devnum = $devnum > 10 ? 10 : 1;
@@ -1546,7 +1553,9 @@ sub setup_traffic_shaping() {
 	    }
 
 	    if ( $tcref->{leaf} && ! $tcref->{pfifo} ) {
-		$sfqinhex = in_hexp( ++$sfq);
+		1 while $devnums[++$sfq];
+
+		$sfqinhex = in_hexp( $sfq);
 		if ( $devref->{qdisc} eq 'htb' ) {
 		    emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: sfq quantum \$quantum limit $tcref->{limit} perturb 10" );
 		} else {

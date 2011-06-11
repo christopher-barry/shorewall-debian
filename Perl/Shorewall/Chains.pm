@@ -1026,6 +1026,10 @@ sub use_forward_chain($$) {
 
     return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
     #
+    # Use it if we already have jumps to it
+    #
+    return 1 if keys %{$chainref->{references}};
+    #
     # We must use the interfaces's chain if the interface is associated with multiple zones
     #
     return 1 if ( keys %{interface_zones $interface} ) > 1;
@@ -1659,7 +1663,7 @@ sub initialize_chain_table($) {
 	if ( $config{FAKE_AUDIT} ) {
 	    dont_delete new_standard_chain 'AUDIT', 0;
 	} else {
-	    $builtin_target{AUDIT} = 111;
+	    $builtin_target{AUDIT} = 1;
 	}
 
 	dont_move   new_standard_chain 'reject';
