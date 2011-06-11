@@ -2,12 +2,12 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/06/2011
+.\"      Date: 06/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "06/06/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-INTERFACE" "5" "06/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -334,13 +334,6 @@ If you use
 This option allows DHCP datagrams to enter and leave the interface\&.
 .RE
 .PP
-filter=(\fInet\fR[,\&.\&.\&.])
-.RS 4
-Added in Shorewall 4\&.4\&.20\&. This option should be used on bridges or other interfaces with the
-\fBrouteback\fR
-option\&. On these interfaces, it should list those local networks that are not routed out of the bridge or interface\&.
-.RE
-.PP
 \fBlogmartians[={0|1}]\fR
 .RS 4
 Turn on kernel martian logging (logging of packets with impossible source addresses\&. It is strongly suggested that if you set
@@ -542,6 +535,13 @@ name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
 .RE
 This option can also be enabled globally in the
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[9]\d\s+2(5) file\&.
+.RE
+.PP
+sfilter=(\fInet\fR[,\&.\&.\&.])
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. This option should be used on bridges or other interfaces with the
+\fBrouteback\fR
+option\&. On these interfaces, it should list those local networks that are not routed out of the bridge or interface\&.
 .RE
 .PP
 \fBsourceroute[={0|1}]\fR

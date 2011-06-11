@@ -193,13 +193,6 @@
 #                 This option allows DHCP datagrams to enter and
 #                 leave the interface.
 #           
-#         filter=(net[,...])
-#                 Added in Shorewall 4.4.20. This option should be
-#                 used on bridges or other interfaces with the
-#                 routeback option. On these interfaces, it should
-#                 list those local networks that are not routed out
-#                 of the bridge or interface.
-#           
 #         logmartians[={0|1}]
 #                 Turn on kernel martian logging (logging of packets
 #                 with impossible source addresses. It is strongly
@@ -357,6 +350,13 @@
 #           
 #                 This option can also be enabled globally in the
 #                 shorewall.conf(5) file.
+#           
+#         sfilter=(net[,...])
+#                 Added in Shorewall 4.4.20. This option should be
+#                 used on bridges or other interfaces with the
+#                 routeback option. On these interfaces, it should
+#                 list those local networks that are not routed out
+#                 of the bridge or interface.
 #           
 #         sourceroute[={0|1}]
 #                 If this option is not specified for an interface,
