@@ -6,7 +6,7 @@
 # The manpage is also online at
 # http://www.shorewall.net/manpages/shorewall-masq.html
 #
-###############################################################################
+#############################################################################################
 #           
 #    Use this file to define dynamic NAT (Masquerading) and to
 #    define Source NAT (SNAT).
@@ -332,6 +332,6 @@
 #           
 #           The order of the above two rules is significant!
 #           
-###############################################################################
+#############################################################################################
 #INTERFACE:DEST		SOURCE		ADDRESS		PROTO	PORT(S)	IPSEC	MARK	USER/
 #											GROUP

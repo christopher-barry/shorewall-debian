@@ -347,12 +347,31 @@
 #                 This option can also be enabled globally in the
 #                 shorewall.conf(5) file.
 #           
+#           Note
+#           
+#                 There are certain cases where routefilter cannot
+#                 be used on an interface:
+#           
+#                o If USE_DEFAULT_RT=Yes in shorewall.conf(5) and
+#                  the interface is listed in
+#                  shorewall-providers(5).
+#                o If there is an entry for the interface in
+#                  shorewall-providers(5) that doesn't specify the
+#                  balance option.
+#                o If IPSEC is used to allow a road-warrior to have
+#                  a local address, then any interface through which
+#                  the road-warrior might connect cannot specify
+#                  routefilter.
+#           
 #         sfilter=(net[,...])
-#                 Added in Shorewall 4.4.20. This option should be
-#                 used on bridges or other interfaces with the
-#                 routeback option. On these interfaces, it should
-#                 list those local networks that are not routed out
-#                 of the bridge or interface.
+#                 Added in Shorewall 4.4.20. This option provides an
+#                 anti-spoofing alternative to routefilter on
+#                 interfaces where that option cannot be used, but
+#                 where the routeback option is required (on a
+#                 bridge, for example). On these interfaces, sfilter
+#                 should list those local networks that are
+#                 connected to the firewall through other
+#                 interfaces.
 #           
 #         sourceroute[={0|1}]
 #                 If this option is not specified for an interface,

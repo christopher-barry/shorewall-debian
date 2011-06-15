@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/10/2011
+.\"      Date: 06/14/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "06/10/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "06/14/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -443,8 +443,10 @@ but will copy the found in another location on the CONFIG_PATH\&.
 When compiling for direct use by Shorewall, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
 .RE
 .PP
-\fBEXPORTPARAMS=\fR{\fBYes\fR|\fBNo\fR} (Deprecated beginning with Shorewall 4\&.4\&.17)
+\fBEXPORTPARAMS=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
+Deprecated in Shorewall 4\&.4\&.17\&.
+.sp
 Beginning with Shorewall 4\&.4\&.17, the variables set in the \*(Aqparams\*(Aq file at compile time are available at run time with EXPORTPARAMS=No\&. As a consequence, beginning with that version the recommended setting is EXPORTPARAMS=No\&.
 .sp
 It is quite difficult to code a \*(Aqparams\*(Aq file that assigns other than constant values such that it works correctly with Shorewall Lite\&. The EXPORTPARAMS option works around this problem\&. When EXPORTPARAMS=No, the \*(Aqparams\*(Aq file is not copied to the compiler output\&.
@@ -750,7 +752,7 @@ For example, using the default LOGFORMAT, the log prefix for logging from the na
 \fBImportant\fR
 .ps -1
 .br
-To help insure that all packets in the NEW state are logged, rate limiting (LOGBURST and LOGRATE) should be disabled when using LOGALLNEW\&. Use LOGALLNEW at your own risk; it may cause high CPU and disk utilization and you may not be able to control your firewall after you enable this option\&.
+To help insure that all packets in the NEW state are logged, rate limiting (LOGLIMIT or deprecated options LOGBURST and LOGRATE) should be disabled when using LOGALLNEW\&. Use LOGALLNEW at your own risk; it may cause high CPU and disk utilization and you may not be able to control your firewall after you enable this option\&.
 .sp .5v
 .RE
 .if n \{\
@@ -828,6 +830,7 @@ is not specified, then a value of 5 is assumed\&.
 .PP
 \fBLOGBURST=\fR[\fIburst\fR]
 .RS 4
+Deprecated in Shorewall 4\&.4\&.12\&.
 .RE
 .PP
 \fBLOGRATE=\fR[\fIrate\fR/{\fBminute\fR|\fBsecond\fR}]
