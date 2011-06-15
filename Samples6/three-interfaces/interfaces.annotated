@@ -202,11 +202,16 @@
 #                 column.
 #           
 #         sfilter=(net[,...])
-#                 Added in Shorewall 4.4.20. This option should be
-#                 used on bridges or other interfaces with the
-#                 routeback option. On these interfaces, it should
-#                 list those local networks that are not routed out
-#                 of the bridge or interface.
+#                 Added in Shorewall 4.4.20. At this writing (spring
+#                 2011), Linux does not support reverse path
+#                 filtering (RFC3704) for IPv6. In its absense,
+#                 sfilter may be used as an anti-spoofing measure.
+#           
+#                 This option should be used on bridges or other
+#                 interfaces with the routeback option. On these
+#                 interfaces, sfilter should list those local
+#                 networks that are connected to the firewall
+#                 through other interfaces.
 #           
 #         tcpflags
 #                 Packets arriving on this interface are checked for
