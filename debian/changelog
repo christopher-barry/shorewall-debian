@@ -1,3 +1,10 @@
+shorewall6 (4.4.20.3-2) UNRELEASED; urgency=low
+
+  * Ship *.annotated config files in /usr/share/doc/shorewall/default-config
+    to support the new 'shorewall update' command
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 24 Jun 2011 17:01:20 -0400
+
 shorewall6 (4.4.20.3-1) unstable; urgency=low
 
   * New Upstream Version
