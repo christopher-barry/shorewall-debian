@@ -22,6 +22,22 @@
       <arg
       choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
 
+      <arg rep="norepeat">-<replaceable>options</replaceable></arg>
+
+      <arg choice="plain"><option>add</option></arg>
+
+      <arg choice="plain"
+      rep="repeat"><replaceable>interface</replaceable>[:<replaceable>host-list</replaceable>]</arg>
+
+      <arg choice="plain"><replaceable>zone</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
       <arg>-<replaceable>options</replaceable></arg>
 
       <arg choice="plain"><option>allow</option></arg>
@@ -511,6 +527,30 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
+      <arg choice="plain"><option>update</option></arg>
+
+      <arg><option>-e</option></arg>
+
+      <arg><option>-d</option></arg>
+
+      <arg><option>-p</option></arg>
+
+      <arg><option>-r</option></arg>
+
+      <arg><option>-T</option></arg>
+
+      <arg><option>-a</option></arg>
+
+      <arg><replaceable>directory</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
       <arg
       choice="plain"><option>version</option><arg><option>-a</option></arg></arg>
     </cmdsynopsis>
@@ -559,6 +599,29 @@
     <para>The available commands are listed below.</para>
 
     <variablelist>
+      <varlistentry>
+        <term><emphasis role="bold">add</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.21. Adds a list of hosts or subnets to
+          a dynamic zone usually used with VPN's.</para>
+
+          <para>The <emphasis>interface</emphasis> argument names an interface
+          defined in the <ulink
+          url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
+          file. A <emphasis>host-list</emphasis> is comma-separated list whose
+          elements are host or network addresses.<caution>
+              <para>The <command>add</command> command is not very robust. If
+              there are errors in the <replaceable>host-list</replaceable>,
+              you may see a large number of error messages yet a subsequent
+              <command>shorewall show zones</command> command will indicate
+              that all hosts were added. If this happens, replace
+              <command>add</command> by <command>delete</command> and run the
+              same command again. Then enter the correct command.</para>
+            </caution></para>
+        </listitem>
+      </varlistentry>
+
       <varlistentry>
         <term><emphasis role="bold">allow</emphasis></term>
 
@@ -650,6 +713,22 @@
           <para>The <option>-T</option> option was added in Shorewall 4.4.20
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">delete</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.21. The delete command reverses the
+          effect of an earlier <emphasis role="bold">add</emphasis>
+          command.</para>
+
+          <para>The <emphasis>interface</emphasis> argument names an interface
+          defined in the <ulink
+          url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
+          file. A <emphasis>host-list</emphasis> is comma-separated list whose
+          elements are a host or network address.</para>
         </listitem>
       </varlistentry>
 
@@ -1274,6 +1353,28 @@
           role="bold">clear</emphasis> or <emphasis
           role="bold">restore</emphasis> is performed after
           <replaceable>timeout</replaceable> seconds.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">update</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.21 and causes the compiler to update
+          <filename>/etc/shorewall6/shorewall6.conf</filename> then validate
+          the configuration. The update will add options not present in the
+          existing file with their default values, and will move deprecated
+          options with non-defaults to a deprecated options section at the
+          bottom of the file. Your existing
+          <filename>shorewall6.conf</filename> file is renamed
+          <filename>shorewall6.conf.bak.</filename></para>
+
+          <para>The <option>-a</option> option causes the updated
+          <filename>shorewall6.conf</filename> file to be annotated with
+          documentation.</para>
+
+          <para>For a description of the other options, see the <emphasis
+          role="bold">check</emphasis> command above.</para>
         </listitem>
       </varlistentry>
 

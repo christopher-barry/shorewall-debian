@@ -43,26 +43,11 @@
     <variablelist>
       <varlistentry>
         <term><emphasis role="bold">MARK/CLASSIFY</emphasis> -
-        {<emphasis>value</emphasis>|<emphasis>major</emphasis><emphasis
-        role="bold">:</emphasis><emphasis>minor</emphasis>|<emphasis
-        role="bold">RESTORE</emphasis>[<emphasis
-        role="bold">/</emphasis><emphasis>mask</emphasis>]|<emphasis
-        role="bold">SAVE</emphasis>[<emphasis
-        role="bold">/</emphasis><emphasis>mask</emphasis>]|<emphasis
-        role="bold">CONTINUE</emphasis>|<emphasis
-        role="bold">SAME</emphasis>|<emphasis
-        role="bold">COMMENT</emphasis>|<emphasis
-        role="bold">IPMARK</emphasis>[([(<emphasis
-        role="bold">src</emphasis>|<emphasis
-        role="bold">dst</emphasis>}][,[<emphasis>mask1</emphasis>][,[<emphasis>mask2</emphasis>][,[<emphasis>shift</emphasis>]]]]])]}[<emphasis
-        role="bold">:</emphasis>{<emphasis role="bold">C</emphasis>|<emphasis
-        role="bold">F</emphasis>|<emphasis role="bold">P</emphasis>|<emphasis
-        role="bold">T</emphasis>|<emphasis role="bold">CF</emphasis>|<emphasis
-        role="bold">CP</emphasis>|<emphasis
-        role="bold">CT</emphasis>|I:CI}]</term>
+        <replaceable>mark</replaceable></term>
 
         <listitem>
-          <para>May assume one of the following values.</para>
+          <para>Where <replaceable>mark</replaceable> may assume one of the
+          following values.</para>
 
           <orderedlist numeration="arabic">
             <listitem>
@@ -397,6 +382,39 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
               above so that all of your <replaceable>minor</replaceable>
               classes will have a value &gt; 256.</para>
             </listitem>
+
+            <listitem>
+              <para><emphasis
+              role="bold">TPROXY</emphasis>(<replaceable>mark</replaceable>[/<replaceable>mask</replaceable>][,[<replaceable>port</replaceable>][,[<replaceable>address</replaceable>]]])</para>
+
+              <para>Transparently redirects a packet without altering the IP
+              header. Requires a local provider to be defined in <ulink
+              url="shorewall-providers.html">shorewall-providers</ulink>(5).</para>
+
+              <para>There are three parameters to TPROXY - only the first
+              (mark) is required:</para>
+
+              <itemizedlist>
+                <listitem>
+                  <para><replaceable>mark</replaceable> - the MARK value
+                  corresponding to the local provider in <ulink
+                  url="shorewall-providers.html">shorewall-providers</ulink>(5).</para>
+                </listitem>
+
+                <listitem>
+                  <para><replaceable>port</replaceable> - the port on which
+                  the proxy server is listening. If omitted, the original
+                  destination port.</para>
+                </listitem>
+
+                <listitem>
+                  <para><replaceable>address</replaceable> - a local (to the
+                  firewall) IP address on which the proxy server is listening.
+                  If omitted, the IP address of the interface on which the
+                  request arrives.</para>
+                </listitem>
+              </itemizedlist>
+            </listitem>
           </orderedlist>
         </listitem>
       </varlistentry>
@@ -533,9 +551,9 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
           If no PORT is given, <emphasis role="bold">ipp2p</emphasis> is
           assumed.</para>
 
-          <para>This column is ignored if PROTOCOL = all but must be entered
-          if any of the following field is supplied. In that case, it is
-          suggested that this field contain "-"</para>
+          <para>An entry in this field requires that the PROTO column specify
+          icmp (1), tcp (6), udp (17), sctp (132) or udplite (136). Use '-' if
+          any of the following field is supplied.</para>
         </listitem>
       </varlistentry>
 
@@ -549,6 +567,10 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
           <para>Source port(s). If omitted, any source port is acceptable.
           Specified as a comma-separated list of port names, port numbers or
           port ranges.</para>
+
+          <para>An entry in this field requires that the PROTO column specify
+          tcp (6), udp (17), sctp (132) or udplite (136). Use '-' if any of
+          the following fields is supplied.</para>
         </listitem>
       </varlistentry>
 
