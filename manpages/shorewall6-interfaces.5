@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/14/2011
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 07/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "06/14/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-INTERFAC" "5" "07/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -228,6 +228,14 @@ Causes forwarded TCP SYN packets entering or leaving on this interface to have t
 Limit the zone named in the ZONE column to only the listed networks\&. If you specify this option, be sure to include the link\-local network (ff80::/10)\&.
 .RE
 .PP
+\fBnets=dynamic\fR
+.RS 4
+Added in Shorewall 4\&.4\&.21\&. Defines the zone as
+dynamic\&. Requires ipset match support in your iptables and kernel\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/Dynamic\&.html\fR\m[]
+for further information\&.
+.RE
+.PP
 \fBoptional\fR
 .RS 4
 When
@@ -322,7 +330,7 @@ name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
 .PP
 sfilter=(\fInet\fR[,\&.\&.\&.])
 .RS 4
-Added in Shorewall 4\&.4\&.20\&. At this writing (spring 2011), Linux does not support reverse path filtering (RFC3704) for IPv6\&. In its absense,
+Added in Shorewall 4\&.4\&.20\&. At this writing (spring 2011), Linux does not support reverse path filtering (RFC3704) for IPv6\&. In its absence,
 \fBsfilter\fR
 may be used as an anti\-spoofing measure\&.
 .sp

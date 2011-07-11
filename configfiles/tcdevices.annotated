@@ -7,120 +7,115 @@
 #
 ###############################################################################
 #           
-#    Entries in this file define the bandwidth for interfaces on
-#    which you want traffic shaping to be enabled.
+#           Entries in this file define the bandwidth for interfaces on which you want
+#           traffic shaping to be enabled.
 #           
-#    If you do not plan to use traffic shaping for a device, don't
-#    put it in here as it limits the throughput of that device to
-#    the limits you set here.
+#           If you do not plan to use traffic shaping for a device, don't put it in here as
+#           it limits the throughput of that device to the limits you set here.
 #           
-#    A note on the bandwidth definitions used in this file:
-#      * don't use a space between the integer value and the unit:
-#        30kbit is valid while 30 kbit is not.
-#      * you can use one of the following units:
+#           A note on the bandwidth definitions used in this file:
 #           
-#         kbps
-#                 Kilobytes per second.
+#   ● don't use a space between the integer value and the unit: 30kbit is valid
+#     while 30 kbit is not.
 #           
-#         mbps
-#                 Megabytes per second.
+#   ● you can use one of the following units:
 #           
-#         kbit
-#                 Kilobits per second.
+#     kbps
 #           
-#         mbit
-#                 Megabits per second.
+#         Kilobytes per second.
 #           
-#         bps or number
-#                 Bytes per second.
+#     mbps
 #           
-#      * Only whole integers are allowed.
+#         Megabytes per second.
 #           
-#    The columns in the file are as follows.
+#     kbit
 #           
-#    INTERFACE - [number:]interface
-#           Name of interface. Each interface may be listed only
-#           once in this file. You may NOT specify the name of an
-#           alias (e.g., eth0:0) here; see
-#           http://www.shorewall.net/FAQ.htm#faq18
+#         Kilobits per second.
 #           
-#           You may NOT specify wildcards here, e.g. if you have
-#           multiple ppp interfaces, you need to put them all in
-#           here!
+#     mbit
 #           
-#           If the device doesn't exist, a warning message will be
-#           issued during "shorewall6 [re]start" and "shorewall6
-#           refresh" and traffic shaping configuration will be
-#           skipped for that device.
+#         Megabits per second.
 #           
-#           Shorewall6 assigns a sequential interface number to each
-#           interface (the first entry in the file is interface 1,
-#           the second is interface 2 and so on) Beginning with
-#           Shorewall6-perl 4.1.6, you can explicitly specify the
-#           interface number by prefixing the interface name with
-#           the number and a colon (":"). Example: 1:eth0.
+#     bps or number
 #           
-#    IN-BANDWIDTH - bandwidth[:burst]
-#           The incoming bandwidth of that interface. Please note
-#           that you are not able to do traffic shaping on incoming
-#           traffic, as the traffic is already received before you
-#           could do so. But this allows you to define the maximum
-#           traffic allowed for this interface in total, if the rate
-#           is exceeded, the packets are dropped. You want this
-#           mainly if you have a DSL or Cable connection to avoid
-#           queuing at your providers side.
+#         Bytes per second.
 #           
-#           If you don't want any traffic to be dropped, set this to
-#           a value to zero in which case Shorewall6 will not create
-#           an ingress qdisc.Must be set to zero if the REDIRECTED
-#           INTERFACES column is non-empty.
+#   ● Only whole integers are allowed.
 #           
-#           The optional burst option was added in Shorewall6
-#           4.4.13. The default burst is 10kb. A larger burst can
-#           help make the bandwidth more accurate; often for fast
-#           lines, the enforced rate is well below the specified
-#           bandwidth.
+#           The columns in the file are as follows.
 #           
-#    OUT-BANDWIDTH - bandwidth
-#           The outgoing bandwidth of that interface. This is the
-#           maximum speed your connection can handle. It is also the
-#           speed you can refer as "full" if you define the tc
-#           classes in shorewall6-tcclasses(5). Outgoing traffic
-#           above this rate will be dropped.
+#           INTERFACE - [number:]interface
 #           
-#    OPTIONS - {-|{classify|hfsc} ,...}
-#           classify - When specified, Shorewall will not generate
-#           tc or Netfilter rules to classify traffic based on
-#           packet marks. You must do all classification using
-#           CLASSIFY rules in shorewall-tcrules(5).
+#     Name of interface. Each interface may be listed only once in this file. You
+#     may NOT specify the name of an alias (e.g., eth0:0) here; see http://
+#     www.shorewall.net/FAQ.htm#faq18
 #           
-#           hfsc - Shorewall normally uses the Hierarchical Token
-#           Bucket queuing discipline. When hfsc is specified, the
-#           Hierarchical Fair Service Curves discipline is used
-#           instead.
+#     You may NOT specify wildcards here, e.g. if you have multiple ppp
+#     interfaces, you need to put them all in here!
 #           
-#    REDIRECTED INTERFACES - [interface[,interface]...]
-#           Added in Shorewall6-perl 4.1.6. May only be specified if
-#           the interface in the INTERFACE column is an Intermediate
-#           Frame Block (IFB) device. Causes packets that enter each
-#           listed interface to be passed through the egress filters
-#           defined for this device, thus providing a form of
-#           incoming traffic shaping. When this column is non-empty,
-#           the classify option is assumed.
+#     If the device doesn't exist, a warning message will be issued during
+#     "shorewall6 [re]start" and "shorewall6 refresh" and traffic shaping
+#     configuration will be skipped for that device.
+#           
+#     Shorewall6 assigns a sequential interface number to each interface (the
+#     first entry in the file is interface 1, the second is interface 2 and so
+#     on) Beginning with Shorewall6-perl 4.1.6, you can explicitly specify the
+#     interface number by prefixing the interface name with the number and a
+#     colon (":"). Example: 1:eth0.
+#           
+#           IN-BANDWIDTH - bandwidth[:burst]
+#           
+#     The incoming bandwidth of that interface. Please note that you are not able
+#     to do traffic shaping on incoming traffic, as the traffic is already
+#     received before you could do so. But this allows you to define the maximum
+#     traffic allowed for this interface in total, if the rate is exceeded, the
+#     packets are dropped. You want this mainly if you have a DSL or Cable
+#     connection to avoid queuing at your providers side.
+#           
+#     If you don't want any traffic to be dropped, set this to a value to zero in
+#     which case Shorewall6 will not create an ingress qdisc.Must be set to zero
+#     if the REDIRECTED INTERFACES column is non-empty.
+#           
+#     The optional burst option was added in Shorewall6 4.4.18. The default burst
+#     is 10kb. A larger burst can help make the bandwidth more accurate; often
+#     for fast lines, the enforced rate is well below the specified bandwidth.
+#           
+#           OUT-BANDWIDTH - bandwidth
+#           
+#     The outgoing bandwidth of that interface. This is the maximum speed your
+#     connection can handle. It is also the speed you can refer as "full" if you
+#     define the tc classes in shorewall6-tcclasses(5). Outgoing traffic above
+#     this rate will be dropped.
+#           
+#           OPTIONS - {-|{classify|hfsc} ,...}
+#           
+#     classify ― When specified, Shorewall will not generate tc or Netfilter
+#     rules to classify traffic based on packet marks. You must do all
+#     classification using CLASSIFY rules in shorewall-tcrules(5).
+#           
+#     hfsc - Shorewall normally uses the Hierarchical Token Bucket queuing
+#     discipline. When hfsc is specified, the Hierarchical Fair Service Curves
+#     discipline is used instead.
+#           
+#           REDIRECTED INTERFACES - [interface[,interface]...]
+#           
+#     Added in Shorewall6-perl 4.1.6. May only be specified if the interface in
+#     the INTERFACE column is an Intermediate Frame Block (IFB) device. Causes
+#     packets that enter each listed interface to be passed through the egress
+#     filters defined for this device, thus providing a form of incoming traffic
+#     shaping. When this column is non-empty, the classify option is assumed.
 #           
 #           Examples
 #           
-#    Example 1:
-#           Suppose you are using PPP over Ethernet (DSL) and ppp0
-#           is the interface for this. The device has an outgoing
-#           bandwidth of 500kbit and an incoming bandwidth of
-#           6000kbit
+#           Example 1:
 #           
-#         #INTERFACE   IN-BANDWIDTH    OUT-BANDWIDTH         OPTIONS
-#    REDIRECTED
-#         #
-#    INTERFACES
-#         1:ppp0         6000kbit        500kbit
+#     Suppose you are using PPP over Ethernet (DSL) and ppp0 is the interface for
+#     this. The device has an outgoing bandwidth of 500kbit and an incoming
+#     bandwidth of 6000kbit
+#           
+#             #INTERFACE   IN-BANDWIDTH    OUT-BANDWIDTH         OPTIONS         REDIRECTED
+#             #                                                                  INTERFACES
+#             1:ppp0         6000kbit        500kbit
 #           
 ###############################################################################
 #NUMBER:	IN-BANDWITH	OUT-BANDWIDTH	OPTIONS		REDIRECTED

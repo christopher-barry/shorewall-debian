@@ -5,50 +5,51 @@
 #
 #####################################################################################
 #           
-#    The notrack file is used to exempt certain traffic from
-#    Netfilter connection tracking. Traffic matching entries in this
-#    file will not be tracked.
+#           The notrack file is used to exempt certain traffic from Netfilter connection
+#           tracking. Traffic matching entries in this file will not be tracked.
 #           
-#    The columns in the file are as follows.
+#           The columns in the file are as follows.
 #           
-#    SOURCE &#8210; zone[:interface][:address-list]
-#           where zone is the name of a zone, interface is an
-#           interface to that zone, and address-list is a
-#           comma-separated list of addresses (may contain exclusion
-#           - see shorewall6-exclusion (5)).
+#           SOURCE ‒ zone[:interface][:address-list]
 #           
-#    DEST &#8210; [interface|address-list]
-#           where address-list is a comma-separated list of
-#           addresses (may contain exclusion - see
-#           shorewall6-exclusion (5)). If an interface is given:
+#     where zone is the name of a zone, interface is an interface to that zone,
+#     and address-list is a comma-separated list of addresses (may contain
+#     exclusion - see shorewall6-exclusion (5)).
 #           
-#           + It must be up and configured with an IPv6 address when
-#             Shorewall is started or restarted.
-#           + All routes out of the interface must be configured
-#             when Shorewall is started or restarted.
-#           + Default routes out of the interface will result in a
-#             warning message and will be ignored.
+#           DEST ‒ [interface|address-list]
 #           
-#    PROTO &#8210; protocol-name-or-number
-#           A protocol name from /etc/protocols or a protocol
-#           number.
+#     where address-list is a comma-separated list of addresses (may contain
+#     exclusion - see shorewall6-exclusion (5)). If an interface is given:
 #           
-#    DEST PORT(S) - port-number/service-name-list
-#           A comma-separated list of port numbers and/or service
-#           names from /etc/services. May also include port ranges
-#           of the form low-port:high-port if your kernel and
-#           iptables include port range support.
+#       ● It must be up and configured with an IPv6 address when Shorewall is
+#         started or restarted.
 #           
-#    SOURCE PORT(S) - port-number/service-name-list
-#           A comma-separated list of port numbers and/or service
-#           names from /etc/services. May also include port ranges
-#           of the form low-port:high-port if your kernel and
-#           iptables include port range support.
+#       ● All routes out of the interface must be configured when Shorewall is
+#         started or restarted.
 #           
-#    USER/GROUP &#8210; [user][:group]
-#           May only be specified if the SOURCE zone is $FW.
-#           Specifies the effective user id and or group id of the
-#           process sending the traffic.
+#       ● Default routes out of the interface will result in a warning message
+#         and will be ignored.
+#           
+#           PROTO ‒ protocol-name-or-number
+#           
+#     A protocol name from /etc/protocols or a protocol number.
+#           
+#           DEST PORT(S) - port-number/service-name-list
+#           
+#     A comma-separated list of port numbers and/or service names from /etc/
+#     services. May also include port ranges of the form low-port:high-port if
+#     your kernel and iptables include port range support.
+#           
+#           SOURCE PORT(S) - port-number/service-name-list
+#           
+#     A comma-separated list of port numbers and/or service names from /etc/
+#     services. May also include port ranges of the form low-port:high-port if
+#     your kernel and iptables include port range support.
+#           
+#           USER/GROUP ‒ [user][:group]
+#           
+#     May only be specified if the SOURCE zone is $FW. Specifies the effective
+#     user id and or group id of the process sending the traffic.
 #           
 #####################################################################################
 #SOURCE		DESTINATION	PROTO	DEST		SOURCE	USER/
