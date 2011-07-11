@@ -13,7 +13,9 @@ NEXTPATCH:=$(shell expr $(VPATCH) + 1 2>/dev/null || expr `echo $(VPATCH) | cut 
 
 SRWL=$(CURDIR)/debian/shorewall6
 
-build: build-stamp debian/po/templates.pot
+build: build-arch build-indep debian/po/templates.pot
+build-arch: build-stamp
+build-indep: build-stamp
 build-stamp:
 	dh_testdir
 # 	there's nothing to compile ;-)
