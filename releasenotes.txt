@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                   S H O R E W A L L  4 . 4 . 20 . 3
+                      S H O R E W A L L  4 . 4 . 2 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -11,6 +11,452 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  All problems corrections included in Shorewall 4.4.20.1 - 4.4.20.3
+    (see below).
+
+2)  The following error message
+
+    	FOREWARD_CLEAR_MARK=Yes requires MARK Target in your kernel
+	    and iptables
+
+    has been corrected to read
+
+    	FORWARD_CLEAR_MARK=Yes requires MARK Target in your kernel
+	    and iptables
+
+3)  The TPROXY target in the tcrules file could previously cause a
+    failure during iptables restore like this:
+
+       Running /usr/sbin/iptables-restore...
+       Bad argument `3128'
+       Error occurred at line: 110
+       Try `iptables-restore -h' or 'iptables-restore --help' for more
+       information.
+
+          ERROR: iptables-restore Failed. Input is in
+	  	 /var/lib/shorewall/.iptables-restore-input
+
+4)  The 'balance' and 'fallback' options in /etc/shorewall/providers
+    have always been mutually exclusive but the compiler previously
+    didn't enforce that restriction. Now it does.
+
+5)  The Shorewall and Shorewall6 'load' and 'reload' commands
+    previously used the setting of RSH_COMMAND and RCP_COMMAND from
+    /etc/shorewall/shorewall.conf (/etc/shorewall6/shorewall6.conf).
+
+    These commands now use the .conf file in the current working
+    directory.
+
+6)  The ipset modules are now automatically loaded by Shorewall6 when
+    LOAD_HELPERS_ONLY=No is specified in shorewall6.conf. Additionally,
+    there is now a /usr/share/shorewall6/modules.ipset file that lists
+    all of the required modules.
+
+7)  TPROXY was previously not described in shorewall-tcrules(5) or
+    shorewall6-tcrules(5). These descriptions have been added.
+
+    In addition, Shorewall6 now correctly handles the third TPROXY
+    parameter (<ip address>). Previously, the following error was
+    generated:
+
+	ERROR: Invalid MARK (TPROXY(10,3128,::1)) :
+    	       /etc/shorewall6/tcrules (line 4)
+
+8)  With LOAD_HELPERS_ONLY=Yes, the compiler could use the deprectated
+    --set parameter to the ipset match when --match-set was
+    appropriate.
+
+9)  If 'shorewall clear' was executed when there was no
+    /var/lib/shorewall/firewall file, the following incorrect error
+    message was produced:
+
+    	    ERROR: Shorewall6 has never been started
+
+    The message now reads:
+
+    	    ERROR: Shorewall has never been started
+
+----------------------------------------------------------------------------
+           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+1)  On systems running Upstart, shorewall-init cannot reliably secure
+    the firewall before interfaces are brought up.
+
+----------------------------------------------------------------------------
+      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  AUTOMAKE=Yes now causes all directories on the CONFIG_PATH to be
+    searched for files newer than the script that last
+    started/restarted the firewall. Previously, only /etc/shorewall
+    (/etc/shorewall6) was searched.
+
+2)  FORMAT-2 actions may now specify default parameter values using the
+    DEFAULTS directive.
+
+    	DEFAULTS <def1>,<def2>,...
+
+    Where <def1> is the default value for the first parameter, <def2>
+    is the default value for the second parameter and so on. To specify
+    an empty default, use '-'. Note that the corresponding parameter
+    variable ($n) will still expand to '-' but will be treated as empty
+    by the builtin actions such as dropInvalid.
+
+    The DEFAULTS directive also determines the maximum number of
+    parameters that an action may have. If more parameters are passed
+    than have default values, an error message is issued.
+
+3)  Parameterized macros may now specify a default parameter value
+    using the DEFAULT directive.
+
+	DEFAULT <default>
+
+    Example macro.Foo -- by default, accepts connections on ficticous
+    	    	      	 tcp port 'foo'.
+
+    	DEFAULT ACCEPT
+	PARAM	-	-	tcp	foo
+
+4)  The standard Drop and Reject actions are now parameterized. Each 
+    has 5 parameters:
+
+    1) Pass 'audit' if you want all ACCEPTs, DROPs and REJECTs audited.
+       Pass '-' otherwise.
+
+    2) The action to be applied to Auth requests: 
+
+       	      FIRST PARAMETER           DEFAULT
+  
+  	      -				REJECT
+	      audit			A_REJECT
+
+    3) The action to be applied to SMB traffic. The default depends on
+       the action and its first parameter:
+
+              ACTION	 FIRST PARAMETER		DEFAULT
+
+	      Reject	 -				REJECT
+	      Drop	 -				DROP
+	      Reject	 audit				A_REJECT
+	      Drop	 audit				A_DROP
+
+    4)  The action to be applied to accepted ICMP packets.
+
+       	      FIRST PARAMETER           DEFAULT
+
+	      -	    			ACCEPT
+	      audit			A_ACCEPT
+
+    5)  The action to be applied to UPnP (udp port 1900) and late DNS
+    	replies (udp source port 53)
+
+       	      FIRST PARAMETER           DEFAULT
+
+	      -	    			DROP
+	      audit			A_DROP
+
+    The parameters can be passed in the POLICY column of the policy
+    file.
+
+    Examples:
+
+	SOURCE	DEST	POLICY
+	net	all	DROP:Drop(audit):audit  #Same as 
+						#DROP:A_DROP:audit
+
+	SOURCE	DEST	POLICY
+	net	all	DROP:Drop(-,DROP) #DROP rather than REJECT Auth
+
+    The parameters can also be specified in shorewall.conf:
+
+    Example:
+
+	DROP_DEFAULT=Drop(-,DROP)
+
+5)  An 'update' command has been added to /sbin/shorewall and
+    /sbin/shorewall6. The command updates the shorewall.conf
+    (shorewall6.conf) file then validates the configuration. The
+    updated file will set any options not specified in the old file
+    with their default values, and will move any deprecated options
+    with non-default values to a 'deprecated options' section at the
+    end of the file. Each such deprecated option will generate a
+    warning message.
+
+    Your original shorewall.conf (shorewall6.conf) file will be saved as
+    shorewall.conf.bak (shorewall6.conf.bak).
+
+    The 'update' command accepts the same options as the 'check'
+    command plus a '-a' option that causes the updated file to be
+    annotated with manpage documentation.
+
+6)  Shorewall6 now supports ipsets. 
+
+    Unlike iptables, which has separate configurations for IPv4 and
+    IPv6, ipset has a single configuration that handles both. This
+    means the SAVE_IPSETS=Yes in shorewall.conf or shorewall6.conf
+    won't work correctly. To work around this issue, Shorewall-init is
+    now capable restoring ipset contents during 'start' and saving them
+    during 'stop'. 
+
+    To direct Shorewall-init to save/restore ipset contents, set the
+    SAVE_IPSETS option in /etc/sysconfig/shorewall-init
+    (/etc/default/shorewall-init on Debian and derivatives). The value
+    of the option is a file name where the contents of the ipsets will
+    be saved to and restored from. Shorewall-init will create any
+    parent directories during the first 'save' operation.
+
+    If you configure Shorewall-init to save/restore ipsets, be sure to
+    set SAVE_IPSETS=No in shorewall.conf and shorewall6.conf.
+
+    As part of this change, Shorewall and Shorewall6 will only restore
+    saved ipsets if SAVE_IPSETS=Yes in shorewall.conf
+    (shorewall6.conf).
+
+7)  Shorewall6 now supports dynamic zones:
+
+    1) The nets=dynamic option is allowed in /etc/shorewall6/interfaces
+    2) The HOSTS column of /etc/shorewall6/hosts may now contain
+        <interface>:dynamic.
+    3) /sbin/shorewall6 now supports the 'add' and 'delete' commands.
+ 
+----------------------------------------------------------------------------
+             I V.  R E L E A S E  4 . 4  H I G H L I G H T S
+----------------------------------------------------------------------------
+
+1)  Support for Shorewall-shell has been discontinued. Shorewall-perl
+    has been combined with Shorewall-common to produce a single
+    Shorewall package.
+
+2)  Support for the "Hierarchical Fair Service Curve" (HFSC) queuing
+    discipline has been added. HFSC is superior to the "Hierarchical
+    Token Bucket" queuing discipline where realtime traffic such as
+    VOIP is being used.
+
+    HTB remains the default queuing discipline.
+
+3)  Support for the "flow" traffic classifier has been added. This
+    classifier can help prevent multi-connection applications such as
+    BitTorrent from using an unfair amount of bandwidth.
+
+4)  The Shorewall documentation and man pages have been purged of
+    information about earlier Shorewall releases. The documentation
+    describes only the behavior of Shorewall 4.4 and later versions.
+
+5)  The interfaces file OPTIONs have been extended to largely remove the
+    need for the hosts file.
+
+6)  It is now possible to define PREROUTING and OUTPUT marking rules
+    that cause new connections to use the same provider as an existing
+    connection of the same kind.
+
+7)  Dynamic Zone support is once again available for IPv4; ipset support is
+    required in your kernel and in iptables.
+
+8)  A new AUTOMAKE option has been added to shorewall.conf and
+    shorewall6.conf. Setting this option will allow Shorewall to skip
+    the compilation phase during start/restart if no configuration
+    changes have occurred since the last start/restart.
+
+9)  The LIMIT:BURST column in /etc/shorewall/policy
+    (/etc/shorewall6/policy) and the RATE LIMIT column in
+    /etc/shorewall/rules (/etc/shorewall6/rules) may now be used to
+    limit on a per source IP or per destination IP basis.
+
+10) Support for per-IP traffic shaping classes has been added.
+
+11) Support for netfilter's TRACE facility has been added. TRACE allows
+    you to trace selected packets through Netfilter, including marking
+    by tcrules.
+
+12) You may now preview the generated ruleset by using the '-r' option
+    to the 'check' command (e.g., "shorewall check -r").
+
+13) A new simplified Traffic Shaping facility is now available.
+
+14) Additional ruleset optimization options are available.
+
+15) TPROXY support has been added.
+
+16) Explicit support for Linux-vserver has been added. It is now
+    possible to define sub-zones of $FW.
+
+17) A 'Universal' sample configuration is now availale for a
+    'plug-and-play' firewall.
+
+18) Support for the AUDIT iptables target has been added.
+
+19) Shorewall6 now supports ipsets.
+
+----------------------------------------------------------------------------
+                   V.  M I G R A T I O N   I S S U E S
+----------------------------------------------------------------------------
+1)  If you are currently using Shorewall-shell:
+
+    a) In shorewall.conf, if you have specified
+       "SHOREWALL_COMPILER=shell" then you must either:
+
+       -  change that specification to "SHOREWALL_COMPILER=perl"; or
+       -  change that specification to "SHOREWALL_COMPILER="; or
+       -  delete the specification altogether.
+
+       Failure to do so will result in the following warning:
+
+       WARNING: SHOREWALL_COMPILER=shell ignored. Shorewall-shell
+                support has been removed in this release.
+
+    b) Review the migration issues at
+       http://www.shorewall.net/LennyToSqueeze.html and make changes as
+       required.
+
+    We strongly recommend that you migrate to Shorewall-perl on your
+    current Shorewall version before upgrading to Shorewall 4.4.0. That
+    way, you can have both Shorewall-shell and Shorewall-perl available
+    until you are certain that Shorewall-perl is working correctly for
+    you.
+
+2)  The 'shorewall stop', 'shorewall clear', 'shorewall6 stop' and
+    'shorewall6 clear' commands no longer read the 'routestopped'
+    file. The 'routestopped' file used is the one that was present at
+    the last 'start', 'restart' or 'restore' command.
+
+    IMPORTANT: If you modify the routestopped file, you must refresh or
+    restart Shorewall before the changes to that file take effect.
+
+3)  The old macro parameter syntax (e.g., SSH/ACCEPT) is now deprecated
+    in favor of the new syntax (e.g., SSH(ACCEPT)). The 4.4 documentation
+    uses the new syntax exclusively, although the old syntax
+    continues to be supported.
+
+    The sample configurations also use the new syntax.
+
+4)  Support for the SAME target in /etc/shorewall/masq and
+    /etc/shorewall/rules has been removed, following the removal of the
+    underlying support in the Linux kernel.
+
+5)  Supplying an interface name in the SOURCE column of
+    /etc/shorewall/masq is now deprecated. Entering the name of an
+    interface there will result in a compile-time warning:
+
+    WARNING: Using an interface as the masq SOURCE requires the
+             interface to be up and configured when Shorewall
+             starts/restarts
+
+    To avoid this warning, replace interface names by the corresponding
+    network(s) in CIDR format (e.g., 192.168.144.0/24).
+
+6)  Previously, Shorewall has treated traffic shaping class IDs as
+    decimal numbers (or pairs of decimal numbers). That worked fine
+    until IPMARK was implemented. IPMARK requires Shorewall to generate
+    class Ids in numeric sequence. In 4.3.9, that didn't work correctly
+    because Shorewall was generating the sequence "..8,9,10,11..." when
+    the correct sequence was "...8,9,a,b,...". Shorewall now treats
+    class IDs as hex, as do 'tc' and 'iptables'.
+
+    This should only be an issue if you have more than 9 interfaces
+    defined in /etc/shorewall/tcdevices and if you use class IDs in
+    /etc/shorewall/tcrules or /etc/shorewall/tcfilters. You will need
+    to renumber the class IDs for devices 10 and greater.
+
+7)  Support for the 'norfc1918' interface and host option has been
+    removed. If 'norfc1918' is specified for an entry in either the
+    interfaces or the hosts file, a warning is issued and the option is
+    ignored. Simply remove the option to avoid the warning.
+
+    Similarly, if RFC1918_STRICT=Yes or a non-empty RFC1918_LOG_LEVEL
+    is given in shorewall.conf, a warning will be issued and the option
+    will be ignored.
+
+    You may simply delete the RFC1918-related options from your
+    shorewall.conf file if you are seeing warnings regarding them.
+
+    Users who currently use 'norfc1918' are encouraged to consider
+    using NULL_ROUTE_RFC1918=Yes instead.
+
+8)  The install.sh scripts in the Shorewall and Shorewall6 packages no
+    longer create a backup copy of the existing configuration. If you
+    want your configuration backed up prior to upgrading, you will
+    need to do that yourself.
+
+    As part of this change, the fallback.sh scripts are no longer
+    released.
+
+9)  In earlier releases, if an ipsec zone was defined as a sub-zone of
+    an ipv4 or ipv6 zone using the special <child>:<parent>,... syntax,
+    CONTINUE policies for the sub-zone did not work as
+    expected. Traffic that was not matched by a sub-zone rule was not
+    compared against the parent zone(s) rules.
+
+    In 4.4.0, such traffic IS compared against the parent zone rules.
+
+10) The name 'any' is now reserved and may not be used as a zone name.
+
+11) Perl module initialization has changed in Shorewall
+    4.4.1. Previously, each Shorewall Perl package would initialize its
+    global variables for IPv4 in an INIT block. Then, if the
+    compilation turned out to be for IPv6,
+    Shorewall::Compiler::compiler() would reinitialize them for IPv6.
+
+    Beginning in Shorewall 4.4.1, the modules do not initialize
+    themselves in an INIT block. So if you use Shorewall modules
+    outside of the Shorewall compilation environment, then you must
+    explicitly call the module's 'initialize' function after the module
+    has been loaded.
+
+12) Checking for zone membership has been tighened up. Previously,
+    a zone could contain <interface>:0.0.0.0/0 along with other hosts;
+    now, if the zone has <interface>:0.0.0.0/0 (even with exclusions),
+    then it may have no additional members in /etc/shorewall/hosts.
+
+13) ADD_IP_ALIASES=No is now the setting in the released shorewall.conf
+    and in all of the samples. This will not affect you during upgrade
+    unless you choose to replace your current shorewall.conf with the
+    one from the release (not recommended).
+
+14) The names of interface configuration variables in generated scripts
+    have been changed to insure uniqueness. These names now begin with
+    SW_.
+
+    This change will only affect you if your extension scripts are
+    using one or more of these variables.
+
+          Old Variable Name                   New Variable Name
+          -----------------------------------------------------
+	  iface_ADDRESS                        SW_iface_ADDRESS
+	  iface_BCASTS                         SW_iface_BCASTS
+	  iface_ACASTS                         SW_iface_ACASTS
+	  iface_GATEWAY                        SW_iface_GATEWAY
+	  iface_ADDRESSES                      SW_iface_ADDRESSES
+	  iface_NETWORKS                       SW_iface_NETWORKS
+	  iface_MAC                            SW_iface_MAC
+
+	  provider_IS_USABLE                   SW_provider_IS_USABLE
+
+    where 'iface' is a capitalized interface name (e.g., ETH0) and
+    'provider' is the capitalized name of a provider.
+
+15) Support for the OPTIONS column in /etc/shorewall/blacklist
+    (/etc/shorewall6/blacklist) has been removed. Blacklisting by
+    destination IP address will be included in a later Shorewall
+    release.
+
+16) If your /etc/shorewall/params (or /etc/shorewall6/params) file
+    sends output to Standard Output, you need to be aware that the
+    output will be redirected to Standard Error beginning with
+    Shorewall 4.4.16.
+
+17) Beginning with Shorewall 4.4.17, the EXPORTPARAMS option is
+    deprecated. With EXPORTPARAMS=No, the variables set by
+    /etc/shorewall/params (/etc/shorewall6/params) at compile time are
+    now available in the compiled firewall script.
+
+----------------------------------------------------------------------------
+V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
+      I N   P R I O R  R E L E A S E S
+----------------------------------------------------------------------------
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 0
 ----------------------------------------------------------------------------
 
 4.4.20.3
@@ -117,14 +563,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     are also included in this release.
 
 ----------------------------------------------------------------------------
-           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-1)  On systems running Upstart, shorewall-init cannot reliably secure
-    the firewall before interfaces are brought up.
-
-----------------------------------------------------------------------------
-      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+               N E W   F E A T U R E S   I N   4 . 4 . 2 0
 ----------------------------------------------------------------------------
 
 1)  The implementation of the environmental variables LIBEXEC and
@@ -332,239 +771,9 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 	loc   br1       -         sfilter=2001:470:b:227::40/124
 
 ----------------------------------------------------------------------------
-             I V.  R E L E A S E  4 . 4  H I G H L I G H T S
-----------------------------------------------------------------------------
-
-1)  Support for Shorewall-shell has been discontinued. Shorewall-perl
-    has been combined with Shorewall-common to produce a single
-    Shorewall package.
-
-2)  Support for the "Hierarchical Fair Service Curve" (HFSC) queuing
-    discipline has been added. HFSC is superior to the "Hierarchical
-    Token Bucket" queuing discipline where realtime traffic such as
-    VOIP is being used.
-
-    HTB remains the default queuing discipline.
-
-3)  Support for the "flow" traffic classifier has been added. This
-    classifier can help prevent multi-connection applications such as
-    BitTorrent from using an unfair amount of bandwidth.
-
-4)  The Shorewall documentation and man pages have been purged of
-    information about earlier Shorewall releases. The documentation
-    describes only the behavior of Shorewall 4.4 and later versions.
-
-5)  The interfaces file OPTIONs have been extended to largely remove the
-    need for the hosts file.
-
-6)  It is now possible to define PREROUTING and OUTPUT marking rules
-    that cause new connections to use the same provider as an existing
-    connection of the same kind.
-
-7)  Dynamic Zone support is once again available for IPv4; ipset support is
-    required in your kernel and in iptables.
-
-8)  A new AUTOMAKE option has been added to shorewall.conf and
-    shorewall6.conf. Setting this option will allow Shorewall to skip
-    the compilation phase during start/restart if no configuration
-    changes have occurred since the last start/restart.
-
-9)  The LIMIT:BURST column in /etc/shorewall/policy
-    (/etc/shorewall6/policy) and the RATE LIMIT column in
-    /etc/shorewall/rules (/etc/shorewall6/rules) may now be used to
-    limit on a per source IP or per destination IP basis.
-
-10) Support for per-IP traffic shaping classes has been added.
-
-11) Support for netfilter's TRACE facility has been added. TRACE allows
-    you to trace selected packets through Netfilter, including marking
-    by tcrules.
-
-12) You may now preview the generated ruleset by using the '-r' option
-    to the 'check' command (e.g., "shorewall check -r").
-
-13) A new simplified Traffic Shaping facility is now available.
-
-14) Additional ruleset optimization options are available.
-
-15) TPROXY support has been added.
-
-16) Explicit support for Linux-vserver has been added. It is now
-    possible to define sub-zones of $FW.
-
-17) A 'Universal' sample configuration is now availale for a
-    'plug-and-play' firewall.
-
-18) Support for the AUDIT iptables target has been added.
-
-----------------------------------------------------------------------------
-                   V.  M I G R A T I O N   I S S U E S
-----------------------------------------------------------------------------
-1)  If you are currently using Shorewall-shell:
-
-    a) In shorewall.conf, if you have specified
-       "SHOREWALL_COMPILER=shell" then you must either:
-
-       -  change that specification to "SHOREWALL_COMPILER=perl"; or
-       -  change that specification to "SHOREWALL_COMPILER="; or
-       -  delete the specification altogether.
-
-       Failure to do so will result in the following warning:
-
-       WARNING: SHOREWALL_COMPILER=shell ignored. Shorewall-shell
-                support has been removed in this release.
-
-    b) Review the migration issues at
-       http://www.shorewall.net/LennyToSqueeze.html and make changes as
-       required.
-
-    We strongly recommend that you migrate to Shorewall-perl on your
-    current Shorewall version before upgrading to Shorewall 4.4.0. That
-    way, you can have both Shorewall-shell and Shorewall-perl available
-    until you are certain that Shorewall-perl is working correctly for
-    you.
-
-2)  The 'shorewall stop', 'shorewall clear', 'shorewall6 stop' and
-    'shorewall6 clear' commands no longer read the 'routestopped'
-    file. The 'routestopped' file used is the one that was present at
-    the last 'start', 'restart' or 'restore' command.
-
-    IMPORTANT: If you modify the routestopped file, you must refresh or
-    restart Shorewall before the changes to that file take effect.
-
-3)  The old macro parameter syntax (e.g., SSH/ACCEPT) is now deprecated
-    in favor of the new syntax (e.g., SSH(ACCEPT)). The 4.4 documentation
-    uses the new syntax exclusively, although the old syntax
-    continues to be supported.
-
-    The sample configurations also use the new syntax.
-
-4)  Support for the SAME target in /etc/shorewall/masq and
-    /etc/shorewall/rules has been removed, following the removal of the
-    underlying support in the Linux kernel.
-
-5)  Supplying an interface name in the SOURCE column of
-    /etc/shorewall/masq is now deprecated. Entering the name of an
-    interface there will result in a compile-time warning:
-
-    WARNING: Using an interface as the masq SOURCE requires the
-             interface to be up and configured when Shorewall
-             starts/restarts
-
-    To avoid this warning, replace interface names by the corresponding
-    network(s) in CIDR format (e.g., 192.168.144.0/24).
-
-6)  Previously, Shorewall has treated traffic shaping class IDs as
-    decimal numbers (or pairs of decimal numbers). That worked fine
-    until IPMARK was implemented. IPMARK requires Shorewall to generate
-    class Ids in numeric sequence. In 4.3.9, that didn't work correctly
-    because Shorewall was generating the sequence "..8,9,10,11..." when
-    the correct sequence was "...8,9,a,b,...". Shorewall now treats
-    class IDs as hex, as do 'tc' and 'iptables'.
-
-    This should only be an issue if you have more than 9 interfaces
-    defined in /etc/shorewall/tcdevices and if you use class IDs in
-    /etc/shorewall/tcrules or /etc/shorewall/tcfilters. You will need
-    to renumber the class IDs for devices 10 and greater.
-
-7)  Support for the 'norfc1918' interface and host option has been
-    removed. If 'norfc1918' is specified for an entry in either the
-    interfaces or the hosts file, a warning is issued and the option is
-    ignored. Simply remove the option to avoid the warning.
-
-    Similarly, if RFC1918_STRICT=Yes or a non-empty RFC1918_LOG_LEVEL
-    is given in shorewall.conf, a warning will be issued and the option
-    will be ignored.
-
-    You may simply delete the RFC1918-related options from your
-    shorewall.conf file if you are seeing warnings regarding them.
-
-    Users who currently use 'norfc1918' are encouraged to consider
-    using NULL_ROUTE_RFC1918=Yes instead.
-
-8)  The install.sh scripts in the Shorewall and Shorewall6 packages no
-    longer create a backup copy of the existing configuration. If you
-    want your configuration backed up prior to upgrading, you will
-    need to do that yourself.
-
-    As part of this change, the fallback.sh scripts are no longer
-    released.
-
-9)  In earlier releases, if an ipsec zone was defined as a sub-zone of
-    an ipv4 or ipv6 zone using the special <child>:<parent>,... syntax,
-    CONTINUE policies for the sub-zone did not work as
-    expected. Traffic that was not matched by a sub-zone rule was not
-    compared against the parent zone(s) rules.
-
-    In 4.4.0, such traffic IS compared against the parent zone rules.
-
-10) The name 'any' is now reserved and may not be used as a zone name.
-
-11) Perl module initialization has changed in Shorewall
-    4.4.1. Previously, each Shorewall Perl package would initialize its
-    global variables for IPv4 in an INIT block. Then, if the
-    compilation turned out to be for IPv6,
-    Shorewall::Compiler::compiler() would reinitialize them for IPv6.
-
-    Beginning in Shorewall 4.4.1, the modules do not initialize
-    themselves in an INIT block. So if you use Shorewall modules
-    outside of the Shorewall compilation environment, then you must
-    explicitly call the module's 'initialize' function after the module
-    has been loaded.
-
-12) Checking for zone membership has been tighened up. Previously,
-    a zone could contain <interface>:0.0.0.0/0 along with other hosts;
-    now, if the zone has <interface>:0.0.0.0/0 (even with exclusions),
-    then it may have no additional members in /etc/shorewall/hosts.
-
-13) ADD_IP_ALIASES=No is now the setting in the released shorewall.conf
-    and in all of the samples. This will not affect you during upgrade
-    unless you choose to replace your current shorewall.conf with the
-    one from the release (not recommended).
-
-14) The names of interface configuration variables in generated scripts
-    have been changed to insure uniqueness. These names now begin with
-    SW_.
-
-    This change will only affect you if your extension scripts are
-    using one or more of these variables.
-
-          Old Variable Name                   New Variable Name
-          -----------------------------------------------------
-	  iface_ADDRESS                        SW_iface_ADDRESS
-	  iface_BCASTS                         SW_iface_BCASTS
-	  iface_ACASTS                         SW_iface_ACASTS
-	  iface_GATEWAY                        SW_iface_GATEWAY
-	  iface_ADDRESSES                      SW_iface_ADDRESSES
-	  iface_NETWORKS                       SW_iface_NETWORKS
-	  iface_MAC                            SW_iface_MAC
-
-	  provider_IS_USABLE                   SW_provider_IS_USABLE
-
-    where 'iface' is a capitalized interface name (e.g., ETH0) and
-    'provider' is the capitalized name of a provider.
-
-15) Support for the OPTIONS column in /etc/shorewall/blacklist
-    (/etc/shorewall6/blacklist) has been removed. Blacklisting by
-    destination IP address will be included in a later Shorewall
-    release.
-
-16) If your /etc/shorewall/params (or /etc/shorewall6/params) file
-    sends output to Standard Output, you need to be aware that the
-    output will be redirected to Standard Error beginning with
-    Shorewall 4.4.16.
-
-17) Beginning with Shorewall 4.4.17, the EXPORTPARAMS option is
-    deprecated. With EXPORTPARAMS=No, the variables set by
-    /etc/shorewall/params (/etc/shorewall6/params) at compile time are
-    now available in the compiled firewall script.
-
-----------------------------------------------------------------------------
-V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
-      I N   P R I O R  R E L E A S E S
-----------------------------------------------------------------------------
          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 1 9
 ----------------------------------------------------------------------------
+
 4.4.19.4
 
 1)  Previously, the compiler would allow a degenerate entry (only the
@@ -3573,7 +3782,7 @@ None.
 
 8)  The generated script now uses iptables[6]-restore to instantiate
     the Netfilter ruleset during processing of the 'stop' command. As a
-    consequence, the 'critical' option in /etc/shorewall/route_stopped
+    consequence, the 'critical' option in /etc/shorewall/routestopped
     is no longer needed and will result in a warning.
 
 9)  A new AUTOMAKE option has been added to shorewall.conf and

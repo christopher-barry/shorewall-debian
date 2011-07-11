@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/14/2011
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 07/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "06/14/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "07/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -30,6 +30,8 @@
 .SH "NAME"
 shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .SH "SYNOPSIS"
+.HP \w'\fBshorewall6\fR\ 'u
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBadd\fR \fIinterface\fR[:\fIhost\-list\fR]... \fIzone\fR
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -99,6 +101,8 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBtry\fR \fIdirectory\fR [\fItimeout\fR]
 .HP \w'\fBshorewall6\fR\ 'u
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBupdate\fR [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fB\-r\fR] [\fB\-T\fR] [\fB\-a\fR] [\fIdirectory\fR]
+.HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBversion\fR\ [\fB\-a\fR] 
 .SH "DESCRIPTION"
 .PP
@@ -143,6 +147,41 @@ which causes all progress messages to be timestamped\&.
 .SH "COMMANDS"
 .PP
 The available commands are listed below\&.
+.PP
+\fBadd\fR
+.RS 4
+Added in Shorewall 4\&.4\&.21\&. Adds a list of hosts or subnets to a dynamic zone usually used with VPN\*(Aqs\&.
+.sp
+The
+\fIinterface\fR
+argument names an interface defined in the
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&. A
+\fIhost\-list\fR
+is comma\-separated list whose elements are host or network addresses\&..if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBCaution\fR
+.ps -1
+.br
+The
+\fBadd\fR
+command is not very robust\&. If there are errors in the
+\fIhost\-list\fR, you may see a large number of error messages yet a subsequent
+\fBshorewall show zones\fR
+command will indicate that all hosts were added\&. If this happens, replace
+\fBadd\fR
+by
+\fBdelete\fR
+and run the same command again\&. Then enter the correct command\&.
+.sp .5v
+.RE
+.RE
 .PP
 \fBallow\fR
 .RS 4
@@ -223,6 +262,20 @@ command\-line option\&.
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.4\&.20 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.RE
+.PP
+\fBdelete\fR
+.RS 4
+Added in Shorewall 4\&.4\&.21\&. The delete command reverses the effect of an earlier
+\fBadd\fR
+command\&.
+.sp
+The
+\fIinterface\fR
+argument names an interface defined in the
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&. A
+\fIhost\-list\fR
+is comma\-separated list whose elements are a host or network address\&.
 .RE
 .PP
 \fBdrop\fR
@@ -688,9 +741,9 @@ and
 \fBstop\fR
 .RS 4
 Stops the firewall\&. All existing connections, except those listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[2]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[2]\d\s+2(5) or by ADMINISABSENTMINDED\&.
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or by ADMINISABSENTMINDED\&.
 .RE
 .PP
 \fBstatus\fR
@@ -726,6 +779,26 @@ is performed after
 seconds\&.
 .RE
 .PP
+\fBupdate\fR
+.RS 4
+Added in Shorewall 4\&.4\&.21 and causes the compiler to update
+/etc/shorewall6/shorewall6\&.conf
+then validate the configuration\&. The update will add options not present in the existing file with their default values, and will move deprecated options with non\-defaults to a deprecated options section at the bottom of the file\&. Your existing
+shorewall6\&.conf
+file is renamed
+shorewall6\&.conf\&.bak\&.
+.sp
+The
+\fB\-a\fR
+option causes the updated
+shorewall6\&.conf
+file to be annotated with documentation\&.
+.sp
+For a description of the other options, see the
+\fBcheck\fR
+command above\&.
+.RE
+.PP
 \fBversion\fR
 .RS 4
 Displays Shorewall6\*(Aqs version\&. If the
@@ -747,6 +820,11 @@ shorewall6.conf
 \%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
 .IP " 2." 4
+shorewall6-interfaces
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-interfaces.html
+.RE
+.IP " 3." 4
 shorewall6-routestopped
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall6-routestopped.html
