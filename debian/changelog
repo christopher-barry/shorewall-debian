@@ -1,8 +1,9 @@
-shorewall-lite (4.4.20.3-2) UNRELEASED; urgency=low
+shorewall-lite (4.4.21-1) unstable; urgency=low
 
+  * New Upstream Version
   * Remove bashism from debian/rules (Closes: #632851)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 06 Jul 2011 18:38:38 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 10 Jul 2011 22:03:13 -0400
 
 shorewall-lite (4.4.20.3-1) unstable; urgency=low
 
