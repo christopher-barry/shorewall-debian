@@ -13,6 +13,7 @@
 #  copy.
 #
 ###############################################################################
+loadmodule xt_set
 loadmodule ip_set
 loadmodule ip_set_iphash
 loadmodule ip_set_ipmap
