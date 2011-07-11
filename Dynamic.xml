@@ -210,6 +210,9 @@ webok       eth0:dynamic</programlisting>
     ipset, such as <firstterm>macipmap</firstterm>, then you will want to
     manually create that ipset yourself before the next Shorewall
     start/restart.</para>
+
+    <para>The dynamic zone capability was added to Shorewall6 in Shorewall
+    4.4.21.</para>
   </section>
 
   <section>

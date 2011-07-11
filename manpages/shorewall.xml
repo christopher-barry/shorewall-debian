@@ -626,6 +626,30 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
+      <arg choice="plain"><option>update</option></arg>
+
+      <arg><option>-e</option></arg>
+
+      <arg><option>-d</option></arg>
+
+      <arg><option>-p</option></arg>
+
+      <arg><option>-r</option></arg>
+
+      <arg><option>-T</option></arg>
+
+      <arg><option>-a</option></arg>
+
+      <arg><replaceable>directory</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
       <arg
       choice="plain"><option>version</option><arg><option>-a</option></arg></arg>
     </cmdsynopsis>
@@ -1520,6 +1544,28 @@
           role="bold">clear</emphasis> or <emphasis
           role="bold">restore</emphasis> is performed after
           <replaceable>timeout</replaceable> seconds.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">update</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.21 and causes the compiler to update
+          <filename>/etc/shorewall/shorewall.conf then validate the
+          configuration</filename>. The update will add options not present in
+          the old file with their default values, and will move deprecated
+          options with non-defaults to a deprecated options section at the
+          bottom of the file. Your existing
+          <filename>shorewall.conf</filename> file is renamed
+          <filename>shorewall.conf.bak.</filename></para>
+
+          <para>The <option>-a</option> option causes the updated
+          <filename>shorewall.conf</filename> file to be annotated with
+          documentation.</para>
+
+          <para>For a description of the other options, see the <emphasis
+          role="bold">check</emphasis> command above.</para>
         </listitem>
       </varlistentry>
 

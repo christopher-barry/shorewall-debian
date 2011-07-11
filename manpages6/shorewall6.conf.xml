@@ -30,7 +30,7 @@
     (<emphasis>variable</emphasis>=<emphasis>value</emphasis>). If the
     <emphasis>value</emphasis> contains shell metacharacters or white-space,
     then it must be enclosed in quotes. Example:
-    MACLIST_LOG_LEVEL="NFLOG(1,0,1)".</para>
+    LOG_LEVEL="NFLOG(1,0,1)".</para>
   </refsect1>
 
   <refsect1>
@@ -499,10 +499,11 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
       <varlistentry>
         <term><emphasis role="bold">EXPORTPARAMS=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}
-        (Deprecated beginning with Shorewall 4.4.17)</term>
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
         <listitem>
+          <para>Deprecated beginning with Shorewall 4.4.17.</para>
+
           <para>Beginning with Shorewall 4.4.17, the variables set in the
           'params' file at compile time are available at run time with
           EXPORTPARAMS=No. As a consequence, beginning with that version the
@@ -930,7 +931,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">LOGBURST=</emphasis>[<emphasis>burst</emphasis>]</term>
 
         <listitem>
-          <para></para>
+          <para>Deprecated in Shorewall 4.4.12.</para>
         </listitem>
       </varlistentry>
 
@@ -942,7 +943,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
         <listitem>
           <para>As of Shorewall 4.4.12, these parameters are
-          deprecated.</para>
+          Deprecated.</para>
 
           <para>These parameters set the match rate and initial burst size for
           logged packets. Please see ip6tables(8) for a description of the
@@ -1432,7 +1433,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
               same interface that they arrived on.</para>
             </footnote> interfaces without the routeback option. The default
           is <option>info</option>. If you don't wish for these packets to be
-          logged, use FILTER_LOG_LEVEL=none.</para>
+          logged, use SFILTER_LOG_LEVEL=none.</para>
         </listitem>
       </varlistentry>
 
