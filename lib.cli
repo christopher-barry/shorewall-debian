@@ -339,7 +339,7 @@ do_save() {
                     #
                     # Don't save an 'empty' file
                     #
-		    grep -q '^-N' ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${g_restorepath}-ipsets
+		    grep -qE -- '^(-N|create )' ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${g_restorepath}-ipsets
 		fi
 	    fi
 	    ;;
@@ -399,6 +399,11 @@ show_routing() {
 	    heading "Table $table:"
 	    ip route list table $table
 	done
+
+	if [ -n "$g_routecache" ]; then
+	    heading "Route Cache"
+	    ip -4 route list cache
+	fi
     else
 	heading "Routing Table"
 	ip route list
@@ -422,7 +427,9 @@ list_zone() {
 
     [ -n "$(mywhich ipset)" ] || fatal_error "The ipset utility cannot be located"
 
-    sets=$(find_sets $1)
+    sets=$(ipset -L -n | grep '^$1_');
+
+    [ -n "$sets" ] || sets=$(find_sets $1)
 
     for setname in $sets; do
 	echo "${setname#${1}_}:"
@@ -534,6 +541,10 @@ show_command() {
 			l*)
 			    g_ipt_options1="--line-numbers"
 			    option=${option#l}
+			    ;;
+			c*)
+			    g_routecache=Yes
+			    option=${option#c}
 			    ;;
 			*)
 			    usage 1
@@ -912,6 +923,10 @@ do_dump_command() {
 			l*)
 			    g_ipt_options1="--line-numbers"
 			    option=${option#l}
+			    ;;
+			c*)
+			    g_routecache=Yes
+			    option=${option#c}
 			    ;;
 			*)
 			    usage 1
@@ -1670,6 +1685,7 @@ determine_capabilities() {
     OWNER_MATCH=
     IPSET_MATCH=
     OLD_IPSET_MATCH=
+    IPSET_V5=
     CONNMARK=
     XCONNMARK=
     CONNMARK_MATCH=
@@ -1815,7 +1831,16 @@ determine_capabilities() {
     if qt mywhich ipset; then
 	qt ipset -X $chain # Just in case something went wrong the last time
 
-	if qt ipset -N $chain iphash ; then
+	local have_ipset
+
+	if qt ipset -N $chain hash:ip family inet; then
+	    IPSET_V5=Yes
+	    have_ipset=Yes
+	elif qt ipset -N $chain iphash ; then
+	    have_ipset=Yes
+	fi
+
+	if [ -n "$have_ipset" ]; then
 	    if qt $IPTABLES -A $chain -m set --match-set $chain src -j ACCEPT; then
 		qt $IPTABLES -D $chain -m set --match-set $chain src -j ACCEPT
 		IPSET_MATCH=Yes
@@ -1930,6 +1955,7 @@ report_capabilities() {
 	report_capability "Header Match" $HEADER_MATCH
         report_capability "ACCOUNT Target" $ACCOUNT_TARGET
 	report_capability "AUDIT Target" $AUDIT_TARGET
+	report_capability "ipset V5" $IPSET_V5
     fi
 
     [ -n "$PKTTYPE" ] || USEPKTTYPE=
@@ -1998,6 +2024,7 @@ report_capabilities1() {
     report_capability1 HEADER_MATCH
     report_capability1 ACCOUNT_TARGET
     report_capability1 AUDIT_TARGET
+    report_capability1 IPSET_V5
 
     echo CAPVERSION=$SHOREWALL_CAPVERSION
     echo KERNELVERSION=$KERNELVERSION

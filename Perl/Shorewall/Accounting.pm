@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4.20';
+our $VERSION = '4.4_21';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
@@ -205,7 +205,7 @@ sub process_accounting_rule( ) {
 		require_capability 'ACCOUNT_TARGET' , 'ACCOUNT Rules' , '';
 		my ( $table, $net, $rest ) = split/,/, $1;
 		fatal_error "Invalid Network Address (${net},${rest})" if defined $rest;
-		fatal_error "Missing Table Name"                       unless defined $table && $table ne '';;
+		fatal_error "Missing Table Name"                       unless supplied $table;
 		fatal_error "Invalid Table Name ($table)"              unless $table =~ /^([-\w.]+)$/;
 		fatal_error "Missing Network Address"                  unless defined $net;
 		fatal_error "Invalid Network Address ($net)"           unless defined $net   && $net =~ '/(\d+)$';

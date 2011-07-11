@@ -8,22 +8,20 @@
 #
 ###############################################################################
 #           
-#    Use this file to list the destinations for which you want to
-#    disable ECN (Explicit Congestion Notification).
+#           Use this file to list the destinations for which you want to disable ECN
+#           (Explicit Congestion Notification).
 #           
-#    The columns in the file are as follows.
+#           The columns in the file are as follows.
 #           
-#    INTERFACE - interface
-#           Interface through which host(s) communicate with the
-#           firewall
+#           INTERFACE - interface
 #           
-#    HOST(S) (Optional) -
-#           [-|address-or-address-range[,address-or-address-range]..
-#           .]
-#           Comma-separated list of host and/or network addresses.
-#           If left empty or supplied as "-", 0.0.0.0/0 is assumed.
-#           If your kernel and iptables include iprange match
-#           support then IP address ranges are also permitted.
+#     Interface through which host(s) communicate with the firewall
+#           
+#           HOST(S) (Optional) - [-|address-or-address-range[,address-or-address-range]...]
+#           
+#     Comma-separated list of host and/or network addresses. If left empty or
+#     supplied as "-", 0.0.0.0/0 is assumed. If your kernel and iptables include
+#     iprange match support then IP address ranges are also permitted.
 #           
 ###############################################################################
 #INTERFACE	HOST(S)

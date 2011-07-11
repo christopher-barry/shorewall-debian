@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/14/2011
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 07/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "06/14/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "07/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -752,7 +752,7 @@ For example, using the default LOGFORMAT, the log prefix for logging from the na
 \fBImportant\fR
 .ps -1
 .br
-To help insure that all packets in the NEW state are logged, rate limiting (LOGLIMIT or deprecated options LOGBURST and LOGRATE) should be disabled when using LOGALLNEW\&. Use LOGALLNEW at your own risk; it may cause high CPU and disk utilization and you may not be able to control your firewall after you enable this option\&.
+To help insure that all packets in the NEW state are logged, rate limiting (LOGBURST and LOGRATE) should be disabled when using LOGALLNEW\&. Use LOGALLNEW at your own risk; it may cause high CPU and disk utilization and you may not be able to control your firewall after you enable this option\&.
 .sp .5v
 .RE
 .if n \{\
@@ -1299,7 +1299,7 @@ packets on interfaces without the
 \fBrouteback\fR
 option\&.\&\s-2\u[16]\d\s+2
 interfaces without the routeback option\&. The default is
-\fBinfo\fR\&. If you don\*(Aqt wish for these packets to be logged, use FILTER_LOG_LEVEL=none\&.
+\fBinfo\fR\&. If you don\*(Aqt wish for these packets to be logged, use SFILTER_LOG_LEVEL=none\&.
 .RE
 .PP
 \fBSHOREWALL_SHELL=\fR[\fIpathname\fR]

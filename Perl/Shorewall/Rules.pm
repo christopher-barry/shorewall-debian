@@ -22,7 +22,7 @@
 #
 #   This module handles policies and rules. It contains:
 #
-#       process_policies() and it's associated helpers.
+#       process_() and it's associated helpers.
 #       process_rules() and it's associated helpers for handling Actions and Macros.
 #
 #   This module combines the former Policy, Rules and Actions modules.
@@ -52,7 +52,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_21';
 #
 # Globals are documented in the initialize() function
 #
@@ -73,7 +73,9 @@ my @builtins;
 #
 # Commands that can be embedded in a basic rule and how many total tokens on the line (0 => unlimited).
 #
-my $rule_commands = { COMMENT => 0, FORMAT => 2, SECTION => 2 };
+my $rule_commands   = { COMMENT => 0, FORMAT => 2, SECTION => 2 };
+my $action_commands = { COMMENT => 0, FORMAT => 2, SECTION => 2, DEFAULTS => 2 };
+my $macro_commands  = { COMMENT => 0, FORMAT => 2, SECTION => 2, DEFAULT => 2 };
 
 use constant { MAX_MACRO_NEST_LEVEL => 5 };
 
@@ -283,6 +285,9 @@ sub print_policy($$$$) {
 }
 
 sub use_policy_action( $ );
+sub normalize_action( $$$ );
+sub normalize_action_name( $ );
+
 #
 # Process an entry in the policy file.
 #
@@ -324,15 +329,18 @@ sub process_a_policy() {
     }
 
     if ( $default ) {
+	my ( $def, $param ) = get_target_param( $default );
+
 	if ( "\L$default" eq 'none' ) {
 	    $default = 'none';
-	} elsif ( $actions{$default} ) {
+	} elsif ( $actions{$def} ) {
+	    $default = supplied $param ? normalize_action( $def, 'none', $param  ) : normalize_action_name $def;
 	    use_policy_action( $default );
 	} else {
 	    fatal_error "Unknown Default Action ($default)";
 	}
     } else {
-	$default = $default_actions{$policy} || '';
+	$default = $default_actions{$policy} || 'none';
     }
 
     if ( defined $queue ) {
@@ -379,7 +387,7 @@ sub process_a_policy() {
 	push @policy_chains, ( $chainref ) unless $config{EXPAND_POLICIES} && ( $clientwild || $serverwild );
     }
 
-    $chainref->{loglevel}  = validate_level( $loglevel ) if defined $loglevel && $loglevel ne '';
+    $chainref->{loglevel}  = validate_level( $loglevel ) if supplied $loglevel;
 
     if ( $synparams ne '' || $connlimit ne '' ) {
 	my $value = '';
@@ -390,7 +398,9 @@ sub process_a_policy() {
 	$chainref->{synchain}  = $chain
     }
 
-    $chainref->{default} = $default if $default;
+    assert( $default );
+    my $chainref1 = $usedactions{$default};
+    $chainref->{default} = $chainref1 ? $chainref1->{name} : $default;
 
     if ( $clientwild ) {
 	if ( $serverwild ) {
@@ -462,16 +472,21 @@ sub process_policies()
 
     for my $option ( qw( DROP_DEFAULT REJECT_DEFAULT ACCEPT_DEFAULT QUEUE_DEFAULT NFQUEUE_DEFAULT) ) {
 	my $action = $config{$option};
-	next if $action eq 'none';
-	my $actiontype = $targets{$action};
-												 
-	if ( defined $actiontype ) {
-	    fatal_error "Invalid setting ($action) for $option" unless $actiontype & ACTION;
-	} else {
-	    fatal_error "Default Action $option=$action not found";
-	}
+	
+	unless ( $action eq 'none' ) {
+	    my ( $act, $param ) = get_target_param( $action );
 
-	use_policy_action( $action );
+	    if ( "\L$action" eq 'none' ) {
+		$action = 'none';
+	    } elsif ( $actions{$act} ) {
+		$action = supplied $param ? normalize_action( $act, 'none', $param  ) : normalize_action_name $act;
+		use_policy_action( $action );
+	    } elsif ( $targets{$act} ) {
+		fatal_error "Invalid setting ($action) for $option";
+	    } else {
+		fatal_error "Default Action $option=$action not found";
+	    }
+	}
 
 	$default_actions{$map{$option}} = $action;
     }
@@ -824,9 +839,10 @@ sub normalize_action( $$$ ) {
 
     ( $level, my $tag ) = split ':', $level;
 
-    $level = 'none' unless defined $level && $level ne '';
+    $level = 'none' unless supplied $level;
     $tag   = ''     unless defined $tag;
     $param = ''     unless defined $param;
+    $param = ''     if $param eq '-';
 
     join( ':', $action, $level, $tag, $param );
 }
@@ -1089,7 +1105,7 @@ sub merge_macro_source_dest( $$ ) {
 sub merge_macro_column( $$ ) {
     my ( $body, $invocation ) = @_;
 
-    if ( defined $invocation && $invocation ne '' && $invocation ne '-' ) {
+    if ( supplied( $invocation ) && $invocation ne '-' ) {
 	$invocation;
     } else {
 	$body;
@@ -1134,63 +1150,6 @@ sub map_old_actions( $ ) {
 }
 
 #
-# Create and populate the passed AUDIT chain if it doesn't exist. Return chain name
-
-sub ensure_audit_chain( $;$$ ) {
-    my ( $target, $action, $tgt ) = @_;
-
-    push_comment( '' );
-
-    my $ref = $filter_table->{$target};
-
-    unless ( $ref ) {
-	$ref = new_chain 'filter', $target;
-
-	unless ( $action ) {
-	    $action = $target;
-	    $action =~ s/^A_//;
-	}
-
-	$tgt ||= $action;
-
-	if ( $config{FAKE_AUDIT} ) {
-	    add_rule( $ref, '-j AUDIT -m comment --comment "--type ' . lc $action . '"' );
-	} else {
-	    add_rule $ref, '-j AUDIT --type ' . lc $action;
-	}
-
-	
-	if ( $tgt eq 'REJECT' ) {
-	    add_jump $ref , 'reject', 1;
-	} else {
-	    add_jump $ref , $tgt, 0;
-	}
-    }
-
-    pop_comment;
-
-    return $target;
-}
-
-#
-# Return the appropriate target based on whether the second argument is 'audit'
-#
-
-sub require_audit($$;$) {
-    my ($action, $audit, $tgt ) = @_;
-
-    return $action unless defined $audit and $audit ne '';
-
-    my $target = 'A_' . $action;
-
-    fatal_error "Invalid parameter ($audit)" unless $audit eq 'audit';
-
-    require_capability 'AUDIT_TARGET', 'audit', 's';
-
-    return ensure_audit_chain $target, $action, $tgt;
-}   
-  
-#
 # The following small functions generate rules for the builtin actions of the same name
 #
 sub dropBcast( $$$$ ) {
@@ -1204,7 +1163,7 @@ sub dropBcast( $$$$ ) {
 	    if ( $family == F_IPV4 ) {
 		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ';
 	    } else {
-		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST , '-j DROP ' );
+		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST , '' );
 	    }
 	}
 	
@@ -1221,13 +1180,13 @@ sub dropBcast( $$$$ ) {
 	add_jump $chainref, $target, 0, "-d \$address ";
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
-
-	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
     }
 
     if ( $family == F_IPV4 ) {
+	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
 	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
     } else {
+	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST . ' ' ) if $level ne '';
 	add_jump $chainref, $target, 0, join( ' ', '-d', IPv6_MULTICAST . ' ' );
     }
 }
@@ -1240,11 +1199,14 @@ sub allowBcast( $$$$ ) {
     if ( $family == F_IPV4 && have_capability( 'ADDRTYPE' ) ) {
 	if ( $level ne '' ) {
 	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -m addrtype --dst-type BROADCAST ';
-	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ';
+	    if ( $family == F_IPV4 ) {
+		log_rule_limit $level, $chainref, 'dropBcast' , 'ACCECT', '', $tag, 'add', ' -d 224.0.0.0/4 ';
+	    } else {
+		log_rule_limit $level, $chainref, 'dropBcast' , 'ACCEPT', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST . ' ' );
+	    }
 	}
 
 	add_jump $chainref, $target, 0, "-m addrtype --dst-type BROADCAST ";
-	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
     } else {
 	if ( $family == F_IPV4 ) {
 	    add_commands $chainref, 'for address in $ALL_BCASTS; do';
@@ -1257,14 +1219,14 @@ sub allowBcast( $$$$ ) {
 	add_rule $chainref, "-d \$address -j $target";
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
+    }
 
-	if ( $family == F_IPV4 ) {
-	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
-	    add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
-	} else {
-	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d ' . IPv6_MULTICAST . ' ' if $level ne '';
-	    add_jump $chainref, $target, 0, join ( ' ', '-d', IPv6_MULTICAST, ' ' );
-	}
+    if ( $family == F_IPV4 ) {
+	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
+	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
+    } else {
+	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d ' . IPv6_MULTICAST . ' ' if $level ne '';
+	add_jump $chainref, $target, 0, join ( ' ', '-d', IPv6_MULTICAST . ' ' );
     }
 }
 
@@ -1282,7 +1244,7 @@ sub rejNotSyn ( $$$$ ) {
 
     my $target = 'REJECT --reject-with tcp-reset';
 
-    if ( defined $audit && $audit ne '' ) {
+    if ( supplied $audit ) {
 	$target = require_audit( 'REJECT' , $audit );
     }
 
@@ -1450,10 +1412,12 @@ sub process_action( $) {
 
 	push_open $actionfile;
 
-	my $oldparms = push_params( $param );
+	my $oldparms = push_action_params( $chainref, $param );
 
 	$active{$wholeaction}++;
 	push @actionstack, $wholeaction;
+
+	push_comment( '' );
 
 	while ( read_a_line ) {
 
@@ -1463,7 +1427,8 @@ sub process_action( $) {
 		($target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) = split_line1 1, 9, 'action file', $rule_commands;
 		$origdest = $connlimit = $time = $headers = '-';
 	    } else {
-		($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers ) = split_line1 1, 13, 'action file', $rule_commands;
+		($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers )
+		    = split_line1 1, 13, 'action file', $action_commands;
 	    }
 
 	    if ( $target eq 'COMMENT' ) {
@@ -1476,6 +1441,11 @@ sub process_action( $) {
 		$format = $source;
 		next;
 	    }
+
+	    if ( $target eq 'DEFAULTS' ) {
+		default_action_params( $action, split_list $source, 'defaults' ), next if $format == 2;
+		fatal_error 'DEFAULTS only allowed in FORMAT-2 actions'; 
+	    }	      
 
 	    process_rule1( $chainref,
 			   merge_levels( "$action:$level:$tag", $target ),
@@ -1495,14 +1465,14 @@ sub process_action( $) {
 			   0 );
 	}
 
-	clear_comment;
+	pop_comment;
 
 	$active{$wholeaction}--;
 	pop @actionstack;
 
 	pop_open;
 
-	pop_params( $oldparms );
+	pop_action_params( $oldparms );
     }
 }
 
@@ -1510,7 +1480,7 @@ sub process_action( $) {
 # Create a policy action if it doesn't already exist
 #
 sub use_policy_action( $ ) {
-    my $ref = use_action( normalize_action_name $_[0] );
+    my $ref = use_action( $_[0] );
     
     process_action( $ref ) if $ref;
 }
@@ -1557,6 +1527,11 @@ sub process_macro ( $$$$$$$$$$$$$$$$$ ) {
 	if ( $mtarget eq 'FORMAT' ) {
 	    fatal_error "Invalid FORMAT ($msource)" unless $msource =~ /^[12]$/;
 	    $format = $msource;
+	    next;
+	}
+
+	if ( $mtarget eq 'DEFAULT' ) {
+	    $param = $msource unless supplied $param;
 	    next;
 	}
 
@@ -1799,7 +1774,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ ) {
 			  REJECT => sub { $action = 'reject'; } ,
 			  CONTINUE => sub { $action = 'RETURN'; } ,
 			  COUNT => sub { $action = ''; } ,
-			  LOG => sub { fatal_error 'LOG requires a log level' unless defined $loglevel and $loglevel ne ''; } ,
+			  LOG => sub { fatal_error 'LOG requires a log level' unless supplied $loglevel; } ,
 		     );
 
 	my $function = $functions{ $bt };
@@ -2340,7 +2315,8 @@ sub build_zone_list( $$$\$\$ ) {
 # Process a Record in the rules file
 #
 sub process_rule ( ) {
-    my ( $target, $source, $dest, $protos, $ports, $sports, $origdest, $ratelimit, $user, $mark, $connlimit, $time, $headers ) = split_line1 1, 13, 'rules file', $rule_commands;
+    my ( $target, $source, $dest, $protos, $ports, $sports, $origdest, $ratelimit, $user, $mark, $connlimit, $time, $headers )
+	= split_line1 1, 13, 'rules file', $rule_commands;
 
     process_comment,            return 1 if $target eq 'COMMENT';
     process_section( $source ), return 1 if $target eq 'SECTION';
@@ -2354,7 +2330,7 @@ sub process_rule ( ) {
 	progress_message "Rule \"$currentline\" ignored.";
 	return 1;
     }
-
+    
     my $intrazone = 0;
     my $wild      = 0;
     my $thisline  = $currentline; #We must save $currentline because it is overwritten by macro expansion

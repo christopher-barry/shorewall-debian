@@ -85,7 +85,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_21';
 
 #
 # IPSEC Option types
@@ -692,7 +692,7 @@ sub add_group_to_zone($$$$$)
 
 	$interfaceref->{nets}++;
 
-	fatal_error "Invalid Host List" unless defined $host and $host ne '';
+	fatal_error "Invalid Host List" unless supplied $host;
 
 	if ( substr( $host, 0, 1 ) eq '!' ) {
 	    fatal_error "Only one exclusion allowed in a host list" if $switched;
@@ -720,7 +720,7 @@ sub add_group_to_zone($$$$$)
 	}
 
 	if ( substr( $host, 0, 1 ) eq '+' ) {
-	    fatal_error "Invalid ipset name ($host)" unless $host =~ /^\+[a-zA-Z]\w*$/;
+	    fatal_error "Invalid ipset name ($host)" unless $host =~ /^\+(6_)?[a-zA-Z]\w*$/;
 	    require_capability( 'IPSET_MATCH', 'Ipset names in host lists', '');
 	} else {
 	    validate_host $host, 0;
@@ -887,7 +887,7 @@ sub process_interface( $$ ) {
 
     fatal_error "Invalid INTERFACE ($originalinterface)" if ! $interface || defined $extra;
 
-    if ( defined $port && $port ne '' ) {
+    if ( supplied $port ) {
 	fatal_error qq("Virtual" interfaces are not supported -- see http://www.shorewall.net/Shorewall_and_Aliased_Interfaces.html) if $port =~ /^\d+$/;
 	require_capability( 'PHYSDEV_MATCH', 'Bridge Ports', '');
 	fatal_error "Your iptables is not recent enough to support bridge ports" unless have_capability( 'KLUDGEFREE' );
@@ -1087,7 +1087,7 @@ sub process_interface( $$ ) {
 	fatal_error "Invalid combination of interface options" if $options{required} && $options{optional};
 
 	if ( $netsref eq 'dynamic' ) {
-	    my $ipset = "${zone}_" . chain_base $physical;
+	    my $ipset = $family == F_IPV4 ? "${zone}_" . chain_base $physical : "6_${zone}_" . chain_base $physical;
 	    $netsref = [ "+$ipset" ];
 	    $ipsets{$ipset} = 1;
 	}
@@ -1725,24 +1725,26 @@ sub process_host( ) {
 	if ( $hosts =~ /^([\w.@%-]+\+?):(.*)$/ ) {
 	    $interface = $1;
 	    $hosts = $2;
-
-	    if ( $hosts =~ /^\+/ ) {
-		$zoneref->{options}{complex} = 1;
-		fatal_error "ipset name qualification is disallowed in this file" if $hosts =~ /[\[\]]/;
-		fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^\+[a-zA-Z][-\w]*$/;
-	    }
-
 	    fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
 	} else {
 	    fatal_error "Invalid HOST(S) column contents: $hosts";
 	}
-    } elsif ( $hosts =~ /^([\w.@%-]+\+?):<(.*)>\s*$/ || $hosts =~ /^([\w.@%-]+\+?):\[(.*)\]\s*$/   ) {
+    } elsif ( $hosts =~ /^([\w.@%-]+\+?):<(.*)>$/   ||
+	      $hosts =~ /^([\w.@%-]+\+?):\[(.*)\]$/ ||
+	      $hosts =~ /^([\w.@%-]+\+?):(!?\+.*)$/   ||
+	      $hosts =~ /^([\w.@%-]+\+?):(dynamic)$/ ) {
 	$interface = $1;
 	$hosts = $2;
-	$zoneref->{options}{complex} = 1 if $hosts =~ /^\+/;
+
 	fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface})->{root};
     } else {
-	fatal_error "Invalid HOST(S) column contents: $hosts";
+	fatal_error "Invalid HOST(S) column contents: $hosts" 
+    }
+
+    if ( $hosts =~ /^!?\+/ ) {
+	$zoneref->{options}{complex} = 1;
+	fatal_error "ipset name qualification is disallowed in this file" if $hosts =~ /[\[\]]/;
+	fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^!?\+[a-zA-Z][-\w]*$/;
     }
 
     if ( $type == BPORT ) {
@@ -1801,11 +1803,11 @@ sub process_host( ) {
     if ( $hosts eq 'dynamic' ) {
 	fatal_error "Vserver zones may not be dynamic" if $type == VSERVER;
 	require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
-	my $physical = physical_name $interface;
-	$hosts = "+${zone}_${physical}";
+	my $physical = chain_base( physical_name $interface );
+	my $set      = $family == F_IPV4 ? "${zone}_${physical}" : "6_${zone}_${physical}";
+	$hosts = "+$set";
 	$optionsref->{dynamic} = 1;
-	$ipsets{"${zone}_${physical}"} = 1;
-
+	$ipsets{$set} = 1;
     }
 
     #

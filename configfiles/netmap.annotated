@@ -8,45 +8,44 @@
 #
 ###############################################################################
 #           
-#    This file is used to map addresses in one network to
-#    corresponding addresses in a second network.
+#           This file is used to map addresses in one network to corresponding addresses in
+#           a second network.
 #           
 #           Warning
 #           
-#    To use this file, your kernel and iptables must have NETMAP
-#    support included.
+#           To use this file, your kernel and iptables must have NETMAP support included.
 #           
-#    The columns in the file are as follows.
+#           The columns in the file are as follows.
 #           
-#    TYPE - DNAT|SNAT
-#           Must be DNAT or SNAT.
+#           TYPE - DNAT|SNAT
 #           
-#           If DNAT, traffic entering INTERFACE and addressed to
-#           NET1 has its destination address rewritten to the
-#           corresponding address in NET2.
+#     Must be DNAT or SNAT.
 #           
-#           If SNAT, traffic leaving INTERFACE with a source address
-#           in NET1 has it's source address rewritten to the
-#           corresponding address in NET2.
+#     If DNAT, traffic entering INTERFACE and addressed to NET1 has its
+#     destination address rewritten to the corresponding address in NET2.
 #           
-#    NET1 - network-address
-#           Network in CIDR format (e.g., 192.168.1.0/24).
+#     If SNAT, traffic leaving INTERFACE with a source address in NET1 has it's
+#     source address rewritten to the corresponding address in NET2.
 #           
-#    INTERFACE - interface
-#           The name of a network interface. The interface must be
-#           defined in shorewall-interfaces(5). Shorewall allows
-#           loose matches to wildcard entries in
-#           shorewall-interfaces(5). For example, ppp0 in this file
-#           will match a shorewall-interfaces(8) entry that defines
-#           ppp+.
+#           NET1 - network-address
 #           
-#    NET2 - network-address
-#           Network in CIDR format
+#     Network in CIDR format (e.g., 192.168.1.0/24).
 #           
-#    NET3 (Optional) - network-address
-#           Added in Shorewall 4.4.11. If specified, qualifies
-#           INTERFACE. It specifies a SOURCE network for DNAT rules
-#           and a DESTINATON network for SNAT rules.
+#           INTERFACE - interface
+#           
+#     The name of a network interface. The interface must be defined in
+#     shorewall-interfaces(5). Shorewall allows loose matches to wildcard entries
+#     in shorewall-interfaces(5). For example, ppp0 in this file will match a
+#     shorewall-interfaces(8) entry that defines ppp+.
+#           
+#           NET2 - network-address
+#           
+#     Network in CIDR format
+#           
+#           NET3 (Optional) - network-address
+#           
+#     Added in Shorewall 4.4.11. If specified, qualifies INTERFACE. It specifies
+#     a SOURCE network for DNAT rules and a DESTINATON network for SNAT rules.
 #           
 ###############################################################################
 #TYPE	NET1			INTERFACE	NET2		NET3

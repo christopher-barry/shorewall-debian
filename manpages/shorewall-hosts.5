@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-hosts
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/14/2011
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 07/10/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-HOSTS" "5" "06/14/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-HOSTS" "5" "07/10/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -80,7 +80,7 @@ The name of a zone declared in
 \m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. You may not list the firewall zone in this column\&.
 .RE
 .PP
-\fBHOST(S)\fR \- \fIinterface\fR:{[{\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.|\fB+\fR\fIipset\fR}[\fIexclusion\fR]
+\fBHOST(S)\fR \- \fIinterface\fR:{[{\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.|\fB+\fR\fIipset\fR|\fBdynamic\fR}[\fIexclusion\fR]
 .RS 4
 The name of an interface defined in the
 \m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file followed by a colon (":") and a comma\-separated list whose elements are either:
@@ -131,6 +131,23 @@ An IP address range of the form
 .\}
 The name of an
 \fIipset\fR\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 5.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  5." 4.2
+.\}
+The word
+\fBdynamic\fR
+which makes the zone dynamic in that you can use the
+\fBshorewall add\fR
+and
+\fBshorewall delete\fR
+commands to change to composition of the zone\&.
 .RE
 .sp
 You may also exclude certain hosts through use of an

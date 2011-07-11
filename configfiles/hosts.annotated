@@ -8,134 +8,141 @@
 #
 ###############################################################################
 #           
-#    This file is used to define zones in terms of subnets and/or
-#    individual IP addresses. Most simple setups don't need to
-#    (should not) place anything in this file.
+#           This file is used to define zones in terms of subnets and/or individual IP
+#           addresses. Most simple setups don't need to (should not) place anything in this
+#           file.
 #           
-#    The order of entries in this file is not significant in
-#    determining zone composition. Rather, the order that the zones
-#    are declared in shorewall-zones(5) determines the order in
-#    which the records in this file are interpreted.
-#           
-#           Warning
-#           
-#    The only time that you need this file is when you have more
-#    than one zone connected through a single interface.
+#           The order of entries in this file is not significant in determining zone
+#           composition. Rather, the order that the zones are declared in shorewall-zones
+#           (5) determines the order in which the records in this file are interpreted.
 #           
 #           Warning
 #           
-#    If you have an entry for a zone and interface in
-#    shorewall-interfaces(5) then do not include any entries in this
-#    file for that same (zone, interface) pair.
+#           The only time that you need this file is when you have more than one zone
+#           connected through a single interface.
 #           
-#    The columns in the file are as follows.
+#           Warning
 #           
-#    ZONE - zone-name
-#           The name of a zone declared in shorewall-zones(5). You
-#           may not list the firewall zone in this column.
+#           If you have an entry for a zone and interface in shorewall-interfaces(5) then
+#           do not include any entries in this file for that same (zone, interface) pair.
 #           
-#    HOST(S) -
-#           interface:{[{address-or-range[,address-or-range]...|+ips
-#           et}[exclusion]
-#           The name of an interface defined in the
-#           shorewall-interfaces(5) file followed by a colon (":")
-#           and a comma-separated list whose elements are either:
+#           The columns in the file are as follows.
 #           
-#          a. The IP address of a host.
-#          b. A network in CIDR format.
-#          c. An IP address range of the form
-#             low.address-high.address. Your kernel and iptables
-#             must have iprange match support.
-#          d. The name of an ipset.
+#           ZONE - zone-name
 #           
-#      You may also exclude certain hosts through use of an
-#      exclusion (see shorewall-exclusion(5).
+#     The name of a zone declared in shorewall-zones(5). You may not list the
+#     firewall zone in this column.
 #           
-#    OPTIONS (Optional) - [option[,option]...]
-#           A comma-separated list of options from the following
-#           list. The order in which you list the options is not
-#           significant but the list must have no embedded white
-#           space.
+#           HOST(S) - interface:{[{address-or-range[,address-or-range]...|+ipset|dynamic}[
+#     exclusion]
 #           
-#         maclist
-#                 Connection requests from these hosts are compared
-#                 against the contents of shorewall-maclist(5). If
-#                 this option is specified, the interface must be an
-#                 ethernet NIC or equivalent and must be up before
-#                 Shorewall is started.
+#     The name of an interface defined in the shorewall-interfaces(5) file
+#     followed by a colon (":") and a comma-separated list whose elements are
+#     either:
 #           
-#         routeback
-#                 Shorewall should set up the infrastructure to pass
-#                 packets from this/these address(es) back to
-#                 themselves. This is necessary if hosts in this
-#                 group use the services of a transparent proxy that
-#                 is a member of the group or if DNAT is used to
-#                 send requests originating from this group to a
-#                 server in the group.
+#      a. The IP address of a host.
 #           
-#         blacklist
-#                 This option only makes sense for ports on a
-#                 bridge. As of Shoreawall 4.4.13, the option is no
-#                 longer supported and is ignored with a warning:
+#      b. A network in CIDR format.
 #           
-#      WARNING: The "blacklist" host option is no longer supported
-#      and will be ignored.
+#      c. An IP address range of the form low.address-high.address. Your kernel
+#         and iptables must have iprange match support.
 #           
-#                 Check packets arriving on this port against the
-#                 shorewall-blacklist(5) file.
+#      d. The name of an ipset.
 #           
-#         tcpflags
-#                 Packets arriving from these hosts are checked for
-#                 certain illegal combinations of TCP flags. Packets
-#                 found to have such a combination of flags are
-#                 handled according to the setting of
-#                 TCP_FLAGS_DISPOSITION after having been logged
-#                 according to the setting of TCP_FLAGS_LOG_LEVEL.
+#      e. The word dynamic which makes the zone dynamic in that you can use the
+#         shorewall add and shorewall delete commands to change to composition of
+#         the zone.
 #           
-#         nosmurfs
-#                 This option only makes sense for ports on a
-#                 bridge.
+#         You may also exclude certain hosts through use of an exclusion (see
+#         shorewall-exclusion(5).
 #           
-#                 Filter packets for smurfs (packets with a
-#                 broadcast address as the source).
+#           OPTIONS (Optional) - [option[,option]...]
 #           
-#                 Smurfs will be optionally logged based on the
-#                 setting of SMURF_LOG_LEVEL in shorewall.conf(5).
-#                 After logging, the packets are dropped.
+#     A comma-separated list of options from the following list. The order in
+#     which you list the options is not significant but the list must have no
+#     embedded white space.
 #           
-#         ipsec
-#                 The zone is accessed via a kernel 2.6 ipsec SA.
-#                 Note that if the zone named in the ZONE column is
-#                 specified as an IPSEC zone in the
-#                 shorewall-zones(5) file then you do NOT need to
-#                 specify the 'ipsec' option here.
+#     maclist
 #           
-#         broadcast
-#                 Used when you want to include limited broadcasts
-#                 (destination IP address 255.255.255.255) from the
-#                 firewall to this zone. Only necessary when:
+#         Connection requests from these hosts are compared against the contents
+#         of shorewall-maclist(5). If this option is specified, the interface
+#         must be an ethernet NIC or equivalent and must be up before Shorewall
+#         is started.
 #           
-#               1. The network specified in the HOST(S) column does
-#                  not include 255.255.255.255.
-#               2. The zone does not have an entry for this
-#                  interface in shorewall-interfaces(5).
+#     routeback
 #           
-#         destonly
-#                 Normally used with the Multi-cast IP address range
-#                 (224.0.0.0/4). Specifies that traffic will be sent
-#                 to the specified net(s) but that no traffic will
-#                 be received from the net(s).
+#         Shorewall should set up the infrastructure to pass packets from this/
+#         these address(es) back to themselves. This is necessary if hosts in
+#         this group use the services of a transparent proxy that is a member of
+#         the group or if DNAT is used to send requests originating from this
+#         group to a server in the group.
+#           
+#     blacklist
+#           
+#         This option only makes sense for ports on a bridge. As of Shoreawall
+#         4.4.13, the option is no longer supported and is ignored with a
+#         warning:
+#           
+#             WARNING: The "blacklist" host option is no longer supported and
+#             will be ignored.
+#           
+#         Check packets arriving on this port against the shorewall-blacklist(5)
+#         file.
+#           
+#     tcpflags
+#           
+#         Packets arriving from these hosts are checked for certain illegal
+#         combinations of TCP flags. Packets found to have such a combination of
+#         flags are handled according to the setting of TCP_FLAGS_DISPOSITION
+#         after having been logged according to the setting of
+#         TCP_FLAGS_LOG_LEVEL.
+#           
+#     nosmurfs
+#           
+#         This option only makes sense for ports on a bridge.
+#           
+#         Filter packets for smurfs (packets with a broadcast address as the
+#         source).
+#           
+#         Smurfs will be optionally logged based on the setting of
+#         SMURF_LOG_LEVEL in shorewall.conf(5). After logging, the packets are
+#         dropped.
+#           
+#     ipsec
+#           
+#         The zone is accessed via a kernel 2.6 ipsec SA. Note that if the zone
+#         named in the ZONE column is specified as an IPSEC zone in the
+#         shorewall-zones(5) file then you do NOT need to specify the 'ipsec'
+#         option here.
+#           
+#     broadcast
+#           
+#         Used when you want to include limited broadcasts (destination IP
+#         address 255.255.255.255) from the firewall to this zone. Only necessary
+#         when:
+#           
+#          1. The network specified in the HOST(S) column does not include
+#             255.255.255.255.
+#           
+#          2. The zone does not have an entry for this interface in
+#             shorewall-interfaces(5).
+#           
+#     destonly
+#           
+#         Normally used with the Multi-cast IP address range (224.0.0.0/4).
+#         Specifies that traffic will be sent to the specified net(s) but that no
+#         traffic will be received from the net(s).
 #           
 #           Examples
 #           
-#    Example 1
-#           The firewall runs a PPTP server which creates a ppp
-#           interface for each remote client. The clients are
-#           assigned IP addresses in the network 192.168.3.0/24 and
-#           in a zone named 'vpn'.
+#           Example 1
 #           
-#           #ZONE       HOST(S)               OPTIONS
-#           vpn         ppp+:192.168.3.0/24
+#     The firewall runs a PPTP server which creates a ppp interface for each
+#     remote client. The clients are assigned IP addresses in the network
+#     192.168.3.0/24 and in a zone named 'vpn'.
+#           
+#     #ZONE       HOST(S)               OPTIONS
+#     vpn         ppp+:192.168.3.0/24
 #           
 ###############################################################################
 #ZONE	HOST(S)					OPTIONS
