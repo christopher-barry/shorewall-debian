@@ -35,23 +35,29 @@ use strict;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
-		  add_rule
-		  add_jump
-		  insert_rule
-		  new_chain
-		  new_manual_chain
-		  ensure_manual_chain
-		  log_rule_limit
-		  dont_optimize
-		  dont_delete
-		  dont_move
+		    add_rule
+		    add_jump
+		    insert_rule
+		    add_commands
+		    incr_cmd_level
+		    decr_cmd_level
+		    new_chain
+		    new_manual_chain
+		    ensure_manual_chain
+		    ensure_audit_chain
+		    require_audit
+		    log_rule_limit
+		    dont_optimize
+		    dont_delete
+		    dont_move
+		    get_action_logging
 
-		  %chain_table
-		  $raw_table
-		  $nat_table
-		  $mangle_table
-		  $filter_table
-		  );
+		    %chain_table
+		    $raw_table
+		    $nat_table
+		    $mangle_table
+		    $filter_table
+	       );
 
 our %EXPORT_TAGS = (
 		    internal => [  qw( STANDARD
@@ -78,7 +84,6 @@ our %EXPORT_TAGS = (
 				       NOT_RESTORE
 
 				       initialize_chain_table
-				       add_commands
 				       copy_rules
 				       move_rules
 				       insert_rule1
@@ -90,8 +95,6 @@ our %EXPORT_TAGS = (
 				       clear_comment
 				       push_comment
 				       pop_comment
-				       incr_cmd_level
-				       decr_cmd_level
 				       forward_chain
 				       rules_chain
 				       zone_forward_chain
@@ -189,7 +192,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_21';
 
 #
 # Chain Table
@@ -385,6 +388,8 @@ my  %builtin_target = ( ACCEPT      => 1,
 			ULOG        => 1,
 		        );
 
+my %ipset_exists;
+
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -437,6 +442,8 @@ sub initialize( $$$ ) {
     $warningcount       = 0;
     $hashlimitset       = 0;
     $ipset_rules        = 0 if $hard;
+
+    %ipset_exists       = ();
     #
     # The chain table is initialized via a call to initialize_chain_table() after the configuration and capabilities have been determined.
     #
@@ -1556,6 +1563,77 @@ sub ensure_manual_chain($) {
 }
 
 #
+# Create and populate the passed AUDIT chain if it doesn't exist. Return chain name
+#
+
+sub ensure_audit_chain( $;$$ ) {
+    my ( $target, $action, $tgt ) = @_;
+
+    push_comment( '' );
+
+    my $ref = $filter_table->{$target};
+
+    unless ( $ref ) {
+	$ref = new_chain 'filter', $target;
+
+	unless ( $action ) {
+	    $action = $target;
+	    $action =~ s/^A_//;
+	}
+
+	$tgt ||= $action;
+
+	if ( $config{FAKE_AUDIT} ) {
+	    add_rule( $ref, '-j AUDIT -m comment --comment "--type ' . lc $action . '"' );
+	} else {
+	    add_rule $ref, '-j AUDIT --type ' . lc $action;
+	}
+
+	
+	if ( $tgt eq 'REJECT' ) {
+	    add_jump $ref , 'reject', 1;
+	} else {
+	    add_jump $ref , $tgt, 0;
+	}
+    }
+
+    pop_comment;
+
+    return $target;
+}
+
+#
+# Return the appropriate target based on whether the second argument is 'audit'
+#
+
+sub require_audit($$;$) {
+    my ($action, $audit, $tgt ) = @_;
+
+    return $action unless supplied $audit && $audit ne '-';
+
+    my $target = 'A_' . $action;
+
+    fatal_error "Invalid parameter ($audit)" unless $audit eq 'audit';
+
+    require_capability 'AUDIT_TARGET', 'audit', 's';
+
+    return ensure_audit_chain $target, $action, $tgt;
+}   
+  
+#
+# Returns the Level and Tag for the current action chain
+#
+sub get_action_logging() {
+    my $chainref = get_action_chain;
+    my $wholeaction = $chainref->{action};
+    my ( undef, $level, $tag, undef ) = split ':', $wholeaction;
+    
+    $level = '' if $level =~ /^none/;
+
+    ( $level, $tag );
+}
+
+#
 # Add all builtin chains to the chain table -- it is separate from initialize() because it depends on capabilities and configuration.
 # The function also initializes the target table with the pre-defined targets available for the specfied address family.
 #
@@ -2499,7 +2577,7 @@ sub verify_small_mark( $ ) {
 
 sub validate_mark( $ ) {
     my $mark = shift;
-    fatal_error "Missing MARK" unless defined $mark && $mark ne '';
+    fatal_error "Missing MARK" unless supplied $mark;
 
     if ( $mark =~ '/' ) {
 	my @marks = split '/', $mark;
@@ -2669,17 +2747,17 @@ sub do_user( $ ) {
     return '' unless defined $user and $user ne '-';
 
     if ( $user =~ /^(!)?(.*)\+(.*)$/ ) {
-	$rule .= "! --cmd-owner $2 " if defined $2 && $2 ne '';
+	$rule .= "! --cmd-owner $2 " if supplied $2;
 	$user = "!$1";
     } elsif ( $user =~ /^(.*)\+(.*)$/ ) {
-	$rule .= "--cmd-owner $2 " if defined $2 && $2 ne '';
+	$rule .= "--cmd-owner $2 " if supplied $2;
 	$user = $1;
     }
 
     if ( $user =~ /^(!)?(.*):(.*)$/ ) {
 	my $invert = $1 ? '! ' : '';
 	my $group  = defined $3 ? $3 : '';
-	if ( defined $2 && $2 ne '' ) {
+	if ( supplied $2 ) {
 	    $user = $2;
 	    fatal_error "Unknown user ($user)" unless $user =~ /^\d+$/ || $globals{EXPORT} || defined getpwnam( $user );
 	    $rule .= "${invert}--uid-owner $user ";
@@ -2888,6 +2966,8 @@ sub get_set_flags( $$ ) {
     my ( $setname, $option ) = @_;
     my $options = $option;
 
+    require_capability( 'IPSET_MATCH' , 'ipset names in Shorewall configuration files' , '' );
+
     $ipset_rules++;
 
     $setname =~ s/^!//; # Caller has already taken care of leading !
@@ -2904,10 +2984,14 @@ sub get_set_flags( $$ ) {
     $setname =~ s/^\+//;
 
     unless ( $export || $> != 0 ) {
-	warning_message "Ipset $setname does not exist" unless qt "ipset -L $setname";
+	unless ( $ipset_exists{$setname} ) {
+	    warning_message "Ipset $setname does not exist" unless qt "ipset -L $setname";
+	}
+
+	$ipset_exists{$setname} = 1; # Suppress subsequent checks/warnings
     }
 
-    fatal_error "Invalid ipset name ($setname)" unless $setname =~ /^[a-zA-Z]\w*/;
+    fatal_error "Invalid ipset name ($setname)" unless $setname =~ /^(6_)?[a-zA-Z]\w*/;
 
     have_capability 'OLD_IPSET_MATCH' ? "--set $setname $options " : "--match-set $setname $options ";
 
@@ -2985,8 +3069,7 @@ sub match_source_net( $;$\$ ) {
 	return mac_match $net;
     }
 
-    if ( $net =~ /^(!?)\+[a-zA-Z][-\w]*(\[.*\])?/ ) {
-	require_capability( 'IPSET_MATCH' , 'ipset names in Shorewall configuration files' , '' );
+    if ( $net =~ /^(!?)\+(6_)?[a-zA-Z][-\w]*(\[.*\])?/ ) {
 	return join( '', '-m set ', $1 ? '! ' : '', get_set_flags( $net, 'src' ) );
     }
 
@@ -3035,8 +3118,7 @@ sub match_dest_net( $ ) {
 	return iprange_match . "${invert}--dst-range $net ";
     }
 
-    if ( $net =~ /^(!?)\+[a-zA-Z][-\w]*(\[.*\])?$/ ) {
-	require_capability( 'IPSET_MATCH' , 'ipset names in Shorewall configuration files' , '');
+    if ( $net =~ /^(!?)\+(6_)?[a-zA-Z][-\w]*(\[.*\])?$/ ) {
 	return join( '', '-m set ', $1 ? '! ' : '',  get_set_flags( $net, 'dst' ) );
     }
 
@@ -3828,7 +3910,7 @@ sub expand_rule( $$$$$$$$$$;$ )
     #
     # Isolate Source Interface, if any
     #
-    if ( $source ) {
+    if ( supplied $source ) {
 	if ( $source eq '-' ) {
 	    $source = '';
 	} elsif ( $family == F_IPV4 ) {
@@ -3842,7 +3924,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    } else {
 		$iiface = $source;
 	    }
-	} elsif  ( $source =~ /^(.+?):<(.+)>\s*$/ || $source =~ /^(.+?):\[(.+)\]\s*$/ ) {
+	} elsif  ( $source =~ /^(.+?):<(.+)>\s*$/ || $source =~ /^(.+?):\[(.+)\]\s*$/ || $source =~ /^(.+?):(!?\+.+)$/ ) {
 	    $iiface = $1;
 	    $inets  = $2;
 	} elsif ( $source =~ /:/ ) {
@@ -3863,7 +3945,7 @@ sub expand_rule( $$$$$$$$$$;$ )
     #
     # Verify Interface, if any
     #
-    if ( $iiface ) {
+    if ( supplied $iiface ) {
 	fatal_error "Unknown Interface ($iiface)" unless known_interface $iiface;
 
 	if ( $restriction & POSTROUTE_RESTRICT ) {
@@ -3899,7 +3981,7 @@ sub expand_rule( $$$$$$$$$$;$ )
     #
     # Isolate Destination Interface, if any
     #
-    if ( $dest ) {
+    if ( supplied $dest ) {
 	if ( $dest eq '-' ) {
 	    $dest = '';
 	} elsif ( ( $restriction & PREROUTE_RESTRICT ) && $dest =~ /^detect:(.*)$/ ) {
@@ -3941,7 +4023,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    } else {
 		$diface = $dest;
 	    }
-	} elsif ( $dest =~ /^(.+?):<(.+)>\s*$/ || $dest =~ /^(.+?):\[(.+)\]\s*$/) {
+	} elsif ( $dest =~ /^(.+?):<(.+)>\s*$/ || $dest =~ /^(.+?):\[(.+)\]\s*$/ || $dest =~ /^(.+?):(!?\+.+)$/ ) {
 	    $diface = $1;
 	    $dnets  = $2;
 	} elsif ( $dest =~ /:/ ) {
@@ -3950,7 +4032,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    } else {
 		$dnets = $dest;
 	    }
-	} elsif ( $dest =~ /^(?:\+|&|\..*\.)/ ) {
+	} elsif ( $dest =~ /(?:\+|&|\..*\.)/ ) {
 	    $dnets = $dest;
 	} else {
 	    $diface = $dest;
@@ -3962,7 +4044,7 @@ sub expand_rule( $$$$$$$$$$;$ )
     #
     # Verify Destination Interface, if any
     #
-    if ( $diface ) {
+    if ( supplied $diface ) {
 	fatal_error "Unknown Interface ($diface)" unless known_interface $diface;
 
 	if ( $restriction & PREROUTE_RESTRICT ) {
@@ -4505,6 +4587,21 @@ EOF
 	   '' );
 }
 
+sub ensure_ipset( $ ) {
+    my $set = shift;
+
+    if ( $family == F_IPV4 ) {
+	if ( have_capability 'IPSET_V5' ) {
+	    emit ( "    qt \$IPSET -L $set -n || \$IPSET -N $_ hash:ip family inet" );
+	} else {
+	    emit ( "    qt \$IPSET -L $set -n || \$IPSET -N $_ iphash" );
+	}
+    } else {
+	emit ( "    qt \$IPSET -L $set -n || \$IPSET -N $_ hash:ip family inet6" );
+    }
+}
+    
+
 sub load_ipsets() {
 
     my @ipsets = all_ipsets;
@@ -4521,46 +4618,63 @@ sub load_ipsets() {
 	       '        IPSET="$(mywhich $IPSET)"',
 	       '        [ -n "$IPSET" ] || startup_error "The ipset utility cannot be located"' ,
 	       '        ;;',
-	       'esac',
-	       '',
-	       'if [ "$COMMAND" = start ]; then' ,
-	       '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
-	       '        $IPSET -F' ,
-	       '        $IPSET -X' ,
-	       '        $IPSET -R < ${VARDIR}/ipsets.save' ,
-	       '    fi' );
+	       'esac' ,
+	       '' ,
+	       'if [ "$COMMAND" = start ]; then' );
+	
+	if ( $config{SAVE_IPSETS} ) {
+	    emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
+		   '        $IPSET -F' ,
+		   '        $IPSET -X' ,
+		   '        $IPSET -R < ${VARDIR}/ipsets.save' ,
+		   '    fi' );
 
-	if ( @ipsets ) {
-	    emit ( '' );
-	    emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
-	    emit ( '' );
+	    if ( @ipsets ) {
+		emit ( '' );
+		ensure_ipset( $_ ) for @ipsets;
+		emit ( '' );
+	    }
+	} else {
+	    ensure_ipset( $_ ) for @ipsets;
 	}
 
-	emit ( 'elif [ "$COMMAND" = restore -a -z "$g_recovering" ]; then' ,
-	       '    if [ -f $(my_pathname)-ipsets ]; then' ,
-	       '        if chain_exists shorewall; then' ,
-	       '            startup_error "Cannot restore $(my_pathname)-ipsets with Shorewall running"' ,
-	       '        else' ,
-	       '            $IPSET -F' ,
-	       '            $IPSET -X' ,
-	       '            $IPSET -R < $(my_pathname)-ipsets' ,
-	       '        fi' ,
-	       '    fi' ,
-	     );
+	emit ( 'elif [ "$COMMAND" = restore -a -z "$g_recovering" ]; then' );
+
+	if ( $config{SAVE_IPSETS} ) {
+	    emit( '    if [ -f $(my_pathname)-ipsets ]; then' ,
+		  '        if chain_exists shorewall; then' ,
+		  '            startup_error "Cannot restore $(my_pathname)-ipsets with Shorewall running"' ,
+		  '        else' ,
+		  '            $IPSET -F' ,
+		  '            $IPSET -X' ,
+		  '            $IPSET -R < $(my_pathname)-ipsets' ,
+		  '        fi' ,
+		  '    fi' ,
+		);
+
+	    if ( @ipsets ) {
+		emit ( '' );
+		ensure_ipset( $_ ) for @ipsets;
+		emit ( '' );
+	    }
+	} else {
+	    ensure_ipset( $_ ) for @ipsets;
+	}
+	
+	if ( @ipsets ) {
+	    emit ( 'elif [ "$COMMAND" = restart ]; then' );
+	    ensure_ipset( $_ ) for @ipsets;
+	}
+
+	emit( 'elif [ "$COMMAND" = stop ]; then' );
 
 	if ( @ipsets ) {
-	    emit '';
-
-	    emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
-
-	    emit ( '' ,
-		   'elif [ "$COMMAND" = restart ]; then' ,
-		   '' );
-
-	    emit ( "    qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
-
-	    emit ( '' ,
-		   '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
+	    ensure_ipset( $_ ) for @ipsets;
+	    emit( '' );
+	}
+	
+	if ( $family == F_IPV4 ) {
+	    emit ( '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
 		   '        #',
 		   '        # The \'grep -v\' is a hack for a bug in ipset\'s nethash implementation when xtables-addons is applied to Lenny' ,
 		   '        #',
@@ -4570,11 +4684,17 @@ sub load_ipsets() {
 		   '    fi' ,
 		   '',
 		   '    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then' ,
-		   '        grep -q "^-N" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
-		   '    fi',
-		   'elif [ "$COMMAND" = refresh ]; then' );
-
-	    emit ( "   qt \$IPSET -L $_ -n || \$IPSET -N $_ iphash" ) for @ipsets;
+		   '        grep -qE -- "^(-N|create )" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
+		   '    fi' );
+	} else {
+	    emit ( '    if eval $IPSET -S > ${VARDIR}/ipsets.tmp; then' ,
+		   '        grep -qE -- "^(-N|create )" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
+		   '    fi' );
+	}
+	    
+	if ( @ipsets ) {
+	    emit( 'elif [ "$COMMAND" = refresh ]; then' );
+	    ensure_ipset( $_ ) for @ipsets;
 	}
 
 	emit ( 'fi' ,

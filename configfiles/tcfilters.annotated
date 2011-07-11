@@ -7,93 +7,105 @@
 #
 ##############################################################################################
 #           
-#    Entries in this file cause packets to be classified for traffic
-#    shaping.
+#           Entries in this file cause packets to be classified for traffic shaping.
 #           
-#    Beginning with Shorewall 4.4.15, the file may contain entries
-#    for both IPv4 and IPv6. By default, all rules apply to IPv4 but
-#    that can be changed by inserting a line as follows:
+#           Beginning with Shorewall 4.4.15, the file may contain entries for both IPv4 and
+#           IPv6. By default, all rules apply to IPv4 but that can be changed by inserting
+#           a line as follows:
 #           
-#    IPV4
-#           Following entriess apply to IPv4.
+#           IPV4
 #           
-#    IPV6
-#           Following entries apply to IPv6
+#     Following entriess apply to IPv4.
 #           
-#    ALL
-#           Following entries apply to both IPv4 and IPv6. Each
-#           entry is processed twice; once for IPv4 and once for
-#           IPv6.
+#           IPV6
 #           
-#    The columns in the file are as follows.
+#     Following entries apply to IPv6
 #           
-#    CLASS - interface:class
-#           The name or number of an interface defined in
-#           shorewall-tcdevices(5) followed by a class number
-#           defined for that interface in shorewall-tcclasses(5).
+#           ALL
 #           
-#    SOURCE - {-|address}
-#           Source of the packet. May be a host or network address.
-#           DNS names are not allowed.
+#     Following entries apply to both IPv4 and IPv6. Each entry is processed
+#     twice; once for IPv4 and once for IPv6.
 #           
-#    DEST - {-|address}}
-#           Destination of the packet. May be a host or network
-#           address. DNS names are not allowed.
+#           The columns in the file are as follows.
 #           
-#           You may exclude certain hosts from the set already
-#           defined through use of an exclusion (see
-#           shorewall-exclusion(5)).
+#           CLASS - interface:class
 #           
-#    PROTO - {-|protocol-number|protocol-name|all}
-#           Protocol.
+#     The name or number of an interface defined in shorewall-tcdevices(5)
+#     followed by a class number defined for that interface in
+#     shorewall-tcclasses(5).
 #           
-#    DEST PORT (Optional) - [-|port-name-or-number]
-#           Destination Ports. A Port name (from services(5)) or a
-#           port number; if the protocol is icmp, this column is
-#           interpreted as the destination icmp-type(s).
+#           SOURCE - {-|address}
 #           
-#    SOURCE PORT (Optional) - [-|port-name-or-number]
-#           Source port.
+#     Source of the packet. May be a host or network address. DNS names are not
+#     allowed.
 #           
-#    TOS (Optional) - [-|tos]
-#           Specifies the value of the TOS field. The tos value can
-#           be any of the following:
+#           DEST - {-|address}}
 #           
-#           + tos-minimize-delay
-#           + tos-maximuze-throughput
-#           + tos-maximize-reliability
-#           + tos-minimize-cost
-#           + tos-normal-service
-#           + hex-number
-#           + hex-number/hex-number
+#     Destination of the packet. May be a host or network address. DNS names are
+#     not allowed.
 #           
-#           The hex-numbers must be exactly two digits (e.g.,
-#           0x04)x.
+#     You may exclude certain hosts from the set already defined through use of
+#     an exclusion (see shorewall-exclusion(5)).
 #           
-#    LENGTH (Optional) - [-|number]
-#           Must be a power of 2 between 32 and 8192 inclusive.
-#           Packets with a total length that is strictly less than
-#           the specified number will match the rule.
+#           PROTO - {-|protocol-number|protocol-name|all}
+#           
+#     Protocol.
+#           
+#           DEST PORT (Optional) - [-|port-name-or-number]
+#           
+#     Destination Ports. A Port name (from services(5)) or a port number; if the
+#     protocol is icmp, this column is interpreted as the destination icmp-type
+#     (s).
+#           
+#           SOURCE PORT (Optional) - [-|port-name-or-number]
+#           
+#     Source port.
+#           
+#           TOS (Optional) - [-|tos]
+#           
+#     Specifies the value of the TOS field. The tos value can be any of the
+#     following:
+#           
+#       ● tos-minimize-delay
+#           
+#       ● tos-maximuze-throughput
+#           
+#       ● tos-maximize-reliability
+#           
+#       ● tos-minimize-cost
+#           
+#       ● tos-normal-service
+#           
+#       ● hex-number
+#           
+#       ● hex-number/hex-number
+#           
+#     The hex-numbers must be exactly two digits (e.g., 0x04)x.
+#           
+#           LENGTH (Optional) - [-|number]
+#           
+#     Must be a power of 2 between 32 and 8192 inclusive. Packets with a total
+#     length that is strictly less than the specified number will match the rule.
 #           
 #           Example
 #           
-#    Example 1:
-#           Place all 'ping' traffic on interface 1 in class 10.
-#           Note that ALL cannot be used because IPv4 ICMP and IPv6
-#           ICMP are two different protocols.
+#           Example 1:
 #           
-#        #CLASS    SOURCE    DEST         PROTO   DEST
-#        #                                        PORT
+#     Place all 'ping' traffic on interface 1 in class 10. Note that ALL cannot
+#     be used because IPv4 ICMP and IPv6 ICMP are two different protocols.
 #           
-#        IPV4
+#            #CLASS    SOURCE    DEST         PROTO   DEST
+#            #                                        PORT
 #           
-#        1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-request
-#        1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
+#            IPV4
 #           
-#        IPV6
+#            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-request
+#            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
 #           
-#        1:10      ::/0      ::/0         icmp6   echo-request
-#        1:10      ::/0      ::/0         icmp6   echo-reply
+#            IPV6
+#           
+#            1:10      ::/0      ::/0         icmp6   echo-request
+#            1:10      ::/0      ::/0         icmp6   echo-reply
 #           
 ##############################################################################################
 #INTERFACE:	SOURCE		DEST		PROTO	DEST	SOURCE   TOS		LENGTH

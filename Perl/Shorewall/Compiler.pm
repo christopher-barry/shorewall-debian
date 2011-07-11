@@ -41,7 +41,7 @@ use Shorewall::Misc;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_21';
 
 my $export;
 
@@ -354,9 +354,9 @@ sub generate_script_3($) {
 
     emit '';
 
-    if ( $family == F_IPV4 ) {
-	load_ipsets;
+    load_ipsets;
 
+    if ( $family == F_IPV4 ) {
 	emit ( 'if [ "$COMMAND" = refresh ]; then' ,
 	       '   run_refresh_exit' ,
 	       'else' ,
@@ -516,15 +516,15 @@ EOF
 
 }
 
-#
+#1
 #  The Compiler.
 #
 #     Arguments are named -- see %parms below.
 #
 sub compiler {
 
-    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess ) =
-       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0 );
+    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate ) =
+       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        );
 
     $export = 0;
     $test   = 0;
@@ -556,8 +556,10 @@ sub compiler {
 		  log           => { store => \$log },
 		  log_verbosity => { store => \$log_verbosity, validate => \&validate_verbosity } ,
 		  test          => { store => \$test },
-		  preview       => { store => \$preview },
-		  confess       => { store => \$confess },
+		  preview       => { store => \$preview,       validate=> \&validate_boolean    } ,    
+		  confess       => { store => \$confess,       validate=> \&validate_boolean    } ,
+		  update        => { store => \$update,        validate=> \&validate_boolean    } ,
+		  annotate      => { store => \$annotate,      validate=> \&validate_boolean    } ,		  
 		);
     #
     #                               P A R A M E T E R    P R O C E S S I N G
@@ -591,7 +593,7 @@ sub compiler {
     #
     #                      S H O R E W A L L . C O N F  A N D  C A P A B I L I T I E S
     #
-    get_configuration( $export );
+    get_configuration( $export , $update , $annotate );
 
     report_capabilities unless $config{LOAD_HELPERS_ONLY};
 

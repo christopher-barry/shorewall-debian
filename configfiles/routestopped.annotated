@@ -11,92 +11,90 @@
 #
 ###############################################################################
 #           
-#    This file is used to define the hosts that are accessible when
-#    the firewall is stopped or is being stopped.
+#           This file is used to define the hosts that are accessible when the firewall is
+#           stopped or is being stopped.
 #           
 #           Warning
 #           
-#    Changes to this file do not take effect until after the next
-#    shorewall start or shorewall restart command.
+#           Changes to this file do not take effect until after the next shorewall start or
+#           shorewall restart command.
 #           
-#    The columns in the file are as follows.
+#           The columns in the file are as follows.
 #           
-#    INTERFACE - interface
-#           Interface through which host(s) communicate with the
-#           firewall
+#           INTERFACE - interface
 #           
-#    HOST(S) (Optional) - [-|address[,address]...]
-#           Comma-separated list of IP/subnet addresses. If your
-#           kernel and iptables include iprange match support, IP
-#           address ranges are also allowed.
+#     Interface through which host(s) communicate with the firewall
 #           
-#           If left empty or supplied as "-", 0.0.0.0/0 is assumed.
+#           HOST(S) (Optional) - [-|address[,address]...]
 #           
-#    OPTIONS (Optional) - [-|option[,option]...]
-#           A comma-separated list of options. The order of the
-#           options is not important but the list can contain no
-#           embedded whitespace. The currently-supported options
-#           are:
+#     Comma-separated list of IP/subnet addresses. If your kernel and iptables
+#     include iprange match support, IP address ranges are also allowed.
 #           
-#         routeback
-#                 Set up a rule to ACCEPT traffic from these hosts
-#                 back to themselves. Beginning with Shorewall
-#                 4.4.9, this option is automatically set if
-#                 routeback is specified in shorewall-interfaces (5)
-#                 or if the rules compiler detects that the
-#                 interface is a bridge.
+#     If left empty or supplied as "-", 0.0.0.0/0 is assumed.
 #           
-#         source
-#                 Allow traffic from these hosts to ANY destination.
-#                 Without this option or the dest option, only
-#                 traffic from this host to other listed hosts (and
-#                 the firewall) is allowed. If source is specified
-#                 then routeback is redundant.
+#           OPTIONS (Optional) - [-|option[,option]...]
 #           
-#         dest
-#                 Allow traffic to these hosts from ANY source.
-#                 Without this option or the source option, only
-#                 traffic from this host to other listed hosts (and
-#                 the firewall) is allowed. If dest is specified
-#                 then routeback is redundant.
+#     A comma-separated list of options. The order of the options is not
+#     important but the list can contain no embedded whitespace. The
+#     currently-supported options are:
 #           
-#         notrack
-#                 The traffic will be exempted from conntection
-#                 tracking.
+#     routeback
 #           
-#    PROTO (Optional) &#8210; protocol-name-or-number
-#           Protocol.
+#         Set up a rule to ACCEPT traffic from these hosts back to themselves.
+#         Beginning with Shorewall 4.4.9, this option is automatically set if
+#         routeback is specified in shorewall-interfaces (5) or if the rules
+#         compiler detects that the interface is a bridge.
 #           
-#    DEST PORT(S) (Optional) &#8210; service-name/port-number-list
-#           A comma-separated list of port numbers and/or service
-#           names from /etc/services. May also include port ranges
-#           of the form low-port:high-port if your kernel and
-#           iptables include port range support.
+#     source
 #           
-#    SOURCE PORT(S) (Optional) &#8210; service-name/port-number-list
-#           A comma-separated list of port numbers and/or service
-#           names from /etc/services. May also include port ranges
-#           of the form low-port:high-port if your kernel and
-#           iptables include port range support.
+#         Allow traffic from these hosts to ANY destination. Without this option
+#         or the dest option, only traffic from this host to other listed hosts
+#         (and the firewall) is allowed. If source is specified then routeback is
+#         redundant.
+#           
+#     dest
+#           
+#         Allow traffic to these hosts from ANY source. Without this option or
+#         the source option, only traffic from this host to other listed hosts
+#         (and the firewall) is allowed. If dest is specified then routeback is
+#         redundant.
+#           
+#     notrack
+#           
+#         The traffic will be exempted from conntection tracking.
+#           
+#           PROTO (Optional) ‒ protocol-name-or-number
+#           
+#     Protocol.
+#           
+#           DEST PORT(S) (Optional) ‒ service-name/port-number-list
+#           
+#     A comma-separated list of port numbers and/or service names from /etc/
+#     services. May also include port ranges of the form low-port:high-port if
+#     your kernel and iptables include port range support.
+#           
+#           SOURCE PORT(S) (Optional) ‒ service-name/port-number-list
+#           
+#     A comma-separated list of port numbers and/or service names from /etc/
+#     services. May also include port ranges of the form low-port:high-port if
+#     your kernel and iptables include port range support.
 #           
 #           Note
 #           
-#    The source and dest options work best when used in conjunction
-#    with ADMINISABSENTMINDED=Yes in shorewall.conf(5).
+#           The source and dest options work best when used in conjunction with
+#           ADMINISABSENTMINDED=Yes in shorewall.conf(5).
 #           
 #           Example
 #           
-#    Example 1:
+#           Example 1:
 #           
-#         #INTERFACE      HOST(S)                 OPTIONS         PROTO
-#        DEST       SOURCE
-#         #
-#        PORT(S)    PORT(S)
-#         eth2            192.168.1.0/24
-#         eth0            192.0.2.44
-#         br0             -                       routeback
-#         eth3            -                       source
-#         eth4            -                       notrack        41
+#             #INTERFACE      HOST(S)                 OPTIONS         PROTO          DEST       SOURCE
+#             #                                                                      PORT(S)    PORT(S)
+#             eth2            192.168.1.0/24
+#             eth0            192.0.2.44
+#             br0             -                       routeback
+#             eth3            -                       source
+#             eth4            -                       notrack        41
 #           
 ###############################################################################
 #INTERFACE	HOST(S)			OPTIONS		PROTO	DEST	SOURCE

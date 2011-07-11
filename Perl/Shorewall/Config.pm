@@ -47,10 +47,20 @@ our @EXPORT = qw(
 		 warning_message
 		 fatal_error
 		 assert
+		 
 		 progress_message
 		 progress_message_nocompress
 		 progress_message2
 		 progress_message3
+		 
+		 supplied
+		 
+		 get_action_params
+		 get_action_chain
+		 set_action_param
+		 
+		 have_capability
+		 require_capability
                 );
 
 our @EXPORT_OK = qw( $shorewall_dir initialize set_config_path shorewall);
@@ -98,8 +108,9 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       close_file
 				       push_open
 				       pop_open
-				       push_params
-				       pop_params
+				       push_action_params
+				       pop_action_params
+				       default_action_params
 				       read_a_line
 				       validate_level
 				       which
@@ -108,8 +119,6 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       add_param
 				       export_params
 				       get_configuration
-				       require_capability
-				       have_capability
 				       report_capabilities
 				       propagateconfig
 				       append_file
@@ -141,7 +150,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_21';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -191,6 +200,10 @@ my ( $dir, $file );
 # Temporary output file's name
 #
 my $tempfile;
+#
+# Fully qualified name of the configuration file
+#
+my $configfile;
 #
 # Misc Globals exported to other modules
 #
@@ -339,7 +352,7 @@ my %compiler_params;
 #
 # Action parameters
 #
-my %actparms;
+my @actparms;
 
 our $currentline;            # Current config file line image
 my  $currentfile;            # File handle reference
@@ -420,8 +433,8 @@ sub initialize( $ ) {
 		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.20.3",
-		    CAPVERSION => 40417 ,
+		    VERSION    => "4.4.21",
+		    CAPVERSION => 40421 ,
 		  );
     #
     # From shorewall.conf file
@@ -597,6 +610,7 @@ sub initialize( $ ) {
 	       OWNER_MATCH => undef,
 	       IPSET_MATCH => undef,
 	       OLD_IPSET_MATCH => undef,
+	       IPSET_V5 => undef,
 	       CONNMARK => undef,
 	       XCONNMARK => undef,
 	       CONNMARK_MATCH => undef,
@@ -660,29 +674,23 @@ sub initialize( $ ) {
     $debug = 0;
     $confess = 0;
     
-    %params = ( root        => '',
-		system      => '',
-		command     => '',
-		files       => '',
-		destination => '' );
+    %params = ();
 
     %compiler_params = ();
 
-    $compiler_params{$_} = 1 for keys %params;
-
-    %actparms = ();
+    @actparms = ();
 
     if ( $family == F_IPV4 ) {
-	$globals{SHAREDIR} = '/usr/share/shorewall';
-	$globals{CONFDIR}  = '/etc/shorewall';
-	$globals{PRODUCT}  = 'shorewall';
-	$config{IPTABLES}  = undef;
-	$validlevels{ULOG} = 'ULOG',
+	$globals{SHAREDIR}      = '/usr/share/shorewall';
+	$globals{CONFDIR}       = '/etc/shorewall';
+	$globals{PRODUCT}       = 'shorewall';
+	$config{IPTABLES}       = undef;
+	$validlevels{ULOG}      = 'ULOG';
     } else {
-	$globals{SHAREDIR} = '/usr/share/shorewall6';
-	$globals{CONFDIR}  = '/etc/shorewall6';
-	$globals{PRODUCT}  = 'shorewall6';
-	$config{IP6TABLES} = undef;
+	$globals{SHAREDIR}      = '/usr/share/shorewall6';
+	$globals{CONFDIR}       = '/etc/shorewall6';
+	$globals{PRODUCT}       = 'shorewall6';
+	$config{IP6TABLES}      = undef;
     }
 }
 
@@ -1297,6 +1305,15 @@ sub split_list1( $$ ) {
 }
 
 #
+# Determine if a value has been supplied
+#
+sub supplied( $ ) {
+    my $val = shift;
+
+    defined $val && $val ne '';
+}
+
+#
 # Pre-process a line from a configuration file.
 
 #    ensure that it has an appropriate number of columns.
@@ -1788,24 +1805,91 @@ sub embedded_perl( $ ) {
 #
 # Push/pop action params
 #
-sub push_params( $ ) {
-    my @params = split /,/, $_[0];
-    my $oldparams = \%actparms;
+sub push_action_params( $$ ) {
+    my @params = split /,/, $_[1];
+    my @oldparams = @actparms;
 
-    %actparms = ();
+    @actparms = ();
+
+    $actparms[0] = $_[0];
 
     for ( my $i = 1; $i <= @params; $i++ ) {
 	my $val = $params[$i - 1];
 
-	$actparms{$i} = $val eq '-' ? '' : $val eq '--' ? '-' : $val;
+	$actparms[$i] = $val eq '-' ? '' : $val eq '--' ? '-' : $val;
     }
 
-    $oldparams;
+    \@oldparams;
 }
 
-sub pop_params( $ ) {
+sub pop_action_params( $ ) {
     my $oldparms = shift;
-    %actparms = %$oldparms;
+    @actparms = @$oldparms;
+}
+
+sub default_action_params {
+    my $action = shift;
+    my ( $val, $i );
+
+    for ( $i = 1; 1; $i++ ) {
+	last unless defined ( $val = shift );
+	my $curval = $actparms[$i];
+	$actparms[$i] =$val unless supplied( $curval );
+    }
+
+    fatal_error "Too Many arguments to action $action" if defined $actparms[$i];
+}
+
+sub get_action_params( $ ) {
+    my $num = shift;
+
+    fatal_error "Invalid argument to get_action_params()" unless $num =~ /^\d+$/ && $num > 0;
+
+    my @return;
+
+    for ( my $i = 1; $i <= $num; $i++ ) {
+	my $val = $actparms[$i];
+	push @return, defined $val ? $val eq '-' ? '' : $val eq '--' ? '-' : $val : $val;
+    }
+
+    @return;
+}
+
+sub get_action_chain() {
+    $actparms[0];
+}
+
+sub set_action_param( $$ ) {
+    my $i = shift;
+
+    fatal_error "Parameter numbers must be numeric" unless $i =~ /^\d+$/ && $i > 0;
+    $actparms[$i] = shift;
+}
+
+#
+# Expand Shell Variables in the passed buffer using %params and @actparms
+#
+sub expand_variables( \$ ) {
+    my ( $lineref, $count ) = ( $_[0], 0 );
+    #                    $1      $2   $3      -     $4
+    while ( $$lineref =~ m( ^(.*?) \$({)? (\w+) (?(2)}) (.*)$ )x ) {
+
+	my ( $first, $var, $rest ) = ( $1, $3, $4);
+
+	my $val;
+
+	if ( $var =~ /^\d+$/ ) {
+	    fatal_error "Undefined parameter (\$$var)" unless $var > 0 && defined $actparms[$var];
+	    $val = $actparms[$var];
+	} else {
+	    fatal_error "Undefined shell variable (\$$var)" unless exists $params{$var};
+	    $val = $params{$var};
+	}
+
+	$val = '' unless defined $val;
+	$$lineref = join( '', $first , $val , $rest );
+	fatal_error "Variable Expansion Loop" if ++$count > 100;
+    }
 }
 
 #
@@ -1819,8 +1903,9 @@ sub pop_params( $ ) {
 #   - Handle INCLUDE <filename>
 #
 
-sub read_a_line(;$) {
+sub read_a_line(;$$) {
     my $embedded_enabled = defined $_[0] ? shift : 1;
+    my $expand_variables = defined $_[0] ? shift : 1;
 
     while ( $currentfile ) {
 
@@ -1881,27 +1966,9 @@ sub read_a_line(;$) {
 
 	    my $count = 0;
 	    #
-	    # Expand Shell Variables using %params and %actparms
+	    # Expand Shell Variables using %params and @actparms
 	    #
-	    #                            $1      $2   $3      -     $4
-	    while ( $currentline =~ m( ^(.*?) \$({)? (\w+) (?(2)}) (.*)$ )x ) {
-
-		my ( $first, $var, $rest ) = ( $1, $3, $4);
-
-		my $val;
-
-		if ( $var =~ /^\d+$/ ) {
-		    fatal_error "Undefined parameter (\$$var)" unless exists $actparms{$var};
-		    $val = $actparms{$var};
-		} else {
-		    fatal_error "Undefined shell variable (\$$var)" unless exists $params{$var};
-		    $val = $params{$var};
-		}
-
-		$val = '' unless defined $val;
-		$currentline = join( '', $first , $val , $rest );
-		fatal_error "Variable Expansion Loop" if ++$count > 100;
-	    }
+	    expand_variables( $currentline ) if $expand_variables;
 
 	    if ( $currentline =~ /^\s*INCLUDE\s/ ) {
 
@@ -1960,7 +2027,7 @@ sub read_a_line1() {
 sub default ( $$ ) {
     my ( $var, $val ) = @_;
 
-    $config{$var} = $val unless defined $config{$var} && $config{$var} ne '';
+    $config{$var} = $val unless supplied( $config{$var} );
 }
 
 #
@@ -1971,13 +2038,13 @@ sub default_yes_no ( $$ ) {
 
     my $curval = $config{$var};
 
-    if ( defined $curval && $curval ne '' ) {
+    if ( supplied $curval ) {
 	$curval = lc $curval;
 
 	if (  $curval eq 'no' ) {
 	    $config{$var} = '';
 	} else {
-	    fatal_error "Invalid value for $var ($val)" unless $curval eq 'yes';
+	    fatal_error "Invalid value for $var ($curval)" unless $curval eq 'yes';
 	}
     } else {
 	$config{$var} = $val;
@@ -1997,7 +2064,7 @@ sub numeric_option( $$$ ) {
 
     my $val = $default;
 
-    if ( defined $value && $value ne '' ) {
+    if ( supplied $value ) {
 	$val = numeric_value $value;
 	fatal_error "Invalid value ($value) for '$option'" unless defined $val && $val <= 32;
     }
@@ -2024,7 +2091,7 @@ sub validate_level( $ ) {
     my $rawlevel = $_[0];
     my $level    = uc $rawlevel;
 
-    if ( defined $level && $level ne '' ) {
+    if ( supplied ( $level ) ) {
 	$level =~ s/!$//;
 	my $value = $validlevels{$level};
 
@@ -2047,7 +2114,7 @@ sub validate_level( $ ) {
 	    level_error( $level ) if @options > 3;
 
 	    for ( @options ) {
-		if ( defined $_ and $_ ne '' ) {
+		if ( supplied( $_ ) ) {
 		    level_error( $level ) unless /^\d+/;
 		    $olevel .= " --${prefix}-$suffixes[$index] $_";
 		}
@@ -2084,7 +2151,7 @@ sub default_log_level( $$ ) {
 
     my $value = $config{$level};
 
-    unless ( defined $value && $value ne '' ) {
+    unless ( supplied $value ) {
 	$config{$level} = $default;
     } else {
 	$config{$level} = validate_level $value;
@@ -2221,11 +2288,16 @@ sub load_kernel_modules( ) {
 # Q[uie]t version of system(). Returns true for success
 #
 sub qt( $ ) {
-    system( "@_ > /dev/null 2>&1" ) == 0;
+    if ( $debug ) {
+	print "SYS----> @_\n";
+	system( "@_ 2>&1" );
+    } else {
+	system( "@_ > /dev/null 2>&1" ) == 0;
+    }
 }
 
 sub qt1( $ ) {
-    1 while system( "@_ > /dev/null 2>&1" ) == 4;
+    1 while qt( "@_" ) == 4;
     $? == 0;
 }
 
@@ -2453,13 +2525,14 @@ sub Old_IPSet_Match() {
 sub IPSet_Match() {
     my $ipset  = $config{IPSET} || 'ipset';
     my $result = 0;
+    my $fam    = $family == F_IPV4 ? 'inet' : 'inet6';
 
     $ipset = which $ipset unless $ipset =~ '/';
 
     if ( $ipset && -x $ipset ) {
 	qt( "$ipset -X $sillyname" );
 
-	if ( qt( "$ipset -N $sillyname iphash" ) ) {
+	if ( qt( "$ipset -N $sillyname iphash" ) || qt( "$ipset -N $sillyname hash:ip family $fam") ) {
 	    if ( qt1( "$iptables -A $sillyname -m set --match-set $sillyname src -j ACCEPT" ) ) {
 		qt1( "$iptables -D $sillyname -m set --match-set $sillyname src -j ACCEPT" );
 		$result = ! ( $capabilities{OLD_IPSET_MATCH} = 0 );
@@ -2467,6 +2540,24 @@ sub IPSet_Match() {
 		$result = have_capability 'OLD_IPSET_MATCH';
 	    }
 
+	    qt( "$ipset -X $sillyname" );
+	}
+    }
+
+    $result;
+}
+
+sub IPSET_V5() {
+    my $ipset  = $config{IPSET} || 'ipset';
+    my $result = 0;
+
+    $ipset = which $ipset unless $ipset =~ '/';
+
+    if ( $ipset && -x $ipset ) {
+	qt( "$ipset -X $sillyname" );
+
+	if ( qt( "$ipset -N $sillyname hash:ip family inet" ) ) {
+	    $result = 1;
 	    qt( "$ipset -X $sillyname" );
 	}
     }
@@ -2569,6 +2660,7 @@ our %detect_capability =
       IPRANGE_MATCH => \&IPRange_Match,
       IPSET_MATCH => \&IPSet_Match,
       OLD_IPSET_MATCH => \&Old_IPSet_Match,
+      IPSET_V5 => \&IPSET_V5,
       KLUDGEFREE => \&Kludgefree,
       LENGTH_MATCH => \&Length_Match,
       LOGMARK_TARGET => \&Logmark_Target,
@@ -2708,6 +2800,7 @@ sub determine_capabilities() {
 	$capabilities{MANGLE_FORWARD}  = detect_capability( 'MANGLE_FORWARD' );
 	$capabilities{RAW_TABLE}       = detect_capability( 'RAW_TABLE' );
 	$capabilities{IPSET_MATCH}     = detect_capability( 'IPSET_MATCH' );
+	$capabilities{OLD_IPSET_MATCH} = detect_capability( 'OLD_IPSET_MATCH' );
 	$capabilities{USEPKTTYPE}      = detect_capability( 'USEPKTTYPE' );
 	$capabilities{ADDRTYPE}        = detect_capability( 'ADDRTYPE' );
 	$capabilities{TCPMSS_MATCH}    = detect_capability( 'TCPMSS_MATCH' );
@@ -2724,6 +2817,7 @@ sub determine_capabilities() {
 	$capabilities{MARK_ANYWHERE}   = detect_capability( 'MARK_ANYWHERE' );
 	$capabilities{ACCOUNT_TARGET}  = detect_capability( 'ACCOUNT_TARGET' );
 	$capabilities{AUDIT_TARGET}    = detect_capability( 'AUDIT_TARGET' );
+	$capabilities{IPSET_V5}        = detect_capability( 'IPSET_V5' );
 
 
 	qt1( "$iptables -F $sillyname" );
@@ -2795,31 +2889,185 @@ sub set_shorewall_dir( $ ) {
 }
 
 #
+# Update the configuration file
+#
+
+sub conditional_quote( $ ) {
+    my $val = shift;
+
+    unless ( $val =~ /^[-\w\/\.]*$/ ) {
+	#
+	# Funny characters (including whitespace) -- use double quotes unless the thing is single-quoted
+	#
+	$val = qq("$val") unless $val =~ /^'.+'$/;
+    }
+
+    $val;
+}
+
+#
+# Update the shorewall[6].conf file. Save the current file with a .bak suffix.
+#
+sub update_config_file( $ ) {
+    my $annotate = shift;
+
+    my $fn;
+
+    unless ( -d "$globals{SHAREDIR}/configfiles/" ) {
+	#
+	# Debian or derivative
+	#
+	$fn = $annotate ? "/usr/share/doc/${product}/default-config/${product}.conf.annotated" : "/usr/share/doc/${product}/default-config/${product}.conf";
+    } else {
+	#
+	# The rest of the World
+	#
+	$fn = $annotate ? "$globals{SHAREDIR}/configfiles/${product}.conf.annotated" : "$globals{SHAREDIR}/configfiles/${product}.conf";
+    }
+    #
+    # Deprecated options with their default values
+    #
+    my %deprecated = ( LOGRATE            => '' ,
+		       LOGBURST           => '' ,
+		       EXPORTPARAMS       => 'no' );
+    #
+    # Undocumented options -- won't be listed in the template
+    #
+    my @undocumented = ( qw( TC_BITS PROVIDER_BITS PROVIDER_OFFSET MASK_BITS FAKE_AUDIT ) );
+
+    if ( -f $fn ) {
+	my ( $template, $output );
+
+	open $template, '<' , $fn or fatal_error "Unable to open $fn: $!";
+
+	unless ( open $output, '>', "$configfile.updated" ) { 
+	    close $template;
+	    fatal_error "Unable to open $configfile.updated for output: $!";
+	}
+
+	while ( <$template> ) {
+	    if ( /^(\w+)="?(.*?)"?$/ ) {
+		#
+		# Option assignment -- get value and default
+		#
+		my ($var, $val, $default ) = ( $1, $config{$1}, $2 );
+
+		unless ( supplied $val ) {
+		    #
+		    # Value is either undefined (option not in config file) or is ''
+		    #
+		    if ( defined $val ) {
+			#
+			# OPTION='' - use default if 'Yes' or 'No'
+			#
+			$config{$var} = $val = $default if $default eq 'Yes' || $default eq 'No';
+		    } else {
+			#
+			# Wasn't mentioned in old file - use default value
+			#
+			$config{$var} = $val = $default;
+
+		    }
+
+		}
+
+		$val = conditional_quote $val;
+
+		$_ = "$var=$val\n";
+	    }
+
+	    print $output "$_";
+	}
+
+	close $template;
+
+	my $heading_printed;
+
+	for ( @undocumented ) {
+	    if ( defined ( my $val = $config{$_} ) ) {
+
+		unless ( $heading_printed ) {
+		    print $output <<'EOF';
+
+#################################################################################
+#                          U N D O C U M E N T E D
+#                               O P T I O N S
+#################################################################################
+
+EOF
+		    $heading_printed = 1;
+		}
+
+		$val = conditional_quote $val;
+
+		print $output "$_=$val\n\n";
+	    }
+	}
+
+	$heading_printed = 0;
+
+	for ( keys %deprecated ) {
+	    if ( supplied( my $val = $config{$_} ) ) {
+		if ( lc $val ne $deprecated{$_} ) {
+		    unless ( $heading_printed ) {
+			print $output <<'EOF';
+
+#################################################################################
+#                            D E P R E C A T E D
+#                               O P T I O N S
+#################################################################################
+
+EOF
+			$heading_printed = 1;
+		    }
+
+		    $val = conditional_quote $val;
+
+		    print $output "$_=$val\n\n";
+
+		    warning_message "Deprecated option $_ is being set in your $product.conf file";
+		}
+	    }
+	}
+
+	close $output;
+
+	fatal_error "Can't rename $configfile to $configfile.bak: $!"     unless rename $configfile, "$configfile.bak";
+	fatal_error "Can't rename $configfile.updated to $configfile: $!" unless rename "$configfile.updated", $configfile;
+
+	progress_message3 "Configuration file $configfile updated - old file renamed $configfile.bak";
+    } else {
+	fatal_error "$fn does not exist";
+    }
+}
+
+#
 # Small functions called by get_configuration. We separate them so profiling is more useful
 #
-sub process_shorewall_conf() {
-    my $file = find_file "$product.conf";
+sub process_shorewall_conf( $$ ) {
+    my ( $update, $annotate ) = @_;
+    my $file   = find_file "$product.conf";
 
     if ( -f $file ) {
-	$globals{CONFIGDIR} =  $file;
+	$globals{CONFIGDIR} =  $configfile = $file;
 	$globals{CONFIGDIR} =~ s/$product.conf//;
 
 	if ( -r _ ) {
 	    open_file $file;
 
 	    first_entry "Processing $file...";
-
-	    while ( read_a_line(0) ) {
+	    #
+	    # Don't expand shell variables or allow embedded scripting
+	    #
+	    while ( read_a_line( 0, 0 ) ) {
 		if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
 		    my ($var, $val) = ($1, $2);
-		    unless ( exists $config{$var} ) {
-			warning_message "Unknown configuration option ($var) ignored";
-			next;
-		    }
+
+		    warning_message "Unknown configuration option ($var) ignored", next unless exists $config{$var};
 
 		    $config{$var} = ( $val =~ /\"([^\"]*)\"$/ ? $1 : $val );
 		} else {
-		    fatal_error "Unrecognized entry";
+		    fatal_error "Unrecognized $product.conf entry";
 		}
 	    }
 	} else {
@@ -2827,6 +3075,20 @@ sub process_shorewall_conf() {
 	}
     } else {
 	fatal_error "$file does not exist!";
+    }
+
+    #
+    # Now update the config file if asked
+    #
+    update_config_file( $annotate) if $update;
+    #
+    # Config file update requires that the option values not have
+    # Shell variables expanded. We do that now.
+    #
+    for ( values  %config ) {
+	if ( supplied $_ ) {
+	    expand_variables( $_ ) unless /^'(.+)'$/;
+	}
     }
 }
 
@@ -2849,7 +3111,8 @@ sub read_capabilities() {
     }
 
     if ( $capabilities{CAPVERSION} ) {
-	warning_message "Your capabilities file is out of date -- it does not contain all of the capabilities defined by $Product version $globals{VERSION}" unless $capabilities{CAPVERSION} >= $globals{CAPVERSION};
+	warning_message "Your capabilities file is out of date -- it does not contain all of the capabilities defined by $Product version $globals{VERSION}"
+	    unless $capabilities{CAPVERSION} >= $globals{CAPVERSION};
     } else {
 	warning_message "Your capabilities file may not contain all of the capabilities defined by $Product version $globals{VERSION}";
     }
@@ -3088,9 +3351,9 @@ sub export_params() {
 # - Read the capabilities file, if any
 # - establish global hashes %config , %globals and %capabilities
 #
-sub get_configuration( $ ) {
+sub get_configuration( $$$ ) {
 
-    my $export = $_[0];
+    my ( $export, $update, $annotate ) = @_;
 
     $globals{EXPORT} = $export;
 
@@ -3102,7 +3365,7 @@ sub get_configuration( $ ) {
 
     get_params;
 
-    process_shorewall_conf;
+    process_shorewall_conf( $update, $annotate );
 
     ensure_config_path;
 
@@ -3176,17 +3439,17 @@ sub get_configuration( $ ) {
 	warning_message "LOGBURST Ignored when LOGLIMIT is specified" if $config{LOGBURST};
 
     } elsif ( $config{LOGRATE} || $config{LOGBURST} ) {
-	if ( defined $config{LOGRATE} ) {
+	if ( supplied $config{LOGRATE} ) {
 	    fatal_error"Invalid LOGRATE ($config{LOGRATE})" unless $config{LOGRATE}  =~ /^\d+\/(second|minute)$/;
 	}
 
-	if ( defined $config{LOGBURST} ) {
+	if ( supplied $config{LOGBURST} ) {
 	    fatal_error"Invalid LOGBURST ($config{LOGBURST})" unless $config{LOGBURST} =~ /^\d+$/;
 	}
 
 	$globals{LOGLIMIT}  = '-m limit ';
-	$globals{LOGLIMIT} .= "--limit $config{LOGRATE} "        if defined $config{LOGRATE};
-	$globals{LOGLIMIT} .= "--limit-burst $config{LOGBURST} " if defined $config{LOGBURST};
+	$globals{LOGLIMIT} .= "--limit $config{LOGRATE} "        if supplied $config{LOGRATE};
+	$globals{LOGLIMIT} .= "--limit-burst $config{LOGBURST} " if supplied $config{LOGBURST};
     } else {
 	$globals{LOGLIMIT} = '';
     }
@@ -3199,7 +3462,7 @@ sub get_configuration( $ ) {
 	check_trivalue ( 'ROUTE_FILTER',  '' );
     } else {
 	$val = $config{ROUTE_FILTER};
-	if ( defined $val ) {
+	if ( supplied $val ) {
 	    if ( $val =~ /\d+/ ) {
 		fatal_error "Invalid value ($val) for ROUTE_FILTER" unless $val < 3;
 	    } else {
@@ -3225,7 +3488,7 @@ sub get_configuration( $ ) {
     default 'STARTUP_LOG'   , '';
 
     if ( $config{STARTUP_LOG} ne '' ) {
-	if ( defined $config{LOG_VERBOSITY} ) {
+	if ( supplied $config{LOG_VERBOSITY} ) {
 	    if ( $config{LOG_VERBOSITY} eq '' ) {
 		$config{LOG_VERBOSITY} = 2;
 	    } else {
@@ -3247,7 +3510,7 @@ sub get_configuration( $ ) {
     default_yes_no 'DETECT_DNAT_IPADDRS'        , '';
     default_yes_no 'CLEAR_TC'                   , $family == F_IPV4 ? 'Yes' : '';
 
-    if ( defined $config{CLAMPMSS} ) {
+    if ( supplied $config{CLAMPMSS} ) {
 	default_yes_no 'CLAMPMSS'                   , '' unless $config{CLAMPMSS} =~ /^\d+$/;
     } else {
 	$config{CLAMPMSS} = '';
@@ -3305,7 +3568,7 @@ sub get_configuration( $ ) {
     default_yes_no 'ACCOUNTING'                 , 'Yes';
     default_yes_no 'OPTIMIZE_ACCOUNTING'        , '';
     
-    if ( defined $config{ACCOUNTING_TABLE} ) {
+    if ( supplied $config{ACCOUNTING_TABLE} ) {
 	my $value = $config{ACCOUNTING_TABLE};
 	fatal_error "Invalid ACCOUNTING_TABLE setting ($value)" unless $value eq 'filter' || $value eq 'mangle';
     } else {
@@ -3317,9 +3580,9 @@ sub get_configuration( $ ) {
     default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability 'MARK' ? 'Yes' : '';
     default_yes_no 'COMPLETE'                   , '';
     default_yes_no 'EXPORTMODULES'              , '';
-    default_yes_no 'LEGACY_FASTSTART'           , '';
+    default_yes_no 'LEGACY_FASTSTART'           , 'Yes';
 
-    require_capability 'MARK' , 'FOREWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
+    require_capability 'MARK' , 'FORWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 
     numeric_option 'TC_BITS',          $config{WIDE_TC_MARKS} ? 14 : 8 , 0;
     numeric_option 'MASK_BITS',        $config{WIDE_TC_MARKS} ? 16 : 8,  $config{TC_BITS};
@@ -3347,7 +3610,7 @@ sub get_configuration( $ ) {
 	$globals{USER_MASK} = 0;
     }
 
-    if ( defined ( $val = $config{ZONE2ZONE} ) ) {
+    if ( supplied ( $val = $config{ZONE2ZONE} ) ) {
 	fatal_error "Invalid ZONE2ZONE value ( $val )" unless $val =~ /^[2-]$/;
     } else {
 	$config{ZONE2ZONE} = '2';
@@ -3480,7 +3743,7 @@ sub get_configuration( $ ) {
 
     $val = numeric_value $config{OPTIMIZE};
 
-    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless defined( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 15;
+    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless supplied( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 15;
 
     $globals{MARKING_CHAIN} = $config{MARK_IN_FORWARD_CHAIN} ? 'tcfor' : 'tcpre';
 
@@ -3662,7 +3925,7 @@ sub generate_aux_config() {
 
 	my $value = $config{$option};
 
-	emit "[ -n \"\${$option:=$value}\" ]" if defined $value && $value ne '';
+	emit "[ -n \"\${$option:=$value}\" ]" if supplied $value;
     }
 
     sub conditionally_add_option1( $ ) {

@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_21';
 
 my @addresses_to_add;
 my %addresses_to_add;
@@ -384,7 +384,7 @@ sub setup_nat() {
 		$digit = defined $digit ? ":$digit" : '';
 
 		for my $interface ( split_list $interfacelist , 'interface' ) {
-		    fatal_error "Invalid Interface List ($interfacelist)" unless defined $interface && $interface ne '';
+		    fatal_error "Invalid Interface List ($interfacelist)" unless supplied $interface;
 		    do_one_nat $external, "${interface}${digit}", $internal, $allints, $localnat;
 		}
 
