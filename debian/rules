@@ -8,7 +8,9 @@ export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
 
 SRWL=$(CURDIR)/debian/shorewall
 
-build: build-stamp debian/po/templates.pot
+build: build-arch build-indep debian/po/templates.pot
+build-arch: build-stamp
+build-indep: build-stamp
 build-stamp:
 	dh_testdir
 # 	there's nothing to compile ;-)
