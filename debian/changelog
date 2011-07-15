@@ -1,3 +1,10 @@
+shorewall-init (4.4.21-2) UNRELEASED; urgency=low
+
+  * Allow shorewall-lite and shorewall6-lite to also satisfy the dependcies
+    in addition to shorewall and shorewall6 (Closes: #633885)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 14 Jul 2011 20:27:44 -0400
+
 shorewall-init (4.4.21-1) unstable; urgency=low
 
   * New Upstream Version

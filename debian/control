@@ -10,7 +10,7 @@ Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
 
 Package: shorewall-init
 Architecture: all
-Depends: shorewall | shoreline-firewall, ${misc:Depends}
+Depends: shorewall | shorewall6 | shorewall-lite | shorewall6-lite, ${misc:Depends}
 Description: Shorewall initialization 
  This package provides two related features:
  .
