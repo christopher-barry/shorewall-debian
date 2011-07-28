@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 2 1
+                    S H O R E W A L L  4 . 4 . 2 1 . 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +12,37 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.21.1
+
+1)  A harmless Perl runtime "uninitialized variable" diagnostic has
+    been eliminated from the compiler. The diagnostic was issued while
+    displaying the capabilities.
+
+2)  As the result of a typo, an orphan filter chain named FORWAR could
+    be created under rare circumstances. This chain was deleted by
+    OPTIMIZE level 4.
+
+3)  The SNAT options --persistent and --randomize now work properly
+    (/etc/shorewall/masq).
+
+4)  The LOGMARK log level was previously generated invalid iptables 
+    input making it unusable. That has been corrected.
+
+    The syntax for LOGMARK is now:
+
+    	LOGMARK(<priority>) 
+
+    where <priority> is a syslog priority (1-7 or debug, info, notice,
+    etc.).
+
+    Example rule:
+
+    	    #ACTION		SOURCE	DEST	PROTO	DEST
+	    #						PORT(S)
+	    LOG:LOGMARK(info)	lan	dmz	udp	1234
+
+4.4.21 Final
 
 1)  All problems corrections included in Shorewall 4.4.20.1 - 4.4.20.3
     (see below).
