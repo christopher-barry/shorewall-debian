@@ -1,4 +1,4 @@
-shorewall-init (4.4.21.1-1) UNRELEASED; urgency=low
+shorewall-init (4.4.21.1-1) unstable; urgency=low
 
   * New Upstream Version
   * Allow shorewall-lite and shorewall6-lite to also satisfy the dependcies
