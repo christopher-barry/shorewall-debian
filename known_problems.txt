@@ -1,2 +1,26 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
+
+2)  A harmless 'unitialized variable' diagnostic is issued by the 
+    compiler when it is displaying the capabilities.
+
+    Corrected in Shorewall 4.4.21.
+
+3)  As the result of a typo, an orphan filter chain named FORWAR can
+    be created under rare circumstances. This chain is deleted by
+    OPTIMIZE level 4.
+
+    Corrected in Shorewall 4.4.21.
+
+4)  The SNAT options --persistent and --randomize (/etc/shorewall/masq)
+    generate invalid iptables input.
+
+    Corrected in Shorewall 4.4.21.
+
+5)  The LOGMARK log level was generated invalid iptables  input making
+    it unusable.
+
+    Corrected in Shorewall 4.4.21.
+
+
+

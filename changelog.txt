@@ -1,3 +1,15 @@
+Changes in Shorewall 4.4.21.1
+
+1)  Update release documents.
+
+2)  Add IPSET_V5 to %capdesc.
+
+3)  Correct addition of orphan chain FORWAR.
+
+4)  Fix -j SNAT --to-address ... --persistent
+
+5)  Fix LOGMARK.
+
 Changes in Shorewall 4.4.21 Final
 
 1)  Update release documents.
