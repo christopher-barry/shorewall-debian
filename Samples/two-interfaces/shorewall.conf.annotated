@@ -55,7 +55,14 @@
 # 'ulogd'. ulogd is available with most Linux distributions (although it probably
 # isn't installed by default). Ulogd is also available from http://
 # www.netfilter.org/projects/ulogd/index.html and can be configured to log all
-# Shorewall messages to their own log file
+# Shorewall messages to their own log file.
+# 
+# Beginning with Shorewall 4.4.22, LOGMARK is also a valid level which logs the
+# packet's mark value along with the other usual information. The syntax is:
+# 
+# LOGMARK(priority)
+# 
+# where priority is one of the levels listed in the list above.
 # 
 # The following options may be set in shorewall.conf.
 # 

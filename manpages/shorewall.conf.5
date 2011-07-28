@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 07/10/2011
+.\"      Date: 07/19/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "07/10/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "07/19/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -69,7 +69,16 @@ For most Shorewall logging, a level of 6 (info) is appropriate\&. Shorewall log 
 .PP
 If you have built your kernel with ULOG and/or NFLOG target support, you may also specify a log level of ULOG and/or NFLOG (must be all caps)\&. Rather than log its messages to syslogd, Shorewall will direct netfilter to log the messages via the ULOG or NFLOG target which will send them to a process called \*(Aqulogd\*(Aq\&. ulogd is available with most Linux distributions (although it probably isn\*(Aqt installed by default)\&. Ulogd is also available from
 \m[blue]\fBhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR\m[]
-and can be configured to log all Shorewall messages to their own log file
+and can be configured to log all Shorewall messages to their own log file\&.
+.PP
+Beginning with Shorewall 4\&.4\&.22, LOGMARK is also a valid level which logs the packet\*(Aqs mark value along with the other usual information\&. The syntax is:
+.RS 4
+\fBLOGMARK\fR\fI(priority)\fR
+.RE
+.PP
+where
+\fIpriority\fR
+is one of the levels listed in the list above\&.
 .PP
 The following options may be set in shorewall\&.conf\&.
 .PP

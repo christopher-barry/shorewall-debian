@@ -242,6 +242,7 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 OWNER_MATCH     => 'Owner Match',
 		 IPSET_MATCH     => 'Ipset Match',
 		 OLD_IPSET_MATCH => 'Old Ipset Match',
+		 IPSET_V5        => 'Version 5 IPSETs',
 		 CONNMARK        => 'CONNMARK Target',
 		 XCONNMARK       => 'Extended CONNMARK Target',
 		 CONNMARK_MATCH  => 'Connmark Match',
@@ -433,7 +434,7 @@ sub initialize( $ ) {
 		    EXPORT     => 0,
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.21",
+		    VERSION    => "4.4.21.1",
 		    CAPVERSION => 40421 ,
 		  );
     #
@@ -2131,10 +2132,21 @@ sub validate_level( $ ) {
 	    return $rawlevel;
 	}
 
-	if ( $level eq 'LOGMARK' ) {
+	if ( $level =~ /^LOGMARK --/ ) {
+	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
+	    return $rawlevel;
+	}
+
+	if ( $level =~ /LOGMARK[(](.*)[)]$/ ) {
+	    my $sublevel = $1;
+	    
+	    $sublevel = $validlevels{$sublevel} unless $sublevel =~ /^[0-7]$/;
+
+	    level_error( $level ) unless defined $sublevel  =~ /^[0-7]$/; 
+	    
 	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
 	    require_capability( 'LOGMARK_TARGET' , 'LOGMARK', 's' );
-	    return 'LOGMARK';
+	    return "LOGMARK --log-level $sublevel";
 	}
 
 	level_error( $rawlevel );
