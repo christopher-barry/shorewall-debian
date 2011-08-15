@@ -4,11 +4,6 @@ shorewall: manpage-has-errors-from-man
 shorewall: postinst-uses-db-input
 # we want to protect sensible files
 shorewall: non-standard-dir-perm var/lib/shorewall/ 0750 != 0755
-shorewall: script-not-executable usr/share/shorewall/lib.base
-shorewall: script-not-executable usr/share/shorewall/lib.cli
-shorewall: script-not-executable usr/share/shorewall/lib.common
-shorewall: script-not-executable usr/share/shorewall/prog.header
-shorewall: script-not-executable usr/share/shorewall/prog.header6
 # It is necessary to specify /sbin/shorewall
 shorewall: command-with-path-in-maintainer-script
 # Shorewall needs to continue in runlevel 1 because networking may still be up
