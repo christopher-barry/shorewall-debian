@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 07/19/2011
+.\"      Date: 08/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "07/19/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "08/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -73,12 +73,12 @@ and can be configured to log all Shorewall messages to their own log file\&.
 .PP
 Beginning with Shorewall 4\&.4\&.22, LOGMARK is also a valid level which logs the packet\*(Aqs mark value along with the other usual information\&. The syntax is:
 .RS 4
-\fBLOGMARK\fR\fI(priority)\fR
+\fBLOGMARK[\fR\fI(priority)\fR\fB]\fR
 .RE
 .PP
 where
 \fIpriority\fR
-is one of the levels listed in the list above\&.
+is one of the levels listed in the list above\&. If omitted, the default is info (6)\&.
 .PP
 The following options may be set in shorewall\&.conf\&.
 .PP
@@ -1146,6 +1146,21 @@ If a chain ends with an unconditional branch to a second chain (other than to \*
 .IP \(bu 2.3
 .\}
 Optimization category 8 \- Added in Shorewall 4\&.4\&.9\&. When set, causes chains with duplicate rules to be collapsed into a single chain\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBCaution\fR
+.ps -1
+.br
+Optimization category 8 adds significantly to the time required to compile a large ruleset\&.
+.sp .5v
+.RE
 .RE
 .sp
 The default value is zero which disables all optimizations\&.

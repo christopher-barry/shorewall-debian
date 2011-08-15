@@ -150,7 +150,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_21';
+our $VERSION = '4.4_22';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -242,7 +242,7 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 OWNER_MATCH     => 'Owner Match',
 		 IPSET_MATCH     => 'Ipset Match',
 		 OLD_IPSET_MATCH => 'Old Ipset Match',
-		 IPSET_V5        => 'Version 5 IPSETs',
+		 IPSET_V5        => 'Version 5 ipsets',
 		 CONNMARK        => 'CONNMARK Target',
 		 XCONNMARK       => 'Extended CONNMARK Target',
 		 CONNMARK_MATCH  => 'Connmark Match',
@@ -427,14 +427,15 @@ sub initialize( $ ) {
     # Misc Globals
     #
     %globals  =   ( SHAREDIRPL => '/usr/share/shorewall/' ,
-		    CONFDIR    =>  '/etc/shorewall',     # Run-time configuration directory
+		    CONFDIR    => '/etc/shorewall',     # Run-time configuration directory
 		    CONFIGDIR  => '',                  # Compile-time configuration directory (location of $product.conf)
 		    LOGPARMS   => '',
 		    TC_SCRIPT  => '',
 		    EXPORT     => 0,
+		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.21.1",
+		    VERSION    => "4.4.22.2",
 		    CAPVERSION => 40421 ,
 		  );
     #
@@ -557,7 +558,6 @@ sub initialize( $ ) {
 	  COMPLETE => undef,
 	  EXPORTMODULES => undef,
 	  LEGACY_FASTSTART => undef,
-	  FAKE_AUDIT => undef,
 	  #
 	  # Packet Disposition
 	  #
@@ -575,6 +575,13 @@ sub initialize( $ ) {
 	  MASK_BITS => undef
 	);
 
+
+    #
+    # Valid log levels
+    #
+    # Note that we don't include LOGMARK; that is so we can default its
+    # priority to 'info' (LOGMARK itself defaults to 'warn').
+    #
     %validlevels = ( DEBUG   => 7,
 		     INFO    => 6,
 		     NOTICE  => 5,
@@ -588,7 +595,7 @@ sub initialize( $ ) {
 		     PANIC   => 0,
 		     NONE    => '',
 		     NFLOG   => 'NFLOG',
-		     LOGMARK => 'LOGMARK' );
+		   );
 
     #
     # From parsing the capabilities file or capabilities detection
@@ -636,10 +643,10 @@ sub initialize( $ ) {
 	       CONNLIMIT_MATCH => undef,
 	       TIME_MATCH => undef,
 	       GOTO_TARGET => undef,
+	       LOG_TARGET => 1,         # Assume that we have it.
 	       LOGMARK_TARGET => undef,
 	       IPMARK_TARGET => undef,
 	       TPROXY_TARGET => undef,
-	       LOG_TARGET => 1,         # Assume that we have it.
 	       PERSISTENT_SNAT => undef,
 	       OLD_HL_MATCH => undef,
 	       FLOW_FILTER => undef,
@@ -807,7 +814,7 @@ sub fatal_error1 {
 #
 # C/C++-like assertion checker
 #
-sub assert( $ ) {
+sub assert( $;$ ) {
     unless ( $_[0] ) {
 	my @caller0 = caller 0; # Where assert() was called
 	my @caller1 = caller 1; # Who called assert()
@@ -1348,6 +1355,7 @@ sub split_line1( $$$;$ ) {
     my ( $mincolumns, $maxcolumns, $description, $nopad) = @_;
 
     fatal_error "Shorewall Configuration file entries may not contain double quotes, single back quotes or backslashes" if $currentline =~ /["`\\]/;
+    fatal_error "Non-ASCII gunk in file" if $currentline =~ /[^\s[:print:]]/;
 
     my @line = split( ' ', $currentline );
 
@@ -1432,9 +1440,9 @@ sub close_file() {
 }
 
 #
-# Functions for copying files into the script
+# Functions for copying a file into the script
 #
-sub copy( $ ) {
+sub copy( $;$ ) {
     assert( $script_enabled );
 
     if ( $script ) {
@@ -1784,7 +1792,7 @@ sub embedded_perl( $ ) {
     if ( $perlscript ) {
 	fatal_error "INCLUDEs nested too deeply" if @includestack >= 4;
 
-	close $perlscript or assert(0);
+	assert( close $perlscript );
 
 	$perlscript = undef;
 
@@ -2137,12 +2145,15 @@ sub validate_level( $ ) {
 	    return $rawlevel;
 	}
 
-	if ( $level =~ /LOGMARK[(](.*)[)]$/ ) {
-	    my $sublevel = $1;
-	    
-	    $sublevel = $validlevels{$sublevel} unless $sublevel =~ /^[0-7]$/;
+	if ( $level =~ /LOGMARK([(](.+)[)])?$/ ) {
+	    my $sublevel = $2;
 
-	    level_error( $level ) unless defined $sublevel  =~ /^[0-7]$/; 
+	    if ( $1 ) {	    
+		$sublevel = $validlevels{$sublevel} unless $sublevel =~ /^[0-7]$/;
+		level_error( $level ) unless defined $sublevel && $sublevel  =~ /^[0-7]$/;
+	    } else {
+		$sublevel = 6; # info
+	    }
 	    
 	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
 	    require_capability( 'LOGMARK_TARGET' , 'LOGMARK', 's' );
@@ -2304,7 +2315,7 @@ sub qt( $ ) {
 	print "SYS----> @_\n";
 	system( "@_ 2>&1" );
     } else {
-	system( "@_ > /dev/null 2>&1" ) == 0;
+	system( "@_ > /dev/null 2>&1 < /dev/null" ) == 0;
     }
 }
 
@@ -2321,6 +2332,8 @@ sub determine_kernelversion() {
 
     if ( $kernelversion =~ /^(\d+)\.(\d+).(\d+)/ ) {
 	$capabilities{KERNELVERSION} = sprintf "%d%02d%02d", $1 , $2 , $3;
+    } elsif ( $kernelversion =~ /^(\d+)\.(\d+)/ ) {
+	$capabilities{KERNELVERSION} = sprintf "%d%02d00", $1 , $2;
     } else {
 	fatal_error "Unrecognized Kernel Version Format ($kernelversion)";
     }
@@ -2646,7 +2659,7 @@ sub Account_Target() {
 }
 
 sub Audit_Target() {
-    $config{FAKE_AUDIT} || qt1( "$iptables -A $sillyname -j AUDIT --type drop" );
+    qt1( "$iptables -A $sillyname -j AUDIT --type drop" );
 }
 
 our %detect_capability =
@@ -2721,9 +2734,11 @@ sub have_capability( $ ) {
     my $capability = shift;
     our %detect_capability;
 
-    $capabilities{ $capability } = detect_capability( $capability ) unless defined $capabilities{ $capability };
+    my $setting = $capabilities{ $capability };
 
-    $capabilities{ $capability };
+    $setting = $capabilities{ $capability } = detect_capability( $capability ) unless defined $setting;
+
+    $setting;
 }
 
 #
@@ -2748,6 +2763,7 @@ sub determine_capabilities() {
 	    qt1( "$iptables -A $sillyname -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT") ||
 	    qt1( "$iptables -A $sillyname -m state --state ESTABLISHED,RELATED -j ACCEPT");;
 
+    $globals{KLUDGEFREE} = $capabilities{KLUDGEFREE} = detect_capability 'KLUDGEFREE';
 
     unless ( $config{ LOAD_HELPERS_ONLY } ) {
 	#
@@ -2766,24 +2782,17 @@ sub determine_capabilities() {
 	    $capabilities{OLD_CONNTRACK_MATCH} = '';
 	}
 
-	if ( $capabilities{ MULTIPORT } = detect_capability( 'MULTIPORT' ) ) {
-	     $capabilities{KLUDGEFREE}  = Kludgefree1;
-	}
-
+	$capabilities{ MULTIPORT } = detect_capability( 'MULTIPORT' );
 	$capabilities{XMULTIPORT}   = detect_capability( 'XMULTIPORT' );
 	$capabilities{POLICY_MATCH} = detect_capability( 'POLICY_MATCH' );
 
 	if ( $capabilities{PHYSDEV_MATCH} = detect_capability( 'PHYSDEV_MATCH' ) ) {
 	    $capabilities{PHYSDEV_BRIDGE} = detect_capability( 'PHYSDEV_BRIDGE' );
-	    $capabilities{KLUDGEFREE}   ||= Kludgefree2;
 	} else {
 	    $capabilities{PHYSDEV_BRIDGE} = '';
 	}
 
-	if ( $capabilities{IPRANGE_MATCH} = detect_capability( 'IPRANGE_MATCH' ) ) {
-	    $capabilities{KLUDGEFREE}   ||= Kludgefree3;
-	}
-
+	$capabilities{IPRANGE_MATCH}   = detect_capability( 'IPRANGE_MATCH' );
 	$capabilities{RECENT_MATCH}    = detect_capability( 'RECENT_MATCH' );
 	$capabilities{OWNER_MATCH}     = detect_capability( 'OWNER_MATCH' );
 	$capabilities{CONNMARK_MATCH}  = detect_capability( 'CONNMARK_MATCH' );
@@ -2812,7 +2821,6 @@ sub determine_capabilities() {
 	$capabilities{MANGLE_FORWARD}  = detect_capability( 'MANGLE_FORWARD' );
 	$capabilities{RAW_TABLE}       = detect_capability( 'RAW_TABLE' );
 	$capabilities{IPSET_MATCH}     = detect_capability( 'IPSET_MATCH' );
-	$capabilities{OLD_IPSET_MATCH} = detect_capability( 'OLD_IPSET_MATCH' );
 	$capabilities{USEPKTTYPE}      = detect_capability( 'USEPKTTYPE' );
 	$capabilities{ADDRTYPE}        = detect_capability( 'ADDRTYPE' );
 	$capabilities{TCPMSS_MATCH}    = detect_capability( 'TCPMSS_MATCH' );
@@ -2945,7 +2953,7 @@ sub update_config_file( $ ) {
     #
     # Undocumented options -- won't be listed in the template
     #
-    my @undocumented = ( qw( TC_BITS PROVIDER_BITS PROVIDER_OFFSET MASK_BITS FAKE_AUDIT ) );
+    my @undocumented = ( qw( TC_BITS PROVIDER_BITS PROVIDER_OFFSET MASK_BITS ) );
 
     if ( -f $fn ) {
 	my ( $template, $output );
@@ -3138,6 +3146,7 @@ sub read_capabilities() {
 	$capabilities{$_} = '' unless defined $capabilities{$_};
     }
 
+    $globals{KLUDGEFREE} = $capabilities{KLUDGEFREE};
 }
 
 #
@@ -3367,6 +3376,8 @@ sub get_configuration( $$$ ) {
 
     my ( $export, $update, $annotate ) = @_;
 
+    my $val;
+
     $globals{EXPORT} = $export;
 
     our ( $once, @originalinc );
@@ -3394,6 +3405,18 @@ sub get_configuration( $$$ ) {
 
     get_capabilities( $export );
 
+    if ( supplied( $val = $config{SHOREWALL_SHELL} ) ) {
+	unless ( $val =~ /^\// ) {
+	    if ( $export ) {
+		$val = $config{SHOREWALL_SHELL} = "/bin/$val";
+		warning_message "Assuming SHOREWALL_SHELL=$val";
+	    } else {
+		warning_message "Can't find SHOREWALL_SHELL ($val)" unless $config{SHOREWALL_SHELL} = which $val;
+	    }
+	}
+    } else {
+	$config{SHOREWALL_SHELL} = '/bin/sh';
+    }
 
     $globals{STATEMATCH} = '-m conntrack --ctstate' if have_capability 'CONNTRACK_MATCH';
 
@@ -3467,8 +3490,6 @@ sub get_configuration( $$$ ) {
     }
 
     check_trivalue ( 'IP_FORWARDING', 'on' );
-
-    my $val;
 
     if ( have_capability( 'KERNELVERSION' ) < 20631 ) {
 	check_trivalue ( 'ROUTE_FILTER',  '' );
@@ -3693,12 +3714,12 @@ sub get_configuration( $$$ ) {
     }
 
     if ( $val = $config{TCP_FLAGS_DISPOSITION} ) {
-	fatal_error "Invalid value ($config{TCP_FLAGS_DISPOSITION}) for TCP_FLAGS_DISPOSITION" unless $val =~ /^(?:(?:A_)?(?:REJECT|DROP)|ACCEPT)$/;
+	fatal_error "Invalid value ($config{TCP_FLAGS_DISPOSITION}) for TCP_FLAGS_DISPOSITION" unless $val =~ /^(?:(A_)?(?:REJECT|DROP))|ACCEPT$/;
+	require_capability 'AUDIT_TARGET' , "TCP_FLAGS_DISPOSITION=$val", 's' if $1;
     } else {
-	$config{TCP_FLAGS_DISPOSITION} = 'DROP';
+	$val = $config{TCP_FLAGS_DISPOSITION} = 'DROP';
     }
 
-    require_capability 'AUDIT_TARGET' , "TCP_FLAGS_DISPOSITION=$val", 's' if $val =~ /^A_/;
 
     default 'TC_ENABLED' , $family == F_IPV4 ? 'Internal' : 'no';
 

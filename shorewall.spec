@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 4.4.21
-%define release 1
+%define version 4.4.22
+%define release 2
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -83,8 +83,11 @@ fi
 
 %attr(0644,root,root) /usr/share/shorewall/version
 %attr(0644,root,root) /usr/share/shorewall/actions.std
+%attr(0644,root,root) /usr/share/shorewall/action.Broadcast
 %attr(0644,root,root) /usr/share/shorewall/action.Drop
 %attr(0644,root,root) /usr/share/shorewall/action.A_Drop
+%attr(0644,root,root) /usr/share/shorewall/action.Invalid
+%attr(0644,root,root) /usr/share/shorewall/action.NotSyn
 %attr(0644,root,root) /usr/share/shorewall/action.Reject
 %attr(0644,root,root) /usr/share/shorewall/action.A_Reject
 %attr(0644,root,root) /usr/share/shorewall/action.template
@@ -111,14 +114,24 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
-* Mon Jul 11 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.21-1
-* Wed Jul 06 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.21-0base
+* Wed Aug 03 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-2
+* Tue Aug 02 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-1
+* Sat Jul 30 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-0base
+* Sat Jul 30 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-0RC2
+* Fri Jul 22 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-0RC1
+* Thu Jul 21 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-0Beta3
+* Mon Jul 18 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.22-0Beta2
 * Mon Jul 04 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.21-0RC3
-* Sun Jul 03 2011 Tom Eastep tom@shorewall.net
-- Updated to 4.4.21-0RC2
+- Updated to 4.4.22-0Beta1
+* Wed Jun 29 2011 Tom Eastep tom@shorewall.net
+- Updated to 4.4.21-0base
 * Thu Jun 23 2011 Tom Eastep tom@shorewall.net
 - Updated to 4.4.21-0RC1
 * Sun Jun 19 2011 Tom Eastep tom@shorewall.net

@@ -52,7 +52,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_21';
+our $VERSION = '4.4_23';
 #
 # Globals are documented in the initialize() function
 #
@@ -528,20 +528,13 @@ sub policy_rules( $$$$$ ) {
     my ( $chainref , $target, $loglevel, $default, $dropmulticast ) = @_;
 
     unless ( $target eq 'NONE' ) {
-	add_rule $chainref, "-d 224.0.0.0/4 -j RETURN" if $dropmulticast && $target ne 'CONTINUE' && $target ne 'ACCEPT';
-	add_jump $chainref, $default, 0 if $default && $default ne 'none';
+	add_ijump $chainref, j => 'RETURN', d => '224.0.0.0/4' if $dropmulticast && $target ne 'CONTINUE' && $target ne 'ACCEPT';
+	add_ijump $chainref, j => $default if $default && $default ne 'none';
 	log_rule $loglevel , $chainref , $target , '' if $loglevel ne '';
 	fatal_error "Null target in policy_rules()" unless $target;
 	
-	if ( $chainref->{audit} ) {
-	    if ( $config{FAKE_AUDIT} ) {
-		add_rule( $chainref , '-j AUDIT -m comment --comment "--type ' . lc $target . '"' );
-	    } else { 
-		add_rule( $chainref , '-j AUDIT --type ' . lc $target );
-	    }
-	}
-
-	add_jump( $chainref , $target eq 'REJECT' ? 'reject' : $target, 1 ) unless $target eq 'CONTINUE';
+	add_ijump( $chainref , j => 'AUDIT --type ' . lc $target ) if $chainref->{audit};
+	add_ijump( $chainref , g => $target eq 'REJECT' ? 'reject' : $target ) unless $target eq 'CONTINUE';
     }
 }
 
@@ -570,7 +563,7 @@ sub default_policy( $$$ ) {
 		report_syn_flood_protection;
 		policy_rules $chainref , $policy , $loglevel , $default, $config{MULTICAST};
 	    } else {
-		add_jump $chainref,  $policyref, 1;
+		add_ijump $chainref,  g => $policyref;
 		$chainref = $policyref;
 	    }
 	} elsif ( $policy eq 'CONTINUE' ) {
@@ -578,7 +571,7 @@ sub default_policy( $$$ ) {
 	    policy_rules $chainref , $policy , $loglevel , $default, $config{MULTICAST};
 	} else {
 	    report_syn_flood_protection if $synparams;
-	    add_jump $chainref , $policyref, 1;
+	    add_ijump $chainref , g => $policyref;
 	    $chainref = $policyref;
 	}
     }
@@ -687,7 +680,7 @@ sub setup_syn_flood_chains() {
 			    'add' ,
 			    '' )
 		if $level ne '';
-	    add_rule $synchainref, '-j DROP';
+	    add_ijump $synchainref, j => 'DROP';
 	}
     }
 }
@@ -704,7 +697,7 @@ sub optimize_policy_chains() {
     #
     my $outputrules = $filter_table->{OUTPUT}{rules};
 
-    if ( @{$outputrules} && $outputrules->[-1] =~ /-j ACCEPT/ ) {
+    if ( @{$outputrules} && $outputrules->[-1]->{target} eq 'ACCEPT' ) {
 	optimize_chain( $filter_table->{OUTPUT} );
     }
 
@@ -751,7 +744,7 @@ sub finish_chain_section ($$) {
     
     push_comment(''); #These rules should not have comments
 
-    add_rule $chainref, "$globals{STATEMATCH} $state -j ACCEPT" unless $config{FASTACCEPT};
+    add_ijump $chainref, j => 'ACCEPT', state_imatch $state unless $config{FASTACCEPT};
 
     if ($sections{NEW} ) {
 	if ( $chainref->{is_policy} ) {
@@ -759,17 +752,17 @@ sub finish_chain_section ($$) {
 		my $synchainref = ensure_chain 'filter', syn_flood_chain $chainref;
 		if ( $section eq 'DONE' ) {
 		    if ( $chainref->{policy} =~ /^(ACCEPT|CONTINUE|QUEUE|NFQUEUE)/ ) {
-			add_jump $chainref, $synchainref, 0, "-p tcp --syn ";
+			add_ijump $chainref, j => $synchainref, p => 'tcp --syn';
 		    }
 		} else {
-		    add_jump $chainref, $synchainref, 0, "-p tcp --syn ";
+		    add_ijump $chainref, j => $synchainref, p => 'tcp --syn';
 		}
 	    }
 	} else {
 	    my $policychainref = $filter_table->{$chainref->{policychain}};
 	    if ( $policychainref->{synparams} ) {
 		my $synchainref = ensure_chain 'filter', syn_flood_chain $policychainref;
-		add_jump $chainref, $synchainref, 0, "-p tcp --syn ";
+		add_ijump $chainref, j => $synchainref, p => 'tcp --syn';
 	    }
 	}
 
@@ -910,15 +903,19 @@ sub createlogactionchain( $$$$$ ) {
 
     $chain = substr $chain, 0, 28 if ( length $chain ) > 28;
 
-  CHECKDUP:
-    {
-	$actionref->{actchain}++ while $chain_table{filter}{'%' . $chain . $actionref->{actchain}};
-	$chain = substr( $chain, 0, 27 ), redo CHECKDUP if ( $actionref->{actchain} || 0 ) >= 10 and length $chain == 28;
+    if ( $filter_table->{$chain} ) {
+      CHECKDUP:
+	{
+	    $actionref->{actchain}++ while $chain_table{filter}{'%' . $chain . $actionref->{actchain}};
+	    $chain = substr( $chain, 0, 27 ), redo CHECKDUP if ( $actionref->{actchain} || 0 ) >= 10 and length $chain == 28;
+	}
+
+	$usedactions{$normalized} = $chainref = new_standard_chain '%' . $chain . $actionref->{actchain}++;
+
+	fatal_error "Too many invocations of Action $action" if $actionref->{actchain} > 99;
+    } else {
+	$usedactions{$normalized} = $chainref = new_standard_chain $chain;
     }
-
-    $usedactions{$normalized} = $chainref = new_standard_chain '%' . $chain . $actionref->{actchain}++;
-
-    fatal_error "Too many invocations of Action $action" if $actionref->{actchain} > 99;
 
     $chainref->{action} = $normalized;
 
@@ -1163,11 +1160,11 @@ sub dropBcast( $$$$ ) {
 	    if ( $family == F_IPV4 ) {
 		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ';
 	    } else {
-		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST , '' );
+		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST , '-j DROP ' );
 	    }
 	}
 	
-	add_jump $chainref, $target, 0, "-m addrtype --dst-type BROADCAST ";
+	add_ijump $chainref, j => $target, addrtype => '--dst-type BROADCAST';
     } else {
 	if ( $family == F_IPV4 ) {
 	    add_commands $chainref, 'for address in $ALL_BCASTS; do';
@@ -1177,17 +1174,17 @@ sub dropBcast( $$$$ ) {
 
 	incr_cmd_level $chainref;
 	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d $address ' if $level ne '';
-	add_jump $chainref, $target, 0, "-d \$address ";
+	add_ijump $chainref, j => $target, d => '$address';
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
     }
 
     if ( $family == F_IPV4 ) {
 	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
-	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
+	add_ijump $chainref, j => $target, d => '224.0.0.0/4';
     } else {
 	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST . ' ' ) if $level ne '';
-	add_jump $chainref, $target, 0, join( ' ', '-d', IPv6_MULTICAST . ' ' );
+	add_ijump $chainref, j => $target, d => IPv6_MULTICAST;
     }
 }
 
@@ -1199,14 +1196,10 @@ sub allowBcast( $$$$ ) {
     if ( $family == F_IPV4 && have_capability( 'ADDRTYPE' ) ) {
 	if ( $level ne '' ) {
 	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -m addrtype --dst-type BROADCAST ';
-	    if ( $family == F_IPV4 ) {
-		log_rule_limit $level, $chainref, 'dropBcast' , 'ACCECT', '', $tag, 'add', ' -d 224.0.0.0/4 ';
-	    } else {
-		log_rule_limit $level, $chainref, 'dropBcast' , 'ACCEPT', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST . ' ' );
-	    }
+	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ';
 	}
 
-	add_jump $chainref, $target, 0, "-m addrtype --dst-type BROADCAST ";
+	add_ijump $chainref, j => $target, addrtype => '--dst-type BROADCAST';
     } else {
 	if ( $family == F_IPV4 ) {
 	    add_commands $chainref, 'for address in $ALL_BCASTS; do';
@@ -1216,17 +1209,17 @@ sub allowBcast( $$$$ ) {
 
 	incr_cmd_level $chainref;
 	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d $address ' if $level ne '';
-	add_rule $chainref, "-d \$address -j $target";
+	add_ijump $chainref, j => $target, d => '$address';
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
     }
 
     if ( $family == F_IPV4 ) {
 	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
-	add_jump $chainref, $target, 0, "-d 224.0.0.0/4 ";
+	add_ijump $chainref, j => $target, d => '224.0.0.0/4';
     } else {
 	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d ' . IPv6_MULTICAST . ' ' if $level ne '';
-	add_jump $chainref, $target, 0, join ( ' ', '-d', IPv6_MULTICAST . ' ' );
+	add_ijump $chainref, j => $target, d => IPv6_MULTICAST;
     }
 }
 
@@ -1236,7 +1229,7 @@ sub dropNotSyn ( $$$$ ) {
     my $target = require_audit( 'DROP', $audit );
 
     log_rule_limit $level, $chainref, 'dropNotSyn' , 'DROP', '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
-    add_jump $chainref , $target, 0, "-p 6 ! --syn ";
+    add_ijump $chainref , j => $target, p => '6 ! --syn';
 }
 
 sub rejNotSyn ( $$$$ ) {
@@ -1249,7 +1242,7 @@ sub rejNotSyn ( $$$$ ) {
     }
 
     log_rule_limit $level, $chainref, 'rejNotSyn' , 'REJECT', '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
-    add_jump $chainref , $target, 0, '-p 6 ! --syn ';
+    add_ijump $chainref , j => $target, p => '6 ! --syn';
 }
 
 sub dropInvalid ( $$$$ ) {
@@ -1258,7 +1251,7 @@ sub dropInvalid ( $$$$ ) {
     my $target = require_audit( 'DROP', $audit );
 
     log_rule_limit $level, $chainref, 'dropInvalid' , 'DROP', '', $tag, 'add', "$globals{STATEMATCH} INVALID " if $level ne '';
-    add_jump $chainref , $target, 0, "$globals{STATEMATCH} INVALID ";
+    add_ijump $chainref , j => $target, state_imatch 'INVALID';
 }
 
 sub allowInvalid ( $$$$ ) {
@@ -1267,7 +1260,7 @@ sub allowInvalid ( $$$$ ) {
     my $target = require_audit( 'ACCEPT', $audit );
 
     log_rule_limit $level, $chainref, 'allowInvalid' , 'ACCEPT', '', $tag, 'add', "$globals{STATEMATCH} INVALID " if $level ne '';
-    add_rule $chainref , "$globals{STATEMATCH} INVALID -j $target";
+    add_ijump $chainref , j => $target, state_imatch 'INVALID';
 }
 
 sub forwardUPnP ( $$$$ ) {
@@ -1286,8 +1279,8 @@ sub allowinUPnP ( $$$$ ) {
 	log_rule_limit $level, $chainref, 'allowinUPnP' , 'ACCEPT', '', $tag, 'add', '-p 6 --dport 49152 ';
     }
 
-    add_jump $chainref, $target, 0, '-p 17 --dport 1900 ';
-    add_jump $chainref, $target, 0, '-p 6 --dport 49152 ';
+    add_ijump $chainref, j => $target, p => '17 --dport 1900';
+    add_ijump $chainref, j => $target, p => '6 --dport 49152';
 }
 
 sub Limit( $$$$ ) {
@@ -1314,18 +1307,18 @@ sub Limit( $$$$ ) {
 
     require_capability( 'RECENT_MATCH' , 'Limit rules' , '' );
 
-    add_rule $chainref, "-m recent --name $set --set";
+    add_irule $chainref, recent => "--name $set --set";
 
     if ( $level ne '' ) {
 	my $xchainref = new_chain 'filter' , "$chainref->{name}%";
 	log_rule_limit $level, $xchainref, $param[0], 'DROP', '', $tag, 'add', '';
-	add_rule $xchainref, '-j DROP';
-	add_jump $chainref,  $xchainref, 0, "-m recent --name $set --update --seconds $param[2] --hitcount $count ";
+	add_ijump $xchainref, j => 'DROP';
+	add_ijump $chainref,  j => $xchainref, recent => "--name $set --update --seconds $param[2] --hitcount $count";
     } else {
-	add_rule $chainref, "-m recent --update --name $set --seconds $param[2] --hitcount $count -j DROP";
+	add_ijump $chainref, j => 'DROP', recent => "--update --name $set --seconds $param[2] --hitcount $count";
     }
 
-    add_rule $chainref, '-j ACCEPT';
+    add_ijump $chainref, j => 'ACCEPT';
 }
 
 my %builtinops = ( 'dropBcast'      => \&dropBcast,
@@ -2129,7 +2122,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ ) {
 		    # Static NAT is defined on this interface
 		    #
 		    $chn = new_chain( 'nat', newnonatchain ) unless $chn;
-		    add_jump $chn, $nat_table->{$ichain}, 0, @interfaces > 1 ? match_source_dev( $_ )  : '';
+		    add_ijump $chn, j => $nat_table->{$ichain}, @interfaces > 1 ? imatch_source_dev( $_ )  : ();
 		}
 	    }
 
@@ -2259,7 +2252,7 @@ sub build_zone_list( $$$\$\$ ) {
     #
     # Handle Wildcards
     #
-    if ( $input =~ /^(all[-+]*)(![^:]+)?(:.*)?/ ) {
+    if ( $input =~ /^(all[-+]*)(![^:]+)?(:.*)?$/ ) {
 	$input   = $1;
 	$exclude = $2;
 	$rest    = $3;
