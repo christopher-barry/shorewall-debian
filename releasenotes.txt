@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                    S H O R E W A L L  4 . 4 . 2 1 . 1
+                     S H O R E W A L L  4 . 4 . 2 2 . 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,101 +13,51 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.4.21.1
+4.4.22.2
 
-1)  A harmless Perl runtime "uninitialized variable" diagnostic has
-    been eliminated from the compiler. The diagnostic was issued while
-    displaying the capabilities.
+1)  On older distributions where 'shorewall show capabilities'
+    indicates 'Connection Tracking Match: Not Available', Shorewall
+    4.4.22 and 4.4.22.1 generated invalid iptables-restore input.
 
-2)  As the result of a typo, an orphan filter chain named FORWAR could
-    be created under rare circumstances. This chain was deleted by
-    OPTIMIZE level 4.
+2)  Previously, the compiler always placed '#!/bin/sh' on the first
+    line of the generated script. It now uses the setting of
+    SHOREWALL_SHELL on that line rather than '/bin/sh'. Note that
+    SHOREWALL_SHELL defaults to '/bin/sh' so this change only affects
+    those who specify a different shell.
 
-3)  The SNAT options --persistent and --randomize now work properly
-    (/etc/shorewall/masq).
+4.4.22.1
 
-4)  The LOGMARK log level was previously generated invalid iptables 
-    input making it unusable. That has been corrected.
+1)  Previously, if the name of a zone began with 'all', then entries
+    for that zone in /etc/shorewall/rules and /etc/shorewall6/rules
+    treated the name the same as 'all'.
 
-    The syntax for LOGMARK is now:
+    This defect is present in Shorewall 4.4.13 through 4.4.22.
 
-    	LOGMARK(<priority>) 
+2)  Previously, when LOAD_HELPERS_ONLY=No, harmless iptables-restore
+    warnings as follows could be generated:
 
-    where <priority> is a syslog priority (1-7 or debug, info, notice,
-    etc.).
+        ...
+        Running /usr/local/sbin/iptables-restore...
+	--set option deprecated, please use --match-set
+	--set option deprecated, please use --match-set
+	IPv4 Forwarding Enabled
+	...
 
-    Example rule:
+3)  Potential SELinux issues have been corrected. From Orion Poplawski.
 
-    	    #ACTION		SOURCE	DEST	PROTO	DEST
-	    #						PORT(S)
-	    LOG:LOGMARK(info)	lan	dmz	udp	1234
+4.4.22
 
-4.4.21 Final
+1)  Under rare conditions, long port lists (>15 ports) could result in
+    the following failure when optimization level 4 was enabled.
 
-1)  All problems corrections included in Shorewall 4.4.20.1 - 4.4.20.3
-    (see below).
+       Use of uninitialized value in numeric gt (>) 
+       at /usr/share/shorewall/Shorewall/Chains.pm line 1264.
 
-2)  The following error message
+       ERROR: Internal error in
+       Shorewall::Chains::decrement_reference_count at
+       /usr/share/shorewall/Shorewall/Chains.pm line 1264
 
-    	FOREWARD_CLEAR_MARK=Yes requires MARK Target in your kernel
-	    and iptables
-
-    has been corrected to read
-
-    	FORWARD_CLEAR_MARK=Yes requires MARK Target in your kernel
-	    and iptables
-
-3)  The TPROXY target in the tcrules file could previously cause a
-    failure during iptables restore like this:
-
-       Running /usr/sbin/iptables-restore...
-       Bad argument `3128'
-       Error occurred at line: 110
-       Try `iptables-restore -h' or 'iptables-restore --help' for more
-       information.
-
-          ERROR: iptables-restore Failed. Input is in
-	  	 /var/lib/shorewall/.iptables-restore-input
-
-4)  The 'balance' and 'fallback' options in /etc/shorewall/providers
-    have always been mutually exclusive but the compiler previously
-    didn't enforce that restriction. Now it does.
-
-5)  The Shorewall and Shorewall6 'load' and 'reload' commands
-    previously used the setting of RSH_COMMAND and RCP_COMMAND from
-    /etc/shorewall/shorewall.conf (/etc/shorewall6/shorewall6.conf).
-
-    These commands now use the .conf file in the current working
-    directory.
-
-6)  The ipset modules are now automatically loaded by Shorewall6 when
-    LOAD_HELPERS_ONLY=No is specified in shorewall6.conf. Additionally,
-    there is now a /usr/share/shorewall6/modules.ipset file that lists
-    all of the required modules.
-
-7)  TPROXY was previously not described in shorewall-tcrules(5) or
-    shorewall6-tcrules(5). These descriptions have been added.
-
-    In addition, Shorewall6 now correctly handles the third TPROXY
-    parameter (<ip address>). Previously, the following error was
-    generated:
-
-	ERROR: Invalid MARK (TPROXY(10,3128,::1)) :
-    	       /etc/shorewall6/tcrules (line 4)
-
-8)  With LOAD_HELPERS_ONLY=Yes, the compiler could use the deprectated
-    --set parameter to the ipset match when --match-set was
-    appropriate.
-
-9)  If 'shorewall clear' was executed when there was no
-    /var/lib/shorewall/firewall file, the following incorrect error
-    message was produced:
-
-    	    ERROR: Shorewall6 has never been started
-
-    The message now reads:
-
-    	    ERROR: Shorewall has never been started
+2)  All corrections included in Shorewall 4.4.21.1 (see below).
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -120,139 +70,54 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  AUTOMAKE=Yes now causes all directories on the CONFIG_PATH to be
-    searched for files newer than the script that last
-    started/restarted the firewall. Previously, only /etc/shorewall
-    (/etc/shorewall6) was searched.
+1)  Three new parameterized standard actions are included in this release.
 
-2)  FORMAT-2 actions may now specify default parameter values using the
-    DEFAULTS directive.
-
-    	DEFAULTS <def1>,<def2>,...
-
-    Where <def1> is the default value for the first parameter, <def2>
-    is the default value for the second parameter and so on. To specify
-    an empty default, use '-'. Note that the corresponding parameter
-    variable ($n) will still expand to '-' but will be treated as empty
-    by the builtin actions such as dropInvalid.
-
-    The DEFAULTS directive also determines the maximum number of
-    parameters that an action may have. If more parameters are passed
-    than have default values, an error message is issued.
-
-3)  Parameterized macros may now specify a default parameter value
-    using the DEFAULT directive.
-
-	DEFAULT <default>
-
-    Example macro.Foo -- by default, accepts connections on ficticous
-    	    	      	 tcp port 'foo'.
-
-    	DEFAULT ACCEPT
-	PARAM	-	-	tcp	foo
-
-4)  The standard Drop and Reject actions are now parameterized. Each 
-    has 5 parameters:
-
-    1) Pass 'audit' if you want all ACCEPTs, DROPs and REJECTs audited.
-       Pass '-' otherwise.
-
-    2) The action to be applied to Auth requests: 
-
-       	      FIRST PARAMETER           DEFAULT
-  
-  	      -				REJECT
-	      audit			A_REJECT
-
-    3) The action to be applied to SMB traffic. The default depends on
-       the action and its first parameter:
-
-              ACTION	 FIRST PARAMETER		DEFAULT
-
-	      Reject	 -				REJECT
-	      Drop	 -				DROP
-	      Reject	 audit				A_REJECT
-	      Drop	 audit				A_DROP
-
-    4)  The action to be applied to accepted ICMP packets.
-
-       	      FIRST PARAMETER           DEFAULT
-
-	      -	    			ACCEPT
-	      audit			A_ACCEPT
-
-    5)  The action to be applied to UPnP (udp port 1900) and late DNS
-    	replies (udp source port 53)
-
-       	      FIRST PARAMETER           DEFAULT
-
-	      -	    			DROP
-	      audit			A_DROP
-
-    The parameters can be passed in the POLICY column of the policy
-    file.
-
-    Examples:
-
-	SOURCE	DEST	POLICY
-	net	all	DROP:Drop(audit):audit  #Same as 
-						#DROP:A_DROP:audit
-
-	SOURCE	DEST	POLICY
-	net	all	DROP:Drop(-,DROP) #DROP rather than REJECT Auth
-
-    The parameters can also be specified in shorewall.conf:
-
-    Example:
-
-	DROP_DEFAULT=Drop(-,DROP)
-
-5)  An 'update' command has been added to /sbin/shorewall and
-    /sbin/shorewall6. The command updates the shorewall.conf
-    (shorewall6.conf) file then validates the configuration. The
-    updated file will set any options not specified in the old file
-    with their default values, and will move any deprecated options
-    with non-default values to a 'deprecated options' section at the
-    end of the file. Each such deprecated option will generate a
-    warning message.
-
-    Your original shorewall.conf (shorewall6.conf) file will be saved as
-    shorewall.conf.bak (shorewall6.conf.bak).
-
-    The 'update' command accepts the same options as the 'check'
-    command plus a '-a' option that causes the updated file to be
-    annotated with manpage documentation.
-
-6)  Shorewall6 now supports ipsets. 
-
-    Unlike iptables, which has separate configurations for IPv4 and
-    IPv6, ipset has a single configuration that handles both. This
-    means the SAVE_IPSETS=Yes in shorewall.conf or shorewall6.conf
-    won't work correctly. To work around this issue, Shorewall-init is
-    now capable restoring ipset contents during 'start' and saving them
-    during 'stop'. 
-
-    To direct Shorewall-init to save/restore ipset contents, set the
-    SAVE_IPSETS option in /etc/sysconfig/shorewall-init
-    (/etc/default/shorewall-init on Debian and derivatives). The value
-    of the option is a file name where the contents of the ipsets will
-    be saved to and restored from. Shorewall-init will create any
-    parent directories during the first 'save' operation.
-
-    If you configure Shorewall-init to save/restore ipsets, be sure to
-    set SAVE_IPSETS=No in shorewall.conf and shorewall6.conf.
-
-    As part of this change, Shorewall and Shorewall6 will only restore
-    saved ipsets if SAVE_IPSETS=Yes in shorewall.conf
-    (shorewall6.conf).
-
-7)  Shorewall6 now supports dynamic zones:
-
-    1) The nets=dynamic option is allowed in /etc/shorewall6/interfaces
-    2) The HOSTS column of /etc/shorewall6/hosts may now contain
-        <interface>:dynamic.
-    3) /sbin/shorewall6 now supports the 'add' and 'delete' commands.
+        Invalid    - Packets in the INVALID connection tracking state
+        Broadcast  - Broadcast and Multicast Packets
+        NotSyn     - TCP packets that have the SYN flag set and all
+        	     other flags reset.
  
+    The standard default Drop and Reject actions have been modified to
+    use these new actions.
+
+    Each accepts two parameters:
+
+    a) Action to perform on matching packets. Must be ACCEPT, DROP or
+       REJECT. Default is DROP.
+    b) 'audit' flag. If 'audit', then the action will be audited.
+
+    The new actions deprecate the following built-in actions:
+
+    	allowBcast     - use Broadcast(ACCEPT)
+	allowInvalid   - use Invalid(ACCEPT)
+    	dropInvalid    - use Invalid(DROP)
+	dropBroadcast  - use Broadcast(DROP)
+	dropNotSyn     - use NotSyn(DROP)
+	rejNotSyn      - use NotSyn(REJECT)
+
+2)  Up to this point, the Perl-based compiler has stored rules
+    internally in iptables/ip6tables command strings. This has
+    made the optimizing the ruleset difficult and has made the
+    optimizer the most defect-dense part of the code.
+    
+    This release marks to first step toward converting the compiler to
+    use an internal rule representation that is easier to optimize and
+    that is easy to convert to iptables/ip6tables commands effeciently.
+
+    The parser still generates iptables/ip6table rules which are then
+    converted into the internal form.
+
+3)  Optimize level 8 causes chains that are identical to another chain
+    to be deleted, and their references are replace by references to
+    the other chain. This can lead to confusion when looking at the
+    generated ruleset. For example, traffic going from the 'loc' zone
+    to the 'dmz' zone may now be passing through a chain named
+    'wan2dmz'!
+
+    To eliminate this confusion, the compiler now generates a
+    synthetic name for the combined chains, consisting of "~comb"
+    followed by an integer (e.g., "~comb1", "~comb2", etc.).
+   
 ----------------------------------------------------------------------------
              I V.  R E L E A S E  4 . 4  H I G H L I G H T S
 ----------------------------------------------------------------------------
@@ -487,6 +352,201 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
       I N   P R I O R  R E L E A S E S
 ----------------------------------------------------------------------------
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 1
+----------------------------------------------------------------------------
+
+4.4.21.1
+
+1)  A harmless Perl runtime "uninitialized variable" diagnostic has
+    been eliminated from the compiler. The diagnostic was issued while
+    displaying the capabilities.
+
+2)  As the result of a typo, an orphan filter chain named FORWAR could
+    be created under rare circumstances. This chain was deleted by
+    OPTIMIZE level 4.
+
+3)  The SNAT options --persistent and --randomize now work properly
+    (/etc/shorewall/masq).
+
+4)  The LOGMARK log level was previously generated invalid iptables 
+    input making it unusable. That has been corrected.
+
+    The syntax for LOGMARK is now:
+
+    	LOGMARK(<priority>) 
+
+    where <priority> is a syslog priority (1-7 or debug, info, notice,
+    etc.).
+
+    Example rule:
+
+    	    #ACTION		SOURCE	DEST	PROTO	DEST
+	    #						PORT(S)
+	    LOG:LOGMARK(info)	lan	dmz	udp	1234
+
+4.4.21
+
+1)  All problems corrections included in Shorewall 4.4.20.1 - 4.4.20.3
+    (see below).
+
+2)  The following error message
+
+    	FOREWARD_CLEAR_MARK=Yes requires MARK Target in your kernel
+	    and iptables
+
+    has been corrected to read
+
+    	FORWARD_CLEAR_MARK=Yes requires MARK Target in your kernel
+	    and iptables
+
+3)  The TPROXY target in the tcrules file could previously cause a
+    failure during iptables restore like this:
+
+       Running /usr/sbin/iptables-restore...
+       Bad argument `3128'
+       Error occurred at line: 110
+       Try `iptables-restore -h' or 'iptables-restore --help' for more
+       information.
+
+          ERROR: iptables-restore Failed. Input is in
+	  	 /var/lib/shorewall/.iptables-restore-input
+
+4)  The 'balance' and 'fallback' options in /etc/shorewall/providers
+    have always been mutually exclusive but the compiler previously
+    didn't enforce that restriction. Now it does.
+
+1)  AUTOMAKE=Yes now causes all directories on the CONFIG_PATH to be
+    searched for files newer than the script that last
+    started/restarted the firewall. Previously, only /etc/shorewall
+    (/etc/shorewall6) was searched.
+
+2)  FORMAT-2 actions may now specify default parameter values using the
+    DEFAULTS directive.
+
+    	DEFAULTS <def1>,<def2>,...
+
+    Where <def1> is the default value for the first parameter, <def2>
+    is the default value for the second parameter and so on. To specify
+    an empty default, use '-'.
+
+    The DEFAULTS directive also determines the maximum number of
+    parameters that an action may have. If more parameters are passed
+    than have default values, an error message is issued.
+
+3)  Parameterized macros may now specify a default parameter value
+    using the DEFAULT directive.
+
+	DEFAULT <default>
+
+    Example macro.Foo -- by default, accepts connections on ficticous
+    	    	      	 tcp port 'foo'.
+
+    	DEFAULT ACCEPT
+	PARAM	-	-	tcp	foo
+
+4)  The standard Drop and Reject actions are now parameterized. Each 
+    has 5 parameters:
+
+    1) Pass 'audit' if you want all ACCEPTs, DROPs and REJECTs audited.
+       Pass '-' otherwise.
+
+    2) The action to be applied to Auth requests: 
+
+       	      FIRST PARAMETER           DEFAULT
+  
+  	      -				REJECT
+	      audit			A_REJECT
+
+    3) The action to be applied to SMB traffic. The default depends on
+       the action and its first parameter:
+
+              ACTION	 FIRST PARAMETER		DEFAULT
+
+	      Reject	 -				REJECT
+	      Drop	 -				DROP
+	      Reject	 audit				A_REJECT
+	      Drop	 audit				A_DROP
+
+    4)  The action to be applied to accepted ICMP packets.
+
+       	      FIRST PARAMETER           DEFAULT
+
+	      -	    			ACCEPT
+	      audit			A_ACCEPT
+
+    5)  The action to be applied to UPnP (udp port 1900) and late DNS
+    	replies (udp source port 53)
+
+       	      FIRST PARAMETER           DEFAULT
+
+	      -	    			DROP
+	      audit			A_DROP
+
+    The parameters can be passed in the POLICY column of the policy
+    file.
+
+    Examples:
+
+	SOURCE	DEST	POLICY
+	net	all	DROP:Drop(audit):audit  #Same as 
+						#DROP:A_DROP:audit
+
+	SOURCE	DEST	POLICY
+	net	all	DROP:Drop(-,DROP) #DROP rather than REJECT Auth
+
+    The parameters can also be specified in shorewall.conf:
+
+    Example:
+
+	DROP_DEFAULT=Drop(-,DROP)
+
+5)  An 'update' command has been added to /sbin/shorewall and
+    /sbin/shorewall6. The command updates the shorewall.conf
+    (shorewall6.conf) file then validates the configuration. The
+    updated file will set any options not specified in the old file
+    with their default values, and will move any deprecated options
+    with non-default values to a 'deprecated options' section at the
+    end of the file. Each such deprecated option will generate a
+    warning message.
+
+    Your original shorewall.conf (shorewall6.conf) file will be saved as
+    shorewall.conf.bak (shorewall6.conf.bak).
+
+    The 'update' command accepts the same options as the 'check'
+    command plus a '-a' option that causes the updated file to be
+    annotated with manpage documentation.
+
+6)  Shorewall6 now supports ipsets. 
+
+    Unlike iptables, which has separate configurations for IPv4 and
+    IPv6, ipset has a single configuration that handles both. This
+    means the SAVE_IPSETS=Yes in shorewall.conf or shorewall6.conf
+    won't work correctly. To work around this issue, Shorewall-init is
+    now capable restoring ipset contents during 'start' and saving them
+    during 'stop'. 
+
+    To direct Shorewall-init to save/restore ipset contents, set the
+    SAVE_IPSETS option in /etc/sysconfig/shorewall-init
+    (/etc/default/shorewall-init on Debian and derivatives). The value
+    of the option is a file name where the contents of the ipsets will
+    be saved to and restored from. Shorewall-init will create any
+    parent directories during the first 'save' operation.
+
+    If you configure Shorewall-init to save/restore ipsets, be sure to
+    set SAVE_IPSETS=No in shorewall.conf and shorewall6.conf.
+
+    As part of this change, Shorewall and Shorewall6 will only restore
+    saved ipsets if SAVE_IPSETS=Yes in shorewall.conf
+    (shorewall6.conf).
+
+7)  Shorewall6 now supports dynamic zones:
+
+    1) The nets=dynamic option is allowed in /etc/shorewall6/interfaces
+    2) The HOSTS column of /etc/shorewall6/hosts may now contain
+        <interface>:dynamic.
+    3) /sbin/shorewall6 now supports the 'add' and 'delete' commands.
+ 
+----------------------------------------------------------------------------
          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 0
 ----------------------------------------------------------------------------
 
@@ -564,6 +624,10 @@ V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
     it will be removed.
 
 4.4.20
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 4 . 2 1
+----------------------------------------------------------------------------
 
 1)  Previously, when a device number was explicitly specified in
     /etc/shorewall/tcdevices, all unused numbers less than the one
@@ -712,7 +776,7 @@ V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
     	and modify them to only audit the packets that you care about. 
 
 6)  Up to this release, the behaviors of 'start -f' and 'restart -f'
-    has been inconsistent. The 'start -f' command  compares the
+    have been inconsistent. The 'start -f' command compares the
     modification times of /etc/shorewall[6] with
     /var/lib/shorewall[6]/restore while 'restart -f' compares with
     /var/lib/shorewall[6]/firewall.
