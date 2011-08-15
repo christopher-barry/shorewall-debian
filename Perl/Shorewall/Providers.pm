@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_providers @routemarked_interfaces handle_stickiness handle_optional_interfaces );
 our @EXPORT_OK = qw( initialize lookup_provider );
-our $VERSION = '4.4_21';
+our $VERSION = '4.4_22';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -100,7 +100,7 @@ sub setup_route_marking() {
 
     require_capability( $_ , q(The provider 'track' option) , 's' ) for qw/CONNMARK_MATCH CONNMARK/;
 
-    add_rule $mangle_table->{$_} , "-m connmark ! --mark 0/$mask -j CONNMARK --restore-mark --mask $mask" for qw/PREROUTING OUTPUT/;
+    add_ijump $mangle_table->{$_} , j => "CONNMARK --restore-mark --mask $mask", connmark => "! --mark 0/$mask" for qw/PREROUTING OUTPUT/;
 
     my $chainref  = new_chain 'mangle', 'routemark';
     my $chainref1 = new_chain 'mangle', 'setsticky';
@@ -114,22 +114,22 @@ sub setup_route_marking() {
 	my $mark      = $providerref->{mark};
 
 	unless ( $marked_interfaces{$interface} ) {
-	    add_jump $mangle_table->{PREROUTING} , $chainref,  0, "-i $physical -m mark --mark 0/$mask ";
-	    add_jump $mangle_table->{PREROUTING} , $chainref1, 0, "! -i $physical -m mark --mark  $mark/$mask ";
-	    add_jump $mangle_table->{OUTPUT}     , $chainref2, 0, "-m mark --mark  $mark/$mask ";
+	    add_ijump $mangle_table->{PREROUTING} , j => $chainref,  i => $physical,     mark => "--mark 0/$mask";
+	    add_ijump $mangle_table->{PREROUTING} , j => $chainref1, i => "! $physical", mark => "--mark  $mark/$mask";
+	    add_ijump $mangle_table->{OUTPUT}     , j => $chainref2,                     mark => "--mark  $mark/$mask";
 	    $marked_interfaces{$interface} = 1;
 	}
 
 	if ( $providerref->{shared} ) {
 	    add_commands( $chainref, qq(if [ -n "$providerref->{mac}" ]; then) ), incr_cmd_level( $chainref ) if $providerref->{optional};
-	    add_rule $chainref, match_source_dev( $interface ) . "-m mac --mac-source $providerref->{mac} -j MARK --set-mark $providerref->{mark}";
+	    add_ijump $chainref, j => "MARK --set-mark $providerref->{mark}", imatch_source_dev( $interface ), mac => "--mac-source $providerref->{mac}";
 	    decr_cmd_level( $chainref ), add_commands( $chainref, "fi\n" ) if $providerref->{optional};
 	} else {
-	    add_rule $chainref, match_source_dev( $interface ) . "-j MARK --set-mark $providerref->{mark}";
+	    add_ijump $chainref, j => "MARK --set-mark $providerref->{mark}", imatch_source_dev( $interface );
 	}
     }
 
-    add_rule $chainref, "-m mark ! --mark 0/$mask -j CONNMARK --save-mark --mask $mask";
+    add_ijump $chainref, j => "CONNMARK --save-mark --mask $mask", mark => "! --mark 0/$mask";
 }
 
 sub copy_table( $$$ ) {
@@ -1095,7 +1095,7 @@ sub handle_stickiness( $ ) {
 	    my $base      = uc chain_base $interface;
 	    my $mark      = $providerref->{mark};
 
-	    for ( grep /-j sticky/, @{$tcpreref->{rules}} ) {
+	    for ( grep rule_target($_) eq 'sticky', @{$tcpreref->{rules}} ) {
 		my $stickyref = ensure_mangle_chain 'sticky';
 		my ( $rule1, $rule2 );
 		my $list = sprintf "sticky%03d" , $sticky++;
@@ -1103,26 +1103,32 @@ sub handle_stickiness( $ ) {
 		for my $chainref ( $stickyref, $setstickyref ) {
 		    if ( $chainref->{name} eq 'sticky' ) {
 			$rule1 = $_;
-			$rule1 =~ s/-j sticky/-m recent --name $list --update --seconds 300 -j MARK --set-mark $mark/;
+
+			set_rule_target( $rule1, 'MARK',   "--set-mark $mark" );
+			set_rule_option( $rule1, 'recent', "--name $list --update --seconds 300" );
+
 			$rule2 = $_;
-			$rule2 =~ s/-j sticky/-m mark --mark 0\/$mask -m recent --name $list --remove/;
+
+			clear_rule_target( $rule2 );
+			set_rule_option( $rule2, 'mark', "--mark 0/$mask -m recent --name $list --remove" );
 		    } else {
 			$rule1 = $_;
-			$rule1 =~ s/-j sticky/-m mark --mark $mark\/$mask -m recent --name $list --set/;
+
+			clear_rule_target( $rule1 );
+			set_rule_option( $rule1, 'mark', "--mark $mark\/$mask -m recent --name $list --set" ); 
+
 			$rule2 = '';
 		    }
 
-		    assert ( $rule1 =~ s/^-A // );
-		    add_rule $chainref, $rule1;
+		    add_trule $chainref, $rule1;
 
 		    if ( $rule2 ) {
-			assert ( $rule2 =~ s/^-A // );
-			add_rule $chainref, $rule2;
+			add_trule $chainref, $rule2;
 		    }
 		}
 	    }
 
-	    for ( grep /-j sticko/, @{$tcoutref->{rules}} ) {
+	    for ( grep rule_target( $_ ) eq 'sticko', , @{$tcoutref->{rules}} ) {
 		my ( $rule1, $rule2 );
 		my $list = sprintf "sticky%03d" , $sticky++;
 		my $stickoref = ensure_mangle_chain 'sticko';
@@ -1130,21 +1136,27 @@ sub handle_stickiness( $ ) {
 		for my $chainref ( $stickoref, $setstickoref ) {
 		    if ( $chainref->{name} eq 'sticko' ) {
 			$rule1 = $_;
-			$rule1 =~ s/-j sticko/-m recent --name $list --rdest --update --seconds 300 -j MARK --set-mark $mark/;
+
+			set_rule_target( $rule1, 'MARK',   "--set-mark $mark" );
+			set_rule_option( $rule1, 'recent', " --name $list --rdest --update --seconds 300 -j MARK --set-mark $mark" );
+
 			$rule2 = $_;
-			$rule2 =~ s/-j sticko/-m mark --mark 0\/$mask -m recent --name $list --rdest --remove/;
+			
+			clear_rule_target( $rule2 );
+			set_rule_option  ( $rule2, 'mark', "--mark 0\/$mask -m recent --name $list --rdest --remove" );
 		    } else {
 			$rule1 = $_;
-			$rule1 =~ s/-j sticko/-m mark --mark $mark -m recent --name $list --rdest --set/;
+
+			clear_rule_target( $rule1 );
+			set_rule_option  ( $rule1, 'mark', "--mark $mark -m recent --name $list --rdest --set" );
+
 			$rule2 = '';
 		    }
 
-		    assert( $rule1 =~ s/-A // );
-		    add_rule $chainref, $rule1;
+		    add_trule $chainref, $rule1;
 
 		    if ( $rule2 ) {
-			$rule2 =~ s/-A //;
-			add_rule $chainref, $rule2;
+			add_trule $chainref, $rule2;
 		    }
 		}
 	    }

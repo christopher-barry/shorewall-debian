@@ -1,26 +1,31 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
 
-2)  A harmless 'unitialized variable' diagnostic is issued by the 
-    compiler when it is displaying the capabilities.
+2)  Zone names beginning with 'all' are incorectly treated the same as
+    'all' in /etc/shorewall/rules and /etc/shorewall6/rules. This
+    defect is present in Shorewall versions 4.4.13 through 4.4.22.
 
-    Corrected in Shorewall 4.4.21.
+    Workaround: Don't give zones names that begin with 'all'.
 
-3)  As the result of a typo, an orphan filter chain named FORWAR can
-    be created under rare circumstances. This chain is deleted by
-    OPTIMIZE level 4.
+    Corrected in Shorewall 4.4.22.1.
 
-    Corrected in Shorewall 4.4.21.
+3)  When LOAD_HELPERS_ONLY=No, harmless iptables-restore warning 
+    can be generated:
 
-4)  The SNAT options --persistent and --randomize (/etc/shorewall/masq)
-    generate invalid iptables input.
+        ...
+        Running /usr/local/sbin/iptables-restore...
+	--set option deprecated, please use --match-set
+	--set option deprecated, please use --match-set
+	IPv4 Forwarding Enabled
+	...
 
-    Corrected in Shorewall 4.4.21.
+    Workaround: Simply ignore the warnings or set
+    		LOAD_HELPERS_ONLY=Yes.
 
-5)  The LOGMARK log level was generated invalid iptables  input making
-    it unusable.
+    Corrected in Shorewall 4.4.22.1.
 
-    Corrected in Shorewall 4.4.21.
+4)  On older distributions where 'shorewall show capabilities'
+    indicates 'Connection Tracking Match: Not Available', Shorewall
+    4.4.22 and 4.4.22.1 generated invalid iptables-restore input.
 
-
-
+    Corrected in Shorewall 4.4.22.2.

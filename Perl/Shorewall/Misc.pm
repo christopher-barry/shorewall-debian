@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_21';
+our $VERSION = '4.4_22';
 
 my $family;
 
@@ -136,8 +136,8 @@ sub process_tos() {
 	}
 
 	unless ( $first_entry ) {
-	    add_jump( $mangle_table->{$stdchain}, $chain,   0 ) if $pretosref->{referenced};
-	    add_jump( $mangle_table->{OUTPUT},    'outtos', 0 ) if $outtosref->{referenced};
+	    add_ijump( $mangle_table->{$stdchain}, j => $chain )   if $pretosref->{referenced};
+	    add_ijump( $mangle_table->{OUTPUT},    j => 'outtos' ) if $outtosref->{referenced};
 	}
     }
 }
@@ -178,12 +178,12 @@ sub setup_ecn()
 	    for my $interface ( @interfaces ) {
 		my $chainref = ensure_chain 'mangle', ecn_chain( $interface );
 
-		add_jump $mangle_table->{POSTROUTING} , $chainref, 0, "-p tcp " . match_dest_dev( $interface );
-		add_jump $mangle_table->{OUTPUT},       $chainref, 0, "-p tcp " . match_dest_dev( $interface );
+		add_ijump $mangle_table->{POSTROUTING} , j => $chainref, p => 'tcp', imatch_dest_dev( $interface );
+		add_ijump $mangle_table->{OUTPUT},       j => $chainref, p => 'tcp', imatch_dest_dev( $interface );
 	    }
 
 	    for my $host ( @hosts ) {
-		add_rule $mangle_table->{ecn_chain $host->[0]}, join ('', '-p tcp ', match_dest_net( $host->[1] ) , ' -j ECN --ecn-tcp-remove' );
+		add_ijump( $mangle_table->{ecn_chain $host->[0]}, j => 'ECN --ecn-tcp-remove', p => 'tcp',  imatch_dest_net( $host->[1] ) );
 	    }
 	}
     }
@@ -223,15 +223,8 @@ sub setup_blacklist() {
 
 	    log_rule_limit( $level , $logchainref , 'blacklst' , $disposition , "$globals{LOGLIMIT}" , '', 'add',	'' );
 
-	    if ( $audit ) {
-		if ( $config{FAKE_AUDIT} ) {
-		    add_rule( $logchainref, '-j AUDIT -m comment --comment "--type ' . lc $target . '"' );
-		} else {
-		    add_rule( $logchainref, '-j AUDIT --type ' . lc $target );
-		}
-	    }
-
-	    add_jump $logchainref, $target, 1;
+	    add_ijump( $logchainref, j => 'AUDIT --type ' . lc $target ) if $audit;
+	    add_ijump( $logchainref, g => $target );
 
 	    $target = 'blacklog';
 	} elsif ( $audit ) {
@@ -416,11 +409,12 @@ sub process_routestopped() {
 		my $chainref = $filter_table->{FORWARD};
 
 		for my $host ( split /,/, $hosts ) {
-		    add_rule( $chainref ,
-			      match_source_dev( $interface ) .
-			      match_dest_dev( $interface ) .
-			      match_source_net( $host ) .
-			      match_dest_net( $host ) );
+		    add_ijump( $chainref ,
+			       j => 'ACCEPT',
+			       imatch_source_dev( $interface ) ,
+			       imatch_dest_dev( $interface ) ,
+			       imatch_source_net( $host ) ,
+			       imatch_dest_net( $host ) );
 		    clearrule;
 		}
 	    }
@@ -483,48 +477,47 @@ sub add_common_rules() {
     my $chain;
     my $dynamicref;
 
-    my $state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
+    my @state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID' : ();
     my $level     = $config{BLACKLIST_LOGLEVEL};
     my $rejectref = $filter_table->{reject};
 
     if ( $config{DYNAMIC_BLACKLIST} ) {
-	add_rule_pair dont_delete( new_standard_chain( 'logdrop' ) ),   ' ' , 'DROP'   , $level ;
-	add_rule_pair dont_delete( new_standard_chain( 'logreject' ) ), ' ' , 'reject' , $level ;
+	add_rule_pair dont_delete( new_standard_chain( 'logdrop' ) ),   '' , 'DROP'   , $level ;
+	add_rule_pair dont_delete( new_standard_chain( 'logreject' ) ), '' , 'reject' , $level ;
 	$dynamicref = dont_optimize( new_standard_chain( 'dynamic' ) );
-	add_jump $filter_table->{INPUT}, $dynamicref, 0, $state;
+	add_ijump $filter_table->{INPUT}, j => $dynamicref, @state;
 	add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
     }
 
     setup_mss;
 
-    add_rule( $filter_table->{OUTPUT} , "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ) if ( $config{FASTACCEPT} );
+    add_ijump( $filter_table->{OUTPUT} , j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ) if ( $config{FASTACCEPT} );
 
     my $policy   = $config{SFILTER_DISPOSITION};
     $level       = $config{SFILTER_LOG_LEVEL};
     my $audit    = $policy =~ s/^A_//;
-    my $ipsec    = have_ipsec ? '-m policy --pol none --dir in '  : '';
+    my @ipsec    = have_ipsec ? ( policy => '--pol none --dir in' ) : ();
 
-    if ( $level || $audit || $ipsec ) {
+    if ( $level || $audit || @ipsec ) {
 	$chainref = new_standard_chain 'sfilter';
 
 	log_rule $level , $chainref , $policy , '' if $level ne '';
 	
-	add_rule( $chainref, '-j AUDIT --type ' . lc $policy ) if $audit;
+	add_ijump( $chainref, j => 'AUDIT --type ' . lc $policy ) if $audit;
 	
-	add_jump $chainref, $policy eq 'REJECT' ? 'reject' : $policy , 1;
+	add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
 	
 	$target = 'sfilter';
 
-	if ( $ipsec ) {
+	if ( @ipsec ) {
 	    $chainref = new_standard_chain 'sfilter1';
 
-	    add_rule ( $chainref, '-m policy --pol ipsec --dir out -j RETURN' );
-
+	    add_ijump ( $chainref, j => 'RETURN', policy => '--pol ipsec --dir out' );
 	    log_rule $level , $chainref , $policy , '' if $level ne '';
 	
-	    add_rule( $chainref, '-j AUDIT --type ' . lc $policy ) if $audit;
+	    add_ijump( $chainref, j => 'AUDIT --type ' . lc $policy ) if $audit;
 	
-	    add_jump $chainref, $policy eq 'REJECT' ? 'reject' : $policy , 1;
+	    add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
 	
 	    $target1 = 'sfilter1';
 	}
@@ -546,23 +539,23 @@ sub add_common_rules() {
 	    $chainref = $filter_table->{forward_chain $interface};
 	
 	    if ( @filters ) {
-		add_jump( $chainref  , $target1, ! $ipsec, match_source_net( $_ ) . $ipsec ), $chainref->{filtered}++ for @filters;
+		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
 	    } elsif ( $interfaceref->{bridge} eq $interface ) {
-		add_jump( $chainref , $target1, ! $ipsec, match_dest_dev( $interface ) . $ipsec ), $chainref->{filtered}++
+		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_dest_dev( $interface ), @ipsec ), $chainref->{filtered}++
 		    unless $interfaceref->{options}{routeback} || $interfaceref->{options}{routefilter} || $interfaceref->{physical} eq '+';
 	    }
 
-	    add_rule( $chainref,  "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ), $chainref->{filtered}++ if $config{FASTACCEPT};
-	    add_jump( $chainref, $dynamicref, 0, $state ), $chainref->{filtered}++ if $dynamicref;
+	    add_ijump( $chainref, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ), $chainref->{filtered}++ if $config{FASTACCEPT};
+	    add_ijump( $chainref, j => $dynamicref, @state ), $chainref->{filtered}++ if $dynamicref;
 
 	    $chainref = $filter_table->{input_chain $interface};
 	
 	    if ( @filters ) {
-		add_jump( $chainref  , $target, 1, match_source_net( $_ ) . $ipsec ), $chainref->{filtered}++ for @filters;
+		add_ijump( $chainref , g => $target, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
 	    }
 	
-	    add_rule( $chainref,  "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" ), $chainref->{filtered}++ if $config{FASTACCEPT};
-	    add_jump( $chainref, $dynamicref, 0, $state ), $chainref->{filtered}++ if $dynamicref;
+	    add_ijump( $chainref, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ), $chainref->{filtered}++ if $config{FASTACCEPT};
+	    add_ijump( $chainref, j => $dynamicref, @state ), $chainref->{filtered}++ if $dynamicref;
 	}
     }
 
@@ -599,15 +592,8 @@ sub add_common_rules() {
 			    '',
 			    'add',
 			    '' );
-	    if ( $smurfdest eq 'A_DROP' ) {
-		if ( $config{FAKE_AUDIT} ) {
-		    add_rule( $smurfref, '-j AUDIT -m comment --comment "--type drop"' );
-		} else {
-		    add_rule( $smurfref, '-j AUDIT --type drop' );
-		}
-	    }
- 
-	    add_rule( $smurfref, '-j DROP' );
+	    add_ijump( $smurfref, j => 'AUDIT --type drop' ) if $smurfdest eq 'A_DROP';
+	    add_ijump( $smurfref, j => 'DROP' );
 
 	    $smurfdest = 'smurflog';
 	} else {
@@ -616,12 +602,12 @@ sub add_common_rules() {
 
 	if ( have_capability( 'ADDRTYPE' ) ) {
 	    if ( $family == F_IPV4 ) {
-		add_rule $chainref , '-s 0.0.0.0 -j RETURN';
+		add_ijump $chainref , j => 'RETURN', s => '0.0.0.0';         ;
 	    } else {
-		add_rule $chainref , '-s :: -j RETURN';
+		add_ijump $chainref , j => 'RETURN', s => '::';
 	    }
 
-	    add_jump( $chainref, $smurfdest, 1, '-m addrtype --src-type BROADCAST ' ) ;
+	    add_ijump( $chainref, g => $smurfdest, addrtype => '--src-type BROADCAST' ) ;
 	} else {
 	    if ( $family == F_IPV4 ) {
 		add_commands $chainref, 'for address in $ALL_BCASTS; do';
@@ -630,27 +616,27 @@ sub add_common_rules() {
 	    }
 
 	    incr_cmd_level $chainref;
-	    add_jump( $chainref, $smurfdest, 1, '-s $address ' );
+	    add_ijump( $chainref, g => $smurfdest, s => '$address' );
 	    decr_cmd_level $chainref;
 	    add_commands $chainref, 'done';
 	}
 
 	if ( $family == F_IPV4 ) {
-	    add_jump( $chainref, $smurfdest, 1, '-s 224.0.0.0/4 ' );
+	    add_ijump( $chainref, g => $smurfdest, s => '224.0.0.0/4' );
 	} else {
-	    add_jump( $chainref, $smurfdest, 1, '-s ' . IPv6_MULTICAST . ' ' );
+	    add_ijump( $chainref, g => $smurfdest, s => IPv6_MULTICAST );
 	}
 
-	my $state = $globals{UNTRACKED} ? '-m state --state NEW,INVALID,UNTRACKED ' : "$globals{STATEMATCH} NEW,INVALID ";
+	my @state = $globals{UNTRACKED} ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID';
 
 	for my $hostref  ( @$list ) {
 	    $interface     = $hostref->[0];
 	    my $ipsec      = $hostref->[1];
-	    my $policy     = have_ipsec ? "-m policy --pol $ipsec --dir in " : '';
+	    my @policy     = have_ipsec ? ( policy => "--pol $ipsec --dir in" ) : ();
 	    my $target     = source_exclusion( $hostref->[3], $chainref );
 
 	    for $chain ( first_chains $interface ) {
-		add_jump $filter_table->{$chain} , $target, 0, join( '', $state, match_source_net( $hostref->[2] ),  $policy );
+		add_ijump( $filter_table->{$chain} , j => $target, @state, imatch_source_net( $hostref->[2] ), @policy );
 	    }
 
 	    set_interface_option $interface, 'use_input_chain', 1;
@@ -659,7 +645,7 @@ sub add_common_rules() {
     }
 
     if ( have_capability( 'ADDRTYPE' ) ) {
-	add_rule $rejectref , '-m addrtype --src-type BROADCAST -j DROP';
+	add_ijump $rejectref , j => 'DROP' , addrtype => '--src-type BROADCAST';
     } else {
 	if ( $family == F_IPV4 ) {
 	    add_commands $rejectref, 'for address in $ALL_BCASTS; do';
@@ -668,32 +654,32 @@ sub add_common_rules() {
 	}
 
 	incr_cmd_level $rejectref;
-	add_rule $rejectref, '-d $address -j DROP';
+	add_ijump $rejectref, j => 'DROP', d => '$address';
 	decr_cmd_level $rejectref;
 	add_commands $rejectref, 'done';
     }
 
     if ( $family == F_IPV4 ) {
-	add_rule $rejectref , '-s 224.0.0.0/4 -j DROP';
+	add_ijump $rejectref , j => 'DROP', s => '224.0.0.0/4';
     } else {
-	add_rule $rejectref , '-s ' . IPv6_MULTICAST . ' -j DROP';
+	add_ijump $rejectref , j => 'DROP', s => IPv6_MULTICAST;
     }
 
-    add_rule $rejectref , '-p 2 -j DROP';
-    add_rule $rejectref , '-p 6 -j REJECT --reject-with tcp-reset';
+    add_ijump $rejectref , j => 'DROP', p => 2;
+    add_ijump $rejectref , j => 'REJECT --reject-with tcp-reset', p => 6;
 
     if ( have_capability( 'ENHANCED_REJECT' ) ) {
-	add_rule $rejectref , '-p 17 -j REJECT';
+	add_ijump $rejectref , j => 'REJECT', p => 17;
 
 	if ( $family == F_IPV4 ) {
-	    add_rule $rejectref, '-p 1 -j REJECT --reject-with icmp-host-unreachable';
-	    add_rule $rejectref, '-j REJECT --reject-with icmp-host-prohibited';
+	    add_ijump $rejectref, j => 'REJECT --reject-with icmp-host-unreachable', p => 1;
+	    add_ijump $rejectref, j => 'REJECT --reject-with icmp-host-prohibited';
 	} else {
-	    add_rule $rejectref, '-p 58 -j REJECT --reject-with icmp6-addr-unreachable';
-	    add_rule $rejectref, '-j REJECT --reject-with icmp6-adm-prohibited';
+	    add_ijump $rejectref, j => 'REJECT --reject-with icmp6-addr-unreachable', p => 58;
+	    add_ijump $rejectref, j => 'REJECT --reject-with icmp6-adm-prohibited';
 	}
     } else {
-	add_rule $rejectref , '-j REJECT';
+	add_ijump $rejectref , j => 'REJECT';
     }
 
     $list = find_interfaces_by_option 'dhcp';
@@ -706,15 +692,15 @@ sub add_common_rules() {
 	for $interface ( @$list ) {
 	    set_interface_option $interface, 'use_input_chain', 1;
 	    set_interface_option $interface, 'use_forward_chain', 1;
+	    
+	    set_rule_option( add_ijump( $filter_table->{$_} , j => 'ACCEPT', p => "udp --dport $ports" ) ,
+			     'dhcp',
+			     1 ) for input_chain( $interface ), output_chain( $interface );
 
-	    for $chain ( input_chain $interface, output_chain $interface ) {
-		add_rule $filter_table->{$chain} , "-p udp --dport $ports -j ACCEPT";
-	    }
-
-	    add_rule( $filter_table->{forward_chain $interface} ,
-		      "-p udp " .
-		      match_dest_dev( $interface ) .
-		      "--dport $ports -j ACCEPT" )
+	    add_ijump( $filter_table->{forward_chain $interface} ,
+		       j => 'ACCEPT', 
+		       p =>  "udp --dport $ports" ,
+		       imatch_dest_dev( $interface ) )
 		if get_interface_option( $interface, 'bridge' );
 	}
     }
@@ -743,18 +729,13 @@ sub add_common_rules() {
 
 	    if ( $audit ) {
 		$disposition =~ s/^A_//;
-		
-		if ( $config{FAKE_AUDIT} ) {
-		    add_rule( $logflagsref, '-j AUDIT -m comment --comment "--type ' . lc $disposition . '"' );
-		} else {
-		    add_rule( $logflagsref, '-j AUDIT --type ' . lc $disposition );
-		}
+		add_ijump( $logflagsref, j => 'AUDIT --type ' . lc $disposition );
 	    }
 
 	    if ( $disposition eq 'REJECT' ) {
-		add_rule $logflagsref , '-p 6 -j REJECT --reject-with tcp-reset';
+		add_ijump $logflagsref , j => 'REJECT --reject-with tcp-reset', p => 6;
 	    } else {
-		add_rule $logflagsref , "-j $disposition";
+		add_ijump $logflagsref , j => $disposition;
 	    }
 
 	    $disposition = 'logflags';
@@ -763,19 +744,19 @@ sub add_common_rules() {
 	    verify_audit( $disposition );
 	}
 
-	add_jump $chainref , $disposition, 1, '-p tcp --tcp-flags ALL FIN,URG,PSH ';
-	add_jump $chainref , $disposition, 1, '-p tcp --tcp-flags ALL NONE ';
-	add_jump $chainref , $disposition, 1, '-p tcp --tcp-flags SYN,RST SYN,RST ';
-	add_jump $chainref , $disposition, 1, '-p tcp --tcp-flags SYN,FIN SYN,FIN ';
-	add_jump $chainref , $disposition, 1, '-p tcp --syn --sport 0 ';
+	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ALL FIN,URG,PSH';
+	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ALL NONE';
+	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags SYN,RST SYN,RST';
+	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags SYN,FIN SYN,FIN';
+	add_ijump $chainref , g => $disposition, p => 'tcp --syn --sport 0';
 
 	for my $hostref  ( @$list ) {
 	    my $interface  = $hostref->[0];
 	    my $target     = source_exclusion( $hostref->[3], $chainref );
-	    my $policy     = have_ipsec ? "-m policy --pol $hostref->[1] --dir in " : '';
+	    my @policy     = have_ipsec ? ( policy => "--pol $hostref->[1] --dir in" ) : ();
 
 	    for $chain ( first_chains $interface ) {
-		add_jump $filter_table->{$chain} , $target, 0, join( '', '-p tcp ', match_source_net( $hostref->[2] ), $policy );
+		add_ijump( $filter_table->{$chain} , j => $target, p => 'tcp', imatch_source_net( $hostref->[2] ), @policy );
 	    }
 	    set_interface_option $interface, 'use_input_chain', 1;
 	    set_interface_option $interface, 'use_forward_chain', 1;
@@ -797,7 +778,7 @@ sub add_common_rules() {
 	    $announced = 1;
 
 	    for $interface ( @$list ) {
-		add_jump $nat_table->{PREROUTING} , 'UPnP', 0, match_source_dev ( $interface );
+		add_ijump $nat_table->{PREROUTING} , j => 'UPnP', imatch_source_dev ( $interface );
 	    }
 	}
 
@@ -813,11 +794,13 @@ sub add_common_rules() {
 
 		if ( interface_is_optional $interface ) {
 		    add_commands( $chainref,
-				  qq(if [ -n "SW_\$${base}_IS_USABLE" -a -n "$variable" ]; then) ,
-				  '    echo "-A ' . match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT" >&3) ,
-				  qq(fi) );
+				  qq(if [ -n "SW_\$${base}_IS_USABLE" -a -n "$variable" ]; then) );
+		    incr_cmd_level( $chainref );
+		    add_ijump( $chainref, j => 'ACCEPT', imatch_source_dev( $interface ), s => $variable, p => 'udp' );
+		    decr_cmd_level( $chainref );
+		    add_commands( $chainref, 'fi' );
 		} else {
-		    add_rule( $chainref, match_source_dev( $interface ) . qq(-s $variable -p udp -j ACCEPT) );
+		    add_ijump( $chainref, j => 'ACCEPT', imatch_source_dev( $interface ), s => $variable, p => 'udp' );
 		}
 	    }
 	}
@@ -861,18 +844,18 @@ sub setup_mac_lists( $ ) {
 	    my $chainref = new_chain $table , mac_chain $interface;
 
 	    if ( $family == F_IPV4 ) {
-		add_rule $chainref , '-s 0.0.0.0 -d 255.255.255.255 -p udp --dport 67:68 -j RETURN'
+		add_ijump $chainref , j => 'RETURN', s => '0.0.0.0', d => '255.255.255.255', p => 'udp --dport 67:68'
 		    if $table eq 'mangle'  && get_interface_option( $interface, 'dhcp');
 	    } else {
 		#
 		# Accept any packet with a link-level source or destination address
 		#
-		add_rule $chainref , '-s ff80::/10 -j RETURN';
-		add_rule $chainref , '-d ff80::/10 -j RETURN';
+		add_ijump $chainref , j => 'RETURN', s => 'ff80::/10';
+		add_ijump $chainref , j => 'RETURN', d => 'ff80::/10';
 		#
 		# Accept Multicast
 		#
-		add_rule $chainref , '-d ' . IPv6_MULTICAST . ' -j RETURN';
+		add_ijump $chainref , j => 'RETURN', d => IPv6_MULTICAST;
 	    }
 
 	    if ( $ttl ) {
@@ -880,10 +863,10 @@ sub setup_mac_lists( $ ) {
 
 		my $chain = $chainref->{name};
 
-		add_rule $chainref, "-m recent --rcheck --seconds $ttl --name $chain -j RETURN";
-		add_jump $chainref, $chain1ref, 0;
-		add_rule $chainref, "-m recent --update --name $chain -j RETURN";
-		add_rule $chainref, "-m recent --set --name $chain";
+		add_ijump $chainref,  j => 'RETURN', recent => "--rcheck --seconds $ttl --name $chain";
+		add_ijump  $chainref, j => $chain1ref;
+		add_ijump $chainref,  j => 'RETURN', recent => "--update --name $chain";
+		add_irule $chainref,  recent => "--set --name $chain";
 	    }
 	}
 
@@ -915,7 +898,7 @@ sub setup_mac_lists( $ ) {
 
 		    fatal_error "You must specify a MAC address or an IP address" unless $mac || $addresses;
 
-		    $mac = mac_match $mac if $mac;
+		    $mac = do_mac $mac if $mac;
 
 		    if ( $addresses ) {
 			for my $address ( split ',', $addresses ) {
@@ -923,29 +906,15 @@ sub setup_mac_lists( $ ) {
 			    log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , "${mac}${source}"
 				if supplied $level;
 			    
-			    if ( $audit && $disposition ne 'ACCEPT' ) {
-				if ( $config{FAKE_AUDIT} ) {
-				    add_rule( $chainref , '-j AUDIT -m comment --comment "--type ' . lc $disposition . '"' );
-				} else {
-				    add_rule( $chainref , '-j AUDIT --type ' . lc $disposition );
-				}
-			    }
-
-			    add_jump $chainref , $targetref->{target}, 0, "${mac}${source}";
+			    add_ijump( $chainref , j => 'AUDIT --type ' . lc $disposition ) if $audit && $disposition ne 'ACCEPT';
+			    add_jump( $chainref , $targetref->{target}, 0, "${mac}${source}" );
 			}
 		    } else {
 			log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , $mac
 			    if supplied $level;
 
-			if ( $audit && $disposition ne 'ACCEPT' ) {
-			    if ( $config{FAKE_AUDIT} ) {
-				add_rule( $chainref , '-j AUDIT -m comment --comment "--type ' . lc $disposition . '"' );
-			    } else {
-				add_rule( $chainref , '-j AUDIT --type ' . lc $disposition );
-			    }
-			}
-
-			add_jump $chainref , $targetref->{target}, 0, "$mac";
+			add_ijump( $chainref , j => 'AUDIT --type ' . lc $disposition ) if $audit && $disposition ne 'ACCEPT';
+			add_jump ( $chainref , $targetref->{target}, 0, "$mac" );
 		    }
 
 		    progress_message "      Maclist entry \"$currentline\" $done";
@@ -960,23 +929,23 @@ sub setup_mac_lists( $ ) {
 	for my $hostref ( @$maclist_hosts ) {
 	    my $interface  = $hostref->[0];
 	    my $ipsec      = $hostref->[1];
-	    my $policy     = have_ipsec ? "-m policy --pol $ipsec --dir in " : '';
-	    my $source     = match_source_net $hostref->[2];
+	    my @policy     = have_ipsec ? ( policy => "--pol $ipsec --dir in" ) : ();
+	    my @source     = imatch_source_net $hostref->[2];
 
-	    my $state = $globals{UNTRACKED} ? '-m state --state NEW,UNTRACKED' : "$globals{STATEMATCH} NEW";
+	    my @state = $globals{UNTRACKED} ? state_imatch 'NEW,UNTRACKED' : state_imatch 'NEW';
 
 	    if ( $table eq 'filter' ) {
 		my $chainref = source_exclusion( $hostref->[3], $filter_table->{mac_chain $interface} );
 
 		for my $chain ( first_chains $interface ) {
-		    add_jump $filter_table->{$chain} , $chainref, 0, "${source}${state} ${policy}";
+		    add_ijump $filter_table->{$chain} , j => $chainref, @source, @state, @policy;
 		}
 
 		set_interface_option $interface, 'use_input_chain', 1;
 		set_interface_option $interface, 'use_forward_chain', 1;
 	    } else {
 		my $chainref = source_exclusion( $hostref->[3], $mangle_table->{mac_chain $interface} );
-		add_jump $mangle_table->{PREROUTING}, $chainref, 0, match_source_dev( $interface ) . "${source}${state} ${policy}";
+		add_ijump $mangle_table->{PREROUTING}, j => $chainref, imatch_source_dev( $interface ), @source, @state, @policy;
 	    }
 	}
     } else {
@@ -992,35 +961,38 @@ sub setup_mac_lists( $ ) {
 		    my $variable = get_interface_addresses source_port_to_bridge( $interface );
 
 		    if ( have_capability( 'ADDRTYPE' ) ) {
-			add_commands( $chainref,
-				      "for address in $variable; do",
-				      "    echo \"-A -s \$address -m addrtype --dst-type BROADCAST -j RETURN\" >&3",
-				      "    echo \"-A -s \$address -d 224.0.0.0/4 -j RETURN\" >&3",
-				      'done' );
+			add_commands( $chainref, "for address in $variable; do" );
+			incr_cmd_level( $chainref );
+			add_ijump( $chainref, j => 'RETURN', s => '$address', addrtype => '--dst-type BROADCAST' );
+			add_ijump( $chainref, j => 'RETURN', s => '$address', d => '224.0.0.0/4' );
+			decr_cmd_level( $chainref );
+			add_commands( $chainref, 'done' );
 		    } else {
 			my $bridge    = source_port_to_bridge( $interface );
 			my $bridgeref = find_interface( $bridge );
 
 			add_commands( $chainref,
 				      "for address in $variable; do" );
+			incr_cmd_level( $chainref );
 
 			if ( $bridgeref->{broadcasts} ) {
 			    for my $address ( @{$bridgeref->{broadcasts}}, '255.255.255.255' ) {
-				add_commands( $chainref ,
-					      "    echo \"-A -s \$address -d $address -j RETURN\" >&3" );
+				add_ijump( $chainref, j => 'RETURN', s => '$address', d => $address );
 			    }
 			} else {
 			    my $variable1 = get_interface_bcasts $bridge;
 
 			    add_commands( $chainref,
-					  "    for address1 in $variable1; do" ,
-					  "        echo \"-A -s \$address -d \$address1 -j RETURN\" >&3",
-					  "    done" );
+					  "    for address1 in $variable1; do" );
+			    incr_cmd_level( $chainref );
+			    add_ijump( $chainref, j => 'RETURN', s => '$address', d => '$address1' );
+			    decr_cmd_level( $chainref );
+			    add_commands( $chainref, 'done' );
 			}
 
-			add_commands( $chainref
-				      , "    echo \"-A -s \$address -d 224.0.0.0/4 -j RETURN\" >&3" ,
-				      , 'done' );
+			add_ijump( $chainref, j => 'RETURN', s => '$address', d => '224.0.0.0/4' );
+			decr_cmd_level( $chainref );
+			add_commands( $chainref, 'done' );
 		    }
 		}
 	    }
@@ -1028,7 +1000,7 @@ sub setup_mac_lists( $ ) {
 	    run_user_exit2( 'maclog', $chainref );
 
 	    log_rule_limit $level, $chainref , $chain , $disposition, '', '', 'add', '' if $level ne '';
-	    add_jump $chainref, $target, 0;
+	    add_ijump $chainref, j => $target;
 	}
     }
 }
@@ -1062,8 +1034,8 @@ sub rules_target( $$ ) {
 #
 # Generate rules for one destination zone
 #
-sub generate_dest_rules( $$$$ ) {
-    my ( $chainref, $chain, $z2, $match ) = @_;
+sub generate_dest_rules( $$$;@ ) {
+    my ( $chainref, $chain, $z2, @matches ) = @_;
 
     my $z2ref            = find_zone( $z2 );
     my $type2            = $z2ref->{type};
@@ -1073,22 +1045,22 @@ sub generate_dest_rules( $$$$ ) {
 	    my $exclusion = dest_exclusion( $hostref->{exclusions}, $chain);
 
 	    for my $net ( @{$hostref->{hosts}} ) {
-		add_jump( $chainref,
-			  $exclusion ,
-			  0,
-			  join('', $match, match_dest_net( $net ) ) )
+		add_ijump( $chainref,
+			   j => $exclusion ,
+			   imatch_dest_net ( $net ),
+			   @matches );
 	    }
 	}
     } else {
-	add_jump( $chainref, $chain, 0, $match );
+	add_ijump( $chainref, j => $chain, @matches );
     }
 }
 
 #
 # Generate rules for one vserver source zone
 #
-sub generate_source_rules( $$$$ ) {
-    my ( $outchainref, $z1, $z2, $match ) = @_;
+sub generate_source_rules( $$$;@ ) {
+    my ( $outchainref, $z1, $z2, @matches ) = @_;
     my $chain = rules_target ( $z1, $z2 );
 
     if ( $chain ) {
@@ -1096,14 +1068,16 @@ sub generate_source_rules( $$$$ ) {
 	# Not a CONTINUE policy with no rules
 	#
 	for my $hostref ( @{defined_zone( $z1 )->{hosts}{ip}{'%vserver%'}} ) {
-	    my $ipsec_match = match_ipsec_in $z1 , $hostref;
+	    my @ipsec_match = match_ipsec_in $z1 , $hostref;
 	    my $exclusion   = source_exclusion( $hostref->{exclusions}, $chain);
 
 	    for my $net ( @{$hostref->{hosts}} ) {
 		generate_dest_rules( $outchainref,
 				     $exclusion,
 				     $z2,
-				     join('', match_source_net( $net ), $match , $ipsec_match )
+				     imatch_source_net( $net ),
+				     @matches ,
+				     @ipsec_match
 				   );
 	    }
 	}
@@ -1119,14 +1093,14 @@ sub handle_loopback_traffic() {
     my $rulenum = 0;
 
     my $outchainref;
-    my $rule = '';
+    my @rule;
 
     if ( @zones > 1 ) {
 	$outchainref = new_standard_chain 'loopback';
-	add_jump $filter_table->{OUTPUT}, $outchainref, 0, '-o lo ';
+	add_ijump $filter_table->{OUTPUT}, j => $outchainref, o => 'lo';
     } else {
 	$outchainref = $filter_table->{OUTPUT};
-	$rule = '-o lo ';
+	@rule = ( o => 'lo');
     }
 
     for my $z1 ( @zones ) {
@@ -1138,11 +1112,11 @@ sub handle_loopback_traffic() {
 	    for my $z2 ( @zones ) {
 		my $chain = rules_target( $z1, $z2 );
 
-		generate_dest_rules( $outchainref, $chain, $z2, $rule ) if $chain;
+		generate_dest_rules( $outchainref, $chain, $z2, @rule ) if $chain;
 	    }
 	} else {
 	    for my $z2 ( @zones ) {
-		generate_source_rules( $outchainref, $z1, $z2, $rule );
+		generate_source_rules( $outchainref, $z1, $z2, @rule );
 	    }
 	}
 
@@ -1154,14 +1128,17 @@ sub handle_loopback_traffic() {
 		    my $exclusion   = source_exclusion( $hostref->{exclusions}, $natref);
 
 		    for my $net ( @{$hostref->{hosts}} ) {
-			add_jump( $natout, $exclusion, 0, match_source_net( $net ), 0, $rulenum++ );
+			insert_ijump( $natout, 
+				      j => $exclusion,
+				      $rulenum++,
+				      imatch_source_net( $net , 0, ) );
 		    }
 		}
 	    }
 	}
     }
 
-    add_rule $filter_table->{INPUT}  , '-i lo -j ACCEPT';
+    add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => 'lo';
 }
 
 #
@@ -1175,17 +1152,17 @@ sub add_interface_jumps {
     # Add Nat jumps
     #
     for my $interface ( @_ ) {
-	addnatjump 'POSTROUTING' , snat_chain( $interface ), match_dest_dev( $interface );
+	addnatjump 'POSTROUTING' , snat_chain( $interface ), imatch_dest_dev( $interface );
     }
 
-    addnatjump 'PREROUTING'  , 'nat_in'  , '';
-    addnatjump 'POSTROUTING' , 'nat_out' , '';
-    addnatjump 'PREROUTING', 'dnat', '';
+    addnatjump 'PREROUTING'  , 'nat_in';
+    addnatjump 'POSTROUTING' , 'nat_out';
+    addnatjump 'PREROUTING', 'dnat';
 
     for my $interface ( grep $_ ne '%vserver%', @_ ) {
-	addnatjump 'PREROUTING'  , input_chain( $interface )  , match_source_dev( $interface );
-	addnatjump 'POSTROUTING' , output_chain( $interface ) , match_dest_dev( $interface );
-	addnatjump 'POSTROUTING' , masq_chain( $interface ) , match_dest_dev( $interface );
+	addnatjump 'PREROUTING'  , input_chain( $interface )  , imatch_source_dev( $interface );
+	addnatjump 'POSTROUTING' , output_chain( $interface ) , imatch_dest_dev( $interface );
+	addnatjump 'POSTROUTING' , masq_chain( $interface ) , imatch_dest_dev( $interface );
     }
     #
     # Add the jumps to the interface chains from filter FORWARD, INPUT, OUTPUT
@@ -1198,37 +1175,36 @@ sub add_interface_jumps {
 
 	if ( $interfaceref->{options}{port} ) {
 	    my $bridge = $interfaceref->{bridge};
-	    add_rule ( $filter_table->{forward_chain $bridge},
-		       match_source_dev( $interface, 1) . match_dest_dev( $interface, 1) . '-j ACCEPT'
+	    add_ijump ( $filter_table->{forward_chain $bridge},
+			j => 'ACCEPT',
+			imatch_source_dev( $interface, 1),
+			imatch_dest_dev( $interface, 1)
 		     ) unless $interfaceref->{nets} || ! $interfaceref->{options}{bridge};
 
-	    add_jump( $filter_table->{forward_chain $bridge} ,
-		      $forwardref , 
-		      0, 
-		      match_source_dev( $interface, 1 )
-		    ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
+	    add_ijump( $filter_table->{forward_chain $bridge} ,
+		       j => $forwardref , 
+		       imatch_source_dev( $interface, 1 )
+		     ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
 
-	    add_jump( $filter_table->{input_chain $bridge },
-		      $inputref ,
-		      0,
-		      match_source_dev( $interface, 1 )
+	    add_ijump( $filter_table->{input_chain $bridge },
+		       j => $inputref ,
+		       imatch_source_dev( $interface, 1 )
 		    ) unless $input_jump_added{$interface}   || ! use_input_chain $interface, $inputref;
 
 	    unless ( $output_jump_added{$interface} || ! use_output_chain $interface, $outputref ) {
-		add_jump( $filter_table->{output_chain $bridge} ,
-			  $outputref ,
-			  0 ,
-			  match_dest_dev( $interface, 1 ) )
+		add_ijump( $filter_table->{output_chain $bridge} ,
+			   j => $outputref ,
+			   imatch_dest_dev( $interface, 1 ) )
 		    unless get_interface_option( $interface, 'port' );
 	    }
 	} else {
-	    add_rule ( $filter_table->{FORWARD}, match_source_dev( $interface) . match_dest_dev( $interface) . '-j ACCEPT' ) unless $interfaceref->{nets} || ! $interfaceref->{options}{bridge};
+	    add_ijump ( $filter_table->{FORWARD}, j => 'ACCEPT', imatch_source_dev( $interface) , imatch_dest_dev( $interface) ) unless $interfaceref->{nets} || ! $interfaceref->{options}{bridge};
 
-	    add_jump( $filter_table->{FORWARD} , $forwardref , 0, match_source_dev( $interface ) ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
-	    add_jump( $filter_table->{INPUT}   , $inputref ,   0, match_source_dev( $interface ) ) unless $input_jump_added{$interface}   || ! use_input_chain $interface, $inputref;
+	    add_ijump( $filter_table->{FORWARD} , j => $forwardref , imatch_source_dev( $interface ) ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
+	    add_ijump( $filter_table->{INPUT}   , j => $inputref ,   imatch_source_dev( $interface ) ) unless $input_jump_added{$interface}   || ! use_input_chain $interface, $inputref;
 
 	    unless ( $output_jump_added{$interface} || ! use_output_chain $interface, $outputref ) {
-		add_jump $filter_table->{OUTPUT} , $outputref , 0, match_dest_dev( $interface ) unless get_interface_option( $interface, 'port' );
+		add_ijump $filter_table->{OUTPUT} , j => $outputref , imatch_dest_dev( $interface ) unless get_interface_option( $interface, 'port' );
 	    }
 	}
     }
@@ -1258,7 +1234,7 @@ sub generate_matrix() {
     my @vservers = vserver_zones;
     
     my $notrackref = $raw_table->{notrack_chain $fw};
-    my $state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? "$globals{STATEMATCH} NEW,INVALID,UNTRACKED " : "$globals{STATEMATCH} NEW,INVALID " : '';
+    my @state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID' : ();
     my $interface_jumps_added = 0;
 
     our %input_jump_added   = ();
@@ -1280,7 +1256,7 @@ sub generate_matrix() {
 	#
 	if ( $zoneref->{options}{in}{blacklist} ) {
 	    my $blackref = $filter_table->{blacklst};
-	    add_jump ensure_rules_chain( rules_chain( $zone, $_ ) ) , $blackref , 0, $state, 0, -1 for firewall_zone, @vservers;
+	    insert_ijump ensure_rules_chain( rules_chain( $zone, $_ ) ) , j => $blackref , -1, @state for firewall_zone, @vservers;
 
 	    if ( $simple ) {
 		#
@@ -1291,7 +1267,7 @@ sub generate_matrix() {
 		    my $ruleschainref = $filter_table->{$ruleschain};
 
 		    if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
-			add_jump( ensure_rules_chain( $ruleschain ), $blackref, 0, $state, 0, -1 );
+			insert_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, -1, @state );
 		    }
 		}
 	    }
@@ -1299,14 +1275,14 @@ sub generate_matrix() {
 
 	if ( $zoneref->{options}{out}{blacklist} ) {
 	    my $blackref = $filter_table->{blackout};
-	    add_jump ensure_rules_chain( rules_chain( firewall_zone, $zone ) ) , $blackref , 0, $state, 0, -1;
+	    insert_ijump ensure_rules_chain( rules_chain( firewall_zone, $zone ) ) , j => $blackref , -1, @state;
 
 	    for my $zone1 ( @zones, @vservers ) {
 		my $ruleschain    = rules_chain( $zone1, $zone );
 		my $ruleschainref = $filter_table->{$ruleschain};
 
 		if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
-		    add_jump( ensure_rules_chain( $ruleschain ), $blackref, 0, $state, 0, -1 );
+		    insert_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, -1, @state );
 		}
 	    }
 	}
@@ -1318,7 +1294,7 @@ sub generate_matrix() {
 	#
 	my $frwd_ref = new_standard_chain zone_forward_chain( $zone );
 
-	add_jump $frwd_ref , $filter_table->{blacklst}, 0, $state, 0, -1 if $zoneref->{options}{in}{blacklist};
+	insert_ijump $frwd_ref , j => $filter_table->{blacklst}, -1, @state if $zoneref->{options}{in}{blacklist};
 
 	if ( have_ipsec ) {
 	    #
@@ -1331,30 +1307,29 @@ sub generate_matrix() {
 
 	    for my $interface ( sort { interface_number( $a ) <=> interface_number( $b ) } keys %$source_ref ) {
 		my $sourcechainref = $filter_table->{forward_chain $interface};
-		my $interfacematch = '';
+		my @interfacematch;
 		my $interfaceref = find_interface $interface;
 
 		if ( use_forward_chain( $interface, $sourcechainref ) ) {
 		    if ( $interfaceref->{ports} && $interfaceref->{options}{bridge} ) {
-			$interfacematch = match_source_dev $interface;
+			@interfacematch = imatch_source_dev $interface;
 			copy_rules( $sourcechainref, $frwd_ref, 1 ) unless $ipsec_jump_added{$zone}++;
 			$sourcechainref = $filter_table->{FORWARD};
 		    } elsif ( $interfaceref->{options}{port} ) {
-			add_jump( $filter_table->{ forward_chain $interfaceref->{bridge} } ,
-				  $sourcechainref ,
-				  0 ,
-				  match_source_dev( $interface , 1 ) )
+			add_ijump( $filter_table->{ forward_chain $interfaceref->{bridge} } ,
+				   j => $sourcechainref ,
+				   imatch_source_dev( $interface , 1 ) )
 			    unless $forward_jump_added{$interface}++;
 		    } else {
-			add_jump $filter_table->{FORWARD} , $sourcechainref, 0 , match_source_dev( $interface ) unless $forward_jump_added{$interface}++;
+			add_ijump $filter_table->{FORWARD} , j => $sourcechainref, imatch_source_dev( $interface ) unless $forward_jump_added{$interface}++;
 		    }
 		} else {
 		    if ( $interfaceref->{options}{port} ) {
 			$sourcechainref = $filter_table->{ forward_chain $interfaceref->{bridge} };
-			$interfacematch = match_source_dev $interface, 1;
+			@interfacematch = imatch_source_dev $interface, 1;
 		    } else {
 			$sourcechainref = $filter_table->{FORWARD};
-			$interfacematch = match_source_dev $interface;
+			@interfacematch = imatch_source_dev $interface;
 		    }
 
 		    move_rules( $filter_table->{forward_chain $interface} , $frwd_ref );
@@ -1363,14 +1338,15 @@ sub generate_matrix() {
 		my $arrayref = $source_ref->{$interface};
 
 		for my $hostref ( @{$arrayref} ) {
-		    my $ipsec_match = match_ipsec_in $zone , $hostref;
+		    my @ipsec_match = match_ipsec_in $zone , $hostref;
 		    for my $net ( @{$hostref->{hosts}} ) {
-			add_jump(
-				 $sourcechainref,
-				 source_exclusion( $hostref->{exclusions}, $frwd_ref ),
-				 ! @{$zoneref->{parents}},
-				 join( '', $interfacematch , match_source_net( $net ), $ipsec_match )
-				);
+			add_ijump(
+				  $sourcechainref,
+				  @{$zoneref->{parents}} ? 'j' : 'g' => source_exclusion( $hostref->{exclusions}, $frwd_ref ),
+				  @interfacematch ,
+				  imatch_source_net( $net ),
+				  @ipsec_match
+				 );
 		    }
 		}
 	    }
@@ -1380,7 +1356,7 @@ sub generate_matrix() {
     #
     # NOTRACK from firewall
     #
-    add_jump $raw_table->{OUTPUT}, $notrackref, 0 if $notrackref->{referenced};
+    add_ijump $raw_table->{OUTPUT}, j => $notrackref if $notrackref->{referenced};
     #
     # Main source-zone matrix-generation loop
     #
@@ -1455,52 +1431,51 @@ sub generate_matrix() {
 		}
 
 		for my $hostref ( @$arrayref ) {
-		    my $ipsec_in_match  = match_ipsec_in  $zone , $hostref;
-		    my $ipsec_out_match = match_ipsec_out $zone , $hostref;
+		    my @ipsec_in_match  = match_ipsec_in  $zone , $hostref;
+		    my @ipsec_out_match = match_ipsec_out $zone , $hostref;
 		    my $exclusions = $hostref->{exclusions};
 
 		    for my $net ( @{$hostref->{hosts}} ) {
-			my $dest   = match_dest_net $net;
+			my @dest   = imatch_dest_net $net;
 
 			if ( $chain1 && zone_type ( $zone) != BPORT ) {
 			    my $chain1ref = $filter_table->{$chain1};
 			    my $nextchain = dest_exclusion( $exclusions, $chain1 );
 			    my $outputref;
 			    my $interfacechainref = $filter_table->{output_chain $interface};
-			    my $interfacematch = '';
+			    my @interfacematch;
 			    my $use_output = 0;
 
 			    if ( @vservers || use_output_chain( $interface, $interfacechainref ) || ( @{$interfacechainref->{rules}} && ! $chain1ref ) ) {
 				$outputref = $interfacechainref;
 
 				if ( $isport ) {
-				    add_jump( $filter_table->{ output_chain $bridge },
-					      $outputref ,
-					      0 ,
-					      match_dest_dev( $interface, 1 ) )
+				    add_ijump( $filter_table->{ output_chain $bridge },
+					       j => $outputref ,
+					       imatch_dest_dev( $interface, 1 ) )
 					unless $output_jump_added{$interface}++;
 				} else {
-				    add_jump $filter_table->{OUTPUT}, $outputref, 0, match_dest_dev( $interface ) unless $output_jump_added{$interface}++;
+				    add_ijump $filter_table->{OUTPUT}, j => $outputref, imatch_dest_dev( $interface ) unless $output_jump_added{$interface}++;
 				}
 
 				$use_output = 1;
 
 				unless ( lc $net eq IPv6_LINKLOCAL ) {
 				    for my $vzone ( vserver_zones ) {
-					generate_source_rules ( $outputref, $vzone, $zone, $dest );
+					generate_source_rules ( $outputref, $vzone, $zone, @dest );
 				    }
 				}
 			    } elsif ( $isport ) {
 				$outputref = $filter_table->{ output_chain $bridge };
-				$interfacematch = match_dest_dev $interface, 1;
+				@interfacematch = imatch_dest_dev $interface, 1;
 			    } else {
 				$outputref = $filter_table->{OUTPUT};
-				$interfacematch = match_dest_dev $interface;
+				@interfacematch = imatch_dest_dev $interface;
 			    }
 
-			    add_jump $outputref , $nextchain, 0, join( '', $interfacematch, $dest, $ipsec_out_match );
+			    add_ijump $outputref , j => $nextchain, @interfacematch, @dest, @ipsec_out_match;
 
-			    add_jump( $outputref , $nextchain, 0, join('', $interfacematch, '-d 255.255.255.255 ' , $ipsec_out_match ) )
+			    add_ijump( $outputref , j => $nextchain, @interfacematch, d => '255.255.255.255' , @ipsec_out_match )
 				if $family == F_IPV4 && $hostref->{options}{broadcast};
 
 			    move_rules( $interfacechainref , $chain1ref ) unless $use_output;
@@ -1510,26 +1485,27 @@ sub generate_matrix() {
 
 			next if $hostref->{options}{destonly};
 
-			my $source = match_source_net $net;
+			my @source = imatch_source_net $net;
 
 			if ( $dnatref->{referenced} ) {
 			    #
 			    # There are DNAT/REDIRECT rules with this zone as the source.
 			    # Add a jump from this source network to this zone's DNAT/REDIRECT chain
 			    #
-			    add_jump( $preroutingref,
-				      source_exclusion( $exclusions, $dnatref),
-				      0,
-				      join( '', match_source_dev( $interface), $source, $ipsec_in_match ) );
+			    add_ijump( $preroutingref,
+				       j => source_exclusion( $exclusions, $dnatref),
+				       imatch_source_dev( $interface),
+				       @source,
+				       @ipsec_in_match );
 				      
 			    if ( get_physical( $interface ) eq '+' ) {
 				#
 				# The jump from the PREROUTING chain to dnat may not have been added above
 				# 
-				addnatjump 'PREROUTING', 'dnat', '' unless $preroutingref->{references}{PREROUTING};
+				addnatjump 'PREROUTING', 'dnat' unless $preroutingref->{references}{PREROUTING};
 			    }
 				
-			    check_optimization( $dnatref ) if $source;
+			    check_optimization( $dnatref ) if @source;
 			}
 
 			if ( $notrackref->{referenced} ) {
@@ -1537,7 +1513,7 @@ sub generate_matrix() {
 			    # There are notrack rules with this zone as the source.
 			    # Add a jump from this source network to this zone's notrack chain
 			    #
-			    add_jump $raw_table->{PREROUTING}, source_exclusion( $exclusions, $notrackref), 0, join( '', match_source_dev( $interface), $source, $ipsec_in_match );
+			    add_ijump $raw_table->{PREROUTING}, j => source_exclusion( $exclusions, $notrackref), imatch_source_dev( $interface), @source, @ipsec_in_match;
 			}
 
 			#
@@ -1545,14 +1521,14 @@ sub generate_matrix() {
 			# then add a RETURN jump for this source network.
 			#
 			if ( $nested ) {
-			    add_rule $preroutingref, join( '', match_source_dev( $interface), $source, $ipsec_in_match, '-j RETURN' )           if $parenthasnat;
-			    add_rule $raw_table->{PREROUTING}, join( '', match_source_dev( $interface), $source, $ipsec_in_match, '-j RETURN' ) if $parenthasnotrack;
+			    add_ijump $preroutingref,           j => 'RETURN', imatch_source_dev( $interface), @source, @ipsec_in_match if $parenthasnat;
+			    add_ijump $raw_table->{PREROUTING}, j => 'RETURN', imatch_source_dev( $interface), @source, @ipsec_in_match if $parenthasnotrack;
 			}
 
 			my $chain2ref = $filter_table->{$chain2};
 			my $inputchainref;
 			my $interfacechainref = $filter_table->{input_chain $interface};
-			my $interfacematch = '';
+			my @interfacematch;
 			my $use_input;
 			my $blacklist = $zoneref->{options}{in}{blacklist};
 
@@ -1560,13 +1536,12 @@ sub generate_matrix() {
 			    $inputchainref = $interfacechainref;
 			    
 			    if ( $isport ) {
-				add_jump( $filter_table->{ input_chain $bridge },
-					  $inputchainref ,
-					  0 ,
-					  match_source_dev($interface, 1) )
+				add_ijump( $filter_table->{ input_chain $bridge },
+					   j => $inputchainref ,
+					   imatch_source_dev($interface, 1) )
 				    unless $input_jump_added{$interface}++;
 			    } else {
-				add_jump $filter_table->{INPUT}, $inputchainref, 0, match_source_dev($interface) unless $input_jump_added{$interface}++;
+				add_ijump $filter_table->{INPUT}, j => $inputchainref, imatch_source_dev($interface) unless $input_jump_added{$interface}++;
 			    }
 
 			    $use_input = 1;
@@ -1574,19 +1549,19 @@ sub generate_matrix() {
 			    unless ( lc $net eq IPv6_LINKLOCAL ) {
 				for my $vzone ( @vservers ) {
 				    my $target = rules_target( $zone, $vzone );
-				    generate_dest_rules( $inputchainref, $target, $vzone, $source . $ipsec_in_match ) if $target;
+				    generate_dest_rules( $inputchainref, $target, $vzone, @source, @ipsec_in_match ) if $target;
 				}
 			    }
 			} elsif ( $isport ) {
 			    $inputchainref = $filter_table->{ input_chain $bridge };
-			    $interfacematch = match_source_dev $interface, 1;
+			    @interfacematch = imatch_source_dev $interface, 1;
 			} else {
 			    $inputchainref = $filter_table->{INPUT};
-			    $interfacematch = match_source_dev $interface;
+			    @interfacematch = imatch_source_dev $interface;
 			}
 
 			if ( $chain2 ) {
-			    add_jump $inputchainref, source_exclusion( $exclusions, $chain2 ), 0, join( '', $interfacematch, $source, $ipsec_in_match );
+			    add_ijump $inputchainref, j => source_exclusion( $exclusions, $chain2 ), @interfacematch, @source, @ipsec_in_match;
 			    move_rules( $interfacechainref , $chain2ref ) unless $use_input;
 			}
 
@@ -1595,25 +1570,25 @@ sub generate_matrix() {
 			    my $forwardref = $filter_table->{forward_chain $interface};
 
 			    if ( use_forward_chain $interface, $forwardref ) {
-				add_jump $forwardref , $ref, 0, join( '', $source, $ipsec_in_match );
+				add_ijump $forwardref , j => $ref, @source, @ipsec_in_match;
 				
 				if ( $isport ) {
-				    add_jump( $filter_table->{ forward_chain $bridge } ,
-					      $forwardref ,
-					      0 ,
-					      match_source_dev( $interface , 1 ) )
+				    add_ijump( $filter_table->{ forward_chain $bridge } ,
+					       j => $forwardref ,
+					       imatch_source_dev( $interface , 1 ) )
 					unless $forward_jump_added{$interface}++;
 				} else {
-				    add_jump $filter_table->{FORWARD} , $forwardref, 0 , match_source_dev( $interface ) unless $forward_jump_added{$interface}++;
+				    add_ijump $filter_table->{FORWARD} , j => $forwardref, imatch_source_dev( $interface ) unless $forward_jump_added{$interface}++;
 				}
 			    } else {
 				if ( $isport ) {
-				    add_jump( $filter_table->{ forward_chain $bridge } ,
-					      $ref ,
-					      0 ,
-					      join( '', match_source_dev( $interface, 1 ) , $source, $ipsec_in_match ) );
+				    add_ijump( $filter_table->{ forward_chain $bridge } ,
+					       j => $ref ,
+					       imatch_source_dev( $interface, 1 ) ,
+					       @source,
+					       @ipsec_in_match );
 				} else {
-				    add_jump $filter_table->{FORWARD} , $ref, 0, join( '', match_source_dev( $interface ) , $source, $ipsec_in_match );
+				    add_ijump $filter_table->{FORWARD} , j => $ref, imatch_source_dev( $interface ) , @source, @ipsec_in_match;
 				}
 
 				move_rules ( $forwardref , $frwd_ref );
@@ -1712,10 +1687,10 @@ sub generate_matrix() {
 			for my $hostref ( @{$typeref->{$interface}} ) {
 			    next if $hostref->{options}{sourceonly};
 			    if ( $zone ne $zone1 || $num_ifaces > 1 || $hostref->{options}{routeback} ) {
-				my $ipsec_out_match = match_ipsec_out $zone1 , $hostref;
+				my @ipsec_out_match = match_ipsec_out $zone1 , $hostref;
 				my $dest_exclusion = dest_exclusion( $hostref->{exclusions}, $chain);
 				for my $net ( @{$hostref->{hosts}} ) {
-				    add_jump $frwd_ref, $dest_exclusion, 0, join( '', match_dest_dev( $interface) , match_dest_net($net), $ipsec_out_match );
+				    add_ijump $frwd_ref, j => $dest_exclusion, imatch_dest_dev( $interface) , imatch_dest_net($net), @ipsec_out_match;
 				}
 			    }
 			}
@@ -1729,7 +1704,7 @@ sub generate_matrix() {
 		    for my $interface ( keys %$typeref ) {
 			my $interfaceref = find_interface $interface;
 			my $chain3ref;
-			my $match_source_dev = '';
+			my @match_source_dev;
 			my $forwardchainref = $filter_table->{forward_chain $interface};
 
 			if ( use_forward_chain( $interface , $forwardchainref ) || ( @{$forwardchainref->{rules} } && ! $chainref ) ) {
@@ -1739,13 +1714,12 @@ sub generate_matrix() {
 			    $chain3ref = $forwardchainref;
 			    
 			    if ( $interfaceref->{options}{port} ) {
-				add_jump( $filter_table->{ forward_chain $interfaceref->{bridge} } ,
-					  $chain3ref,
-					  0 ,
-					  match_source_dev( $interface , 1 ) )
+				add_ijump( $filter_table->{ forward_chain $interfaceref->{bridge} } ,
+					   j => $chain3ref,
+					   imatch_source_dev( $interface , 1 ) )
 				    unless $forward_jump_added{$interface}++;
 			    } else {
-				add_jump $filter_table->{FORWARD} , $chain3ref, 0 , match_source_dev( $interface ) unless $forward_jump_added{$interface}++;
+				add_ijump $filter_table->{FORWARD} , j => $chain3ref, imatch_source_dev( $interface ) unless $forward_jump_added{$interface}++;
 			    }
 			} else {
 			    #
@@ -1753,10 +1727,10 @@ sub generate_matrix() {
 			    #
 			    if ( $interfaceref->{options}{port} ) {
 				$chain3ref  = $filter_table->{ forward_chain $interfaceref->{bridge} };
-				$match_source_dev = match_source_dev $interface, 1;
+				@match_source_dev = imatch_source_dev $interface, 1;
 			    } else {
 				$chain3ref  = $filter_table->{FORWARD};
-				$match_source_dev = match_source_dev $interface;
+				@match_source_dev = imatch_source_dev $interface;
 			    }
 
 			    move_rules $forwardchainref, $chainref;
@@ -1771,24 +1745,22 @@ sub generate_matrix() {
 					my $array1ref = $type1ref->{$interface1};
 					for my $host1ref ( @$array1ref ) {
 					    next if $host1ref->{options}{sourceonly};
-					    my $ipsec_out_match = match_ipsec_out $zone1 , $host1ref;
+					    my @ipsec_out_match = match_ipsec_out $zone1 , $host1ref;
 					    my $dest_exclusion  = dest_exclusion( $host1ref->{exclusions}, $chain );
 					    for my $net1 ( @{$host1ref->{hosts}} ) {
 						unless ( $interface eq $interface1 && $net eq $net1 && ! $host1ref->{options}{routeback} ) {
 						    #
 						    # We defer evaluation of the source net match to accomodate systems without $capabilities{KLUDEFREE};
 						    #
-						    add_jump(
-							     $excl3ref ,
-							     $dest_exclusion,
-							     0,
-							     join( '',
-								   $match_source_dev,
-								   match_dest_dev($interface1),
-								   match_source_net($net),
-								   match_dest_net($net1),
-								   $ipsec_out_match )
-							    );
+						    add_ijump(
+							      $excl3ref ,
+							      j => $dest_exclusion,
+							      @match_source_dev,
+							      imatch_dest_dev($interface1),
+							      imatch_source_net($net),
+							      imatch_dest_net($net1),
+							      @ipsec_out_match
+							     );
 						}
 					    }
 					}
@@ -1805,7 +1777,7 @@ sub generate_matrix() {
 	#
 	# Now add an unconditional jump to the last unique policy-only chain determined above, if any
 	#
-	add_jump $frwd_ref , $last_chain, 1 if $frwd_ref && $last_chain;
+	add_ijump $frwd_ref , g => $last_chain if $frwd_ref && $last_chain;
     }
 
     progress_message '  Finishing matrix...';
@@ -1844,18 +1816,18 @@ sub generate_matrix() {
 sub setup_mss( ) {
     my $clampmss = $config{CLAMPMSS};
     my $option;
-    my $match = '';
+    my @match;
     my $chainref = $filter_table->{FORWARD};
 
     if ( $clampmss ) {
 	if ( "\L$clampmss" eq 'yes' ) {
-	    $option = '--clamp-mss-to-pmtu';
+	    $option = ' --clamp-mss-to-pmtu';
 	} else {
-	    $match  = "-m tcpmss --mss $clampmss: " if have_capability( 'TCPMSS_MATCH' );
-	    $option = "--set-mss $clampmss";
+	    @match  = ( tcpmss => "--mss $clampmss:" ) if have_capability( 'TCPMSS_MATCH' );
+	    $option = " --set-mss $clampmss";
 	}
 
-	$match .= '-m policy --pol none --dir out ' if have_ipsec;
+	push @match, ( policy => '--pol none --dir out' ) if have_ipsec;
     }
 
     my $interfaces = find_interfaces_by_option( 'mss' );
@@ -1868,29 +1840,29 @@ sub setup_mss( ) {
 	#
 	# Send all forwarded SYN packets to the 'settcpmss' chain
 	#
-	add_jump $filter_table->{FORWARD} , $chainref, 0, '-p tcp --tcp-flags SYN,RST SYN ';
+	add_ijump $filter_table->{FORWARD} , j => $chainref, p => 'tcp --tcp-flags SYN,RST SYN';
 
-	my $in_match  = '';
-	my $out_match = '';
+	my @in_match  = ();
+	my @out_match = ();
 
 	if ( have_ipsec ) {
-	    $in_match  = '-m policy --pol none --dir in ';
-	    $out_match = '-m policy --pol none --dir out ';
+	    @in_match  = ( policy => '--pol none --dir in' );
+	    @out_match = ( policy => '--pol none --dir out' );
 	}
 
 	for ( @$interfaces ) {
 	    my $mss      = get_interface_option( $_, 'mss' );
-	    my $mssmatch = have_capability( 'TCPMSS_MATCH' ) ? "-m tcpmss --mss $mss: " : '';
-	    my $source   = match_source_dev $_;
-	    my $dest     = match_dest_dev $_;
-	    add_rule $chainref, "${dest}-p tcp --tcp-flags SYN,RST SYN ${mssmatch}${out_match}-j TCPMSS --set-mss $mss";
-	    add_rule $chainref, "${dest}-j RETURN" if $clampmss;
-	    add_rule $chainref, "${source}-p tcp --tcp-flags SYN,RST SYN ${mssmatch}${in_match}-j TCPMSS --set-mss $mss";
-	    add_rule $chainref, "${source}-j RETURN" if $clampmss;
+	    my @mssmatch = have_capability( 'TCPMSS_MATCH' ) ? ( tcpmss => "--mss $mss:" ) : ();
+	    my @source   = imatch_source_dev $_;
+	    my @dest     = imatch_dest_dev $_;
+	    add_ijump $chainref, j => "TCPMSS --set-mss $mss", @dest,   p => 'tcp --tcp-flags SYN,RST SYN', @mssmatch, @out_match;
+	    add_ijump $chainref, j => 'RETURN', @dest if $clampmss;
+	    add_ijump $chainref, j => "TCPMSS --set-mss $mss", @source, p => 'tcp --tcp-flags SYN,RST SYN', @mssmatch, @in_match;
+	    add_ijump $chainref, j => 'RETURN', @source if $clampmss;
 	}
     }
 
-    add_rule $chainref , "-p tcp --tcp-flags SYN,RST SYN ${match}-j TCPMSS $option" if $clampmss;
+    add_ijump $chainref , j => "TCPMSS${option}", p => 'tcp --tcp-flags SYN,RST SYN', @match if $clampmss;
 }
 
 #
@@ -2017,8 +1989,8 @@ EOF
 	emit <<'EOF';
     if [ -f ${VARDIR}/proxyarp ]; then
 	while read address interface external haveroute; do
-	    qt $IP -4 neigh del proxy $address dev $external
-	    [ -z "${haveroute}${g_noroutes}" ] && qt $IP -4 route del $address/32 dev $interface
+	    qtnoin $IP -4 neigh del proxy $address dev $external
+	    [ -z "${haveroute}${g_noroutes}" ] && qtnoin $IP -4 route del $address/32 dev $interface
 	    f=/proc/sys/net/ipv4/conf/$interface/proxy_arp
 	    [ -f $f ] && echo 0 > $f
 	done < ${VARDIR}/proxyarp
@@ -2031,8 +2003,8 @@ EOF
 	emit <<'EOF';
     if [ -f ${VARDIR}/proxyndp ]; then
 	while read address interface external haveroute; do
-	    qt $IP -6 neigh del proxy $address dev $external
-	    [ -z "${haveroute}${g_noroutes}" ] && qt $IP -6 route del $address/128 dev $interface
+	    qtnoin $IP -6 neigh del proxy $address dev $external
+	    [ -z "${haveroute}${g_noroutes}" ] && qtnoin $IP -6 route del $address/128 dev $interface
 	    f=/proc/sys/net/ipv4/conf/$interface/proxy_ndp
 	    [ -f $f ] && echo 0 > $f
 	done < ${VARDIR}/proxyndp
@@ -2053,24 +2025,23 @@ EOF
 
     my @chains = $config{ADMINISABSENTMINDED} ? qw/INPUT FORWARD/ : qw/INPUT OUTPUT FORWARD/;
 
-    add_rule $filter_table->{$_}, "$globals{STATEMATCH} ESTABLISHED,RELATED -j ACCEPT" for @chains;
+    add_ijump $filter_table ->{$_}, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' for @chains;
 
     if ( $family == F_IPV6 ) {
-	add_rule $input, '-s ' . IPv6_LINKLOCAL . ' -j ACCEPT';
-	add_rule $input, '-d ' . IPv6_LINKLOCAL . ' -j ACCEPT';
-	add_rule $input, '-d ' . IPv6_MULTICAST . ' -j ACCEPT';
+	add_ijump $input, j => 'ACCEPT', s => IPv6_LINKLOCAL;
+	add_ijump $input, j => 'ACCEPT', d => IPv6_LINKLOCAL;
+	add_ijump $input, j => 'ACCEPT', d => IPv6_MULTICAST;
 
 	unless ( $config{ADMINISABSENTMINDED} ) {
-	    add_rule $output, '-d ' . IPv6_LINKLOCAL . ' -j ACCEPT';
-	    add_rule $output, '-d ' . IPv6_MULTICAST . ' -j ACCEPT';
+	    add_ijump $output, j => 'ACCEPT', d => IPv6_LINKLOCAL;
+	    add_ijump $output, j => 'ACCEPT', d => IPv6_MULTICAST;
 	}
     }
 
     process_routestopped;
 
-    add_rule $input, '-i lo -j ACCEPT';
-
-    add_rule $output, '-o lo -j ACCEPT' unless $config{ADMINISABSENTMINDED};
+    add_ijump $input,  j => 'ACCEPT', i => 'lo';
+    add_ijump $output, j => 'ACCEPT', o => 'lo' unless $config{ADMINISABSENTMINDED};
 
     my $interfaces = find_interfaces_by_option 'dhcp';
 
@@ -2078,12 +2049,12 @@ EOF
 	my $ports = $family == F_IPV4 ? '67:68' : '546:547';
 
 	for my $interface ( @$interfaces ) {
-	    add_rule $input,  "-p udp " . match_source_dev( $interface ) . "--dport $ports -j ACCEPT";
-	    add_rule $output, "-p udp " . match_dest_dev( $interface )   . "--dport $ports -j ACCEPT" unless $config{ADMINISABSENTMINDED};
+	    add_ijump $input,  j => 'ACCEPT', p => "udp --dport $ports", imatch_source_dev( $interface );
+	    add_ijump $output, j => 'ACCEPT', p => "udp --dport $ports", imatch_dest_dev( $interface ) unless $config{ADMINISABSENTMINDED};
 	    #
 	    # This might be a bridge
 	    #
-	    add_rule $forward, "-p udp " . match_source_dev( $interface ) . match_dest_dev( $interface ) . "--dport $ports -j ACCEPT";
+	    add_ijump $forward, j => 'ACCEPT', p => "udp --dport $ports", imatch_source_dev( $interface ), imatch_dest_dev( $interface );
 	}
     }
 

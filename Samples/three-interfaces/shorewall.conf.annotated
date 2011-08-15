@@ -58,9 +58,10 @@
 # Beginning with Shorewall 4.4.22, LOGMARK is also a valid level which logs the
 # packet's mark value along with the other usual information. The syntax is:
 # 
-# LOGMARK(priority)
+# LOGMARK[(priority)]
 # 
-# where priority is one of the levels listed in the list above.
+# where priority is one of the levels listed in the list above. If omitted, the
+# default is info (6).
 # 
 # The following options may be set in shorewall.conf.
 # 
@@ -1021,6 +1022,11 @@ OPTIMIZE=1
 # 
 #       ● Optimization category 8 - Added in Shorewall 4.4.9. When set, causes
 #         chains with duplicate rules to be collapsed into a single chain.
+# 
+#         Caution
+# 
+#         Optimization category 8 adds significantly to the time required to
+#         compile a large ruleset.
 # 
 #     The default value is zero which disables all optimizations.
 # 
