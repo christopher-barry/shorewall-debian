@@ -1,3 +1,13 @@
+Changes in 4.4.22.3
+
+1)  Eliminate Perl diagnostics when CONNTRACK_MATCH is not available.
+
+2)  Eliminate Perl diagnostics when MANGLE_FORWARD is not available.
+
+3)  Unlink .bak file when no change to shorewall[6].conf.
+
+4)  Correct handling of Providers with interfaces derived from wildcards.
+
 Changes in 4.4.22.2
 
 1) Include header match in DNAT/REDIRECT rules.
