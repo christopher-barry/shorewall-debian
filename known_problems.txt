@@ -1,7 +1,7 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
 
-2)  Zone names beginning with 'all' are incorectly treated the same as
+2)  Zone names beginning with 'all' are incorrectly treated the same as
     'all' in /etc/shorewall/rules and /etc/shorewall6/rules. This
     defect is present in Shorewall versions 4.4.13 through 4.4.22.
 
@@ -29,3 +29,68 @@
     4.4.22 and 4.4.22.1 generated invalid iptables-restore input.
 
     Corrected in Shorewall 4.4.22.2.
+
+5)  When Shorewall-init runs the compiled firewall script, it always
+    does so using /bin/sh, even if SHOREWALL_SHELL is set to some other
+    shell binary in /etc/shorewall/shorewall.conf (or
+    /etc/shorewall6/shorewall6.conf).
+
+    Corrected in Shorewall 4.4.22.2.
+
+6)  On older distributions where 'shorewall show capabilities'
+    indicates 'Connection Tracking Match: Not Available', harmless Perl
+    diagnostics like the following may be issued:
+
+        Use of uninitialized value $list in pattern match (m//) 
+        at /usr/share/shorewall/Shorewall/Config.pm line 1273,
+        <$currentfile> line 14.
+
+        Use of uninitialized value $list in split 
+        at /usr/share/shorewall/Shorewall/Config.pm line 1275,
+        <$currentfile> line 14.
+
+    Corrected in Shorewall 4.4.22.3
+
+7)  On older distributions where 'shorewall show capabilities'
+    indicates 'Mangle FORWARD Chain: Not Available', entries in the ecn
+    file generates the following harmless Perl Diagnostic:
+
+        Use of uninitialized value in hash element 
+	at /usr/share/shorewall/Shorewall/Chains.pm line 1119.
+
+    Corrected in Shorewall 4.4.22.3
+
+8)  If a provider interface was derived from an optional
+    wildcard entry in /etc/shorewall/providers, then the interface is
+    never considered to be usable.
+
+    Example:
+
+	/etc/shorewall/interfaces:
+
+	#ZONE    INTERFACE   BROADCAST    OPTIONS
+	net	 ppp+	     -		  optional
+
+  	/etc/shorewall/providers:
+
+	#PROVIDER  NUMBER  MARK  INTERFACE ...
+	ISP1	   1	   1	 ppp0	   ...
+
+    Workaround:
+
+    Change /etc/shorewall/interfaces to:
+
+	#ZONE    INTERFACE   BROADCAST    OPTIONS
+	net	 ppp0	     -		  optional
+	net	 ppp1	     -		  optional
+	net	 ppp+	     -		  optional
+
+    and add this to /etc/shorewall/policy.
+
+    	#SOURCE   DEST        POLICY
+	net	  net	      NONE
+
+    Note that the new entry must be added ahead of any net->all DROP
+    entry.
+
+    Corrected in Shorewall 4.4.22.3
