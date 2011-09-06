@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                     S H O R E W A L L  4 . 4 . 2 2 . 3
+                        S H O R E W A L L  4 . 4 . 2 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,90 +13,28 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.4.22.3
+1)  This release includes all problem corrections included in Shorewall
+    4.4.22.1 - 4.4.22.3.
 
-1)  On older distributions where 'shorewall show capabilities'
-    indicates 'Connection Tracking Match: Not Available', harmless Perl
-    diagnostics like the following could be issued:
+2)  Previously, the contents of the NET1 and NET2 columns in
+    /etc/shorewall/netmap were not validated by the rules compiler. As
+    a result, invalid entries in those columns could cause the compiled
+    script to fail while running iptables-restore.
 
-        Use of uninitialized value $list in pattern match (m//) 
-        at /usr/share/shorewall/Shorewall/Config.pm line 1273,
-        <$currentfile> line 14.
+3)  The 'hits' command could issue an 'invalid number' diagnostic when
+    run under busybox ash. That diagnostic has been eliminated.
 
-        Use of uninitialized value $list in split 
-        at /usr/share/shorewall/Shorewall/Config.pm line 1275,
-        <$currentfile> line 14.
+4)  If a zone had multiple interfaces and neither 'routefilter' nor
+    'routeback' was specified on the interfaces, then traffic between
+    the interfaces could fail with a log message such as this one:
 
-2)  On older distributions where 'shorewall show capabilities'
-    indicates 'Mangle FORWARD Chain: Not Available', entries in the ecn
-    file generated the following Perl Diagnostic:
+    Sep  4 22:20:41 pilot kernel: [427181.381412] 
+    Shorewall:sfilter1:DROP:IN=eth3 OUT=eth4 
+    MAC=fe:ff:ff:ff:ff:ff:00:16:3e:7f:a0:b9:08:00 SRC=192.168.2.2 
+    DST=192.168.2.3 LEN=84 TOS=0x00 PREC=0x00 TTL=63 ID=0 DF PROTO=ICMP 
+    TYPE=8 CODE=0 ID=10893 SEQ=2
 
-        Use of uninitialized value in hash element 
-	at /usr/share/shorewall/Shorewall/Chains.pm line 1119.
-
-3)  Previously, if a provider interface was derived from an optional
-    wildcard entry in /etc/shorewall/providers, then the interface was
-    never considered to be usable.
-
-    Example:
-
-	/etc/shorewall/interfaces:
-
-	#ZONE    INTERFACE   BROADCAST    OPTIONS
-	net	 ppp+	     -		  optionsl
-
-  	/etc/shorewall/providers:
-
-	#PROVIDER  NUMBER  MARK  INTERFACE ...
-	ISP1	   1	   1	 ppp0	   ...
-
-4.4.22.2
-
-1)  On older distributions where 'shorewall show capabilities'
-    indicates 'Connection Tracking Match: Not Available', Shorewall
-    4.4.22 and 4.4.22.1 generated invalid iptables-restore input.
-
-2)  Previously, the compiler always placed '#!/bin/sh' on the first
-    line of the generated script. It now uses the setting of
-    SHOREWALL_SHELL on that line rather than '/bin/sh'. Note that
-    SHOREWALL_SHELL defaults to '/bin/sh' so this change only affects
-    those who specify a different shell.
-
-4.4.22.1
-
-1)  Previously, if the name of a zone began with 'all', then entries
-    for that zone in /etc/shorewall/rules and /etc/shorewall6/rules
-    treated the name the same as 'all'.
-
-    This defect is present in Shorewall 4.4.13 through 4.4.22.
-
-2)  Previously, when LOAD_HELPERS_ONLY=No, harmless iptables-restore
-    warnings as follows could be generated:
-
-        ...
-        Running /usr/local/sbin/iptables-restore...
-	--set option deprecated, please use --match-set
-	--set option deprecated, please use --match-set
-	IPv4 Forwarding Enabled
-	...
-
-3)  Potential SELinux issues have been corrected. From Orion Poplawski.
-
-4.4.22
-
-1)  Under rare conditions, long port lists (>15 ports) could result in
-    the following failure when optimization level 4 was enabled.
-
-       Use of uninitialized value in numeric gt (>) 
-       at /usr/share/shorewall/Shorewall/Chains.pm line 1264.
-
-       ERROR: Internal error in
-       Shorewall::Chains::decrement_reference_count at
-       /usr/share/shorewall/Shorewall/Chains.pm line 1264
-
-2)  All corrections included in Shorewall 4.4.21.1 (see below).
-
-----------------------------------------------------------------------------
+--------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
 ----------------------------------------------------------------------------
 
@@ -107,62 +45,90 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.4.22.3
+1)  The leading '#!/bin/sh' line has been deleted from non-executable
+    shell modules.
 
-1)  When 'shorewall update' or 'shorewall6 update' results in no change
+2)  When 'shorewall update' or 'shorewall6 update' results in no change
     to the .conf file, a message is issued, the .bak file is removed
     and the command terminates without error.
 
-4.4.22
+    Note: This change was also included in Shorewall 4.4.22.3.
 
-1)  Three new parameterized standard actions are included in this release.
+3)  Support has been added for 'stateless NAT'. Stateless NAT is very
+    simmilar to NATMAP but differs from it in a couple of ways:
 
-        Invalid    - Packets in the INVALID connection tracking state
-        Broadcast  - Broadcast and Multicast Packets
-        NotSyn     - TCP packets that have the SYN flag set and all
-        	     other flags reset.
- 
-    The standard default Drop and Reject actions have been modified to
-    use these new actions.
+    a. It does not rely on connection tracking, but is rather
+       implemented in the Netfilter raw table.
 
-    Each accepts two parameters:
+    b. Both the source and destination address can be rewritten in all
+       three raw table chains: PREROUTING, OUTPUT and POSTROUTING.
 
-    a) Action to perform on matching packets. Must be ACCEPT, DROP or
-       REJECT. Default is DROP.
-    b) 'audit' flag. If 'audit', then the action will be audited.
+    When used together with stateful NAT, it allows a single router to
+    handle a duplicate network address situation.
 
-    The new actions deprecate the following built-in actions:
+    Suppose that a VPN using interface tun0 is used to connect to
+    another organization, and that both intranets have network
+    192.168.1.0/24.
 
-    	allowBcast     - use Broadcast(ACCEPT)
-	allowInvalid   - use Invalid(ACCEPT)
-    	dropInvalid    - use Invalid(DROP)
-	dropBroadcast  - use Broadcast(DROP)
-	dropNotSyn     - use NotSyn(DROP)
-	rejNotSyn      - use NotSyn(REJECT)
+    To allow the two organizations to communicate, they decide to use
+    172.20.1.0/24 to address the other's 192.168.1.0/24.
 
-2)  Up to this point, the Perl-based compiler has stored rules
-    internally in iptables/ip6tables command strings. This has
-    made the optimizing the ruleset difficult and has made the
-    optimizer the most defect-dense part of the code.
-    
-    This release marks to first step toward converting the compiler to
-    use an internal rule representation that is easier to optimize and
-    that is easy to convert to iptables/ip6tables commands effeciently.
+    The following four entries are required in /etc/shorewall/netmap:
 
-    The parser still generates iptables/ip6table rules which are then
-    converted into the internal form.
+	#TYPE   NET1                INTERFACE        NET2
+	SNAT	192.168.1.0/24	    tun0	     172.20.1.0/24
+	DNAT	172.20.1.0/24	    tun0	     192.168.1.0/24
+	DNAT:T  172.20.1.0/24	    tun0	     192.168.1.0.24
+	SNAT:P  192.168.1.0/24	    tun0	     172.20.1.0/24
 
-3)  Optimize level 8 causes chains that are identical to another chain
-    to be deleted, and their references are replace by references to
-    the other chain. This can lead to confusion when looking at the
-    generated ruleset. For example, traffic going from the 'loc' zone
-    to the 'dmz' zone may now be passing through a chain named
-    'wan2dmz'!
+    Stateless NAT entries differ from NETMAP entries in the TYPE
+    column. For stateless entries, both the type of address
+    translation (DNAT or SNAT) and the chain (O for OUTPUT, P for
+    PREROUTING and T for POSTROUTING) are given.
 
-    To eliminate this confusion, the compiler now generates a
-    synthetic name for the combined chains, consisting of "~comb"
-    followed by an integer (e.g., "~comb1", "~comb2", etc.).
-   
+4)  A new section (ALL) has been added to /etc/shorewall/rules and to
+    /etc/shorwall6/rules. When present, the NEW section must be the
+    first section in the file and contains rules that are applied to
+    packets regardless of their connection tracking state.
+
+5)  The generated script now detects and removes stale lock files.
+
+6)  Jonathan Underwood has contributed Fedora/Redhat init script and
+    .service files. The .service files are used with systemd which
+    manages the startup sequence in Fedora 16.
+
+    When installing using the install scripts:
+
+    a) If /lib/systemd/system exists, the .service files are installed
+       there and are activated using /sbin/systemctl. When installing
+       into a directory, setting the SYSTEMD environmental variable to
+       a non-empty value will also trigger this behavior.
+
+    b) If /etc/redhat-release exists, the Fedora/Redhat init script
+       will be installed in /etc/init.d. When installing into a
+       directory, setting the FEDORA environmental variable to a
+       non-empty value will also trigger this behavior.
+
+7)  Previously, when a provider interface went 'soft down' (UP and
+    configured but not usable) or came back up from being 'soft down',
+    the firewall had to be reloaded ('/var/lib/shorewall/firewall
+    restart') to disable or enable the interface.
+
+    Beginning with this release, the compiled IPv4 script supports two
+    new commands:
+
+    -	disable <interface>
+    -	enable <interface>
+
+    The 'disable' command removes all policy routing added as a result
+    of the interface's entry in /etc/shorewall/providers and and any
+    traffic shaping configuration on the interface. The 'enable'
+    command restores policy routing and traffic shaping and refreshes the
+    interfaces's entries in /proc.
+
+8)  Shorewall now uses /sys/module/ to determine which modules are
+    loaded, thus speeding up start/restart.
+
 ----------------------------------------------------------------------------
              I V.  R E L E A S E  4 . 4  H I G H L I G H T S
 ----------------------------------------------------------------------------
@@ -357,7 +323,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     one from the release (not recommended).
 
 14) The names of interface configuration variables in generated scripts
-    have been changed to insure uniqueness. These names now begin with
+    have been changed to ensure uniqueness. These names now begin with
     SW_.
 
     This change will only affect you if your extension scripts are
@@ -396,7 +362,146 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
 V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
       I N   P R I O R  R E L E A S E S
+------------------------------------------------------------------------------
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 2
 ----------------------------------------------------------------------------
+
+4.4.11.3
+
+1)  On older distributions where 'shorewall show capabilities'
+    indicates 'Connection Tracking Match: Not Available', harmless Perl
+    diagnostics like the following could be issued:
+
+        Use of uninitialized value $list in pattern match (m//) 
+        at /usr/share/shorewall/Shorewall/Config.pm line 1273,
+        <$currentfile> line 14.
+
+        Use of uninitialized value $list in split 
+        at /usr/share/shorewall/Shorewall/Config.pm line 1275,
+        <$currentfile> line 14.
+
+2)  On older distributions where 'shorewall show capabilities'
+    indicates 'Mangle FORWARD Chain: Not Available', entries in the ecn
+    file generated the following Perl Diagnostic:
+
+        Use of uninitialized value in hash element 
+	at /usr/share/shorewall/Shorewall/Chains.pm line 1119.
+
+3)  Previously, if a provider interface was derived from an optional
+    wildcard entry in /etc/shorewall/providers, then the interface was
+    never considered to be usable.
+
+    Example:
+
+	/etc/shorewall/interfaces:
+
+	#ZONE    INTERFACE   BROADCAST    OPTIONS
+	net	 ppp+	     -		  optionsl
+
+  	/etc/shorewall/providers:
+
+	#PROVIDER  NUMBER  MARK  INTERFACE ...
+	ISP1	   1	   1	 ppp0	   ...
+
+4.4.22.2
+
+1)  On older distributions where 'shorewall show capabilities'
+    indicates 'Connection Tracking Match: Not Available', Shorewall
+    4.4.22 and 4.4.22.1 generated invalid iptables-restore input.
+
+2)  Previously, the compiler always placed '#!/bin/sh' on the first
+    line of the generated script. It now uses the setting of
+    SHOREWALL_SHELL on that line rather than '/bin/sh'. Note that
+    SHOREWALL_SHELL defaults to '/bin/sh' so this change only affects
+    those who specify a different shell.
+
+4.4.22.1
+
+1)  Previously, if the name of a zone began with 'all', then entries
+    for that zone in /etc/shorewall/rules and /etc/shorewall6/rules
+    treated the name the same as 'all'.
+
+    This defect is present in Shorewall 4.4.13 through 4.4.22.
+
+2)  Previously, when LOAD_HELPERS_ONLY=No, harmless iptables-restore
+    warnings as follows could be generated:
+
+        ...
+        Running /usr/local/sbin/iptables-restore...
+	--set option deprecated, please use --match-set
+	--set option deprecated, please use --match-set
+	IPv4 Forwarding Enabled
+	...
+
+3)  Potential SELinux issues have been corrected. From Orion Poplawski.
+
+4.4.22
+
+1)  Under rare conditions, long port lists (>15 ports) could result in
+    the following failure when optimization level 4 was enabled.
+
+       Use of uninitialized value in numeric gt (>) 
+       at /usr/share/shorewall/Shorewall/Chains.pm line 1264.
+
+       ERROR: Internal error in
+       Shorewall::Chains::decrement_reference_count at
+       /usr/share/shorewall/Shorewall/Chains.pm line 1264
+
+2)  All corrections included in Shorewall 4.4.21.1 (see below).
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 4 . 2 2
+----------------------------------------------------------------------------
+
+1)  Three new parameterized standard actions are included in this release.
+
+        Invalid    - Packets in the INVALID connection tracking state
+        Broadcast  - Broadcast and Multicast Packets
+        NotSyn     - TCP packets that have the SYN flag set and all
+        	     other flags reset.
+ 
+    The standard default Drop and Reject actions have been modified to
+    use these new actions.
+
+    Each accepts two parameters:
+
+    a) Action to perform on matching packets. Must be ACCEPT, DROP or
+       REJECT. Default is DROP.
+    b) 'audit' flag. If 'audit', then the action will be audited.
+
+    The new actions deprecate the following built-in actions:
+
+    	allowBcast     - use Broadcast(ACCEPT)
+	allowInvalid   - use Invalid(ACCEPT)
+    	dropInvalid    - use Invalid(DROP)
+	dropBroadcast  - use Broadcast(DROP)
+	dropNotSyn     - use NotSyn(DROP)
+	rejNotSyn      - use NotSyn(REJECT)
+
+2)  Up to this point, the Perl-based compiler has stored rules
+    internally in iptables/ip6tables command strings. This has
+    made the optimizing the ruleset difficult and has made the
+    optimizer the most defect-dense part of the code.
+    
+    This release marks to first step toward converting the compiler to
+    use an internal rule representation that is easier to optimize and
+    that is easy to convert to iptables/ip6tables commands effeciently.
+
+    The parser still generates iptables/ip6table rules which are then
+    converted into the internal form.
+
+3)  Optimize level 8 causes chains that are identical to another chain
+    to be deleted, and their references are replace by references to
+    the other chain. This can lead to confusion when looking at the
+    generated ruleset. For example, traffic going from the 'loc' zone
+    to the 'dmz' zone may now be passing through a chain named
+    'wan2dmz'!
+
+    To eliminate this confusion, the compiler now generates a
+    synthetic name for the combined chains, consisting of "~comb"
+    followed by an integer (e.g., "~comb1", "~comb2", etc.).
+   
+------------------------------------------------------------------------------
          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 1
 ----------------------------------------------------------------------------
 
@@ -459,6 +564,10 @@ V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
 4)  The 'balance' and 'fallback' options in /etc/shorewall/providers
     have always been mutually exclusive but the compiler previously
     didn't enforce that restriction. Now it does.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 4 . 2 1
+----------------------------------------------------------------------------
 
 1)  AUTOMAKE=Yes now causes all directories on the CONFIG_PATH to be
     searched for files newer than the script that last
@@ -670,10 +779,6 @@ V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
 
 4.4.20
 
-----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   4 . 4 . 2 1
-----------------------------------------------------------------------------
-
 1)  Previously, when a device number was explicitly specified in
     /etc/shorewall/tcdevices, all unused numbers less than the one
     specified were unavailable for allocation to following entries that
@@ -694,7 +799,7 @@ V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
 
 5)  Shorewall now sets /proc/sys/net/bridge/bridge_nf_call_iptables or
     /proc/sys/net/bridge/bridge_nf_call_ip6tables when there are
-    interfaces with the 'bridge' option. This insures that netfilter
+    interfaces with the 'bridge' option. This ensures that netfilter
     rules are invoked for bridged traffic. Previously, Shorewall was
     not setting these flags with the possible result that a
     bridge/firewall would not work properly.
@@ -979,7 +1084,7 @@ V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
     designator in the tcrules file). This error is now caught by
     the compiler.
 
-3)  Shorewall now insures that a route to a default gateway exists in
+3)  Shorewall now ensures that a route to a default gateway exists in
     the main table before it attempts to add a default route through
     that gateway in a provider table. This prevents start/restart
     failures in the rare event that such a route does not exist.
@@ -2063,9 +2168,9 @@ None.
 
     The new implementation:
 
-    - Insures valid shell variable names.
+    - Ensures valid shell variable names.
 
-    - Insures that shell variable names are unique.
+    - Ensures that shell variable names are unique.
 
     - Handles interface names appearing in the INTERFACE column of the
       providers file as a special case for 'optional'. If the name
@@ -2504,7 +2609,7 @@ None.
     specified on the run line.
 
     While this issue has been corrected, users are advised to always
-    end their Perl extension scripts with the following line to insure
+    end their Perl extension scripts with the following line to ensure
     that the script returns a 'true' value:
 
     	 1;
@@ -2547,7 +2652,7 @@ None.
     package provides two related features:
 
     a)  It allows the firewall to be closed prior to bringing up
-        network devices. This insures that unwanted connections are not
+        network devices. This ensures that unwanted connections are not
         allowed between the time that the network comes up and when the
         firewall is started.
 

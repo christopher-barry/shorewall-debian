@@ -22,6 +22,11 @@
 #           
 #           Sections are as follows and must appear in the order listed:
 #           
+#           ALL
+#           
+#     This section was added in Shorewall 4.4.23. rules in this section are
+#     applied, regardless of the connection tracking state of the packet.
+#           
 #           ESTABLISHED
 #           
 #     Packets in the ESTABLISHED state are processed by rules in this section.
@@ -613,6 +618,7 @@
 ####################################################################################################################################################
 #ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
+#SECTION ALL
 #SECTION ESTABLISHED
 #SECTION RELATED
 SECTION NEW

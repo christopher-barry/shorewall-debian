@@ -61,7 +61,7 @@
 #     with the bridge option. The OPTIONS column must be empty when a port is
 #     given.
 #           
-#           UNICAST - -
+#           ANYCAST - -
 #           
 #     Enter '-' in this column. It is here for compatibility between Shorewall6
 #     and Shorewall.
