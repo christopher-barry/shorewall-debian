@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_22';
+our $VERSION = '4.4_23';
 
 my @addresses_to_add;
 my %addresses_to_add;
@@ -409,30 +409,75 @@ sub setup_netmap() {
 
 	    my ( $type, $net1, $interfacelist, $net2, $net3 ) = split_line 4, 5, 'netmap file';
 
+	    validate_net $net1, 0;
+	    validate_net $net2, 0;
+
 	    $net3 = ALLIP if $net3 eq '-';
 
 	    for my $interface ( split_list $interfacelist, 'interface' ) {
 
-		my @rulein;
-		my @ruleout;
 		my $iface = $interface;
 
 		fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
-		unless ( $interfaceref->{root} ) {
-		    @rulein  = imatch_source_dev( $interface );
-		    @ruleout = imatch_dest_dev( $interface );
-		    $interface = $interfaceref->{name};
-		}
+		unless ( $type =~ /:/ ) {
+		    my @rulein;
+		    my @ruleout;
+		    
+		    unless ( $interfaceref->{root} ) {
+			@rulein  = imatch_source_dev( $interface );
+			@ruleout = imatch_dest_dev( $interface );
+			$interface = $interfaceref->{name};
+		    }
 
-		if ( $type eq 'DNAT' ) {
-		    add_ijump ensure_chain( 'nat' , input_chain $interface ) ,  j => "NETMAP --to $net2", @rulein  , imatch_source_net( $net3 ), d => $net1;
-		} elsif ( $type eq 'SNAT' ) {
-		    add_ijump ensure_chain( 'nat' , output_chain $interface ) , j => "NETMAP --to $net2", @ruleout , imatch_dest_net( $net3 ) ,  s => $net1;
+		    if ( $type eq 'DNAT' ) {
+			add_ijump ensure_chain( 'nat' , input_chain $interface ) ,  j => "NETMAP --to $net2", @rulein  , imatch_source_net( $net3 ), d => $net1;
+		    } elsif ( $type eq 'SNAT' ) {
+			add_ijump ensure_chain( 'nat' , output_chain $interface ) , j => "NETMAP --to $net2", @ruleout , imatch_dest_net( $net3 ) ,  s => $net1;
+		    } else {
+			fatal_error "Invalid type ($type)";
+		    }
+		} elsif ( $type =~ /^(DNAT|SNAT):([POT])$/ ) {
+		    my ( $target , $chain ) = ( $1, $2 );
+		    my $table = 'raw';
+		    my @match = ();
+
+		    require_capability 'RAWPOST_TABLE', 'Stateless NAT Entries', '';
+
+		    unless ( $interfaceref->{root} ) {
+			@match = imatch_dest_dev(  $interface ); 
+			$interface = $interfaceref->{name};
+		    }
+			
+		    if ( $chain eq 'P' ) {
+			$chain = prerouting_chain $interface;
+			@match = imatch_source_dev( $iface ) unless $iface eq $interface;
+		    } elsif ( $chain eq 'O' ) {
+			$chain = output_chain $interface;
+		    } else {
+			$chain = postrouting_chain $interface;
+			$table = 'rawpost';
+		    }
+		    
+		    if ( $target eq 'DNAT' ) { 
+			add_ijump( ensure_chain( $table, $chain ) ,
+				   j          => 'RAWDNAT',
+				   targetopts => "--to-dest $net2",
+				   imatch_source_net( $net3 ) ,
+				   imatch_dest_net( $net1 ) ,
+				   @match );
+		    } else {
+			add_ijump( ensure_chain( $table, $chain ) ,
+				   j          => 'RAWSNAT',
+				   targetopts => "--to-source $net2",
+				   imatch_dest_net( $net3 ) ,
+				   imatch_source_net( $net1 ) ,
+				   @match );
+		    }
 		} else {
 		    fatal_error "Invalid type ($type)";
 		}
-
+		
 		progress_message "   Network $net1 on $iface mapped to $net2 ($type)";
 	    }
 	}

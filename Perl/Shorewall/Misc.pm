@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_22';
+our $VERSION = '4.4_23';
 
 my $family;
 
@@ -501,7 +501,10 @@ sub add_common_rules() {
     my $audit    = $policy =~ s/^A_//;
     my @ipsec    = have_ipsec ? ( policy => '--pol none --dir in' ) : ();
 
-    if ( $level || $audit || @ipsec ) {
+    if ( $level || $audit ) {
+	#
+	# Create a chain to log and/or audit and apply the policy
+	#
 	$chainref = new_standard_chain 'sfilter';
 
 	log_rule $level , $chainref , $policy , '' if $level ne '';
@@ -511,24 +514,32 @@ sub add_common_rules() {
 	add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
 	
 	$target = 'sfilter';
-
-	if ( @ipsec ) {
-	    $chainref = new_standard_chain 'sfilter1';
-
-	    add_ijump ( $chainref, j => 'RETURN', policy => '--pol ipsec --dir out' );
-	    log_rule $level , $chainref , $policy , '' if $level ne '';
-	
-	    add_ijump( $chainref, j => 'AUDIT ', targetopts => '--type ' . lc $policy ) if $audit;
-	
-	    add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
-	
-	    $target1 = 'sfilter1';
-	}
-    } elsif ( ( $target = $policy ) eq 'REJECT' ) {
-	$target = 'reject';
+    } else {
+	$target = $policy eq 'REJECT' ? 'reject' : $policy;
     }
 
-    $target1 = $target unless $target1;
+    if ( @ipsec ) {
+	#
+	# sfilter1 will be used in the FORWARD chain where we allow traffic entering the interface
+	# to leave the interface encrypted. We need a separate chain because '--dir out' cannot be
+	# used in the input chain
+	#
+	$chainref = new_standard_chain 'sfilter1';
+
+	add_ijump ( $chainref, j => 'RETURN', policy => '--pol ipsec --dir out' );
+	log_rule $level , $chainref , $policy , '' if $level ne '';
+	
+	add_ijump( $chainref, j => 'AUDIT', targetopts => '--type ' . lc $policy ) if $audit;
+	
+	add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
+	
+	$target1 = 'sfilter1';
+    } else {
+	#
+	# No IPSEC -- use the same target in both INPUT and FORWARD
+	#
+	$target1 = $target;
+    }
 
     for $interface ( grep $_ ne '%vserver%', all_interfaces ) {
 	ensure_chain( 'filter', $_ ) for first_chains( $interface ), output_chain( $interface );
@@ -543,9 +554,11 @@ sub add_common_rules() {
 	
 	    if ( @filters ) {
 		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
+		$interfaceref->{options}{use_forward_chain} = 1;
 	    } elsif ( $interfaceref->{bridge} eq $interface ) {
 		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_dest_dev( $interface ), @ipsec ), $chainref->{filtered}++
 		    unless $interfaceref->{options}{routeback} || $interfaceref->{options}{routefilter} || $interfaceref->{physical} eq '+';
+		$interfaceref->{options}{use_forward_chain} = 1;
 	    }
 
 	    add_ijump( $chainref, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ), $chainref->{filtered}++ if $config{FASTACCEPT};
@@ -555,6 +568,7 @@ sub add_common_rules() {
 	
 	    if ( @filters ) {
 		add_ijump( $chainref , g => $target, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
+		$interfaceref->{options}{use_input_chain} = 1;
 	    }
 	
 	    add_ijump( $chainref, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ), $chainref->{filtered}++ if $config{FASTACCEPT};
@@ -1166,6 +1180,12 @@ sub add_interface_jumps {
 	addnatjump 'PREROUTING'  , input_chain( $interface )  , imatch_source_dev( $interface );
 	addnatjump 'POSTROUTING' , output_chain( $interface ) , imatch_dest_dev( $interface );
 	addnatjump 'POSTROUTING' , masq_chain( $interface ) , imatch_dest_dev( $interface );
+	
+	if ( have_capability 'RAWPOST_TABLE' ) {
+	    insert_ijump ( $rawpost_table->{POSTROUTING}, j => postrouting_chain( $interface ), 0, imatch_dest_dev( $interface) )   if $rawpost_table->{postrouting_chain $interface};
+	    insert_ijump ( $raw_table->{PREROUTING},      j => prerouting_chain( $interface ),  0, imatch_source_dev( $interface) ) if $raw_table->{prerouting_chain $interface};
+	    insert_ijump ( $raw_table->{OUTPUT},          j => output_chain( $interface ),      0, imatch_dest_dev( $interface) )   if $raw_table->{output_chain $interface};
+	}
     }
     #
     # Add the jumps to the interface chains from filter FORWARD, INPUT, OUTPUT
@@ -1931,6 +1951,9 @@ EOF
 	        refresh)
 	            logger -p kern.err "ERROR:$g_product refresh failed"
 	            ;;
+                enable)
+                    logger -p kern.err "ERROR:$g_product 'enable $g_interface' failed"
+                    ;;
             esac
 
             if [ "$RESTOREFILE" = NONE ]; then

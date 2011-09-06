@@ -150,7 +150,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_22';
+our $VERSION = '4.4_23';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -279,6 +279,7 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 HEADER_MATCH    => 'Header Match',
 		 ACCOUNT_TARGET  => 'ACCOUNT Target',
 		 AUDIT_TARGET    => 'AUDIT Target',
+		 RAWPOST_TABLE   => 'Rawpost Table',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -306,6 +307,7 @@ our %config_files = ( #accounting      => 1,
 		      refresh          => 1,
 		      refreshed        => 1,
 		      restored         => 1,
+		      rawnat           => 1,
 		      route_rules      => 1,
 		      routes           => 1,
 		      routestopped     => 1,
@@ -435,8 +437,8 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.22.3",
-		    CAPVERSION => 40421 ,
+		    VERSION    => "4.4.23",
+		    CAPVERSION => 40423 ,
 		  );
     #
     # From shorewall.conf file
@@ -624,6 +626,7 @@ sub initialize( $ ) {
 	       CONNMARK_MATCH => undef,
 	       XCONNMARK_MATCH => undef,
 	       RAW_TABLE => undef,
+	       RAWPOST_TABLE => undef,
 	       IPP2P_MATCH => undef,
 	       OLD_IPP2P_MATCH => undef,
 	       CLASSIFY_TARGET => undef,
@@ -1442,7 +1445,7 @@ sub close_file() {
 #
 # Functions for copying a file into the script
 #
-sub copy( $;$ ) {
+sub copy( $ ) {
     assert( $script_enabled );
 
     if ( $script ) {
@@ -2525,6 +2528,10 @@ sub Raw_Table() {
     qt1( "$iptables -t raw -L -n" );
 }
 
+sub Rawpost_Table() {
+    qt1( "$iptables -t rawpost -L -n" );
+}
+
 sub Old_IPSet_Match() {
     my $ipset  = $config{IPSET} || 'ipset';
     my $result = 0;
@@ -2707,6 +2714,7 @@ our %detect_capability =
       PHYSDEV_MATCH => \&Physdev_Match,
       POLICY_MATCH => \&Policy_Match,
       RAW_TABLE => \&Raw_Table,
+      RAWPOST_TABLE => \&Rawpost_Table,
       REALM_MATCH => \&Realm_Match,
       RECENT_MATCH => \&Recent_Match,
       TCPMSS_MATCH => \&Tcpmss_Match,
@@ -2820,6 +2828,7 @@ sub determine_capabilities() {
 
 	$capabilities{MANGLE_FORWARD}  = detect_capability( 'MANGLE_FORWARD' );
 	$capabilities{RAW_TABLE}       = detect_capability( 'RAW_TABLE' );
+	$capabilities{RAWPOST_TABLE}   = detect_capability( 'RAWPOST_TABLE' );
 	$capabilities{IPSET_MATCH}     = detect_capability( 'IPSET_MATCH' );
 	$capabilities{USEPKTTYPE}      = detect_capability( 'USEPKTTYPE' );
 	$capabilities{ADDRTYPE}        = detect_capability( 'ADDRTYPE' );
@@ -3387,8 +3396,6 @@ sub get_configuration( $$$ ) {
 
     my ( $export, $update, $annotate ) = @_;
 
-    my $val;
-
     $globals{EXPORT} = $export;
 
     our ( $once, @originalinc );
@@ -3416,18 +3423,6 @@ sub get_configuration( $$$ ) {
 
     get_capabilities( $export );
 
-    if ( supplied( $val = $config{SHOREWALL_SHELL} ) ) {
-	unless ( $val =~ /^\// ) {
-	    if ( $export ) {
-		$val = $config{SHOREWALL_SHELL} = "/bin/$val";
-		warning_message "Assuming SHOREWALL_SHELL=$val";
-	    } else {
-		warning_message "Can't find SHOREWALL_SHELL ($val)" unless $config{SHOREWALL_SHELL} = which $val;
-	    }
-	}
-    } else {
-	$config{SHOREWALL_SHELL} = '/bin/sh';
-    }
 
     $globals{STATEMATCH} = '-m conntrack --ctstate' if have_capability 'CONNTRACK_MATCH';
 
@@ -3501,6 +3496,8 @@ sub get_configuration( $$$ ) {
     }
 
     check_trivalue ( 'IP_FORWARDING', 'on' );
+
+    my $val;
 
     if ( have_capability( 'KERNELVERSION' ) < 20631 ) {
 	check_trivalue ( 'ROUTE_FILTER',  '' );

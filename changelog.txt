@@ -1,3 +1,50 @@
+Changes in 4.4.23 Final
+
+1)  Use /sys/module/ to speed up module loading
+
+2)  Fix 'shorewall6 debug'
+
+3)  Set 'use_*_interface' on sfilter'd interfaces.
+
+Changes in 4.4.23 RC 2
+
+1)  Fix 'enable'/'disable' on RedHat.
+2)  Fix 'disable' with dynamic gateway.
+
+Changes in 4.4.23 RC 1
+
+1)  Fix 'hits' on busybox.
+
+Changes in 4.4.23 Beta 4
+
+1)  Fix Shorewall-lite installer.
+
+2)  Fix prog.footer typo.
+
+3)  Include TC and /proc in 'enable' and 'disable'
+
+Changes in 4.4.23 Beta 3
+
+1)  Remove stale lockfiles.
+
+2)  Add .service files from Steven Underwood
+
+3)  Add Fedora/Redhat init scripts from Steven Underwood
+
+4)  Modify install/uninstall scripts to use Steven's contributions.
+
+5)  Implement dynamic providers
+
+Changes in 4.4.23 Beta 2
+
+1)  Add the ALL section to rules files.
+
+Changes in 4.4.23 Beta 1
+
+1)  Remove shebangs from non-executable files.
+
+5)  Implement support for stateless NAT.
+
 Changes in 4.4.22.3
 
 1)  Eliminate Perl diagnostics when CONNTRACK_MATCH is not available.
