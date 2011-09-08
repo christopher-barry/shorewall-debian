@@ -178,7 +178,7 @@
 #         interfaces that match the wildcard.
 #           
 #         Beginning with Shorewall 4.4.20, if you specify this option, then you
-#         should also specify filter; see above.
+#         should also specify sfilter (see below).
 #           
 #     sourceroute[={0|1}]
 #           
