@@ -1,3 +1,10 @@
+Changes in 4.4.23.1
+
+1)  Correct disable/enable of last balanced/fallback interface.
+
+2)  Make ROUTE_FILTER=On equivalent to specifying 'routefilter' on all
+    interface records.
+
 Changes in 4.4.23 Final
 
 1)  Use /sys/module/ to speed up module loading
