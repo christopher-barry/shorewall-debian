@@ -13,6 +13,16 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
+4.4.23.2
+
+1)  Previously, environmental variables present at compile-time with
+    values containing double quotes could result in a run-time syntax
+    error in the generated shell script. Double quotes are now escaped
+    properly in the generated script.
+
+2)  A defect in Shorewall 4.4.23 prevented DONT_LOAD from working on
+    systems with /sys support.
+
 4.4.23.1
 
 1)  After the last balanced or fallback interface had been disabled,
@@ -97,6 +107,9 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     column. For stateless entries, both the type of address
     translation (DNAT or SNAT) and the chain (O for OUTPUT, P for
     PREROUTING and T for POSTROUTING) are given.
+
+    In 4.4.23.2, the feature was extended to add PROTO, DEST PORT(S)
+    and SOURCE PORT(S) columns.
 
 4)  A new section (ALL) has been added to /etc/shorewall/rules and to
     /etc/shorwall6/rules. When present, the NEW section must be the
