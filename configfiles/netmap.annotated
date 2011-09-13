@@ -6,7 +6,7 @@
 # See http://shorewall.net/netmap.html for an example and usage
 # information.
 #
-###############################################################################
+##############################################################################################
 #           
 #           This file is used to map addresses in one network to corresponding addresses in
 #           a second network.
@@ -65,5 +65,38 @@
 #     Added in Shorewall 4.4.11. If specified, qualifies INTERFACE. It specifies
 #     a SOURCE network for DNAT rules and a DESTINATON network for SNAT rules.
 #           
-###############################################################################
-#TYPE	NET1			INTERFACE	NET2		NET3
+#           PROTO (Optional - Added in Shorewall 4.4.23.2) - protocol-number-or-name
+#           
+#     Only packets specifying this protocol will have their IP header modified.
+#           
+#           DEST PORT(S) (Optional - Added in Shorewall 4.4.23.2) - 
+#     port-number-or-name-list
+#           
+#     Destination Ports. A comma-separated list of Port names (from services(5)),
+#     port numbers or port ranges; if the protocol is icmp, this column is
+#     interpreted as the destination icmp-type(s). ICMP types may be specified as
+#     a numeric type, a numberic type and code separated by a slash (e.g., 3/4),
+#     or a typename. See http://www.shorewall.net/configuration_file_basics.htm#
+#     ICMP.
+#           
+#     If the protocol is ipp2p, this column is interpreted as an ipp2p option
+#     without the leading "--" (example bit for bit-torrent). If no PORT is
+#     given, ipp2p is assumed.
+#           
+#     An entry in this field requires that the PROTO column specify icmp (1), tcp
+#     (6), udp (17), sctp (132) or udplite (136). Use '-' if any of the following
+#     field is supplied.
+#           
+#           DEST PORT(S) (Optional - Added in Shorewall 4.4.23.2) - 
+#     port-number-or-name-list
+#           
+#     Source port(s). If omitted, any source port is acceptable. Specified as a
+#     comma-separated list of port names, port numbers or port ranges.
+#           
+#     An entry in this field requires that the PROTO column specify tcp (6), udp
+#     (17), sctp (132) or udplite (136). Use '-' if any of the following fields
+#     is supplied.
+#           
+##############################################################################################
+#TYPE	NET1		INTERFACE	NET2		NET3		PROTO	DEST	SOURCE
+#										PORT(S)	PORT(S)
