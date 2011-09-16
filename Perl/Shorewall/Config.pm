@@ -443,7 +443,7 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.23.2",
+		    VERSION    => "4.4.23.3",
 		    CAPVERSION => 40423 ,
 		  );
     #
