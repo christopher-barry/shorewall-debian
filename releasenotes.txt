@@ -1,5 +1,6 @@
+
 ----------------------------------------------------------------------------
-                     S H O R E W A L L  4 . 4 . 2 3 . 1
+                     S H O R E W A L L  4 . 4 . 2 3 . 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +13,19 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.23.3
+
+1)  When providers were present that specify neither 'balance' nor
+    'fallback', then the following message was issued during
+    compilation and 'enable' of the interface would fail.
+
+    Use of uninitialized value $weight in concatenation (.) or string
+    at /usr/share/shorewall/Shorewall/Providers.pm line 644.
+
+
+2)  TC_ENABLED=Shared was broken in Shorewall 4.4.23, 4.4.23.1 and
+    4.4.23.2. It produced a  shell script with syntax errors.
 
 4.4.23.2
 
