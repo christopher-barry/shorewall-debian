@@ -1,3 +1,9 @@
+Changes in 4.4.23.3
+
+1)  Fix providers without 'balance' or 'fallback'.
+
+2)  Fix TC_ENABLED=Shared
+
 Changes in 4.4.23.2
 
 1)  Correctly escape quotes in exported variables.
