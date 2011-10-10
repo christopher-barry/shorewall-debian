@@ -27,7 +27,9 @@
     connection tracking. Traffic matching entries in this file will not be
     tracked.</para>
 
-    <para>The columns in the file are as follows.</para>
+    <para>The columns in the file are as follows (where the column name is
+    followed by a different name in parentheses, the different name is used in
+    the alternate specification syntax).</para>
 
     <variablelist>
       <varlistentry>
@@ -84,7 +86,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term>DEST PORT(S) - port-number/service-name-list</term>
+        <term>DEST PORT(S) (dport) - port-number/service-name-list</term>
 
         <listitem>
           <para>A comma-separated list of port numbers and/or service names
@@ -96,7 +98,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term>SOURCE PORT(S) - port-number/service-name-list</term>
+        <term>SOURCE PORT(S) (sport) - port-number/service-name-list</term>
 
         <listitem>
           <para>A comma-separated list of port numbers and/or service names
@@ -108,7 +110,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term>USER/GROUP ‒
+        <term>USER/GROUP (user) ‒
         [<replaceable>user</replaceable>][:<replaceable>group</replaceable>]</term>
 
         <listitem>
@@ -129,13 +131,16 @@
   <refsect1>
     <title>See ALSO</title>
 
+    <para><ulink
+    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-interfaces(5),
-    shorewall6-ipsec(5), shorewall6-params(5), shorewall6-policy(5),
-    shorewall6-providers(5), shorewall6-proxyarp(5),
+    shorewall6-ipsec(5), shoewall6-netmap(5),shorewall6-params(5),
+    shorewall6-policy(5), shorewall6-providers(5), shorewall6-proxyarp(5),
     shorewall6-route_rules(5), shorewall6-routestopped(5),
-    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5), shorewall6-tcclasses(5),
-    shorewall6-tcdevices(5), shorewall6-tcrules(5), shorewall6-tos(5),
-    shorewall6-tunnels(5), shorewall-zones(5)</para>
+    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5),
+    shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-tcrules(5),
+    shorewall6-tos(5), shorewall6-tunnels(5), shorewall-zones(5)</para>
   </refsect1>
 </refentry>

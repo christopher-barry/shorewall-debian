@@ -28,7 +28,9 @@
     <filename>/etc/shorewall/interfaces</filename> or
     <filename>/etc/shorewall/hosts</filename>.</para>
 
-    <para>The columns in the file are as follows.</para>
+    <para>The columns in the file are as follows (where the column name is
+    followed by a different name in parentheses, the different name is used in
+    the alternate specification syntax).</para>
 
     <variablelist>
       <varlistentry>
@@ -191,7 +193,8 @@ c:a,b     ipv4</programlisting>
 
       <varlistentry>
         <term><emphasis role="bold">OPTIONS, IN OPTIONS and OUT
-        OPTIONS</emphasis> - [<emphasis>option</emphasis>[<emphasis
+        OPTIONS</emphasis> (options, in_options, out_options) -
+        [<emphasis>option</emphasis>[<emphasis
         role="bold">,</emphasis><emphasis>option</emphasis>]...]</term>
 
         <listitem>
@@ -336,6 +339,9 @@ c:a,b     ipv4</programlisting>
 
     <para><ulink
     url="http://www.shorewall.net/Multiple_Zones.html">http://www.shorewall.net/Multiple_Zones.html</ulink>.</para>
+
+    <para><ulink
+    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
