@@ -1,0 +1,105 @@
+#
+# Shorewall6 version 4	 - Netmap File
+#
+# For information about entries in this file, type "man shorewall-netmap"
+#
+# See http://shorewall.net/netmap.html for an example and usage
+# information.
+#
+##############################################################################################
+#           
+#           This file is used to map addresses in one network to corresponding addresses in
+#           a second network. It was added in Shorewall6 iin 4.4.23.3.
+#           
+#           Warning
+#           
+#           To use this file, your kernel and ip6tables must have RAWPOST table support
+#           included.
+#           
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
+#           
+#           TYPE - {DNAT|SNAT}:{P|O|T}
+#           
+#     Must be DNAT or SNAT followed by :P, :O or :T to perform stateless NAT.
+#     Stateless NAT requires Rawpost Table support in your kernel and iptables
+#     (see the output of shorewall6 show capabilities).
+#           
+#     If DNAT:P, traffic entering INTERFACE and addressed to NET1 has its
+#     destination address rewritten to the corresponding address in NET2.
+#           
+#     If SNAT:T, traffic leaving INTERFACE with a source address in NET1 has it's
+#     source address rewritten to the corresponding address in NET2.
+#           
+#     If DNAT:O, traffic originating on the firewall and leaving via INTERFACE
+#     and addressed to NET1 has its destination address rewritten to the
+#     corresponding address in NET2.
+#           
+#     If DNAT:P, traffic entering via INTERFACE and addressed to NET1 has its
+#     destination address rewritten to the corresponding address in NET2.
+#           
+#     If SNAT:P, traffic entering via INTERFACE with a destination address in
+#     NET1 has it's source address rewritten to the corresponding address in
+#     NET2.
+#           
+#     If SNAT:O, traffic originating on the firewall and leaving via INTERFACE
+#     with a source address in NET1 has it's source address rewritten to the
+#     corresponding address in NET2.
+#           
+#           NET1 - network-address
+#           
+#     Network in CIDR format (e.g., 2001:470:b:227/64). Beginning in Shorewall6
+#     4.4.24, exclusion is supported.
+#           
+#           INTERFACE - interface
+#           
+#     The name of a network interface. The interface must be defined in
+#     shorewall6-interfaces(5). Shorewall allows loose matches to wildcard
+#     entries in shorewall6-interfaces(5). For example, ppp0 in this file will
+#     match a shorewall6-interfaces(8) entry that defines ppp+.
+#           
+#           NET2 - network-address
+#           
+#     Network in CIDR format
+#           
+#           NET3 - network-address
+#           
+#     Optional - added in Shorewall 4.4.11. If specified, qualifies INTERFACE. It
+#     specifies a SOURCE network for DNAT rules and a DESTINATON network for SNAT
+#     rules.
+#           
+#           PROTO (Optional - protocol-number-or-name
+#           
+#     Only packets specifying this protocol will have their IP header modified.
+#           
+#           DEST PORT(S) (dport) - port-number-or-name-list
+#           
+#     Destination Ports. An optional comma-separated list of Port names (from
+#     services(5)), port numbers or port ranges; if the protocol is icmp, this
+#     column is interpreted as the destination icmp-type(s). ICMP types may be
+#     specified as a numeric type, a numberic type and code separated by a slash
+#     (e.g., 3/4), or a typename. See http://www.shorewall.net/
+#     configuration_file_basics.htm#ICMP.
+#           
+#     If the protocol is ipp2p, this column is interpreted as an ipp2p option
+#     without the leading "--" (example bit for bit-torrent). If no PORT is
+#     given, ipp2p is assumed.
+#           
+#     An entry in this field requires that the PROTO column specify icmp (1), tcp
+#     (6), udp (17), sctp (132) or udplite (136). Use '-' if any of the following
+#     field is supplied.
+#           
+#           SOURCE PORT(S) (sport) - port-number-or-name-list
+#           
+#     Optional source port(s). If omitted, any source port is acceptable.
+#     Specified as a comma-separated list of port names, port numbers or port
+#     ranges.
+#           
+#     An entry in this field requires that the PROTO column specify tcp (6), udp
+#     (17), sctp (132) or udplite (136). Use '-' if any of the following fields
+#     is supplied.
+#           
+##############################################################################################
+#TYPE	NET1		INTERFACE	NET2		NET3		PROTO	DEST	SOURCE
+#										PORT(S)	PORT(S)

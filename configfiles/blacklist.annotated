@@ -11,7 +11,9 @@
 #           The blacklist file is used to perform static blacklisting. You can blacklist by
 #           source address (IP or MAC), or by application.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           ADDRESS/SUBNET - {-|~mac-address|ip-address|address-range|+ipset}
 #           
@@ -28,23 +30,23 @@
 #     is useful if you want to blacklist a particular application using entries
 #     in the PROTOCOL and PORTS columns.
 #           
-#           PROTOCOL (Optional) - {-|protocol-number|protocol-name}
+#           PROTOCOL (proto) - {-|protocol-number|protocol-name}
 #           
-#     If specified, must be a protocol number or a protocol name from protocols
-#     (5).
+#     Optional - if specified, must be a protocol number or a protocol name from
+#     protocols(5).
 #           
-#           PORTS (Optional) - {-|port-name-or-number[,port-name-or-number]...}
+#           PORTS (port) - {-|port-name-or-number[,port-name-or-number]...}
 #           
 #     May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP
 #     (132) or UDPLITE (136). A comma-separated list of destination port numbers
 #     or service names from services(5).
 #           
-#           OPTIONS (Optional - Added in 4.4.12) - {-|{dst|src|whitelist|audit}[,...]}
+#           OPTIONS - {-|{dst|src|whitelist|audit}[,...]}
 #           
-#     If specified, indicates whether traffic from ADDRESS/SUBNET (src) or
-#     traffic to ADDRESS/SUBNET (dst) should be blacklisted. The default is src.
-#     If the ADDRESS/SUBNET column is empty, then this column has no effect on
-#     the generated rule.
+#     Optional - added in 4.4.12. If specified, indicates whether traffic from
+#     ADDRESS/SUBNET (src) or traffic to ADDRESS/SUBNET (dst) should be
+#     blacklisted. The default is src. If the ADDRESS/SUBNET column is empty,
+#     then this column has no effect on the generated rule.
 #           
 #     Note
 #           

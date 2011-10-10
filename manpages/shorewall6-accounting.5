@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ACCOUNTI" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-ACCOUNTI" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -316,7 +316,7 @@ Traffic originating on the firewall goes through the rules defined in the OUTPUT
 Traffic being forwarded through the firewall goes through the rules from the FORWARD sections\&.
 .RE
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
 \fBACTION\fR \- {\fBCOUNT\fR|\fBDONE\fR|\fIchain\fR[:\fB{COUNT|JUMP}\fR]|COMMENT \fIcomment\fR}
 .RS 4
@@ -391,7 +391,7 @@ name followed by ":" and a host or net
 \fIaddress\fR\&.
 .RE
 .PP
-\fBDESTINATION\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:[\fR\fIaddress\fR\fB]\fR|\fIaddress\fR}
+\fBDESTINATION\fR (dest) \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:[\fR\fIaddress\fR\fB]\fR|\fIaddress\fR}
 .RS 4
 Packet Destination\&.
 .sp
@@ -400,7 +400,7 @@ Format same as
 column\&.
 .RE
 .PP
-\fBPROTOCOL\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIprotocol\-name\fR|\fIprotocol\-number\fR|\fBipp2p\fR[\fB:\fR{\fBudp\fR|\fBall\fR}]}
+\fBPROTOCOL\fR (proto) \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIprotocol\-name\fR|\fIprotocol\-number\fR|\fBipp2p\fR[\fB:\fR{\fBudp\fR|\fBall\fR}]}
 .RS 4
 A
 \fIprotocol\-name\fR
@@ -412,7 +412,7 @@ or
 \fBipp2p:all\fR
 .RE
 .PP
-\fBDEST PORT(S)\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIipp2p\-option\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+\fBDEST PORT(S)\fR (dport) \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIipp2p\-option\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 Destination Port number\&. Service name from services(5) or
 \fIport number\fR\&. May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&.
@@ -428,7 +428,7 @@ then this column must contain an
 is assumed\&.
 .RE
 .PP
-\fBSOURCE PORT(S)\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+\fBSOURCE PORT(S)\fR (sport) \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 Service name from services(5) or
 \fIport number\fR\&. May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&.
@@ -436,7 +436,7 @@ Service name from services(5) or
 You may place a comma\-separated list of port numbers in this column if your kernel and ip6tables include multiport match support\&.
 .RE
 .PP
-\fBUSER/GROUP\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
+\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
 .RS 4
 This column may only be non\-empty if the
 \fBCHAIN\fR
@@ -691,7 +691,9 @@ may be used as wildcards\&. Omitted trailing columns are also treated as wildcar
 .PP
 \m[blue]\fBhttp://shorewall\&.net/shorewall_logging\&.html\fR\m[]
 .PP
-shorewall6(8), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+.PP
+shorewall6(8), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 rules file

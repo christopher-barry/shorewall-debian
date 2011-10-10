@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-notrack
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-NOTRACK" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-NOTRACK" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -36,7 +36,7 @@ notrack \- shorewall6 notrack file
 .PP
 The notrack file is used to exempt certain traffic from Netfilter connection tracking\&. Traffic matching entries in this file will not be tracked\&.
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
 SOURCE \(en \fIzone\fR[:\fIinterface\fR][:\fIaddress\-list\fR]
 .RS 4
@@ -100,7 +100,7 @@ A protocol name from
 or a protocol number\&.
 .RE
 .PP
-DEST PORT(S) \- port\-number/service\-name\-list
+DEST PORT(S) (dport) \- port\-number/service\-name\-list
 .RS 4
 A comma\-separated list of port numbers and/or service names from
 /etc/services\&. May also include port ranges of the form
@@ -108,7 +108,7 @@ A comma\-separated list of port numbers and/or service names from
 if your kernel and iptables include port range support\&.
 .RE
 .PP
-SOURCE PORT(S) \- port\-number/service\-name\-list
+SOURCE PORT(S) (sport) \- port\-number/service\-name\-list
 .RS 4
 A comma\-separated list of port numbers and/or service names from
 /etc/services\&. May also include port ranges of the form
@@ -116,7 +116,7 @@ A comma\-separated list of port numbers and/or service names from
 if your kernel and iptables include port range support\&.
 .RE
 .PP
-USER/GROUP \(en [\fIuser\fR][:\fIgroup\fR]
+USER/GROUP (user) \(en [\fIuser\fR][:\fIgroup\fR]
 .RS 4
 May only be specified if the SOURCE
 \fIzone\fR
@@ -127,7 +127,9 @@ is $FW\&. Specifies the effective user id and or group id of the process sending
 /etc/shorewall6/notrack
 .SH "SEE ALSO"
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-ipsec(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-proxyarp(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall\-zones(5)
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-ipsec(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-proxyarp(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-exclusion

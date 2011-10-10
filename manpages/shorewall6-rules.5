@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-RULES" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -112,7 +112,7 @@ sections must be empty\&.
 .PP
 You may omit any section that you don\*(Aqt need\&. If no Section Headers appear in the file then all rules are assumed to be in the NEW section\&.
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
 \fBACTION\fR \- {\fBACCEPT\fR[\fB\fB+\fR\fR\fB|\fR\fB\fB!\fR\fR]|\fBDROP[\fR\fB\fB!\fR\fR\fB]\fR|\fBREJECT\fR[\fB!\fR]|\fBDNAT\fR[\fB\-\fR]|\fBSAME\fR[\fB\-\fR]|\fBCONTINUE\fR[\fB!\fR]|\fBLOG\fR|\fBQUEUE\fR[\fB!\fR]|\fBNFQUEUE\fR[\fB(\fR\fIqueuenumber\fR\fB)\fR]\fB|COMMENT\fR|\fIaction\fR|\fImacro\fR[\fB(\fR\fItarget\fR\fB)\fR]}\fB[:\fR{\fIlog\-level\fR|\fBnone\fR}[\fB\fB!\fR\fR][\fB:\fR\fItag\fR]]
 .RS 4
@@ -519,9 +519,9 @@ and
 columns may specify an ipset name\&.
 .RE
 .PP
-\fBPROTO\fR (Optional) \- {\fB\-\fR|\fBtcp:syn\fR|\fBipp2p\fR|\fBipp2p:udp\fR|\fBipp2p:all\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
+\fBPROTO\fR \- {\fB\-\fR|\fBtcp:syn\fR|\fBipp2p\fR|\fBipp2p:udp\fR|\fBipp2p:all\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
 .RS 4
-Protocol \-
+Optional protocol \-
 \fBipp2p\fR* requires ipp2p match support in your kernel and ip6tables\&.
 \fBtcp:syn\fR
 implies
@@ -532,9 +532,9 @@ Beginning with Shorewall6 4\&.4\&.19, this column can contain a comma\-separated
 \fBtcp,udp\fR)\&.
 .RE
 .PP
-\fBDEST PORT(S) \fR(Optional) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
+\fBDEST PORT(S) \fR(dport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
-Destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
+Optional destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&. Note that prior to Shorewall6 4\&.4\&.19, only a single ICMP type may be listsed\&.
 .sp
@@ -563,9 +563,9 @@ list below:
 2\&. No port ranges are included or your kernel and ip6tables contain extended multiport match support\&.
 .RE
 .PP
-\fBSOURCE PORT(S)\fR (Optional) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
+\fBSOURCE PORT(S)\fR (sport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
-Port(s) used by the client\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
+Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
 .if n \{\
 .sp
 .\}
@@ -592,14 +592,14 @@ list above:
 2\&. No port ranges are included or your kernel and ip6tables contain extended multiport match support\&.
 .RE
 .PP
-\fBORIGINAL DEST\fR (Optional) \- [\fB\-\fR]
+\fBORIGINAL DEST\fR (origdest) \- [\fB\-\fR]
 .RS 4
 Included for compatibility with Shorewall\&. Enter \*(Aq\-\*(Aq in this column if you need to specify one of the later columns\&.
 .RE
 .PP
-\fBRATE LIMIT\fR (Optional) \- [\fB\-\fR|[{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
+\fBRATE LIMIT\fR (rate) \- [\fB\-\fR|[{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
 .RS 4
-You may rate\-limit the rule by placing a value in this column:
+You may optionally rate\-limit the rule by placing a value in this column:
 .sp
 \fIrate\fR
 is the number of connections per interval (\fBsec\fR
@@ -624,9 +624,9 @@ may be chosen by the user and specifies a hash table to be used to count matchin
 (where N is a unique integer) is assumed\&. Where more than one POLICY specifies the same name, the connections counts for the rules are aggregated and the individual rates apply to the aggregated count\&.
 .RE
 .PP
-\fBUSER/GROUP\fR (Optional) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
+\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
 .RS 4
-This column may only be non\-empty if the SOURCE is the firewall itself\&.
+This optional column may only be non\-empty if the SOURCE is the firewall itself\&.
 .sp
 When this column is non\-empty, the rule applies only if the program generating the output is running under the effective
 \fIuser\fR
@@ -809,6 +809,35 @@ is entered, the rule will match those packets which would not be matched when
 \fB!\fR
 is omitted\&.
 .RE
+.PP
+\fBSWITCH \- [!]\fR\fB\fIswitch\-name\fR\fR
+.RS 4
+Added in Shorewall6 4\&.4\&.24 and allows enabling and disabling the rule without requiring
+\fBshorewall6 restart\fR\&.
+.sp
+Enables the rule if the value stored in
+/proc/net/nf_condition/\fIswitch\-name\fR
+is 1\&. Disables the rule if that file contains 0 (the default)\&. If \*(Aq!\*(Aq is supplied, the test is inverted such that the rule is enabled if the file contains 0\&. The
+\fIswitch\-name\fR
+must begin with a letter and be composed of letters, decimal digits, underscores or hyphens\&. Switch names must be 30 characters or less in length\&.
+.sp
+Switches are normally
+\fBoff\fR\&. To turn a switch
+\fBon\fR:
+.RS 4
+\fBecho 1 >
+            /proc/net/nf_condition/\fR\fB\fIswitch\-name\fR\fR
+.RE
+To turn it
+\fBoff\fR
+again:
+.RS 4
+\fBecho 0 >
+            /proc/net/nf_condition/\fR\fB\fIswitch\-name\fR\fR
+.RE
+Switch settings are retained over
+\fBshorewall6 restart\fR\&.
+.RE
 .SH "EXAMPLE"
 .PP
 Example 1:
@@ -862,12 +891,31 @@ You wish to limit SSH connections from remote systems to 1/min with a burst of t
 .RE
 .\}
 .RE
+.PP
+Example 6:
+.RS 4
+Forward port 80 to dmz host $BACKUP if switch \*(Aqprimary_down\*(Aq is set\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
+        #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
+        DNAT        net             dmz:$BACKUP tcp         80           \-         \-          \-         \-         \-       \-             \-        \-          primary_down
+.fi
+.if n \{\
+.RE
+.\}
+.RE
 .SH "FILES"
 .PP
 /etc/shorewall6/rules
 .SH "SEE ALSO"
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-policy

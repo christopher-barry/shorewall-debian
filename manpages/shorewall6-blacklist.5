@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-blacklist
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-BLACKLIS" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-BLACKLIS" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -36,7 +36,7 @@ blacklist \- shorewall6 Blacklist file
 .PP
 The blacklist file is used to perform static blacklisting\&. You can blacklist by source address (IP or MAC), or by application\&.
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
 \fBADDRESS/SUBNET\fR \- {\fB\-\fR|\fB~\fR\fImac\-address\fR|\fIip\-address\fR|\fIaddress\-range\fR|\fB+\fR\fIipset\fR}
 .RS 4
@@ -49,19 +49,19 @@ Example: ~00\-A0\-C9\-15\-39\-78
 A dash ("\-") in this column means that any source address will match\&. This is useful if you want to blacklist a particular application using entries in the PROTOCOL and PORTS columns\&.
 .RE
 .PP
-\fBPROTOCOL\fR (Optional) \- {\fB\-\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR}
+\fBPROTOCOL\fR (proto) \- {\fB\-\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR}
 .RS 4
-If specified, must be a protocol number or a protocol name from protocols(5)\&.
+Optional \- if specified, must be a protocol number or a protocol name from protocols(5)\&.
 .RE
 .PP
-\fBPORTS\fR (Optional) \- {\fB\-\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+\fBPORTS\fR (port) \- {\fB\-\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&. A comma\-separated list of destination port numbers or service names from services(5)\&.
 .RE
 .PP
-OPTIONS (Optional \- Added in 4\&.4\&.12) \- {\-|{dst|src|whitelist|audit}[,\&.\&.\&.]}
+OPTIONS \- {\-|{dst|src|whitelist|audit}[,\&.\&.\&.]}
 .RS 4
-If specified, indicates whether traffic
+Optional \- added in 4\&.4\&.12\&. If specified, indicates whether traffic
 \fIfrom\fR
 ADDRESS/SUBNET (\fBsrc\fR) or traffic
 \fIto\fR
@@ -203,7 +203,9 @@ To block some of the nuisance applications:
 .PP
 \m[blue]\fBhttp://shorewall\&.net/blacklisting_support\&.htm\fR\m[]
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-exclusion
