@@ -17,7 +17,9 @@
 #           hosts in each zone through entries in /etc/shorewall6/interfaces or /etc/
 #           shorewall6/hosts.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           ZONE - zone[:parent-zone[,parent-zone]...]
 #           
@@ -106,7 +108,8 @@
 #           
 #         Vserver zones are implicitly handled as subzones of the firewall zone.
 #           
-#           OPTIONS, IN OPTIONS and OUT OPTIONS - [option[,option]...]
+#           OPTIONS, IN OPTIONS and OUT OPTIONS (options, in_options, out_options) - [
+#     option[,option]...]
 #           
 #     A comma-separated list of options. With the exception of the mss and
 #     blacklist options, these only apply to TYPE ipsec zones.

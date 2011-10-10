@@ -38,7 +38,9 @@
 #           implicit policy to/from any sub-zone is CONTINUE. These implicit CONTINUE
 #           policies may also be overridden by an explicit entry in this file.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           SOURCE - zone|$FW|all
 #           
@@ -109,11 +111,11 @@
 #         undefined. NONE may not be used if the SOURCE or DEST columns contain
 #         the firewall zone ($FW) or "all".
 #           
-#           LOG LEVEL (Optional) - [log-level|NFLOG]
+#           LOG LEVEL (loglevel) - [log-level|NFLOG]
 #           
-#     If supplied, each connection handled under the default POLICY is logged at
-#     that level. If not supplied, no log message is generated. See syslog.conf
-#     (5) for a description of log levels.
+#     Optional - if supplied, each connection handled under the default POLICY is
+#     logged at that level. If not supplied, no log message is generated. See
+#     syslog.conf(5) for a description of log levels.
 #           
 #     You may also specify NFLOG (must be in upper case). This will log to the
 #     NFLOG target and will send to a separate log through use of ulogd (http://
@@ -122,7 +124,7 @@
 #     If you don't want to log but need to specify the following column, place
 #     "-" here.
 #           
-#           BURST:LIMIT - [{s|d}:[[name]:]]]rate/{second|minute}[:burst]
+#           BURST:LIMIT (limit) - [{s|d}:[[name]:]]]rate/{second|minute}[:burst]
 #           
 #     If passed, specifies the maximum TCP connection rate and the size of an
 #     acceptable burst. If not specified, TCP connections are not limited. If the

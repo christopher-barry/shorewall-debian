@@ -14,7 +14,9 @@
 #           The secmarks file is used to associate an SELinux context with packets. It was
 #           added in Shorewall6 version 4.4.13.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           SECMARK - {SAVE|RESTORE|context|COMMENT comment}
 #           
@@ -100,15 +102,14 @@
 #           
 #     Protocol - ipp2p requires ipp2p match support in your kernel and iptables.
 #           
-#           PORT(S) (Optional) - [-|port-name-number-or-range[,port-name-number-or-range
-#     ]...]
+#           PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
 #           
-#     Destination Ports. A comma-separated list of Port names (from services(5)),
-#     port numbers or port ranges; if the protocol is icmp, this column is
-#     interpreted as the destination icmp-type(s). ICMP types may be specified as
-#     a numeric type, a numberic type and code separated by a slash (e.g., 3/4),
-#     or a typename. See http://www.shorewall.net/configuration_file_basics.htm#
-#     ICMP.
+#     Optional destination Ports. A comma-separated list of Port names (from
+#     services(5)), port numbers or port ranges; if the protocol is icmp, this
+#     column is interpreted as the destination icmp-type(s). ICMP types may be
+#     specified as a numeric type, a numberic type and code separated by a slash
+#     (e.g., 3/4), or a typename. See http://www.shorewall.net/
+#     configuration_file_basics.htm#ICMP.
 #           
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option
 #     without the leading "--" (example bit for bit-torrent). If no PORT is
@@ -118,15 +119,17 @@
 #     following field is supplied. In that case, it is suggested that this field
 #     contain "-"
 #           
-#           SOURCE PORT(S) (Optional) - [-|port-name-number-or-range[,
+#           SOURCE PORT(S) (sport) - [-|port-name-number-or-range[,
 #     port-name-number-or-range]...]
 #           
-#     Source port(s). If omitted, any source port is acceptable. Specified as a
-#     comma-separated list of port names, port numbers or port ranges.
+#     Optional source port(s). If omitted, any source port is acceptable.
+#     Specified as a comma-separated list of port names, port numbers or port
+#     ranges.
 #           
-#           USER (Optional) - [!][user-name-or-number][:group-name-or-number]
+#           USER - [!][user-name-or-number][:group-name-or-number]
 #           
-#     This column may only be non-empty if the SOURCE is the firewall itself.
+#     This optional column may only be non-empty if the SOURCE is the firewall
+#     itself.
 #           
 #     When this column is non-empty, the rule applies only if the program
 #     generating the output is running under the effective user and/or group

@@ -1,8 +1,46 @@
-Changes in 4.4.23.3
+Changes in 4.4.24 Final
 
-1)  Fix providers without 'balance' or 'fallback'.
+1)  Clone TTL support to provide HL support in Shorewall6.
 
-2)  Fix TC_ENABLED=Shared
+Changes in 4.4.24 RC 2
+
+1)  Fix 'fallback' without =<weight>.
+
+2)  Add BALANCE_TABLE
+
+3)  Fix RC 1 bugs reported by Steven Springl
+
+
+Changes in 4.4.24 RC 1
+
+1)  Eliminate the 'mincolumn' and 'maxcolumns' arguments to the
+    split_line functions.
+
+2)  Add IPTABLES_S capability.
+
+3)  Support additional forms of column/value pair specification.
+
+Changes in 4.4.24 Beta 4
+
+1)  Rename condition->switch.
+
+2)  Implement an alternate way to specify column contents.
+
+Changes in 4.4.24 Beta 3
+
+1)  Check validity of the NET2 column in IPv6 netmap.
+
+2)  Implement support for condition match.
+
+Changes in 4.4.24 Beta 2
+
+1)  Support exclusion in the netmap file.
+
+Changes in 4.4.24 Beta 1
+
+1)  Externalize IPv6 Stateless NAT
+
+2)  Fix providers without 'balance' or 'fallback'.
 
 Changes in 4.4.23.2
 

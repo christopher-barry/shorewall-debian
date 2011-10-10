@@ -26,14 +26,16 @@
 #           If you have an entry for a zone and interface in shorewall6-interfaces(5) then
 #           do not include any entries in this file for that same (zone, interface) pair.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           ZONE - zone-name
 #           
 #     The name of a zone declared in shorewall6-zones(5). You may not list the
 #     firewall zone in this column.
 #           
-#           HOST(S) - interface:[{[{address-or-range[,address-or-range]...|+ipset}[
+#           HOST(S) (hosts)- interface:[{[{address-or-range[,address-or-range]...|+ipset}[
 #     exclusion]]
 #           
 #     The name of an interface defined in the shorewall6-interfaces(5) file
@@ -56,11 +58,11 @@
 #         You may also exclude certain hosts through use of an exclusion (see
 #         shorewall6-exclusion(5).
 #           
-#           OPTIONS (Optional) - [option[,option]...]
+#           OPTIONS - [option[,option]...]
 #           
-#     A comma-separated list of options from the following list. The order in
-#     which you list the options is not significant but the list must have no
-#     embedded white space.
+#     An optional comma-separated list of options from the following list. The
+#     order in which you list the options is not significant but the list must
+#     have no embedded white space.
 #           
 #     routeback
 #           

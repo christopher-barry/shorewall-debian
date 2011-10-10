@@ -6,7 +6,7 @@
 # The manpage is also online at
 # http://www.shorewall.net/manpages6/shorewall6-rules.html
 #
-#######################################################################################################################################################################
+###########################################################################################################################################################################
 #           
 #           Entries in this file govern connection establishment by defining exceptions to
 #           the policies layed out in shorewall6-policy(5). By default, subsequent requests
@@ -65,7 +65,9 @@
 #           You may omit any section that you don't need. If no Section Headers appear in
 #           the file then all rules are assumed to be in the NEW section.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           ACTION - {ACCEPT[+|!]|DROP[!]|REJECT[!]|DNAT[-]|SAME[-]|CONTINUE[!]|LOG|QUEUE
 #     [!]|NFQUEUE[(queuenumber)]|COMMENT|action|macro[(target)]}[:{log-level|
@@ -358,26 +360,25 @@
 #         indicate the number of levels of destination bindings to be matched.
 #         Only one of the SOURCE and DEST columns may specify an ipset name.
 #           
-#           PROTO (Optional) - {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|
-#     protocol-name|all}
+#           PROTO - {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|protocol-name|all}
 #           
-#     Protocol - ipp2p* requires ipp2p match support in your kernel and
+#     Optional protocol - ipp2p* requires ipp2p match support in your kernel and
 #     ip6tables. tcp:syn implies tcp plus the SYN flag must be set and the
 #     RST,ACK and FIN flags must be reset.
 #           
 #     Beginning with Shorewall6 4.4.19, this column can contain a comma-separated
 #     list of protocol-numbers and/or protocol names (e.g., tcp,udp).
 #           
-#           DEST PORT(S) (Optional) - {-|port-name-number-or-range[,
-#     port-name-number-or-range]...}
+#           DEST PORT(S) (dport) - {-|port-name-number-or-range[,port-name-number-or-range
+#     ]...}
 #           
-#     Destination Ports. A comma-separated list of Port names (from services(5)),
-#     port numbers or port ranges; if the protocol is icmp, this column is
-#     interpreted as the destination icmp-type(s). ICMP types may be specified as
-#     a numeric type, a numberic type and code separated by a slash (e.g., 3/4),
-#     or a typename. See http://www.shorewall.net/configuration_file_basics.htm#
-#     ICMP. Note that prior to Shorewall6 4.4.19, only a single ICMP type may be
-#     listsed.
+#     Optional destination Ports. A comma-separated list of Port names (from
+#     services(5)), port numbers or port ranges; if the protocol is icmp, this
+#     column is interpreted as the destination icmp-type(s). ICMP types may be
+#     specified as a numeric type, a numberic type and code separated by a slash
+#     (e.g., 3/4), or a typename. See http://www.shorewall.net/
+#     configuration_file_basics.htm#ICMP. Note that prior to Shorewall6 4.4.19,
+#     only a single ICMP type may be listsed.
 #           
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option
 #     without the leading "--" (example bit for bit-torrent). If no port is
@@ -398,10 +399,10 @@
 #     2. No port ranges are included or your kernel and ip6tables contain
 #     extended multiport match support.
 #           
-#           SOURCE PORT(S) (Optional) - {-|port-name-number-or-range[,
+#           SOURCE PORT(S) (sport) - {-|port-name-number-or-range[,
 #     port-name-number-or-range]...}
 #           
-#     Port(s) used by the client. If omitted, any source port is acceptable.
+#     Optional source port(s). If omitted, any source port is acceptable.
 #     Specified as a comma- separated list of port names, port numbers or port
 #     ranges.
 #           
@@ -423,14 +424,14 @@
 #         2. No port ranges are included or your kernel and ip6tables contain
 #         extended multiport match support.
 #           
-#           ORIGINAL DEST (Optional) - [-]
+#           ORIGINAL DEST (origdest) - [-]
 #           
 #     Included for compatibility with Shorewall. Enter '-' in this column if you
 #     need to specify one of the later columns.
 #           
-#           RATE LIMIT (Optional) - [-|[{s|d}:[[name]:]]]rate/{sec|min|hour|day}[:burst]
+#           RATE LIMIT (rate) - [-|[{s|d}:[[name]:]]]rate/{sec|min|hour|day}[:burst]
 #           
-#     You may rate-limit the rule by placing a value in this column:
+#     You may optionally rate-limit the rule by placing a value in this column:
 #           
 #     rate is the number of connections per interval (sec or min) and burst is
 #     the largest burst permitted. If no burst is given, a value of 5 is assumed.
@@ -446,9 +447,10 @@
 #     the rules are aggregated and the individual rates apply to the aggregated
 #     count.
 #           
-#           USER/GROUP (Optional) - [!][user-name-or-number][:group-name-or-number]
+#           USER/GROUP (user) - [!][user-name-or-number][:group-name-or-number]
 #           
-#     This column may only be non-empty if the SOURCE is the firewall itself.
+#     This optional column may only be non-empty if the SOURCE is the firewall
+#     itself.
 #           
 #     When this column is non-empty, the rule applies only if the program
 #     generating the output is running under the effective user and/or group
@@ -586,6 +588,28 @@
 #     If ! is entered, the rule will match those packets which would not be
 #     matched when ! is omitted.
 #           
+#           SWITCH - [!]switch-name
+#           
+#     Added in Shorewall6 4.4.24 and allows enabling and disabling the rule
+#     without requiring shorewall6 restart.
+#           
+#     Enables the rule if the value stored in /proc/net/nf_condition/switch-name
+#     is 1. Disables the rule if that file contains 0 (the default). If '!' is
+#     supplied, the test is inverted such that the rule is enabled if the file
+#     contains 0. The switch-name must begin with a letter and be composed of
+#     letters, decimal digits, underscores or hyphens. Switch names must be 30
+#     characters or less in length.
+#           
+#     Switches are normally off. To turn a switch on:
+#           
+#     echo 1 > /proc/net/nf_condition/switch-name
+#           
+#     To turn it off again:
+#           
+#     echo 0 > /proc/net/nf_condition/switch-name
+#           
+#     Switch settings are retained over shorewall6 restart.
+#           
 #           Example
 #           
 #           Example 1:
@@ -615,8 +639,16 @@
 #             #                                                  PORT(S)      PORT(S)   DEST             LIMIT
 #             SSH(ACCEPT) net             all        -           -            -         -                s:1/min:3
 #           
-#######################################################################################################################################################################
-#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME            HEADERS
+#           Example 6:
+#           
+#     Forward port 80 to dmz host $BACKUP if switch 'primary_down' is set.
+#           
+#             #ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
+#             #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
+#             DNAT        net             dmz:$BACKUP tcp         80           -         -          -         -         -       -             -        -          primary_down
+#           
+###########################################################################################################################################################################
+#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME       HEADERS   SWITCH
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
 #SECTION ALL
 #SECTION ESTABLISHED

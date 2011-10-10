@@ -8,7 +8,9 @@
 #           The notrack file is used to exempt certain traffic from Netfilter connection
 #           tracking. Traffic matching entries in this file will not be tracked.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           SOURCE ‒ zone[:interface][:address-list]
 #           
@@ -34,19 +36,19 @@
 #           
 #     A protocol name from /etc/protocols or a protocol number.
 #           
-#           DEST PORT(S) - port-number/service-name-list
+#           DEST PORT(S) (dport) - port-number/service-name-list
 #           
 #     A comma-separated list of port numbers and/or service names from /etc/
 #     services. May also include port ranges of the form low-port:high-port if
 #     your kernel and iptables include port range support.
 #           
-#           SOURCE PORT(S) - port-number/service-name-list
+#           SOURCE PORT(S) (sport) - port-number/service-name-list
 #           
 #     A comma-separated list of port numbers and/or service names from /etc/
 #     services. May also include port ranges of the form low-port:high-port if
 #     your kernel and iptables include port range support.
 #           
-#           USER/GROUP ‒ [user][:group]
+#           USER/GROUP (user) ‒ [user][:group]
 #           
 #     May only be specified if the SOURCE zone is $FW. Specifies the effective
 #     user id and or group id of the process sending the traffic.
