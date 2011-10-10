@@ -575,6 +575,13 @@ show_command() {
 	    show_reset
 	    $IP6TABLES -t raw -L $g_ipt_options
 	    ;;
+	rawpost)
+	    [ $# -gt 1 ] && usage 1
+	    echo "$g_product $SHOREWALL_VERSION rawpost Table at $g_hostname - $(date)"
+	    echo
+	    show_reset
+	    $IP6TABLES -t rawpost -L $g_ipt_options
+	    ;;
 	log)
 	    [ $# -gt 2 ] && usage 1
 
@@ -1551,6 +1558,8 @@ determine_capabilities() {
     ACCOUNT_TARGET=
     AUDIT_TARGET=
     IPSET_V5=
+    CONDITION_MATCH=
+    IPTABLES_S=
 
     chain=fooX$$
 
@@ -1702,6 +1711,8 @@ determine_capabilities() {
     qt $IP6TABLES -A $chain -m ipv6header --header 255 && HEADER_MATCH=Yes
     qt $IP6TABLES -A $chain -j ACCOUNT --addr 1::/122 --tname $chain && ACCOUNT_TARGET=Yes
     qt $IP6TABLES -A $chain -j AUDIT --type drop && AUDIT_TARGET=Yes
+    qt $IP6TABLES -A $chain -m condition --condition foo && CONDITION_MATCH=Yes
+    qt $IP6TABLES -S INPUT && IPTABLES_S=Yes
     
 
     qt $IP6TABLES -F $chain
@@ -1795,6 +1806,8 @@ report_capabilities() {
 	report_capability "ACCOUNT Target" $ACCOUNT_TARGET
 	report_capability "AUDIT Target" $AUDIT_TARGET
 	report_capability "ipset V5" $IPSET_V5
+	report_capability "Condition Match" $CONDITION_MATCH
+	report_capability "ip6tables -S" $IPTABLES_S
     fi
 
     [ -n "$PKTTYPE" ] || USEPKTTYPE=
@@ -1862,6 +1875,8 @@ report_capabilities1() {
     report_capability1 ACCOUNT_TARGET
     report_capability1 AUDIT_TARGET
     report_capability1 IPSET_V5
+    report_capability1 CONDITION_MATCH
+    report_capability1 IPTABLES_S
     
     echo CAPVERSION=$SHOREWALL_CAPVERSION
     echo KERNELVERSION=$KERNELVERSION    
