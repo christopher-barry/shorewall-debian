@@ -15,7 +15,9 @@
 #           
 #           To use this file, your kernel and iptables must have NETMAP support included.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           TYPE - {DNAT|SNAT}[:{P|O|T}]
 #           
@@ -47,7 +49,8 @@
 #           
 #           NET1 - network-address
 #           
-#     Network in CIDR format (e.g., 192.168.1.0/24).
+#     Network in CIDR format (e.g., 192.168.1.0/24). Beginning with Shorewall
+#     4.4.24, exclusion is supported.
 #           
 #           INTERFACE - interface
 #           
@@ -65,19 +68,19 @@
 #     Added in Shorewall 4.4.11. If specified, qualifies INTERFACE. It specifies
 #     a SOURCE network for DNAT rules and a DESTINATON network for SNAT rules.
 #           
-#           PROTO (Optional - Added in Shorewall 4.4.23.2) - protocol-number-or-name
+#           PROTO - protocol-number-or-name
 #           
-#     Only packets specifying this protocol will have their IP header modified.
+#     Optional -- added in Shorewall 4.4.23.2. Only packets specifying this
+#     protocol will have their IP header modified.
 #           
-#           DEST PORT(S) (Optional - Added in Shorewall 4.4.23.2) - 
-#     port-number-or-name-list
+#           DEST PORT(S) (dport) - port-number-or-name-list
 #           
-#     Destination Ports. A comma-separated list of Port names (from services(5)),
-#     port numbers or port ranges; if the protocol is icmp, this column is
-#     interpreted as the destination icmp-type(s). ICMP types may be specified as
-#     a numeric type, a numberic type and code separated by a slash (e.g., 3/4),
-#     or a typename. See http://www.shorewall.net/configuration_file_basics.htm#
-#     ICMP.
+#     Optional - added in Shorewall 4.4.23.2. Destination Ports. A
+#     comma-separated list of Port names (from services(5)), port numbers or port
+#     ranges; if the protocol is icmp, this column is interpreted as the
+#     destination icmp-type(s). ICMP types may be specified as a numeric type, a
+#     numberic type and code separated by a slash (e.g., 3/4), or a typename. See
+#     http://www.shorewall.net/configuration_file_basics.htm#ICMP.
 #           
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option
 #     without the leading "--" (example bit for bit-torrent). If no PORT is
@@ -87,11 +90,11 @@
 #     (6), udp (17), sctp (132) or udplite (136). Use '-' if any of the following
 #     field is supplied.
 #           
-#           DEST PORT(S) (Optional - Added in Shorewall 4.4.23.2) - 
-#     port-number-or-name-list
+#           SOURCE PORT(S) (sport) - port-number-or-name-list
 #           
-#     Source port(s). If omitted, any source port is acceptable. Specified as a
-#     comma-separated list of port names, port numbers or port ranges.
+#     Optional -- added in Shorewall 4.4.23.2. Source port(s). If omitted, any
+#     source port is acceptable. Specified as a comma-separated list of port
+#     names, port numbers or port ranges.
 #           
 #     An entry in this field requires that the PROTO column specify tcp (6), udp
 #     (17), sctp (132) or udplite (136). Use '-' if any of the following fields

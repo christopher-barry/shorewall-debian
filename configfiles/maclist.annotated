@@ -12,7 +12,9 @@
 #           enabled by using the maclist option in the shorewall-interfaces(5) or
 #           shorewall-hosts(5) configuration file.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           DISPOSITION - {ACCEPT|DROP|REJECT}[:log-level]
 #           
@@ -30,13 +32,13 @@
 #     MAC addresses here. If IP ADDRESSESES is supplied then MAC can be supplied
 #     as a dash (-)
 #           
-#           IP ADDRESSES (Optional) - [address[,address]...]
+#           IP ADDRESSES (addresses) - [address[,address]...]
 #           
-#     If specified, both the MAC and IP address must match. This column can
-#     contain a comma-separated list of host and/or subnet addresses. If your
-#     kernel and iptables have iprange match support then IP address ranges are
-#     also allowed. Similarly, if your kernel and iptables include ipset support
-#     than set names (prefixed by "+") are also allowed.
+#     Optional - if specified, both the MAC and IP address must match. This
+#     column can contain a comma-separated list of host and/or subnet addresses.
+#     If your kernel and iptables have iprange match support then IP address
+#     ranges are also allowed. Similarly, if your kernel and iptables include
+#     ipset support than set names (prefixed by "+") are also allowed.
 #           
 ###############################################################################
 #DISPOSITION	INTERFACE		MAC			IP ADDRESSES (Optional)

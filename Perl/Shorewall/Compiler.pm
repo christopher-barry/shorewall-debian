@@ -43,7 +43,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_23';
+our $VERSION = '4.4_24';
 
 my $export;
 
@@ -757,12 +757,12 @@ sub compiler {
 	# Setup Nat
 	#
 	setup_nat;
-	#
-	# Setup NETMAP
-	#
-	setup_netmap;
     }
 
+    #
+    # Setup NETMAP
+    #
+    setup_netmap;
     #
     # MACLIST Filtration
     #

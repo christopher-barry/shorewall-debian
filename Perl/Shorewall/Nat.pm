@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_23';
+our $VERSION = '4.4_24';
 
 my @addresses_to_add;
 my %addresses_to_add;
@@ -54,12 +54,15 @@ sub initialize() {
 #
 sub process_one_masq( )
 {
-    my ($interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user ) = split_line1 2, 8, 'masq file';
+    my ($interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user ) = 
+	split_line1 'masq file', { interface => 0, source => 1, address => 2, proto => 3, port => 4, ipsec => 5, mark => 6, user => 7 };
 
     if ( $interfacelist eq 'COMMENT' ) {
 	process_comment;
 	return 1;
     }
+
+    fatal_error 'INTERFACE must be specified' if $interfacelist eq '-';
 
     my $pre_nat;
     my $add_snat_aliases = $config{ADD_SNAT_ALIASES};
@@ -374,7 +377,7 @@ sub setup_nat() {
 
 	while ( read_a_line ) {
 
-	    my ( $external, $interfacelist, $internal, $allints, $localnat ) = split_line1 3, 5, 'nat file';
+	    my ( $external, $interfacelist, $internal, $allints, $localnat ) = split_line1 'nat file', { external => 0, interface => 1, internal => 2, allints => 3, local => 4 };
 
 	    if ( $external eq 'COMMENT' ) {
 		process_comment;
@@ -382,6 +385,9 @@ sub setup_nat() {
 		( $interfacelist, my $digit ) = split /:/, $interfacelist;
 
 		$digit = defined $digit ? ":$digit" : '';
+
+		fatal_error 'EXTERNAL must be specified' if $external eq '-';
+		fatal_error 'INTERNAL must be specified' if $interfacelist eq '-';
 
 		for my $interface ( split_list $interfacelist , 'interface' ) {
 		    fatal_error "Invalid Interface List ($interfacelist)" unless supplied $interface;
@@ -403,14 +409,11 @@ sub setup_netmap() {
 
     if ( my $fn = open_file 'netmap' ) {
 
-	first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , 'a non-empty netmap file' , 's'; } );
+	first_entry "$doing $fn...";
 
 	while ( read_a_line ) {
 
-	    my ( $type, $net1, $interfacelist, $net2, $net3, $proto, $dport, $sport ) = split_line 4, 8, 'netmap file';
-
-	    validate_net $net1, 0;
-	    validate_net $net2, 0;
+	    my ( $type, $net1, $interfacelist, $net2, $net3, $proto, $dport, $sport ) = split_line 'netmap file', { type => 0, net1 => 1, interface => 2, net2 => 3, net3 => 4, proto => 5, dport => 6, sport => 7 };
 
 	    $net3 = ALLIP if $net3 eq '-';
 
@@ -420,31 +423,48 @@ sub setup_netmap() {
 
 		fatal_error "Unknown interface ($interface)" unless my $interfaceref = known_interface( $interface );
 
-		my @rule = do_iproto( $proto, $sport, $dport );
+		my @rule = do_iproto( $proto, $dport, $sport );
 
 		unless ( $type =~ /:/ ) {
 		    my @rulein;
 		    my @ruleout;
 		    
+		    validate_net $net1, 0;
+		    validate_net $net2, 0;
+
 		    unless ( $interfaceref->{root} ) {
 			@rulein  = imatch_source_dev( $interface );
 			@ruleout = imatch_dest_dev( $interface );
 			$interface = $interfaceref->{name};
 		    }
 
+		    require_capability 'NAT_ENABLED', 'Stateful NAT Entries', '';
+
 		    if ( $type eq 'DNAT' ) {
-			add_ijump ensure_chain( 'nat' , input_chain $interface ) ,  j => "NETMAP --to $net2", @rulein  , imatch_source_net( $net3 ), d => $net1;
+			dest_iexclusion(  ensure_chain( 'nat' , input_chain $interface ) , 
+					  j => 'NETMAP' ,
+					  "--to $net2",
+					  $net1 ,
+					  @rulein  ,
+					  imatch_source_net( $net3 ) );
 		    } elsif ( $type eq 'SNAT' ) {
-			add_ijump ensure_chain( 'nat' , output_chain $interface ) , j => "NETMAP --to $net2", @ruleout , imatch_dest_net( $net3 ) ,  s => $net1;
+			source_iexclusion( ensure_chain( 'nat' , output_chain $interface ) ,
+					   j => 'NETMAP' ,
+					   "--to $net2" ,
+					   $net1 ,
+					   @ruleout ,
+					   imatch_dest_net( $net3 ) );
 		    } else {
 			fatal_error "Invalid type ($type)";
 		    }
 		} elsif ( $type =~ /^(DNAT|SNAT):([POT])$/ ) {
 		    my ( $target , $chain ) = ( $1, $2 );
 		    my $table = 'raw';
-		    my @match = ();
+		    my @match;
 
 		    require_capability 'RAWPOST_TABLE', 'Stateless NAT Entries', '';
+
+		    validate_net $net2, 0;
 
 		    unless ( $interfaceref->{root} ) {
 			@match = imatch_dest_dev(  $interface ); 
@@ -460,26 +480,31 @@ sub setup_netmap() {
 			$chain = postrouting_chain $interface;
 			$table = 'rawpost';
 		    }
+
+		    my $chainref = ensure_chain( $table, $chain );
+
 		    
-		    if ( $target eq 'DNAT' ) { 
-			add_ijump( ensure_chain( $table, $chain ) ,
-				   j          => 'RAWDNAT',
-				   targetopts => "--to-dest $net2",
-				   imatch_source_net( $net3 ) ,
-				   imatch_dest_net( $net1 ) ,
-				   @rule ,
-				   @match );
+		    if ( $target eq 'DNAT' ) {
+			dest_iexclusion( $chainref ,
+					 j => 'RAWDNAT' ,
+					 "--to-dest $net2" ,
+					 $net1 ,
+					 imatch_source_net( $net3 ) ,
+					 @rule ,
+					 @match
+				       );
 		    } else {
-			add_ijump( ensure_chain( $table, $chain ) ,
-				   j          => 'RAWSNAT',
-				   targetopts => "--to-source $net2",
-				   imatch_dest_net( $net3 ) ,
-				   imatch_source_net( $net1 ) ,
-				   @rule ,
-				   @match );
+			source_iexclusion( $chainref ,
+					   j  => 'RAWSNAT' ,
+					   "--to-source $net2" ,
+					   $net1 ,
+					   imatch_dest_net( $net3 ) ,
+					   @rule ,
+					   @match );
 		    }
 		} else {
-		    fatal_error "Invalid type ($type)";
+		    fatal_error 'TYPE must be specified' if $type eq '-';
+		    fatal_error "Invalid TYPE ($type)";
 		}
 		
 		progress_message "   Network $net1 on $iface mapped to $net2 ($type)";

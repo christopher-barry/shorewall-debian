@@ -15,7 +15,9 @@
 #           http://www.shorewall.net/FAQ.htm#faq1. Also, in many cases, Proxy ARP (
 #           shorewall-proxyarp(5)) is a better solution that one-to-one NAT.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           EXTERNAL - {address|COMMENT}
 #           
@@ -52,7 +54,7 @@
 #           
 #     Internal Address (must not be a DNS Name).
 #           
-#           ALL INTERFACES - [Yes|No]
+#           ALL INTERFACES (allints) - [Yes|No]
 #           
 #     If Yes or yes, NAT will be effective from all hosts. If No or no (or left
 #     empty) then NAT will be effective only through the interface named in the

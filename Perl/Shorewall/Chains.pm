@@ -147,7 +147,9 @@ our %EXPORT_TAGS = (
 				       newexclusionchain
 				       newnonatchain
 				       source_exclusion
+				       source_iexclusion
 				       dest_exclusion
+				       dest_iexclusion
 				       clearrule
 				       port_count
 				       do_proto
@@ -167,6 +169,7 @@ our %EXPORT_TAGS = (
 				       do_connbytes
 				       do_helper
 				       do_headers
+				       do_condition
 				       have_ipset_rules
 				       record_runtime_address
 				       conditional_rule
@@ -212,7 +215,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_23';
+our $VERSION = '4.4_24';
 
 #
 # Chain Table
@@ -444,31 +447,33 @@ use constant { UNIQUE      => 1,
 	       MATCH       => 8,
 	       CONTROL     => 16 };
 
-my %opttype = ( rule       => CONTROL,
-		cmd        => CONTROL,
+my %opttype = ( rule          => CONTROL,
+		cmd           => CONTROL,
 
-		dhcp       => UNIQUE,
+		dhcp          => UNIQUE,
 		
-	        mode       => CONTROL,
-		cmdlevel   => CONTROL,
-		simple     => CONTROL,
+	        mode          => CONTROL,
+		cmdlevel      => CONTROL,
+		simple        => CONTROL,
 
-	        i          => UNIQUE,
-		s          => UNIQUE,
-		o          => UNIQUE,
-		d          => UNIQUE,
-		p          => UNIQUE,
-		dport      => UNIQUE,
-		sport      => UNIQUE,
+	        i             => UNIQUE,
+		s             => UNIQUE,
+		o             => UNIQUE,
+		d             => UNIQUE,
+		p             => UNIQUE,
+		dport         => UNIQUE,
+		sport         => UNIQUE,
+		'icmp-type'   => UNIQUE,
+		'icmpv6-type' => UNIQUE,
 		
-		comment    => CONTROL,
+		comment       => CONTROL,
 
-		policy     => MATCH,
-		state      => EXCLUSIVE,
+		policy        => MATCH,
+		state         => EXCLUSIVE,
 		
-		jump       => TARGET,
-		target     => TARGET,
-		targetopts => TARGET,
+		jump          => TARGET,
+		target        => TARGET,
+		targetopts    => TARGET,
 	      );
 
 my %aliases = ( protocol        => 'p',
@@ -480,9 +485,11 @@ my %aliases = ( protocol        => 'p',
 		'out-interface' => 'o',
 		dport           => 'dport',
 		sport           => 'sport',
+		'icmp-type'     => 'icmp-type',
+		'icmpv6-type'   => 'icmpv6-type',
 	      );
 
-my @unique_options = ( qw/p dport sport s d i o/ );
+my @unique_options = ( qw/p dport sport icmp-type icmpv6-type s d i o/ );
 	     
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -2898,6 +2905,42 @@ sub source_exclusion( $$ ) {
     reftype $target ? $chainref : $chainref->{name};
 }
 
+sub source_iexclusion( $$$$$;@ ) {
+    my $chainref   = shift;
+    my $jump       = shift;
+    my $target     = shift;
+    my $targetopts = shift;
+    my $source     = shift;
+    my $table      = $chainref->{table};
+
+    my @exclusion;
+
+    if ( $source =~ /^([^!]+)!([^!]+)$/ ) {
+	$source = $1;
+	@exclusion = mysplit( $2 );
+
+	my $chainref1 = new_chain( $table , newexclusionchain( $table ) );
+	
+	add_ijump( $chainref1 , j => 'RETURN', imatch_source_net( $_ ) ) for @exclusion;
+	
+	if ( $targetopts ) {
+	    add_ijump( $chainref1, $jump => $target, targetopts => $targetopts );
+	} else {
+	    add_ijump( $chainref1, $jump => $target );
+	}
+
+	add_ijump( $chainref , j => $chainref1, imatch_source_net( $source ),  @_ );
+    } elsif ( $targetopts ) {
+	add_ijump( $chainref,
+		   $jump      => $target,
+		   targetopts => $targetopts,
+		   imatch_source_net( $source ), 
+		   @_ );
+    } else {
+	add_ijump( $chainref, $jump => $target, imatch_source_net( $source ), @_ );
+    }
+}
+
 sub dest_exclusion( $$ ) {
     my ( $exclusions, $target ) = @_;
 
@@ -2911,6 +2954,38 @@ sub dest_exclusion( $$ ) {
     add_ijump( $chainref, g => $target );
 
     reftype $target ? $chainref : $chainref->{name};
+}
+
+sub dest_iexclusion( $$$$$;@ ) {
+    my $chainref   = shift;
+    my $jump       = shift;
+    my $target     = shift;
+    my $targetopts = shift;
+    my $dest       = shift;
+    my $table      = $chainref->{table};
+
+    my @exclusion;
+
+    if ( $dest =~ /^([^!]+)!([^!]+)$/ ) {
+	$dest = $1;
+	@exclusion = mysplit( $2 );
+
+	my $chainref1 = new_chain( $table , newexclusionchain( $table ) );
+	
+	add_ijump( $chainref1 , j => 'RETURN', imatch_dest_net( $_ ) ) for @exclusion;
+	
+	if ( $targetopts ) {
+	    add_ijump( $chainref1, $jump => $target, targetopts => $targetopts, @_ );
+	} else {
+	    add_ijump( $chainref1, $jump => $target, @_ );
+	}
+
+	add_ijump( $chainref , j => $chainref1, imatch_dest_net( $dest ), @_ );
+    } elsif ( $targetopts ) {
+	add_ijump( $chainref, $jump => $target, imatch_dest_net( $dest ), targetopts => $targetopts , @_ );
+    } else {
+	add_ijump( $chainref, $jump => $target, imatch_dest_net( $dest ), @_ );
+    }
 }
 
 sub clearrule() {
@@ -3038,6 +3113,7 @@ sub do_proto( $$$;$ )
 
 			if ( $ports =~ /,/ ) {
 			    fatal_error "An inverted ICMP list may only contain a single type" if $invert;
+			    fatal_error "An ICMP type list is not allowed in this context"     if $restricted;
 			    $types = '';
 			    for my $type ( split_list( $ports, 'ICMP type list' ) ) {
 				$types = $types ? join( ',', $types, validate_icmp( $type ) ) : $type;
@@ -3062,6 +3138,7 @@ sub do_proto( $$$;$ )
 
 			if ( $ports =~ /,/ ) {
 			    fatal_error "An inverted ICMP list may only contain a single type" if $invert;
+			    fatal_error "An ICMP type list is not allowed in this context"     if $restricted;
 			    $types = '';
 			    for my $type ( list_split( $ports, 'ICMP type list' ) ) {
 				$types = $types ? join( ',', $types, validate_icmp6( $type ) ) : $type;
@@ -3226,6 +3303,7 @@ sub do_iproto( $$$ )
 
 			if ( $ports =~ /,/ ) {
 			    fatal_error "An inverted ICMP list may only contain a single type" if $invert;
+			    fatal_error "An ICMP type list is not allowed in this context"     if $restricted;
 			    $types = '';
 			    for my $type ( split_list( $ports, 'ICMP type list' ) ) {
 				$types = $types ? join( ',', $types, validate_icmp( $type ) ) : $type;
@@ -3250,8 +3328,9 @@ sub do_iproto( $$$ )
 
 			if ( $ports =~ /,/ ) {
 			    fatal_error "An inverted ICMP list may only contain a single type" if $invert;
+			    fatal_error "An ICMP type list is not allowed in this context"     if $restricted;
 			    $types = '';
-			    for my $type ( list_split( $ports, 'ICMP type list' ) ) {
+			    for my $type ( split_list( $ports, 'ICMP type list' ) ) {
 				$types = $types ? join( ',', $types, validate_icmp6( $type ) ) : $type;
 			    }
 			} else {
@@ -3656,6 +3735,22 @@ sub do_headers( $ ) {
     }
 
     "-m ipv6header ${invert}--header ${headers} ${soft}";
+}
+
+#
+# Generate a -m condition match
+#
+sub do_condition( $ ) {
+    my $condition = shift;
+
+    return '' if $condition eq '-';
+
+    my $invert = $condition =~ s/^!// ? '! ' : '';
+
+    require_capability 'CONDITION_MATCH', 'A non-empty SWITCH column', 's';
+    fatal_error "Invalid switch name ($condition)" unless $condition =~ /^[a-zA-Z][-\w]*$/ && length $condition <= 30;
+
+    "-m condition ${invert}--condition $condition "
 }
 
 #
@@ -5476,12 +5571,37 @@ sub emitr1( $$ ) {
 
 sub save_dynamic_chains() {
 
-    my $tool = $family == F_IPV4 ? '${IPTABLES}-save' : '${IP6TABLES}-save';
+    my $tool;
 
     emit ( 'if [ "$COMMAND" = restart -o "$COMMAND" = refresh ]; then' );
     push_indent;
 
-emit <<"EOF";
+    if ( have_capability 'IPTABLES_S' ) {
+	$tool = $family == F_IPV4 ? '${IPTABLES}' : '${IP6TABLES}';
+
+	emit <<"EOF";
+if chain_exists 'UPnP -t nat'; then
+    $tool -t nat -S UPnP | tail -n +2 > \${VARDIR}/.UPnP
+else
+    rm -f \${VARDIR}/.UPnP
+fi
+
+if chain_exists forwardUPnP; then
+    $tool -S forwardUPnP | tail -n +2 > \${VARDIR}/.forwardUPnP
+else
+    rm -f \${VARDIR}/.forwardUPnP
+fi
+
+if chain_exists dynamic; then
+    $tool -S dynamic | tail -n +2 > \${VARDIR}/.dynamic
+else
+    rm -f \${VARDIR}/.dynamic
+fi
+EOF
+    } else {
+	$tool = $family == F_IPV4 ? '${IPTABLES}-save' : '${IP6TABLES}-save';
+
+	emit <<"EOF";
 if chain_exists 'UPnP -t nat'; then
     $tool -t nat | grep '^-A UPnP ' > \${VARDIR}/.UPnP
 else
@@ -5500,6 +5620,7 @@ else
     rm -f \${VARDIR}/.dynamic
 fi
 EOF
+    }
 
     pop_indent;
     emit ( 'else' );
@@ -5508,13 +5629,23 @@ EOF
 emit <<"EOF";
 rm -f \${VARDIR}/.UPnP
 rm -f \${VARDIR}/.forwardUPnP
+EOF
 
-if [ "\$COMMAND" = stop -o "\$COMMAND" = clear ]; then
-    if chain_exists dynamic; then
-        $tool -t filter | grep '^-A dynamic ' > \${VARDIR}/.dynamic
+    if ( have_capability 'IPTABLES_S' ) {
+	emit( qq(if [ "\$COMMAND" = stop -o "\$COMMAND" = clear ]; then),
+	      qq(    if chain_exists dynamic; then),
+	      qq(        $tool -S dynamic | tail -n +2 > \${VARDIR}/.dynamic) );
+    } else {
+	emit( qq(if [ "\$COMMAND" = stop -o "\$COMMAND" = clear ]; then),
+	      qq(    if chain_exists dynamic; then),
+	      qq(        $tool -t filter | grep '^-A dynamic ' > \${VARDIR}/.dynamic) );
+    }
+
+emit <<"EOF";
     fi
 fi
 EOF
+
     pop_indent;
 
     emit ( 'fi' ,

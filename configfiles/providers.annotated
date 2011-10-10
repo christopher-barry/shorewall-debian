@@ -140,8 +140,10 @@
 #         route is added with the weight of this provider equal to the specified
 #         weight. If the option is given without a weight, an separate default
 #         route is added through the provider's gateway; the route has a metric
-#         equal to the provider's NUMBER. The option is ignored with a warning
-#         message if USE_DEFAULT_RT=Yes in shorewall.conf.
+#         equal to the provider's NUMBER.
+#           
+#         Prior to Shorewall 4.4.24, the option is ignored with a warning message
+#         if USE_DEFAULT_RT=Yes in shorewall.conf.
 #           
 #           COPY - [{none|interface[,interface]...}]
 #           

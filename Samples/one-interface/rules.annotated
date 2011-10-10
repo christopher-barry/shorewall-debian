@@ -10,7 +10,7 @@
 # See the file README.txt for further details.
 #------------------------------------------------------------------------------------------------------------
 # For information on entries in this file, type "man shorewall-rules"
-#############################################################################################################
+######################################################################################################################################################################################
 #           
 #           Entries in this file govern connection establishment by defining exceptions to
 #           the policies layed out in shorewall-policy(5). By default, subsequent requests
@@ -88,7 +88,9 @@
 #     destination IP address of the packet and the DEST PORT(S) column give the
 #     original destination port(s).
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           ACTION - target[:{log-level|none}[!][:tag]]
 #           
@@ -470,26 +472,25 @@
 #         contain the port number on the firewall that the request should be
 #         redirected to. That is equivalent to specifying $FW::port.
 #           
-#           PROTO (Optional) - {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|
-#     protocol-name|all}
+#           PROTO- {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|protocol-name|all}
 #           
-#     Protocol - ipp2p* requires ipp2p match support in your kernel and iptables.
-#     tcp:syn implies tcp plus the SYN flag must be set and the RST,ACK and FIN
-#     flags must be reset.
+#     Optional Protocol - ipp2p* requires ipp2p match support in your kernel and
+#     iptables. tcp:syn implies tcp plus the SYN flag must be set and the RST,ACK
+#     and FIN flags must be reset.
 #           
 #     Beginning with Shorewall 4.4.19, this column can contain a comma-separated
 #     list of protocol-numbers and/or protocol names.
 #           
-#           DEST PORT(S) (Optional) - {-|port-name-number-or-range[,
-#     port-name-number-or-range]...}
+#           DEST PORT(S) (dport) - {-|port-name-number-or-range[,port-name-number-or-range
+#     ]...}
 #           
-#     Destination Ports. A comma-separated list of Port names (from services(5)),
-#     port numbers or port ranges; if the protocol is icmp, this column is
-#     interpreted as the destination icmp-type(s). ICMP types may be specified as
-#     a numeric type, a numberic type and code separated by a slash (e.g., 3/4),
-#     or a typename. See http://www.shorewall.net/configuration_file_basics.htm#
-#     ICMP. Note that prior to Shorewall 4.4.19, only a single ICMP type may be
-#     listsed.
+#     Optional destination Ports. A comma-separated list of Port names (from
+#     services(5)), port numbers or port ranges; if the protocol is icmp, this
+#     column is interpreted as the destination icmp-type(s). ICMP types may be
+#     specified as a numeric type, a numberic type and code separated by a slash
+#     (e.g., 3/4), or a typename. See http://www.shorewall.net/
+#     configuration_file_basics.htm#ICMP. Note that prior to Shorewall 4.4.19,
+#     only a single ICMP type may be listsed.
 #           
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option
 #     without the leading "--" (example bit for bit-torrent). If no port is
@@ -510,12 +511,12 @@
 #     2. No port ranges are included or your kernel and iptables contain extended
 #     multiport match support.
 #           
-#           SOURCE PORT(S) (Optional) - {-|port-name-number-or-range[,
+#           SOURCE PORT(S) (sport) - {-|port-name-number-or-range[,
 #     port-name-number-or-range]...}
 #           
-#     Port(s) used by the client. If omitted, any source port is acceptable.
-#     Specified as a comma- separated list of port names, port numbers or port
-#     ranges.
+#     Optional port(s) used by the client. If omitted, any source port is
+#     acceptable. Specified as a comma- separated list of port names, port
+#     numbers or port ranges.
 #           
 #     Warning
 #           
@@ -535,12 +536,12 @@
 #         2. No port ranges are included or your kernel and iptables contain
 #         extended multiport match support.
 #           
-#           ORIGINAL DEST (Optional) - [-|address[,address]...[exclusion]|exclusion]
+#           ORIGINAL DEST (origdest) - [-|address[,address]...[exclusion]|exclusion]
 #           
-#     If ACTION is DNAT[-] or REDIRECT[-] then if this column is included and is
-#     different from the IP address given in the DEST column, then connections
-#     destined for that address will be forwarded to the IP and port specified in
-#     the DEST column.
+#     Optional. If ACTION is DNAT[-] or REDIRECT[-] then if this column is
+#     included and is different from the IP address given in the DEST column,
+#     then connections destined for that address will be forwarded to the IP and
+#     port specified in the DEST column.
 #           
 #     A comma-separated list of addresses may also be used. This is most useful
 #     with the REDIRECT target where you want to redirect traffic destined for
@@ -570,9 +571,9 @@
 #     See http://shorewall.net/PortKnocking.html for an example of using an entry
 #     in this column with a user-defined action rule.
 #           
-#           RATE LIMIT (Optional) - [-|[{s|d}:[[name]:]]]rate/{sec|min|hour|day}[:burst]
+#           RATE LIMIT (rate) - [-|[{s|d}:[[name]:]]]rate/{sec|min|hour|day}[:burst]
 #           
-#     You may rate-limit the rule by placing a value in this column:
+#     You may optionally rate-limit the rule by placing a value in this column:
 #           
 #     rate is the number of connections per interval (sec or min) and burst is
 #     the largest burst permitted. If no burst is given, a value of 5 is assumed.
@@ -590,10 +591,11 @@
 #           
 #     Example: s:ssh:3/min:5
 #           
-#           USER/GROUP (Optional) - [!][user-name-or-number][:group-name-or-number][+
+#           USER/GROUP (user) - [!][user-name-or-number][:group-name-or-number][+
 #     program-name]
 #           
-#     This column may only be non-empty if the SOURCE is the firewall itself.
+#     This optional column may only be non-empty if the SOURCE is the firewall
+#     itself.
 #           
 #     When this column is non-empty, the rule applies only if the program
 #     generating the output is running under the effective user and/or group
@@ -699,6 +701,33 @@
 #     datestop=yyyy[-mm[-dd[Thh[:mm[:ss]]]]]
 #           
 #         Defines the ending date and time.
+#           
+#           HEADERS
+#           
+#     Added in Shorewall 4.4.15. Not used in IPv4 configurations. If you with to
+#     supply a value for one of the later columns, enter '-' in this column.
+#           
+#           SWITCH - [!]switch-name
+#           
+#     Added in Shorewall 4.4.24 and allows enabling and disabling the rule
+#     without requiring shorewall restart.
+#           
+#     The rule is enabled if the value stored in /proc/net/nf_condition/
+#     switch-name is 1. The rule is disabled if that file contains 0 (the
+#     default). If '!' is supplied, the test is inverted such that the rule is
+#     enabled if the file contains 0. switch-name must begin with a letter and be
+#     composed of letters, decimal digits, underscores or hyphens. Switch names
+#     must be 30 characters or less in length.
+#           
+#     Switches are normally off. To turn a switch on:
+#           
+#     echo 1 > /proc/net/nf_condition/switch-name
+#           
+#     To turn it off again:
+#           
+#     echo 0 > /proc/net/nf_condition/switch-name
+#           
+#     Switch settings are retained over shorewall restart.
 #           
 #           Examples
 #           
@@ -843,8 +872,16 @@
 #             #                                                  PORT(S)      PORT(S)   DEST             LIMIT
 #             SSH(ACCEPT) net             all        -           -            -         -                s:1/min:3
 #           
-#############################################################################################################
-#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK
+#           Example 12:
+#           
+#     Forward port 80 to dmz host $BACKUP if switch 'primary_down' is on.
+#           
+#             #ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
+#             #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
+#             DNAT        net             dmz:$BACKUP tcp         80           -         -          -         -         -       -             -        -          primary_down
+#           
+######################################################################################################################################################################################
+#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME         HEADERS         SWITCH
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
 #SECTION ALL
 #SECTION ESTABLISHED

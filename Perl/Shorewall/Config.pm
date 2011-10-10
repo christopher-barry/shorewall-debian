@@ -150,7 +150,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_23';
+our $VERSION = '4.4_24';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -280,6 +280,8 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 ACCOUNT_TARGET  => 'ACCOUNT Target',
 		 AUDIT_TARGET    => 'AUDIT Target',
 		 RAWPOST_TABLE   => 'Rawpost Table',
+		 CONDITION_MATCH => 'Condition Match',
+		 IPTABLES_S      => 'iptables -S',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -443,8 +445,8 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.23.3",
-		    CAPVERSION => 40423 ,
+		    VERSION    => "4.4.24",
+		    CAPVERSION => 40424 ,
 		  );
     #
     # From shorewall.conf file
@@ -664,6 +666,8 @@ sub initialize( $ ) {
 	       HEADER_MATCH => undef,
 	       ACCOUNT_TARGET => undef,
 	       AUDIT_TARGET => undef,
+	       CONDITION_MATCH => undef,
+	       IPTABLES_S => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -1335,46 +1339,45 @@ sub supplied( $ ) {
 
 #    ensure that it has an appropriate number of columns.
 #    supply '-' in omitted trailing columns.
+#    Handles all of the supported forms of column/pair specification
 #
-sub split_line( $$$ ) {
-    my ( $mincolumns, $maxcolumns, $description ) = @_;
+sub split_line1( $$;$ ) {
+    my ( $description, $columnsref, $nopad) = @_;
 
-    fatal_error "Shorewall Configuration file entries may not contain single quotes, double quotes, single back quotes or backslashes" if $currentline =~ /["'`\\]/;
-    fatal_error "Non-ASCII gunk in file" if $currentline =~ /[^\s[:print:]]/;
+    my @maxcolumns = ( keys %$columnsref );
+    my $maxcolumns = @maxcolumns;
+    #
+    # First see if there is a semicolon on the line; what follows will be column/value paris
+    #
+    my ( $columns, $pairs, $rest ) = split( ';', $currentline );
 
-    my @line = split( ' ', $currentline );
+    if ( supplied $pairs ) {
+	#
+	# Found it -- be sure there wasn't more than one.
+	#
+	fatal_error "Only one semicolon (';') allowed on a line" if defined $rest;
+    } elsif ( $currentline =~ /(.*){(.*)}$/ ) {
+	#
+	# Pairs are enclosed in curly brackets.
+	#
+	$columns = $1;
+	$pairs   = $2;
+    } else {
+	$pairs = '';
+    }
 
-    my $line = @line;
+    fatal_error "Shorewall Configuration file entries may not contain double quotes, single back quotes or backslashes" if $columns =~ /["`\\]/;
+    fatal_error "Non-ASCII gunk in file" if $columns =~ /[^\s[:print:]]/;
 
-    fatal_error "Invalid $description entry (too many columns)" if $line > $maxcolumns;
-
-    $line-- while $line > 0 && $line[$line-1] eq '-';
-
-    fatal_error "Invalid $description entry (too few columns)"  if $line < $mincolumns;
-
-    push @line, '-' while @line < $maxcolumns;
-
-    @line;
-}
-
-#
-# Version of 'split_line' used on files with exceptions
-#
-sub split_line1( $$$;$ ) {
-    my ( $mincolumns, $maxcolumns, $description, $nopad) = @_;
-
-    fatal_error "Shorewall Configuration file entries may not contain double quotes, single back quotes or backslashes" if $currentline =~ /["`\\]/;
-    fatal_error "Non-ASCII gunk in file" if $currentline =~ /[^\s[:print:]]/;
-
-    my @line = split( ' ', $currentline );
+    my @line = split( ' ', $columns );
 
     $nopad = { COMMENT => 0 } unless $nopad;
 
-    my $first   = $line[0];
-    my $columns = $nopad->{$first};
+    my $first     = supplied $line[0] ? $line[0] : '-';
+    my $npcolumns = $nopad->{$first};
 
-    if ( defined $columns ) {
-	fatal_error "Invalid $first entry" if $columns && @line != $columns;
+    if ( defined $npcolumns ) {
+	fatal_error "Invalid $first entry" if $npcolumns && @line != $npcolumns;
 	return @line
     }
 
@@ -1386,11 +1389,32 @@ sub split_line1( $$$;$ ) {
 
     $line-- while $line > 0 && $line[$line-1] eq '-';
 
-    fatal_error "Invalid $description entry (too few columns)"  if $line < $mincolumns;
-
     push @line, '-' while @line < $maxcolumns;
 
+    if ( supplied $pairs ) {
+	$pairs =~ s/^\s*//;
+	$pairs =~ s/\s*$//;
+
+	my @pairs = split( /,?\s+/, $pairs );
+
+	for ( @pairs ) {
+	    fatal_error "Invalid column/value pair ($_)" unless /^(\w+)(?:=>?|:)(.+)$/;
+	    my ( $column, $value ) = ( lc $1, $2 );
+	    fatal_error "Unknown column ($1)" unless exists $columnsref->{$column};
+	    $column = $columnsref->{$column};
+	    fatal_error "Non-ASCII gunk in file" if $columns =~ /[^\s[:print:]]/;
+	    $value = $1 if $value =~ /^"([^"]+)"$/;
+	    fatal_error "Column values may not contain embedded double quotes, single back quotes or backslashes" if $columns =~ /["`\\]/;
+	    fatal_error "Non-ASCII gunk in the value of the $column column" if $columns =~ /[^\s[:print:]]/;
+	    $line[$column] = $value;
+	}
+    }   
+
     @line;
+}
+
+sub split_line($$) {
+    &split_line1( @_, {} );
 }
 
 #
@@ -2671,8 +2695,16 @@ sub Account_Target() {
     }
 }
 
+sub Condition_Match() {
+    qt1( "$iptables -A $sillyname -m condition --condition foo" );
+}
+
 sub Audit_Target() {
     qt1( "$iptables -A $sillyname -j AUDIT --type drop" );
+}
+
+sub Iptables_S() {
+    qt1( "$iptables -S INPUT" )
 }
 
 our %detect_capability =
@@ -2680,6 +2712,7 @@ our %detect_capability =
       AUDIT_TARGET => \&Audit_Target,
       ADDRTYPE => \&Addrtype,
       CLASSIFY_TARGET => \&Classify_Target,
+      CONDITION_MATCH => \&Condition_Match,
       COMMENTS => \&Comments,
       CONNLIMIT_MATCH => \&Connlimit_Match,
       CONNMARK => \&Connmark,
@@ -2699,6 +2732,7 @@ our %detect_capability =
       IPSET_MATCH => \&IPSet_Match,
       OLD_IPSET_MATCH => \&Old_IPSet_Match,
       IPSET_V5 => \&IPSET_V5,
+      IPTABLES_S => \&Iptables_S,
       KLUDGEFREE => \&Kludgefree,
       LENGTH_MATCH => \&Length_Match,
       LOGMARK_TARGET => \&Logmark_Target,
@@ -2853,6 +2887,8 @@ sub determine_capabilities() {
 	$capabilities{ACCOUNT_TARGET}  = detect_capability( 'ACCOUNT_TARGET' );
 	$capabilities{AUDIT_TARGET}    = detect_capability( 'AUDIT_TARGET' );
 	$capabilities{IPSET_V5}        = detect_capability( 'IPSET_V5' );
+	$capabilities{CONDITION_MATCH} = detect_capability( 'CONDITION_MATCH' );
+	$capabilities{IPTABLES_S}      = detect_capability( 'IPTABLES_S' );
 
 
 	qt1( "$iptables -F $sillyname" );

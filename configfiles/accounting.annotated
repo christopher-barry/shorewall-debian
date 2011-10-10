@@ -82,7 +82,9 @@
 #   ● Traffic being forwarded through the firewall goes through the rules from
 #     the FORWARD sections.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax):
 #           
 #           ACTION - {COUNT|DONE|chain[:{COUNT|JUMP}]|ACCOUNT(table,network)|COMMENT 
 #     comment}
@@ -170,19 +172,19 @@
 #     The name of an interface, an address (host or net) or an interface name
 #     followed by ":" and a host or net address.
 #           
-#           DESTINATION - {-|any|all|interface|interface:address|address}
+#           DESTINATION (dest) - {-|any|all|interface|interface:address|address}
 #           
 #     Packet Destination.
 #           
 #     Format same as SOURCE column.
 #           
-#           PROTOCOL - {-|any|all|protocol-name|protocol-number|ipp2p[:{udp|all}]}
+#           PROTOCOL (proto) - {-|any|all|protocol-name|protocol-number|ipp2p[:{udp|all}]}
 #           
 #     A protocol-name (from protocols(5)), a protocol-number, ipp2p, ipp2p:udp or
 #     ipp2p:all
 #           
-#           DEST PORT(S) - {-|any|all|ipp2p-option|port-name-or-number[,port-name-or-number
-#     ]...}
+#           DEST PORT(S) (dport) - {-|any|all|ipp2p-option|port-name-or-number[,
+#     port-name-or-number]...}
 #           
 #     Destination Port number. Service name from services(5) or port number. May
 #     only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP
@@ -195,7 +197,8 @@
 #     ("iptables -m ipp2p --help") without the leading "--". If no option is
 #     given in this column, ipp2p is assumed.
 #           
-#           SOURCE PORT(S) - {-|any|all|port-name-or-number[,port-name-or-number]...}
+#           SOURCE PORT(S) (sport)- {-|any|all|port-name-or-number[,port-name-or-number
+#     ]...}
 #           
 #     Service name from services(5) or port number. May only be specified if the
 #     protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136).
@@ -203,7 +206,8 @@
 #     You may place a comma-separated list of port numbers in this column if your
 #     kernel and iptables include multiport match support.
 #           
-#           USER/GROUP - [!][user-name-or-number][:group-name-or-number][+program-name]
+#           USER/GROUP (user) - [!][user-name-or-number][:group-name-or-number][+
+#     program-name]
 #           
 #     This column may only be non-empty if the CHAIN is OUTPUT.
 #           
@@ -326,7 +330,7 @@
 #           
 #           In all of the above columns except ACTION and CHAIN, the values -, any and all
 #           may be used as wildcards. Omitted trailing columns are also treated as
-#           wildcards.
+#           wildcard.
 #           
 #################################################################################################################
 #ACTION	CHAIN	SOURCE		DESTINATION	PROTO	DEST		SOURCE	USER/	MARK	IPSEC

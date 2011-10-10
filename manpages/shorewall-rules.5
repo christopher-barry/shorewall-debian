@@ -2,12 +2,12 @@
 .\"     Title: shorewall-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-RULES" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-RULES" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -154,7 +154,7 @@ The DEST column specifies the final destination for the packet after rewriting a
 The remaining columns specify characteristics of the packet before rewriting\&. In particular, the ORIGINAL DEST column gives the original destination IP address of the packet and the DEST PORT(S) column give the original destination port(s)\&.
 .RE
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
 \fBACTION\fR \- \fB\fItarget\fR\fR\fB[:\fR{\fIlog\-level\fR|\fBnone\fR}[\fB\fB!\fR\fR][\fB:\fR\fItag\fR]]
 .RS 4
@@ -711,9 +711,9 @@ or
 \fB$FW\fR::\fIport\fR\&.
 .RE
 .PP
-\fBPROTO\fR (Optional) \- {\fB\-\fR|\fBtcp:syn\fR|\fBipp2p\fR|\fBipp2p:udp\fR|\fBipp2p:all\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
+\fBPROTO\fR\- {\fB\-\fR|\fBtcp:syn\fR|\fBipp2p\fR|\fBipp2p:udp\fR|\fBipp2p:all\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
 .RS 4
-Protocol \-
+Optional Protocol \-
 \fBipp2p\fR* requires ipp2p match support in your kernel and iptables\&.
 \fBtcp:syn\fR
 implies
@@ -723,9 +723,9 @@ plus the SYN flag must be set and the RST,ACK and FIN flags must be reset\&.
 Beginning with Shorewall 4\&.4\&.19, this column can contain a comma\-separated list of protocol\-numbers and/or protocol names\&.
 .RE
 .PP
-\fBDEST PORT(S) \fR(Optional) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
+\fBDEST PORT(S) (dport)\fR \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
-Destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
+Optional destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&. Note that prior to Shorewall 4\&.4\&.19, only a single ICMP type may be listsed\&.
 .sp
@@ -754,9 +754,9 @@ list below:
 2\&. No port ranges are included or your kernel and iptables contain extended multiport match support\&.
 .RE
 .PP
-\fBSOURCE PORT(S)\fR (Optional) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
+\fBSOURCE PORT(S)\fR (sport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
-Port(s) used by the client\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
+Optional port(s) used by the client\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
 .if n \{\
 .sp
 .\}
@@ -785,9 +785,9 @@ list above:
 2\&. No port ranges are included or your kernel and iptables contain extended multiport match support\&.
 .RE
 .PP
-\fBORIGINAL DEST\fR (Optional) \- [\fB\-\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.[\fIexclusion\fR]|\fIexclusion\fR]
+\fBORIGINAL DEST\fR (origdest) \- [\fB\-\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.[\fIexclusion\fR]|\fIexclusion\fR]
 .RS 4
-If ACTION is
+Optional\&. If ACTION is
 \fBDNAT\fR[\fB\-\fR] or
 \fBREDIRECT\fR[\fB\-\fR] then if this column is included and is different from the IP address given in the
 \fBDEST\fR
@@ -819,9 +819,9 @@ See
 for an example of using an entry in this column with a user\-defined action rule\&.
 .RE
 .PP
-\fBRATE LIMIT\fR (Optional) \- [\fB\-\fR|[{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
+\fBRATE LIMIT\fR (rate) \- [\fB\-\fR|[{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
 .RS 4
-You may rate\-limit the rule by placing a value in this column:
+You may optionally rate\-limit the rule by placing a value in this column:
 .sp
 \fIrate\fR
 is the number of connections per interval (\fBsec\fR
@@ -849,9 +849,9 @@ Example:
 \fBs:ssh:3/min:5\fR
 .RE
 .PP
-\fBUSER/GROUP\fR (Optional) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
+\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
 .RS 4
-This column may only be non\-empty if the SOURCE is the firewall itself\&.
+This optional column may only be non\-empty if the SOURCE is the firewall itself\&.
 .sp
 When this column is non\-empty, the rule applies only if the program generating the output is running under the effective
 \fIuser\fR
@@ -995,6 +995,40 @@ datestop=\fIyyyy\fR[\-\fImm\fR[\-\fIdd\fR[\fBT\fR\fIhh\fR[:\fImm\fR[:\fIss\fR]]]
 .RS 4
 Defines the ending date and time\&.
 .RE
+.RE
+.PP
+\fBHEADERS\fR
+.RS 4
+Added in Shorewall 4\&.4\&.15\&. Not used in IPv4 configurations\&. If you with to supply a value for one of the later columns, enter \*(Aq\-\*(Aq in this column\&.
+.RE
+.PP
+\fBSWITCH \- [!]\fR\fB\fIswitch\-name\fR\fR
+.RS 4
+Added in Shorewall 4\&.4\&.24 and allows enabling and disabling the rule without requiring
+\fBshorewall restart\fR\&.
+.sp
+The rule is enabled if the value stored in
+/proc/net/nf_condition/\fIswitch\-name\fR
+is 1\&. The rule is disabled if that file contains 0 (the default)\&. If \*(Aq!\*(Aq is supplied, the test is inverted such that the rule is enabled if the file contains 0\&.
+\fIswitch\-name\fR
+must begin with a letter and be composed of letters, decimal digits, underscores or hyphens\&. Switch names must be 30 characters or less in length\&.
+.sp
+Switches are normally
+\fBoff\fR\&. To turn a switch
+\fBon\fR:
+.RS 4
+\fBecho 1 >
+            /proc/net/nf_condition/\fR\fB\fIswitch\-name\fR\fR
+.RE
+To turn it
+\fBoff\fR
+again:
+.RS 4
+\fBecho 0 >
+            /proc/net/nf_condition/\fR\fB\fIswitch\-name\fR\fR
+.RE
+Switch settings are retained over
+\fBshorewall restart\fR\&.
 .RE
 .SH "EXAMPLES"
 .PP
@@ -1251,12 +1285,31 @@ You wish to limit SSH connections from remote systems to 1/min with a burst of t
 .RE
 .\}
 .RE
+.PP
+Example 12:
+.RS 4
+Forward port 80 to dmz host $BACKUP if switch \*(Aqprimary_down\*(Aq is on\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
+        #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
+        DNAT        net             dmz:$BACKUP tcp         80           \-         \-          \-         \-         \-       \-             \-        \-          primary_down
+.fi
+.if n \{\
+.RE
+.\}
+.RE
 .SH "FILES"
 .PP
 /etc/shorewall/rules
 .SH "SEE ALSO"
 .PP
 \m[blue]\fBhttp://www\&.shorewall\&.net/ipsets\&.html\fR\m[]
+.PP
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\&.conf(5), shorewall\-secmarks(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
