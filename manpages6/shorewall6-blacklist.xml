@@ -26,7 +26,9 @@
     <para>The blacklist file is used to perform static blacklisting. You can
     blacklist by source address (IP or MAC), or by application.</para>
 
-    <para>The columns in the file are as follows.</para>
+    <para>The columns in the file are as follows (where the column name is
+    followed by a different name in parentheses, the different name is used in
+    the alternate specification syntax).</para>
 
     <variablelist>
       <varlistentry>
@@ -55,18 +57,17 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">PROTOCOL</emphasis> (Optional) -
-        {<emphasis
+        <term><emphasis role="bold">PROTOCOL</emphasis> (proto) - {<emphasis
         role="bold">-</emphasis>|<emphasis>protocol-number</emphasis>|<emphasis>protocol-name</emphasis>}</term>
 
         <listitem>
-          <para>If specified, must be a protocol number or a protocol name
-          from protocols(5).</para>
+          <para>Optional - if specified, must be a protocol number or a
+          protocol name from protocols(5).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">PORTS</emphasis> (Optional) - {<emphasis
+        <term><emphasis role="bold">PORTS</emphasis> (port) - {<emphasis
         role="bold">-</emphasis>|<emphasis>port-name-or-number</emphasis>[,<emphasis>port-name-or-number</emphasis>]...}</term>
 
         <listitem>
@@ -77,12 +78,11 @@
       </varlistentry>
 
       <varlistentry>
-        <term>OPTIONS (Optional - Added in 4.4.12) -
-        {-|{dst|src|whitelist|audit}[,...]}</term>
+        <term>OPTIONS - {-|{dst|src|whitelist|audit}[,...]}</term>
 
         <listitem>
-          <para>If specified, indicates whether traffic
-          <emphasis>from</emphasis> ADDRESS/SUBNET (<emphasis
+          <para>Optional - added in 4.4.12. If specified, indicates whether
+          traffic <emphasis>from</emphasis> ADDRESS/SUBNET (<emphasis
           role="bold">src</emphasis>) or traffic <emphasis>to</emphasis>
           ADDRESS/SUBNET (<emphasis role="bold">dst</emphasis>) should be
           blacklisted. The default is <emphasis role="bold">src</emphasis>. If
@@ -194,12 +194,16 @@
     <para><ulink
     url="http://shorewall.net/blacklisting_support.htm">http://shorewall.net/blacklisting_support.htm</ulink></para>
 
+    <para><ulink
+    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-hosts(5), shorewall6-interfaces(5), shorewall6-maclist(5),
-    shorewall6-params(5), shorewall6-policy(5), shorewall6-providers(5),
-    shorewall6-route_rules(5), shorewall6-routestopped(5),
-    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5),
-    shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-tcrules(5),
-    shorewall6-tos(5), shorewall6-tunnels(5), shorewall6-zones(5)</para>
+    shoewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
+    shorewall6-providers(5), shorewall6-route_rules(5),
+    shorewall6-routestopped(5), shorewall6-rules(5), shorewall6.conf(5),
+    shorewall6-secmarks(5), shorewall6-tcclasses(5), shorewall6-tcdevices(5),
+    shorewall6-tcrules(5), shorewall6-tos(5), shorewall6-tunnels(5),
+    shorewall6-zones(5)</para>
   </refsect1>
 </refentry>

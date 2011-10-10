@@ -51,7 +51,9 @@
       in this file.</para>
     </important>
 
-    <para>The columns in the file are as follows.</para>
+    <para>The columns in the file are as follows (where the column name is
+    followed by a different name in parentheses, the different name is used in
+    the alternate specification syntax).</para>
 
     <variablelist>
       <varlistentry>
@@ -204,14 +206,14 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">LOG LEVEL</emphasis> (Optional) -
+        <term><emphasis role="bold">LOG LEVEL</emphasis> (loglevel) -
         [<emphasis>log-level</emphasis>|<emphasis
         role="bold">NFLOG</emphasis>]</term>
 
         <listitem>
-          <para>If supplied, each connection handled under the default POLICY
-          is logged at that level. If not supplied, no log message is
-          generated. See syslog.conf(5) for a description of log
+          <para>Optional - if supplied, each connection handled under the
+          default POLICY is logged at that level. If not supplied, no log
+          message is generated. See syslog.conf(5) for a description of log
           levels.</para>
 
           <para>You may also specify NFLOG (must be in upper case). This will
@@ -225,7 +227,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">BURST:LIMIT</emphasis> -
+        <term><emphasis role="bold">BURST:LIMIT</emphasis> (limit) -
         [{<emphasis>s</emphasis>|<emphasis
         role="bold">d</emphasis>}:[[<replaceable>name</replaceable>]:]]]<emphasis>rate</emphasis><emphasis
         role="bold">/</emphasis>{<emphasis
@@ -312,14 +314,18 @@
   <refsect1>
     <title>See ALSO</title>
 
+    <para><ulink
+    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-interfaces(5),
     shorewall6-ipsec(5), shorewall6-maclist(5), shorewall6-masq(5),
-    shorewall6-nat(5), shorewall6-netmap(5), shorewall6-params(5),
-    shorewall6-policy(5), shorewall6-providers(5), shorewall6-proxyarp(5),
+    shorewall6-nat(5), shorewall6-netmap(5),
+    shoewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
+    shorewall6-providers(5), shorewall6-proxyarp(5),
     shorewall6-route_rules(5), shorewall6-routestopped(5),
-    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5), shorewall6-tcclasses(5),
-    shorewall6-tcdevices(5), shorewall6-tcrules(5), shorewall6-tos(5),
-    shorewall6-tunnels(5), shorewall6-zones(5)</para>
+    shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5),
+    shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-tcrules(5),
+    shorewall6-tos(5), shorewall6-tunnels(5), shorewall6-zones(5)</para>
   </refsect1>
 </refentry>

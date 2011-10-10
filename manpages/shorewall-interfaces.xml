@@ -520,8 +520,10 @@ loc     eth2            -</programlisting>
                 the wildcard.</para>
 
                 <para>Beginning with Shorewall 4.4.20, if you specify this
-                option, then you should also specify <option>filter</option>;
-                see above.</para>
+                option, then you should also specify either
+                <option>sfilter</option> (see below) or
+                <option>routefilter</option> on all interfaces (see
+                below).</para>
               </listitem>
             </varlistentry>
 
@@ -751,6 +753,9 @@ net     ppp0      -</programlisting>
 
   <refsect1>
     <title>See ALSO</title>
+
+    <para><ulink
+    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall-maclist(5),
