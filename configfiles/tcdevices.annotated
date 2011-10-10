@@ -42,7 +42,9 @@
 #           
 #   ● Only whole integers are allowed.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           INTERFACE - [number:]interface
 #           
@@ -62,7 +64,7 @@
 #     on) You can explicitly specify the interface number by prefixing the
 #     interface name with the number and a colon (":"). Example: 1:eth0.
 #           
-#           IN-BANDWIDTH - bandwidth[:burst]
+#           IN-BANDWIDTH (in_bandwidth) - bandwidth[:burst]
 #           
 #     The incoming bandwidth of that interface. Please note that you are not able
 #     to do traffic shaping on incoming traffic, as the traffic is already
@@ -79,7 +81,7 @@
 #     is 10kb. A larger burst can help make the bandwidth more accurate; often
 #     for fast lines, the enforced rate is well below the specified bandwidth.
 #           
-#           OUT-BANDWIDTH - bandwidth
+#           OUT-BANDWIDTH (out_bandwidth) - bandwidth
 #           
 #     The outgoing bandwidth of that interface. This is the maximum speed your
 #     connection can handle. It is also the speed you can refer as "full" if you
@@ -96,7 +98,7 @@
 #     discipline. When hfsc is specified, the Hierarchical Fair Service Curves
 #     discipline is used instead.
 #           
-#           REDIRECTED INTERFACES - [interface[,interface]...]
+#           REDIRECTED INTERFACES (redirect)- [interface[,interface]...]
 #           
 #     May only be specified if the interface in the INTERFACE column is an
 #     Intermediate Frame Block (IFB) device. Causes packets that enter each

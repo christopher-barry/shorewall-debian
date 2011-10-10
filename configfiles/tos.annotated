@@ -7,7 +7,9 @@
 #           
 #           This file defines rules for setting Type Of Service (TOS)
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           SOURCE - {all|address]|all:address|$FW}
 #           
@@ -24,15 +26,15 @@
 #           
 #     Example: 192.168.2.3
 #           
-#           PROTOCOL - proto-name-or-number
+#           PROTOCOL (proto) - proto-name-or-number
 #           
 #     Protocol name or number.
 #           
-#           SOURCE PORT(S) - {-|port|lowport:highport}
+#           SOURCE PORT(S) (sport) - {-|port|lowport:highport}
 #           
 #     Source port or port range. If all ports, use "-".
 #           
-#           DEST PORT(S) - {-|port|lowport:highport}
+#           DEST PORT(S) (dport) - {-|port|lowport:highport}
 #           
 #     Destination port or port range. If all ports, use "-"
 #           

@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tunnels
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TUNNELS" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TUNNELS" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -123,9 +123,9 @@ The IP address of the remote tunnel gateway\&. If the remote gateway has no fixe
 \fB0\&.0\&.0\&.0/0\fR\&. May be specified as a network address and if your kernel and iptables include iprange match support then IP address ranges are also allowed\&.
 .RE
 .PP
-\fBGATEWAY ZONES\fR (Optional) \- [\fIzone\fR[\fB,\fR\fIzone\fR]\&.\&.\&.]
+\fBGATEWAY ZONES\fR (gateway_zone) \- [\fIzone\fR[\fB,\fR\fIzone\fR]\&.\&.\&.]
 .RS 4
-If the gateway system specified in the third column is a standalone host then this column should contain a comma\-separated list of the names of the zones that the host might be in\&. This column only applies to IPSEC tunnels where it enables ISAKMP traffic to flow through the tunnel to the remote gateway\&.
+Optional\&. If the gateway system specified in the third column is a standalone host then this column should contain a comma\-separated list of the names of the zones that the host might be in\&. This column only applies to IPSEC tunnels where it enables ISAKMP traffic to flow through the tunnel to the remote gateway\&.
 .RE
 .SH "EXAMPLE"
 .PP
@@ -264,5 +264,7 @@ You have a tunnel that is not one of the supported types\&. Your tunnel uses UDP
 .PP
 /etc/shorewall/tunnels
 .SH "SEE ALSO"
+.PP
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-secmarks(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-zones(5)

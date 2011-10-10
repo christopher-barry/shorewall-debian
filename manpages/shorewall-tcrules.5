@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -56,9 +56,9 @@ If you use multiple internet providers with the \*(Aqtrack\*(Aq option, in /etc/
 .sp .5v
 .RE
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBMARK/CLASSIFY\fR \- \fImark\fR
+\fBMARK/CLASSIFY\fR (mark) \- \fImark\fR
 .RS 4
 Where
 \fImark\fR
@@ -444,6 +444,34 @@ There are three parameters to TPROXY \- only the first (mark) is required:
 \- a local (to the firewall) IP address on which the proxy server is listening\&. If omitted, the IP address of the interface on which the request arrives\&.
 .RE
 .RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'10.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "10." 4.2
+.\}
+\fBTTL\fR([\fB\-\fR|\fB+\fR]\fInumber\fR)
+.sp
+Added in Shorewall 4\&.4\&.24\&. May be option followed by
+\fB:F\fR
+but the resulting rule is always added to the FORWARD chain\&. If
+\fB+\fR
+is included, packets matching the rule will have their TTL incremented by
+\fInumber\fR\&. Similarly, if
+\fB\-\fR
+is included, matching packets have their TTL decremented by
+\fInumber\fR\&. If neither
+\fB+\fR
+nor
+\fB\-\fR
+is given, the TTL of matching packets is set to
+\fInumber\fR\&. The valid range of values for
+\fInumber\fR
+is 1\-255\&.
+.RE
 .RE
 .PP
 \fBSOURCE\fR \- {\fB\-\fR|{\fIinterface\fR|\fB$FW\fR}|[{\fIinterface\fR|\fB$FW\fR}:]\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.}[\fIexclusion\fR]
@@ -565,9 +593,9 @@ Protocol \-
 requires ipp2p match support in your kernel and iptables\&.
 .RE
 .PP
-\fBPORT(S)\fR (Optional) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
+\fBPORT(S)\fR (dport) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
 .RS 4
-Destination Ports\&. A comma\-separated list of Port names (from services(5)),
+Optional destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
 \fIport range\fRs; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
@@ -583,16 +611,16 @@ is assumed\&.
 An entry in this field requires that the PROTO column specify icmp (1), tcp (6), udp (17), sctp (132) or udplite (136)\&. Use \*(Aq\-\*(Aq if any of the following field is supplied\&.
 .RE
 .PP
-\fBSOURCE PORT(S)\fR (Optional) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
+\fBSOURCE PORT(S)\fR (sport) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
 .RS 4
-Source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
+Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
 .sp
 An entry in this field requires that the PROTO column specify tcp (6), udp (17), sctp (132) or udplite (136)\&. Use \*(Aq\-\*(Aq if any of the following fields is supplied\&.
 .RE
 .PP
-\fBUSER\fR (Optional) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
+\fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
 .RS 4
-This column may only be non\-empty if the SOURCE is the firewall itself\&.
+This optional column may only be non\-empty if the SOURCE is the firewall itself\&.
 .sp
 When this column is non\-empty, the rule applies only if the program generating the output is running under the effective
 \fIuser\fR
@@ -638,9 +666,9 @@ The ability to specify a program name was removed from Netfilter in kernel versi
 .RE
 .RE
 .PP
-\fBTEST\fR (Optional) \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
+\fBTEST\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
 .RS 4
-Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
+Optional \- Defines a test on the existing packet or connection mark\&. The rule will match only if the test returns true\&.
 .sp
 If you don\*(Aqt want to define a test but need to specify anything in the following columns, place a "\-" in this field\&.
 .PP
@@ -665,9 +693,9 @@ Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is teste
 .RE
 .RE
 .PP
-\fBLENGTH\fR (Optional) \- [\fIlength\fR|[\fImin\fR]\fB:\fR[\fImax\fR]]
+\fBLENGTH\fR \- [\fIlength\fR|[\fImin\fR]\fB:\fR[\fImax\fR]]
 .RS 4
-Packet Length\&. This field, if present allow you to match the length of a packet against a specific value or range of values\&. You must have iptables length support for this to work\&. A range is specified in the form
+Optional \- packet Length\&. This field, if present allow you to match the length of a packet against a specific value or range of values\&. You must have iptables length support for this to work\&. A range is specified in the form
 \fImin\fR:\fImax\fR
 where either
 \fImin\fR
@@ -682,7 +710,7 @@ is omitted, than any packet that is
 or longer will match\&.
 .RE
 .PP
-\fBTOS\fR (Optional) \- \fItos\fR
+\fBTOS\fR \- \fItos\fR
 .RS 4
 Type of service\&. Either a standard name, or a numeric value to match\&.
 .sp
@@ -701,9 +729,9 @@ Type of service\&. Either a standard name, or a numeric value to match\&.
 .\}
 .RE
 .PP
-\fBCONNBYTES\fR (Optional) \- [!]\fImin\fR:[\fImax\fR[:{\fBO\fR|\fBR\fR|\fBB\fR}[:{\fBB\fR|\fBP\fR|\fBA\fR}]]]
+\fBCONNBYTES\fR \- [!]\fImin\fR:[\fImax\fR[:{\fBO\fR|\fBR\fR|\fBB\fR}[:{\fBB\fR|\fBP\fR|\fBA\fR}]]]
 .RS 4
-Connection Bytes; defines a byte or packet range that the connection must fall within in order for the rule to match\&.
+Optional connection Bytes; defines a byte or packet range that the connection must fall within in order for the rule to match\&.
 .sp
 A packet matches if the the packet/byte count is within the range defined by
 \fImin\fR
@@ -724,7 +752,7 @@ The second letter determines what the range refers to\&.\fBB\fR \- Bytes .sp \fB
 is assumed\&.
 .RE
 .PP
-\fBHELPER (Optional) \- \fR\fIhelper\fR
+\fBHELPER \- \fR\fIhelper\fR
 .RS 4
 Names a Netfiler protocol
 helper
@@ -787,6 +815,8 @@ If a packet hasn\*(Aqt been classifed (packet mark is 0), copy the connection ma
 \m[blue]\fBhttp://shorewall\&.net/MultiISP\&.html\fR\m[]
 .PP
 \m[blue]\fBhttp://shorewall\&.net/PacketMarking\&.html\fR\m[]
+.PP
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-ecn(5), shorewall\-exclusion(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-secmarks(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"

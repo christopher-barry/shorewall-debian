@@ -49,7 +49,9 @@
 #           
 #   ● Only whole integers are allowed.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           INTERFACE
 #           
@@ -70,7 +72,7 @@
 #     shaping. VPN interfaces are an exception because the encapsulated packets
 #     are later transferred over a slower external link.
 #           
-#           IN-BANDWIDTH - [rate[:burst]]
+#           IN-BANDWIDTH (in_bandwidth) - [rate[:burst]]
 #           
 #     Optional. If specified, enables ingress policing on the interface. If
 #     incoming traffic exceeds the given rate, received packets are dropped
@@ -91,7 +93,8 @@
 #     on fast lines. The default burst often make the enforced rate mush less
 #     that the specified rate.
 #           
-#           OUT-BANDWIDTH - [rate[:[burst][:[latency][:[peek][:[minburst]]]]]]
+#           OUT-BANDWIDTH (out_bandwidth) - [rate[:[burst][:[latency][:[peek][:[minburst
+#     ]]]]]]
 #           
 #     Added in Shorewall 4.4.13. The terms are defined in tc-tbf(8).
 #           

@@ -19,23 +19,25 @@
 #           Changes to this file do not take effect until after the next shorewall start or
 #           shorewall restart command.
 #           
-#           The columns in the file are as follows.
+#           The columns in the file are as follows (where the column name is followed by a
+#           different name in parentheses, the different name is used in the alternate
+#           specification syntax).
 #           
 #           INTERFACE - interface
 #           
 #     Interface through which host(s) communicate with the firewall
 #           
-#           HOST(S) (Optional) - [-|address[,address]...]
+#           HOST(S) (hosts) - [-|address[,address]...]
 #           
-#     Comma-separated list of IP/subnet addresses. If your kernel and iptables
-#     include iprange match support, IP address ranges are also allowed.
+#     Optional. Comma-separated list of IP/subnet addresses. If your kernel and
+#     iptables include iprange match support, IP address ranges are also allowed.
 #           
 #     If left empty or supplied as "-", 0.0.0.0/0 is assumed.
 #           
-#           OPTIONS (Optional) - [-|option[,option]...]
+#           OPTIONS - [-|option[,option]...]
 #           
-#     A comma-separated list of options. The order of the options is not
-#     important but the list can contain no embedded whitespace. The
+#     Optional. A comma-separated list of options. The order of the options is
+#     not important but the list can contain no embedded whitespace. The
 #     currently-supported options are:
 #           
 #     routeback
@@ -67,17 +69,17 @@
 #           
 #     Protocol.
 #           
-#           DEST PORT(S) (Optional) ‒ service-name/port-number-list
+#           DEST PORT(S) (dport) ‒ service-name/port-number-list
 #           
-#     A comma-separated list of port numbers and/or service names from /etc/
-#     services. May also include port ranges of the form low-port:high-port if
-#     your kernel and iptables include port range support.
+#     Optional. A comma-separated list of port numbers and/or service names from
+#     /etc/services. May also include port ranges of the form low-port:high-port
+#     if your kernel and iptables include port range support.
 #           
-#           SOURCE PORT(S) (Optional) ‒ service-name/port-number-list
+#           SOURCE PORT(S) (sport) ‒ service-name/port-number-list
 #           
-#     A comma-separated list of port numbers and/or service names from /etc/
-#     services. May also include port ranges of the form low-port:high-port if
-#     your kernel and iptables include port range support.
+#     Optional. A comma-separated list of port numbers and/or service names from
+#     /etc/services. May also include port ranges of the form low-port:high-port
+#     if your kernel and iptables include port range support.
 #           
 #           Note
 #           

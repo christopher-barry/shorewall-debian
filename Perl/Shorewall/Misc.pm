@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_23';
+our $VERSION = '4.4_24';
 
 my $family;
 
@@ -82,7 +82,7 @@ sub process_tos() {
 
 	while ( read_a_line ) {
 
-	    my ($src, $dst, $proto, $sports, $ports , $tos, $mark ) = split_line 6, 7, 'tos file entry';
+	    my ($src, $dst, $proto, $ports, $sports , $tos, $mark ) = split_line 'tos file entry', { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, tos => 5, mark => 6 } ;
 
 	    $first_entry = 0;
 
@@ -159,8 +159,9 @@ sub setup_ecn()
 
 	while ( read_a_line ) {
 
-	    my ($interface, $hosts ) = split_line 1, 2, 'ecn file entry';
+	    my ($interface, $hosts ) = split_line 'ecn file entry', { interface => 0, hosts => 1 };
 
+	    fatal_error 'INTERFACE must be specified' if $interface eq '-';
 	    fatal_error "Unknown interface ($interface)" unless known_interface $interface;
 
 	    $interfaces{$interface} = 1;
@@ -256,7 +257,7 @@ sub setup_blacklist() {
 		    $first_entry = 0;
 		}
 
-		my ( $networks, $protocol, $ports, $options ) = split_line 1, 4, 'blacklist file';
+		my ( $networks, $protocol, $ports, $options ) = split_line 'blacklist file', { networks => 0, proto => 1, port => 2, options => 3 };
 
 		if ( $options eq '-' ) {
 		    $options = 'src';
@@ -358,10 +359,12 @@ sub process_routestopped() {
 
 	while ( read_a_line ) {
 
-	    my ($interface, $hosts, $options , $proto, $ports, $sports ) = split_line 1, 6, 'routestopped file';
+	    my ($interface, $hosts, $options , $proto, $ports, $sports ) =
+		split_line 'routestopped file', { interface => 0, hosts => 1, options => 2, proto => 3, dport => 4, sport => 5 };
 
 	    my $interfaceref;
 
+	    fatal_error 'INTERFACE must be specified' if $interface eq '-';
 	    fatal_error "Unknown interface ($interface)" unless $interfaceref = known_interface $interface;
 	    $hosts = ALLIP unless $hosts && $hosts ne '-';
 
@@ -897,7 +900,7 @@ sub setup_mac_lists( $ ) {
 
 	    while ( read_a_line ) {
 
-		my ( $original_disposition, $interface, $mac, $addresses  ) = split_line1 3, 4, 'maclist file';
+		my ( $original_disposition, $interface, $mac, $addresses  ) = split_line1 'maclist file', { disposition => 0, interface => 1, mac => 2, addresses => 3 };
 
 		if ( $original_disposition eq 'COMMENT' ) {
 		    process_comment;

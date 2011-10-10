@@ -2,12 +2,12 @@
 .\"     Title: shorewall-secmarks
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 09/16/2011
+.\"      Date: 10/09/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-SECMARKS" "5" "09/16/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-SECMARKS" "5" "10/09/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -53,7 +53,7 @@ Unlike rules in the
 .PP
 The secmarks file is used to associate an SELinux context with packets\&. It was added in Shorewall version 4\&.4\&.13\&.
 .PP
-The columns in the file are as follows\&.
+The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
 \fBSECMARK \- {SAVE|RESTORE|\fR\fB\fIcontext\fR\fR\fB|COMMENT \fR\fB\fIcomment\fR\fR\fB}\fR
 .RS 4
@@ -79,7 +79,7 @@ The remainder of the line is treated as a comment which is attached to subsequen
 .RE
 .RE
 .PP
-\fBCHAIN:STATE \- {P|I|F|O|T}[:{N|I|NI|E|ER}]\fR
+\fBCHAIN:STATE (chain) \- {P|I|F|O|T}[:{N|I|NI|E|ER}]\fR
 .RS 4
 This column determines the CHAIN where the SElinux context is to be applied:
 .RS 4
@@ -205,9 +205,9 @@ Protocol \-
 requires ipp2p match support in your kernel and iptables\&.
 .RE
 .PP
-\fBPORT(S)\fR (Optional) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
+\fBPORT(S)\fR (dport) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
 .RS 4
-Destination Ports\&. A comma\-separated list of Port names (from services(5)),
+Optional destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
 \fIport range\fRs; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
@@ -223,14 +223,14 @@ is assumed\&.
 This column is ignored if PROTOCOL = all but must be entered if any of the following field is supplied\&. In that case, it is suggested that this field contain "\-"
 .RE
 .PP
-\fBSOURCE PORT(S)\fR (Optional) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
+\fBSOURCE PORT(S)\fR (sport) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
 .RS 4
-Source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
+Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
 .RE
 .PP
-\fBUSER\fR (Optional) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
+\fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
 .RS 4
-This column may only be non\-empty if the SOURCE is the firewall itself\&.
+This optional column may only be non\-empty if the SOURCE is the firewall itself\&.
 .sp
 When this column is non\-empty, the rule applies only if the program generating the output is running under the effective
 \fIuser\fR
@@ -320,6 +320,8 @@ RESTORE                               I:ER
 .SH "SEE ALSO"
 .PP
 \m[blue]\fBhttp://james\-morris\&.livejournal\&.com/11010\&.html\fR\m[]
+.PP
+\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-route_rules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
