@@ -1,3 +1,7 @@
+Changes in 4.4.24.1
+
+1)  Restore complex TC functionality.
+
 Changes in 4.4.24 Final
 
 1)  Clone TTL support to provide HL support in Shorewall6.
