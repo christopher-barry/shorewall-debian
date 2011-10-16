@@ -21,7 +21,7 @@
 #           
 #     Types are as follows:
 #           
-#             6to4          - 6to4 or 6in4 tunnel
+#             6to4 or 6in4  - 6to4 or 6in4 tunnel. The 6in4 synonym was added in 4.4.24.
 #             ipsec         - IPv4 IPSEC
 #             ipsecnat      - IPv4 IPSEC with NAT Traversal (UDP port 4500 encapsulation)
 #             ipip          - IPv4 encapsulated in IPv4 (Protocol 4)
