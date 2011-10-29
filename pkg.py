@@ -72,6 +72,11 @@ Usage summary: pkg.py [import|build|tag|upload] [options]
     -b <program>
         The program to use to build the packages (default: pdebuild)
 
+    -c <alt-branch-prefix>
+        Prefix branch and tag specifications (e.g., to build packages for
+        direct upload to Squeeze, use '-c squeeze'; note that the squeeze/*
+        branches must already exist)
+
     -o "<options>"
         Options to pass to the build program (must be enclosed in quotes if
         there are spaces)
@@ -89,6 +94,10 @@ Usage summary: pkg.py [import|build|tag|upload] [options]
         Build or tag all the source packages (used in place of -p with
         multiple packages; overrides -p)
 
+    -c <alt-tag-prefix>
+        Prefix branch and tag specifications (e.g., to tag packages that have
+        been built for direct upload to Squeeze, use '-c squeeze')
+
     -p "<package(s)>"
         The package(s) to build or tag (must be space separated and enclosed
         in quotes)
@@ -105,7 +114,7 @@ def illegal_option(o, op):
 
 try:
     # Get the options from the command line
-    opts, args = getopt.gnu_getopt(sys.argv[1:], 'adb:hln:o:p:tv')
+    opts, args = getopt.gnu_getopt(sys.argv[1:], 'adb:c:hln:o:p:tv')
 except getopt.GetoptError, err:
     print str(err)
     usage()
@@ -161,6 +170,10 @@ for o, v in opts:
         if op != 'build': illegal_option(o, op)
         build_prog = v
         if verbose: print "Using %s to build packages" % build_prog
+    elif o == '-c':
+        if (op != 'build') and (op != 'tag'): illegal_option(o, op)
+        branch_tag_prefix = v + '/'
+        if verbose: print "Prefixing branches and tags with: %s" % branch_tag_prefix
     elif o == '-n':
         if op != 'import': illegal_option(o, op)
         import_tarball = v
@@ -294,8 +307,8 @@ elif op == 'build':
         print "Please specify packages to build!"
         sys.exit(1)
     for p in packages_to_process:
-        p_debian_branch = p + '/' + debian_branch
-        p_upstream_branch = p + '/' + upstream_branch
+        p_debian_branch = branch_tag_prefix + p + '/' + debian_branch
+        p_upstream_branch = branch_tag_prefix + p + '/' + upstream_branch
         if verbose: print "Checking out to branch: %s" % p_debian_branch
         gbp_repo.set_branch(p_debian_branch)
         # There does not appear to be a programmatic interface to
@@ -335,12 +348,12 @@ elif op == 'tag':
         print "Please specify packages to tag!"
         sys.exit(1)
     for p in packages_to_process:
-        p_debian_branch = p + '/' + debian_branch
-        p_upstream_branch = p + '/' + upstream_branch
+        p_debian_branch = branch_tag_prefix + p + '/' + debian_branch
+        p_upstream_branch = branch_tag_prefix + p + '/' + upstream_branch
         if verbose: print "Checking out to branch: %s" % p_debian_branch
         gbp_repo.set_branch(p_debian_branch)
         tag_ver = parse_changelog('debian/changelog')['Version']
-        p_debian_tag = p + '/' + debian_tag + '/' + tag_ver
+        p_debian_tag = branch_tag_prefix + p + '/' + debian_tag + '/' + tag_ver
         # There does not appear to be a programmatic interface to
         # git-buildpackage for actually building packages, so this hacky call
         # to os.system() will have to do
