@@ -1,6 +1,6 @@
 shorewall-lite (4.4.24.1-2) UNRELEASED; urgency=low
 
-  * Install missing /usr/share/shorewall-lite/helpers 
+  * Install missing /usr/share/shorewall-lite/helpers (Closes: #646281)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 22 Oct 2011 15:17:02 -0400
 
