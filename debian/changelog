@@ -1,3 +1,9 @@
+shorewall (4.4.11.6-3+squeeze1) stable-proposed-updates; urgency=low
+
+  * Install missing /usr/share/shorewall/helpers (Closes: #646112)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Oct 2011 14:14:21 -0400
+
 shorewall (4.4.11.6-3) unstable; urgency=low
 
   * Fix macro.JAP to correct nested macro call.

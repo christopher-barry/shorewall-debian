@@ -8,6 +8,8 @@ configfiles/clear	/usr/share/doc/shorewall/default-config
 configpath	/usr/share/shorewall
 configfiles/ecn	/usr/share/doc/shorewall/default-config
 configfiles/findgw	/usr/share/doc/shorewall/default-config
+helpers	/usr/share/doc/shorewall/default-config
+helpers	/usr/share/shorewall
 configfiles/hosts	/usr/share/doc/shorewall/default-config
 configfiles/initdone	/usr/share/doc/shorewall/default-config
 configfiles/init	/usr/share/doc/shorewall/default-config
