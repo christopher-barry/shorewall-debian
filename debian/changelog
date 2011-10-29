@@ -1,3 +1,9 @@
+shorewall6-lite (4.4.11.6-1+squeeze2) stable-proposed-updates; urgency=low
+
+  * Install missing /usr/share/shorewall6-lite/helpers (Closes: #646282)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Oct 2011 13:57:55 -0400
+
 shorewall6-lite (4.4.11.6-1+squeeze1) testing-proposed-updates; urgency=high
 
   * Sync init script with upstream (Closes: #610327)
