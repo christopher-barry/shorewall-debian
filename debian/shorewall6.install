@@ -5,6 +5,8 @@ action.template	/usr/share/shorewall6
 action.*	/usr/share/shorewall6
 blacklist	/usr/share/doc/shorewall6/default-config
 configpath	/usr/share/shorewall6
+helpers		/usr/share/doc/shorewall6/default-config
+helpers		/usr/share/shorewall6
 hosts	/usr/share/doc/shorewall6/default-config
 init	/usr/share/doc/shorewall6/default-config
 interfaces	/usr/share/doc/shorewall6/default-config
