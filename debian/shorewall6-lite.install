@@ -1,7 +1,7 @@
 shorewall6-lite.conf	/etc/shorewall6-lite
 Makefile	/etc/shorewall6-lite
 configpath	/usr/share/shorewall6-lite
-helpers		/usr/share/shorewall6-lite
+debian/helpers	/usr/share/shorewall6-lite
 shorecap	/usr/share/shorewall6-lite
 lib.*		/usr/share/shorewall6-lite
 modules		/usr/share/shorewall6-lite
