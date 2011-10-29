@@ -1,6 +1,6 @@
 shorewall-lite (4.4.11.6-1+squeeze2) stable-proposed-updates; urgency=low
 
-  * Install missing /usr/share/shorewall-lite/helpers 
+  * Install missing /usr/share/shorewall-lite/helpers (Closes: #646281)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Oct 2011 13:54:37 -0400
 
