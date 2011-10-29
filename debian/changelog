@@ -1,6 +1,6 @@
 shorewall6 (4.4.11.6-1+squeeze1) stable-proposed-updates; urgency=low
 
-  * Install missing /usr/share/shorewall6/helpers
+  * Install missing /usr/share/shorewall6/helpers (Closes: #646280)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Oct 2011 18:01:52 -0400
 
