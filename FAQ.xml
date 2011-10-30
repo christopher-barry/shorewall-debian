@@ -37,9 +37,9 @@
   </articleinfo>
 
   <caution>
-    <para><emphasis role="bold">This article applies to Shorewall 4.3 and
+    <para><emphasis role="bold">This article applies to Shorewall 4.4 and
     later. If you are running a version of Shorewall earlier than Shorewall
-    4.3.0 then please see the documentation for that
+    4.4.0 then please see the documentation for that
     release.</emphasis></para>
   </caution>
 
@@ -519,8 +519,13 @@ DNAT       net           net:66.249.93.111:993  tcp      80          -         2
         eth0:<programlisting>#ZONE      INTERFACE     BROADCAST            OPTIONS
 net        eth0          detect               <emphasis role="bold">routeback</emphasis></programlisting></para>
 
-        <para>And in <filename>/etc/shorewall/masq</filename>;<programlisting>#INTERFACE          SOURCE      ADDRESS          PROTO        PORT
+        <para><filename>/etc/shorewall/masq</filename>;<programlisting>#INTERFACE          SOURCE      ADDRESS          PROTO        PORT
 eth0:66.249.93.111  0.0.0.0/0   206.124.146.176  tcp          993</programlisting></para>
+
+        <para>and in
+        <filename>/etc/shorewall/shorewall.conf</filename>:</para>
+
+        <programlisting>IP_FORWARDING=On</programlisting>
 
         <para>Like the hack in FAQ 2, this one results in all forwarded
         connections looking to the server (66.249.93.11) as if they originated
@@ -1108,7 +1113,25 @@ DNAT       loc           dmz:192.168.2.4    tcp      80          -         <emph
       <orderedlist>
         <listitem>
           <para>The default gateway on each local system isn't set to the IP
-          address of the local firewall interface.</para>
+          address of the local firewall interface. You can test this
+          by:</para>
+
+          <orderedlist numeration="loweralpha">
+            <listitem>
+              <para>At a root shell prompt, type 'shorewall clear'.</para>
+            </listitem>
+
+            <listitem>
+              <para>From a local system, attempt to ping the IP address of the
+              Shorewall system's internet (external) interface. If that
+              doesn't work, then the default gateway on the system from which
+              you pinged is not set correctly.</para>
+            </listitem>
+
+            <listitem>
+              <para>Be sure to 'shorewall start' after the test.</para>
+            </listitem>
+          </orderedlist>
         </listitem>
 
         <listitem>
@@ -1796,9 +1819,13 @@ teastep@ursa:~$ </programlisting>The first number determines the maximum log
       <title>(FAQ 36) My log is filling up with these BANDWIDTH
       messages!</title>
 
-      <programlisting>Dec 15 16:47:30 heath-desktop kernel: [17182740.184000] BANDWIDTH_IN:IN=eth1 OUT= MAC=ff:ff:ff:ff:ff:ff:00:01:5c:23:79:02:08:00 SRC=10.119.248.1 DST=255.255.255.255 LEN=328 TOS=0x00 PREC=0x00 TTL=64 ID=62081 PROTO=UDP SPT=67 DPT=68 LEN=308
+      <programlisting>Dec 15 16:47:30 heath-desktop kernel: [17182740.184000] BANDWIDTH_IN:IN=eth1 OUT= MAC=ff:ff:ff:ff:ff:ff:00:01:5c:23:79:02:08:00
+                                                        SRC=10.119.248.1 DST=255.255.255.255 LEN=328 TOS=0x00 PREC=0x00 TTL=64
+                                                        ID=62081 PROTO=UDP SPT=67 DPT=68 LEN=308
 Dec 15 16:47:30 heath-desktop last message repeated 2 times
-Dec 15 16:47:30 heath-desktop kernel: [17182740.188000] BANDWIDTH_IN:IN=eth1 OUT= MAC=ff:ff:ff:ff:ff:ff:00:01:5c:23:79:02:08:00 SRC=10.112.70.1 DST=255.255.255.255 LEN=328 TOS=0x00 PREC=0x00 TTL=64 ID=62082 PROTO=UDP SPT=67 DPT=68 LEN=308
+Dec 15 16:47:30 heath-desktop kernel: [17182740.188000] BANDWIDTH_IN:IN=eth1 OUT= MAC=ff:ff:ff:ff:ff:ff:00:01:5c:23:79:02:08:00
+                                                        SRC=10.112.70.1 DST=255.255.255.255 LEN=328 TOS=0x00 PREC=0x00 TTL=64
+                                                        ID=62082 PROTO=UDP SPT=67 DPT=68 LEN=308
 Dec 15 16:47:30 heath-desktop last message repeated 2 times</programlisting>
 
       <para><emphasis role="bold">Answer</emphasis>: The Webmin 'bandwidth'
@@ -2233,6 +2260,36 @@ eth0		External	50mbit:200kb			5.0mbit:100kb:200ms:100mbit:<emphasis
 
       <programlisting><emphasis role="bold">ethtool -k eth<emphasis>N</emphasis> tso off gso off</emphasis></programlisting>
     </section>
+
+    <section>
+      <title>(FAQ 97a) I enable Shorewall traffic shaping and now my download
+      rate is way below what I specified</title>
+
+      <para><emphasis role="bold">Answer</emphasis>: This is likely due to
+      Generic Receive Offload (GRO) being enabled in the network adapter. To
+      verify, install the <firstterm>ethtool</firstterm> package and use the
+      -k command:</para>
+
+      <programlisting>root@gateway:/etc/shorewall# ethtool -k eth1
+Offload parameters for eth1:
+rx-checksumming: on
+tx-checksumming: on
+scatter-gather: on
+tcp-segmentation-offload: on
+udp-fragmentation-offload: off
+generic-segmentation-offload: on
+generic-receive-offload: <emphasis role="bold">on</emphasis>
+large-receive-offload: off
+ntuple-filters: off
+receive-hashing: off
+root@gateway:/etc/shorewall# 
+</programlisting>
+
+      <para>To work around the issue, use this command:</para>
+
+      <programlisting><emphasis role="bold">ethtool -k eth</emphasis>N <emphasis
+          role="bold">gro off</emphasis></programlisting>
+    </section>
   </section>
 
   <section id="About">
@@ -2417,8 +2474,8 @@ etc...</programlisting>
       <para><emphasis role="bold">Answer:</emphasis> Shorewall Lite is a
       companion product to Shorewall and is designed to allow you to maintain
       all Shorewall configuration information on a single system within your
-      network. See the <ulink url="Shorewall-Lite.html">Compiled
-      Firewall script documentation</ulink> for details.</para>
+      network. See the <ulink url="Shorewall-Lite.html">Compiled Firewall
+      script documentation</ulink> for details.</para>
     </section>
 
     <section id="faq54">
