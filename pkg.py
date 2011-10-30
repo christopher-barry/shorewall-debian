@@ -128,6 +128,7 @@ packages_to_process = []
 build_prog = '/usr/bin/pdebuild'
 build_prog_opts = ''
 import_tarball = ''
+branch_tag_prefix = ''
 dry_run = False
 verbose = False
 # Need to check for verbosity first, since it could be specified at the end
