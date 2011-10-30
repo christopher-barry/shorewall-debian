@@ -1,19 +1,42 @@
-Changes in 4.4.24.1
+Changes in 4.4.25 Final
 
-1)  Restore complex TC functionality.
+1)  Evaluate a variable at compile-time rather than run-time.
 
-Changes in 4.4.24 Final
+Changes in 4.4.25 RC 1
 
-1)  Clone TTL support to provide HL support in Shorewall6.
+1)  Add MARK column to the route_rules file.
 
-Changes in 4.4.24 RC 2
+2)  Place all ip-address route rules at priority 20000.
 
-1)  Fix 'fallback' without =<weight>.
+3)  Ensure that a 'lookup default prio 32767' rule exists.
 
-2)  Add BALANCE_TABLE
+4)  Correct validation of 4in6 addresses.
 
-3)  Fix RC 1 bugs reported by Steven Springl
+Changes in 4.4.25 Beta 4
 
+1)  Fix optimizer bug.
+
+2)  Fix 'undo' of Shorewall6 routing.
+
+3)  Don't copy cache routes.
+
+4)  Balance and Fallback routes in Shorewall6.
+
+5)  enable/disable in Shorewall6.
+
+Changes in 4.4.25 Beta 3
+
+1)  Allow explicit rate estimation.
+
+Changes in 4.4.25 Beta 2
+
+1)  Add rate estimation to input bandwidth policing.
+
+Changes in 4.4.25 Beta 1
+
+1)  Add BLACKLIST section to the rules file.
+
+2)  Add '6in4' as a synonym for '6to4'.
 
 Changes in 4.4.24 RC 1
 
