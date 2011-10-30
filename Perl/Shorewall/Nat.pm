@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_24';
+our $VERSION = '4.4_25';
 
 my @addresses_to_add;
 my %addresses_to_add;

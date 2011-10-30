@@ -103,7 +103,8 @@ BLACKLIST_LOGLEVEL=
 #     it determines the syslog level that they are to be logged at. Its value is
 #     a syslog level (Example: BLACKLIST_LOGLEVEL=debug). If you do not assign a
 #     value or if you assign an empty value then packets from blacklisted hosts
-#     are not logged.
+#     are not logged. The BLACKLIST_LOGLEVEL setting has no effect on entries in
+#     the BLACKLIST section of shorewall-rules (5).
 # 
 LOG_MARTIANS=Yes
 #
@@ -576,6 +577,8 @@ BLACKLISTNEWONLY=Yes
 # BLACKLISTNEWONLY={Yes|No}
 # 
 #     When set to Yes or yes, blacklists are only consulted for new connections.
+#     That includes entries in the BLACKLIST section of shorewall-rules (5).
+# 
 #     When set to No or no, blacklists are consulted for every packet (will slow
 #     down your firewall noticably if you have large blacklists). If the
 #     BLACKLISTNEWONLY option is not set or is set to the empty value then
@@ -1246,6 +1249,9 @@ BLACKLIST_DISPOSITION=DROP
 #     A_DROP and A_REJECT are audited versions of DROP and REJECT respectively
 #     and were added in Shorewall 4.4.20. They require AUDIT_TARGET in the kernel
 #     and iptables.
+# 
+#     The BLACKLIST_DISPOSITION setting has no effect on entries in the BLACKLIST
+#     section of shorewall-rules (5).
 # 
 MACLIST_DISPOSITION=REJECT
 #

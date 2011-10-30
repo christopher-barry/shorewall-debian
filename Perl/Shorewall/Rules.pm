@@ -52,7 +52,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_24';
+our $VERSION = '4.4_25';
 #
 # Globals are documented in the initialize() function
 #
@@ -145,7 +145,8 @@ sub initialize( $ ) {
     #
     # These are set to 1 as sections are encountered.
     #
-    %sections = ( ALL         => 0,
+    %sections = ( BLACKLIST   => 0,
+		  ALL         => 0,
 		  ESTABLISHED => 0,
 		  RELATED     => 0,
 		  NEW         => 0
@@ -741,10 +742,12 @@ sub ensure_rules_chain( $ )
 {
     my ($chain) = @_;
 
-    my $chainref = ensure_chain 'filter', $chain;
+    my $chainref = $filter_table->{$chain};
+
+    $chainref = dont_move( new_chain( 'filter', $chain ) ) unless $chainref;
 
     unless ( $chainref->{referenced} ) {
-	if ( $section eq 'NEW' or $section eq 'DONE' ) {
+	if ( $section =~/^(NEW|DONE)$/ ) {
 	    finish_chain_section $chainref , 'ESTABLISHED,RELATED';
 	} elsif ( $section eq 'RELATED' ) {
 	    finish_chain_section $chainref , 'ESTABLISHED';
@@ -1671,6 +1674,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
     my $inaction = '';
     my $normalized_target;
     my $normalized_action;
+    my $blacklist = ( $section eq 'BLACKLIST' );
  
     ( $inaction, undef, undef, undef ) = split /:/, $normalized_action = $chainref->{action}, 4 if defined $chainref;
 
@@ -1737,7 +1741,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
     #
     # We can now dispense with the postfix character
     #
-    $action =~ s/[\+\-!]$//;
+    fatal_error "The +, - and ! modifiers are not allowed in the BLACKLIST section" if $action =~ s/[\+\-!]$// && $blacklist;
     #
     # Handle actions
     #
@@ -1797,6 +1801,8 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 			  } ,
 			  REJECT => sub { $action = 'reject'; } ,
 			  CONTINUE => sub { $action = 'RETURN'; } ,
+			  WHITELIST => sub { fatal_error "'WHITELIST' may only be used in the 'BLACKLIST' section" unless $blacklist;
+					     $action = 'RETURN'; } ,
 			  COUNT => sub { $action = ''; } ,
 			  LOG => sub { fatal_error 'LOG requires a log level' unless supplied $loglevel; } ,
 		     );
@@ -1922,7 +1928,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 	    #
 	    # Handle Optimization
 	    #
-	    if ( $optimize > 0 ) {
+	    if ( $optimize > 0 && $section eq 'NEW' ) {
 		my $loglevel = $filter_table->{$chainref->{policychain}}{loglevel};
 		if ( $loglevel ne '' ) {
 		    return 0 if $target eq "${policy}:$loglevel}";
@@ -1935,9 +1941,23 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 	    #
 	    $chainref = ensure_rules_chain $chain;
 	    #
- 	    # Don't let the rules in this chain be moved elsewhere
- 	    #
- 	    dont_move $chainref;
+	    # Handle use of the blacklist chain
+	    #
+	    if ( $blacklist ) {
+		my $blacklistchain = blacklist_chain( ${sourcezone}, ${destzone} );
+		my $blacklistref = $filter_table->{$blacklistchain};
+		
+		unless ( $blacklistref  ) {
+		    my @state;
+		    $blacklistref = new_chain 'filter', $blacklistchain;
+		    $blacklistref->{blacklistsection} = 1;
+		    @state = state_imatch( 'NEW,INVALID' ) if $config{BLACKLISTNEWONLY};
+		    add_ijump( $chainref, j => $blacklistref, @state );
+		}
+		    
+		$chain = $blacklistchain;
+		$chainref = $blacklistref;
+	    }
 	}
     }
     #
@@ -1973,7 +1993,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
     unless ( $section eq 'NEW' || $inaction ) {
 	fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" if $config{FASTACCEPT};
 	fatal_error "$basictarget rules are not allowed in the $section SECTION" if $actiontype & ( NATRULE | NONAT );
-	$rule .= "$globals{STATEMATCH} $section " unless $section eq 'ALL';
+	$rule .= "$globals{STATEMATCH} $section " unless $section eq 'ALL' || $blacklist;
     }
 
     #
@@ -2256,13 +2276,15 @@ sub process_section ($) {
     fatal_error "Duplicate or out of order SECTION $sect" if $sections{$sect};
     $sections{$sect} = 1;
 
-    if ( $sect eq 'ESTABLISHED' ) {
-	$sections{ALL} = 1;
+    if ( $sect eq 'ALL' ) {
+	$sections{BLACKLIST} = 1;
+    } elsif ( $sect eq 'ESTABLISHED' ) {
+	$sections{'BLACKLIST','ALL'} = ( 1, 1);
     } elsif ( $sect eq 'RELATED' ) {
-	@sections{'ALL','ESTABLISHED'} = ( 1, 1);
+	@sections{'BLACKLIST','ALL','ESTABLISHED'} = ( 1, 1, 1);
 	finish_section 'ESTABLISHED';
     } elsif ( $sect eq 'NEW' ) {
-	@sections{'ALL','ESTABLISHED','RELATED'} = ( 1, 1, 1 );
+	@sections{'BLACKLIST','ALL','ESTABLISHED','RELATED'} = ( 1, 1, 1, 1 );
 	finish_section ( ( $section eq 'RELATED' ) ? 'RELATED' : 'ESTABLISHED,RELATED' );
     }
 
