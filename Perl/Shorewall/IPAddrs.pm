@@ -80,7 +80,7 @@ our @EXPORT = qw( ALLIPv4
 		  validate_icmp6
 		 );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_20';
+our $VERSION = '4.4_25';
 
 #
 # Some IPv4/6 useful stuff
@@ -530,13 +530,13 @@ sub valid_6address( $ ) {
 	return 0 unless valid_4address pop @address;
 	$max = 6;
 	$address = join ':', @address;
-	return 1 if @address eq ':';
+	return 1 if $address eq ':';
     } else {
 	$max = 8;
     }
 
     return 0 if @address > $max;
-    return 0 unless $address =~ /^[a-f:\d]+$/;
+    return 0 unless $address =~ /^[a-fA-F:\d]+$/;
     return 0 unless ( @address == $max ) || $address =~ /::/;
     return 0 if $address =~ /:::/ || $address =~ /::.*::/;
 

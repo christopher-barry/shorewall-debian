@@ -141,15 +141,13 @@ sub setup_route_marking() {
 
 sub copy_table( $$$ ) {
     my ( $duplicate, $number, $realm ) = @_;
-    #
-    # Hack to work around problem in iproute
-    #
-    my $filter = $family == F_IPV6 ? q(sed 's/ via :: / /' | ) : '';
+    
+    my $filter = $family == F_IPV6 ? q(fgrep -v ' cache ' | sed 's/ via :: / /' | ) : '';
 
     emit '';
 
     if ( $realm ) {
-	emit  ( "\$IP -$family -o route show table $duplicate | sed -r 's/ realm [[:alnum:]_]+//' | while read net route; do" )
+	emit  ( "\$IP -$family -o route show table $duplicate | sed -r 's/ realm [[:alnum:]_]+//' | ${filter}while read net route; do" )
     } else {
 	emit  ( "\$IP -$family -o route show table $duplicate | ${filter}while read net route; do" )
     }
@@ -167,10 +165,8 @@ sub copy_table( $$$ ) {
 
 sub copy_and_edit_table( $$$$ ) {
     my ( $duplicate, $number, $copy, $realm) = @_;
-    #
-    # Hack to work around problem in iproute
-    #
-    my $filter = $family == F_IPV6 ? q(sed 's/ via :: / /' | ) : '';
+
+    my $filter = $family == F_IPV6 ? q(fgrep -v ' cache ' | sed 's/ via :: / /' | ) : '';
     #
     # Map physical names in $copy to logical names
     #
@@ -183,7 +179,7 @@ sub copy_and_edit_table( $$$$ ) {
     emit '';
 
     if ( $realm ) {
-	emit  ( "\$IP -$family -o route show table $duplicate | sed -r 's/ realm [[:alnum:]]+//' | while read net route; do" )
+	emit  ( "\$IP -$family -o route show table $duplicate | sed -r 's/ realm [[:alnum:]]+//' | ${filter}while read net route; do" )
     } else {
 	emit  ( "\$IP -$family -o route show table $duplicate | ${filter}while read net route; do" )
     }
@@ -210,14 +206,27 @@ sub balance_default_route( $$$$ ) {
     emit '';
 
     if ( $first_default_route ) {
-	if ( $gateway ) {
-	    emit "DEFAULT_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
+	if ( $family == F_IPV4 ) {
+	    if ( $gateway ) {
+		emit "DEFAULT_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
+	    } else {
+		emit "DEFAULT_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
+	    }
 	} else {
-	    emit "DEFAULT_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
+	    #
+	    # IPv6 doesn't support multi-hop routes
+	    #
+	    if ( $gateway ) {
+		emit "DEFAULT_ROUTE=\"via $gateway dev $interface $realm\"";
+	    } else {
+		emit "DEFAULT_ROUTE=\"dev $interface $realm\"";
+	    }
 	}
 
 	$first_default_route = 0;
     } else {
+	fatal_error "Only one 'balance' provider is allowed with IPv6" if $family == F_IPV6;
+
 	if ( $gateway ) {
 	    emit "DEFAULT_ROUTE=\"\$DEFAULT_ROUTE nexthop via $gateway dev $interface weight $weight $realm\"";
 	} else {
@@ -234,14 +243,27 @@ sub balance_fallback_route( $$$$ ) {
     emit '';
 
     if ( $first_fallback_route ) {
-	if ( $gateway ) {
-	    emit "FALLBACK_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
+	if ( $family == F_IPV4 ) {
+	    if ( $gateway ) {
+		emit "FALLBACK_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
+	    } else {
+		emit "FALLBACK_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
+	    }
 	} else {
-	    emit "FALLBACK_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
+	    #
+	    # IPv6 doesn't support multi-hop routes
+	    #
+	    if ( $gateway ) {
+		emit "FALLBACK_ROUTE=\"via $gateway dev $interface $realm\"";
+	    } else {
+		emit "FALLBACK_ROUTE=\"dev $interface $realm\"";
+	    }
 	}
 
 	$first_fallback_route = 0;
     } else {
+	fatal_error "Only one 'fallback' provider is allowed with IPv6" if $family == F_IPV6;
+
 	if ( $gateway ) {
 	    emit "FALLBACK_ROUTE=\"\$FALLBACK_ROUTE nexthop via $gateway dev $interface weight $weight $realm\"";
 	} else {
@@ -330,10 +352,9 @@ sub process_a_provider() {
 	    } elsif ( $option eq 'notrack' ) {
 		$track = 0;
 	    } elsif ( $option =~ /^balance=(\d+)$/ ) {
-		fatal_error q('balance' is not available in IPv6) if $family == F_IPV6;
+		fatal_error q('balance=<weight>' is not available in IPv6) if $family == F_IPV6;
 		$balance = $1;
 	    } elsif ( $option eq 'balance' ) {
-		fatal_error q('balance' is not available in IPv6) if $family == F_IPV6;
 		$balance = 1;
 	    } elsif ( $option eq 'loose' ) {
 		$loose   = 1;
@@ -348,12 +369,11 @@ sub process_a_provider() {
 	    } elsif ( $option =~ /^mtu=(\d+)$/ ) {
 		$mtu = "mtu $1 ";
 	    } elsif ( $option =~ /^fallback=(\d+)$/ ) {
-		fatal_error q('fallback' is not available in IPv6) if $family == F_IPV6;
+		fatal_error q('fallback=<weight>' is not available in IPv6) if $family == F_IPV6;
 		$default = $1;
 		$default_balance = 0;
 		fatal_error 'fallback must be non-zero' unless $default;
 	    } elsif ( $option eq 'fallback' ) {
-		fatal_error q('fallback' is not available in IPv6) if $family == F_IPV6;
 		$default = -1;
 		$default_balance = 0;
 	    } elsif ( $option eq 'local' ) {
@@ -582,10 +602,14 @@ sub add_a_provider( $$ ) {
 	$fallback = 1;
     }
 
+    emit ( qq(\nqt \$IP rule add from all table ) . DEFAULT_TABLE . qq( prio 32767\n) ) if $family == F_IPV6;
+
     unless ( $local ) {
+	emit '';
+
 	if ( $loose ) {
 	    if ( $config{DELETE_THEN_ADD} ) {
-		emit ( "\nfind_interface_addresses $physical | while read address; do",
+		emit ( "find_interface_addresses $physical | while read address; do",
 		       "    qt \$IP -$family rule del from \$address",
 		       'done'
 		     );
@@ -595,13 +619,9 @@ sub add_a_provider( $$ ) {
 	    emit( "run_ip rule add from $address pref 20000 table $number" ,
 		  "echo \"qt \$IP -$family rule del from $address\" >> \${VARDIR}/undo_${table}_routing" );
 	} else {
-	    my $rulebase = 20000 + ( 256 * ( $number - 1 ) );
-
-	    emit "\nrulenum=$rulebase\n";
-
 	    emit  ( "find_interface_addresses $physical | while read address; do" );
 	    emit  ( "    qt \$IP -$family rule del from \$address" ) if $config{DELETE_THEN_ADD};
-	    emit  ( "    run_ip rule add from \$address pref \$rulenum table $number",
+	    emit  ( "    run_ip rule add from \$address pref 20000 table $number",
 		    "    echo \"qt \$IP -$family rule del from \$address\" >> \${VARDIR}/undo_${table}_routing",
 		    '    rulenum=$(($rulenum + 1))',
 		    'done'
@@ -632,12 +652,22 @@ sub add_a_provider( $$ ) {
 	    $tbl    = $default ? DEFAULT_TABLE : $config{USE_DEFAULT_RT} ? BALANCE_TABLE : MAIN_TABLE;
 	    $weight = $balance ? $balance : $default;
 
-	    if ( $gateway ) {
-		emit qq(add_gateway "nexthop via $gateway dev $physical weight $weight $realm" ) . $tbl;
+	    if ( $family == F_IPV4 ) {
+		if ( $gateway ) {
+		    emit qq(add_gateway "nexthop via $gateway dev $physical weight $weight $realm" ) . $tbl;
+		} else {
+		    emit qq(add_gateway "nexthop dev $physical weight $weight $realm" ) . $tbl;
+		}
 	    } else {
-		emit qq(add_gateway "nexthop dev $physical weight $weight $realm" ) . $tbl;
+		#
+		# IPv6 doesn't support multi-hop routes
+		#
+		if ( $gateway ) {
+		    emit qq(add_gateway "via $gateway dev $physical $realm" ) . $tbl;
+		} else {
+		    emit qq(add_gateway "nexthop dev $physical $realm" ) . $tbl;
+		}
 	    }
-
 	} else {
 	    $weight = 1;
 	}
@@ -712,7 +742,7 @@ sub add_a_provider( $$ ) {
 		$via = "dev $physical";
 	    }
 
-	    $via .= " weight $weight" unless $weight < 0;
+	    $via .= " weight $weight" unless $weight < 0 or $family == F_IPV6; # IPv6 doesn't support route weights
 	    $via .= " $realm"         if $realm;
 
 	    emit( qq(delete_gateway "$via" $tbl $physical) );
@@ -743,7 +773,7 @@ sub add_a_provider( $$ ) {
 }
 
 sub add_an_rtrule( ) {
-    my ( $source, $dest, $provider, $priority ) = split_line 'route_rules file', { source => 0, dest => 1, provider => 2, priority => 3 };
+    my ( $source, $dest, $provider, $priority, $originalmark ) = split_line 'route_rules file', { source => 0, dest => 1, provider => 2, priority => 3 , mark => 4 };
 
     our $current_if;
 
@@ -806,13 +836,25 @@ sub add_an_rtrule( ) {
 	$source = "iif $source";
     }
 
+    my $mark = '';
+    my $mask;
+
+    if ( $originalmark ne '-' ) {
+	validate_mark( $originalmark );
+
+	( $mark, $mask ) = split '/' , $originalmark;
+	$mask = $globals{PROVIDER_MASK} unless supplied $mask;
+
+	$mark = ' fwmark ' . in_hex( $mark ) . '/' . in_hex( $mask );
+    }
+
     fatal_error "Invalid priority ($priority)" unless $priority && $priority =~ /^\d{1,5}$/;
 
     $priority = "priority $priority";
 
-    push @{$providerref->{rules}}, "qt \$IP -$family rule del $source $dest $priority" if $config{DELETE_THEN_ADD};
-    push @{$providerref->{rules}}, "run_ip rule add $source $dest $priority table $number";
-    push @{$providerref->{rules}}, "echo \"qt \$IP -$family rule del $source $dest $priority\" >> \${VARDIR}/undo_${provider}_routing";
+    push @{$providerref->{rules}}, "qt \$IP -$family rule del $source ${dest}${mark} $priority" if $config{DELETE_THEN_ADD};
+    push @{$providerref->{rules}}, "run_ip rule add $source ${dest}${mark} $priority table $number";
+    push @{$providerref->{rules}}, "echo \"qt \$IP -$family rule del $source ${dest}${mark} $priority\" >> \${VARDIR}/undo_${provider}_routing";
 
     progress_message "   Routing rule \"$currentline\" $done";
 }

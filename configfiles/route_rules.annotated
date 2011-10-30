@@ -4,7 +4,7 @@
 # For information about entries in this file, type "man shorewall-route_rules"
 #
 # For additional information, see http://www.shorewall.net/MultiISP.html
-##############################################################################
+####################################################################################
 #           
 #           Entries in this file cause traffic to be routed to one of the providers listed
 #           in shorewall-providers(5).
@@ -52,13 +52,20 @@
 #           
 #         After ISP interface rules but before 'default' rule.
 #           
+#           MARK - {-|mark[/mask]}
+#           
+#     Optional -- added in Shorewall 4.4.25. For this rule to be applied to a
+#     packet, the packet's mark value must match the mark when logically anded
+#     with the mask. If a mask is not supplied, Shorewall supplies a suitable
+#     provider mask.
+#           
 #           Examples
 #           
 #           Example 1:
 #           
 #     You want all traffic coming in on eth1 to be routed to the ISP1 provider.
 #           
-#             #SOURCE                 DEST            PROVIDER        PRIORITY
+#             #SOURCE                 DEST            PROVIDER        PRIORITY      MASK
 #             eth1                    -               ISP1            1000
 #           
 #           Example 2:
@@ -69,8 +76,8 @@
 #     through any of the providers. 10.8.0.0/24 is the subnet chosen in your
 #     OpenVPN configuration (server 10.8.0.0 255.255.255.0).
 #           
-#              #SOURCE                 DEST            PROVIDER        PRIORITY
+#              #SOURCE                 DEST            PROVIDER        PRIORITY     MASK
 #              -                       10.8.0.0/24     main            1000
 #           
-##############################################################################
-#SOURCE			DEST			PROVIDER	PRIORITY
+####################################################################################
+#SOURCE			DEST			PROVIDER	PRIORITY	MASK

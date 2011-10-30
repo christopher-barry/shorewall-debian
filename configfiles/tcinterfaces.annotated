@@ -72,26 +72,34 @@
 #     shaping. VPN interfaces are an exception because the encapsulated packets
 #     are later transferred over a slower external link.
 #           
-#           IN-BANDWIDTH (in_bandwidth) - [rate[:burst]]
+#           IN-BANDWIDTH (in_bandwidth) - {-|bandwidth[:burst]|~bandwidth[:interval:
+#     decay_interval]}
 #           
-#     Optional. If specified, enables ingress policing on the interface. If
-#     incoming traffic exceeds the given rate, received packets are dropped
-#     randomly. With some DSL and Cable links, large queues can build up in the
-#     ISP's gateway router. While this insures maximum throughput, it kills
-#     interactive response time. By setting IN-BANDWIDTH, you can eliminate these
-#     queues.
+#     The incoming bandwidth of that interface. Please note that you are not able
+#     to do traffic shaping on incoming traffic, as the traffic is already
+#     received before you could do so. But this allows you to define the maximum
+#     traffic allowed for this interface in total, if the rate is exceeded, the
+#     packets are dropped. You want this mainly if you have a DSL or Cable
+#     connection to avoid queuing at your providers side.
 #           
-#     To pick an appropriate setting, we recommend that you start by setting it
-#     significantly below your measured download bandwidth (20% or so). While
-#     downloading, measure the ping response time from the firewall to the
-#     upstream router as you gradually increase the setting.The optimal setting
-#     is at the point beyond which the ping time increases sharply as you
-#     increase the setting.
+#     If you don't want any traffic to be dropped, set this to a value to zero in
+#     which case Shorewall will not create an ingress qdisc.Must be set to zero
+#     if the REDIRECTED INTERFACES column is non-empty.
 #           
-#     The burst option was added in Shorewall 4.4.13. If not supplied, 10kb is
-#     assumed. A larger burst size can help make the rate estimate more accurate
-#     on fast lines. The default burst often make the enforced rate mush less
-#     that the specified rate.
+#     The optional burst option was added in Shorewall 4.4.18. The default burst
+#     is 10kb. A larger burst can help make the bandwidth more accurate; often
+#     for fast lines, the enforced rate is well below the specified bandwidth.
+#           
+#     What is described above creates a rate/burst policing filter. Beginning
+#     with Shorewall 4.4.25, a rate-estimated policing filter may be configured
+#     instead. Rate-estimated filters should be used with ethernet adapters that
+#     have Generic Receive Offload enabled by default. See Shorewall FAQ 97a.
+#           
+#     To create a rate-estimated filter, precede the bandwidth with a tilde
+#     ("~"). The optional interval and decay_interval determine how often the
+#     rate is estimated and how many samples are retained for estimating. Please
+#     see http://ace-host.stuart.id.au/russell/files/tc/doc/estimators.txt for
+#     details.
 #           
 #           OUT-BANDWIDTH (out_bandwidth) - [rate[:[burst][:[latency][:[peek][:[minburst
 #     ]]]]]]
