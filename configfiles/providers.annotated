@@ -73,6 +73,19 @@
 #     A comma-separated list selected from the following. The order of the
 #     options is not significant but the list may contain no embedded whitespace.
 #           
+#     balance
+#           
+#         Added in Shorewall 4.4.25. Causes a default route to this provider's
+#         gateway to be added to the main routing table (USE_DEFAULT_RT=No) or to
+#         the balance routing table (USE_DEFAULT_RT=Yes). At most one provider
+#         can specify this option.
+#           
+#     fallback
+#           
+#         Added in Shorewall 4.4.25. Causes a default route to this provider's
+#         gateway to be added to the default routing table.At most one provider
+#         can specify this option.
+#           
 #     track
 #           
 #         If specified, inbound connections on this interface are to be tracked

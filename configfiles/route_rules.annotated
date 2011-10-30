@@ -4,7 +4,7 @@
 # For information about entries in this file, type "man shorewall6-route_rules"
 #
 # For additional information, see http://www.shorewall.net/MultiISP.html
-##############################################################################
+####################################################################################
 #           
 #           Entries in this file cause traffic to be routed to one of the providers listed
 #           in shorewall6-providers(5).
@@ -52,14 +52,21 @@
 #           
 #         After ISP interface rules but before 'default' rule.
 #           
+#           MARK - {-|mark[/mask]}
+#           
+#     Optional -- added in Shorewall 4.4.25. For this rule to be applied to a
+#     packet, the packet's mark value must match the mark when logically anded
+#     with the mask. If a mask is not supplied, Shorewall supplies a suitable
+#     provider mask.
+#           
 #           Examples
 #           
 #           Example 1:
 #           
 #     You want all traffic coming in on eth1 to be routed to the ISP1 provider.
 #           
-#             #SOURCE                 DEST            PROVIDER        PRIORITY
+#             #SOURCE                 DEST            PROVIDER        PRIORITY    MASK
 #             eth1                    -               ISP1            1000
 #           
-##############################################################################
-#SOURCE			DEST			PROVIDER	PRIORITY
+####################################################################################
+#SOURCE			DEST			PROVIDER	PRIORITY	MASK
