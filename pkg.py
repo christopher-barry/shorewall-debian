@@ -355,6 +355,8 @@ elif op == 'tag':
         gbp_repo.set_branch(p_debian_branch)
         tag_ver = parse_changelog('debian/changelog')['Version']
         p_debian_tag = branch_tag_prefix + p + '/' + debian_tag + '/' + tag_ver
+        # Borrowed from git-buildpackage
+        p_debian_tag.replace('~', '_').replace(':', '%')
         # There does not appear to be a programmatic interface to
         # git-buildpackage for actually building packages, so this hacky call
         # to os.system() will have to do
