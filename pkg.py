@@ -80,7 +80,7 @@ Usage summary: pkg.py [import|build|tag|upload] [options]
     -o "<options>"
         Options to pass to the build program (must be enclosed in quotes if
         there are spaces)
-        Example: -o "--debbuildopts --sa" to force inclusion of .orig.tar.gz
+        Example: -o "--debbuildopts -sa" to force inclusion of .orig.tar.gz
 
     -p "<package(s)>"
         The package(s) to build or tag (must be space separated and enclosed
