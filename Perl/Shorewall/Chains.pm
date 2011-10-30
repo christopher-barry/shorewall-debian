@@ -52,9 +52,11 @@ our @EXPORT = qw(
 		    decr_cmd_level
 		    new_chain
 		    new_manual_chain
+		    ensure_filter_chain
 		    ensure_manual_chain
 		    ensure_audit_chain
 		    require_audit
+		    newlogchain
 		    log_rule_limit
 		    dont_optimize
 		    dont_delete
@@ -108,6 +110,7 @@ our %EXPORT_TAGS = (
 				       pop_comment
 				       forward_chain
 				       rules_chain
+				       blacklist_chain
 				       zone_forward_chain
 				       use_forward_chain
 				       input_chain
@@ -139,7 +142,6 @@ our %EXPORT_TAGS = (
 				       new_standard_chain
 				       new_builtin_chain
 				       new_nat_chain
-				       ensure_filter_chain
 				       optimize_chain
 				       check_optimization
 				       optimize_ruleset
@@ -215,7 +217,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_24';
+our $VERSION = '4.4_25';
 
 #
 # Chain Table
@@ -248,6 +250,8 @@ our $VERSION = '4.4_24';
 #                                               logchains    => { <key1> = <chainref1>, ... }
 #                                               references   => { <ref1> => <refs>, <ref2> => <refs>, ... }
 #                                               blacklist    => <number of blacklist rules at the head of the rules array> ( 0 or 1 )
+#                                               blacklistsection
+#                                                            => Chain was created by entries in the BLACKLIST section of the rules file
 #                                               action       => <action tuple that generated this chain>
 #                                               restricted   => Logical OR of restrictions of rules in this chain.
 #                                               restriction  => Restrictions on further rules in this chain.
@@ -255,6 +259,7 @@ our $VERSION = '4.4_24';
 #                                               filtered     => Number of filter rules at the front of an interface forward chain
 #                                               digest       => string representation of the chain's rules for use in optimization
 #                                                               level 8.
+#                                               accepted     => A 'ESTABLISHED,RELATED' ACCEPT rule has been added to this chain.
 #                                             } ,
 #                                <chain2> => ...
 #                              }
@@ -805,20 +810,46 @@ sub format_rule( $$;$ ) {
 }
 
 #
+# Check two rules to determine if the second rule can be merged into the first.
+#
+sub compatible( $$ ) {
+    my ( $ref1, $ref2 ) = @_;
+    my ( $val1, $val2 );
+
+    for ( @unique_options ) {
+	if ( defined( $val1 = $ref1->{$_} ) && defined( $val2 = $ref2->{$_} ) ) {
+	    unless ( $val1 eq $val2 ) {
+		#
+		# Values are different -- be sure that $val1 is a leading subset of $val2;
+		#
+		my @val1 = split ' ', $val1;
+		my @val2 = split ' ', $val2;
+		
+		return 0 if @val1 > @val2; # $val1 is more specific than $val2
+
+		for ( my $i = 0; $i < @val1; $i++ ) {
+		    return 0 unless $val1[$i] eq $val2[$i];
+		}
+	    }
+	}
+    }
+
+    return 1;
+}
+
+#
 # Merge two rules - If the target of the merged rule is a chain, a reference to its
-#                   chain table entry is returned. It is the caller's responsibility
-#                   to handle reference counting. If the target is a builtin, '' is
-#                   returned.
+#                   chain table entry is returned. It is the caller's responsibility to
+#                   ensure that the rules being merged are compatible.
+#
+#                   It is also the caller's responsibility to handle reference counting.
+#                   If the target is a builtin, '' is returned.
 #
 sub merge_rules( $$$ ) {
     my ( $tableref, $toref, $fromref ) = @_;
 
     my $target = $fromref->{target};
-    #
-    # Since the 'to' rule is a jump to a chain containing the 'from' rule, we
-    # assume that common unique option values are compatible (such as 'tcp' and
-    # 'tcp ! syn').
-    #
+    
     for my $option ( @unique_options ) {
 	$toref->{$option} = $fromref->{$option} if exists $fromref->{$option};
     }
@@ -1475,6 +1506,13 @@ sub copy_rules( $$;$ ) {
 sub rules_chain ($$) {
     my $name = join "$config{ZONE2ZONE}", @_;
     $renamed{$name} || $name;
+}
+
+#
+# Name of the blacklist chain between an ordered pair of zones
+#
+sub blacklist_chain($$) {
+    &rules_chain(@_) . '~';
 }
 
 #
@@ -2233,6 +2271,7 @@ sub initialize_chain_table($) {
 		    'NFQUEUE!'        => STANDARD + NFQ,
 		    'ADD'             => STANDARD + SET,
 		    'DEL'             => STANDARD + SET,
+		    'WHITELIST'       => STANDARD
 		   );
 
 	for my $chain ( qw(OUTPUT PREROUTING) ) {
@@ -2439,33 +2478,45 @@ sub replace_references1( $$ ) {
     my $count     = 0;
     my $name      = $chainref->{name};
     my $target    = $ruleref->{target};
+    my $delete    = 1;
 
     for my $fromref ( map $tableref->{$_} , keys %{$chainref->{references}} ) {
-	my $rule = 0;
+	my $rule    = 0;
+	my $skipped = 0;
 	if ( $fromref->{referenced} ) {
 	    for ( @{$fromref->{rules}} ) {
 		$rule++;
-		if ( $_->{target} eq $name ) {
-		    #
-		    # The target is the passed chain -- merge the two rules into one
-		    #
-		    if ( my $targetref = merge_rules( $tableref, $_, $ruleref ) ) {
-			add_reference( $fromref, $targetref );
-			delete_reference( $fromref, $chainref );
-		    }
+		if ( $_->{target} eq $name ) { 
+		    if ( compatible( $_ , $ruleref ) ) {
+			#
+			# The target is the passed chain -- merge the two rules into one
+			#
+			if ( my $targetref = merge_rules( $tableref, $_, $ruleref ) ) {
+			    add_reference( $fromref, $targetref );
+			    delete_reference( $fromref, $chainref );
+			}
 
-		    $count++;
-		    trace( $fromref, 'R', $rule, $_ ) if $debug;
+			$count++;
+			trace( $fromref, 'R', $rule, $_ ) if $debug;
+		    } else {
+			$skipped++;
+		    }
 		}
 	    }
 	}
 
-	delete $tableref->{$target}{references}{$chainref->{name}} if $tableref->{$target};
+	if ( $skipped ) {
+	    $delete = 0;
+	} else {
+	    delete $tableref->{$target}{references}{$chainref->{name}} if $tableref->{$target};
+	}
     }
 
     progress_message "  $count references to chain $chainref->{name} replaced" if $count;
 
-    delete_chain $chainref;
+    delete_chain $chainref if $delete;
+
+    $count;
 }
 
 #
@@ -2604,8 +2655,8 @@ sub optimize_level4( $$ ) {
 			    #
 			    # Replace references to this chain with the target and add the matches
 			    #
-			    replace_references1 $chainref, $firstrule;
-			    $progress = 1;
+			    $progress = 1 if replace_references1 $chainref, $firstrule;
+			    
 			}
 		    }
 		}
@@ -2693,7 +2744,16 @@ sub optimize_level8( $$$ ) {
 	    if ( $chainref->{digest} eq $chainref1->{digest} ) {
 		progress_message "  Chain $chainref1->{name} combined with $chainref->{name}";
 		replace_references $chainref1, $chainref->{name}, undef;
-		$rename{ $chainref->{name} }    = 1 unless $chainref->{name} =~ /^~/;
+
+		unless ( $chainref->{name} =~ /^~/ ) {
+		    #
+		    # For simple use of the BLACKLIST section, we can end up with many identical 
+		    # chains. To distinguish them from other renamed chains, we keep track of
+		    # these chains via the 'blacklistsection' member.
+		    #
+		    $rename{ $chainref->{name} } = $chainref->{blacklistsection} ? '~blacklist' : '~comb';
+		}
+
 		$combined{ $chainref1->{name} } = $chainref->{name};
 	    }
 	}
@@ -2706,7 +2766,7 @@ sub optimize_level8( $$$ ) {
 	# First create aliases for each renamed chain and change the {name} member.
 	#
 	for my $oldname ( @rename ) {
-	    my $newname = $renamed{ $oldname } = '~comb' . $chainseq++;
+	    my $newname = $renamed{ $oldname } = $rename{ $oldname } . $chainseq++;
 	    
 	    trace( $tableref->{$oldname}, 'RN', 0, " Renamed $newname" ) if $debug;
 	    $tableref->{$newname} = $tableref->{$oldname};

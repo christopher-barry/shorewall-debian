@@ -2,12 +2,12 @@
 .\"     Title: shorewall-route_rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 10/15/2011
+.\"      Date: 10/29/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ROUTE_RUL" "5" "10/15/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-ROUTE_RUL" "5" "10/29/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -91,6 +91,16 @@ After \*(AqMARK\*(Aq rules but before Shorewall\-generated rules for ISP interfa
 After ISP interface rules but before \*(Aqdefault\*(Aq rule\&.
 .RE
 .RE
+.PP
+\fBMARK \- {\-|\fR\fB\fImark\fR\fR\fB[/\fR\fB\fImask\fR\fR\fB]}\fR
+.RS 4
+Optional \-\- added in Shorewall 4\&.4\&.25\&. For this rule to be applied to a packet, the packet\*(Aqs mark value must match the
+\fImark\fR
+when logically anded with the
+\fImask\fR\&. If a
+\fImask\fR
+is not supplied, Shorewall supplies a suitable provider mask\&.
+.RE
 .SH "EXAMPLES"
 .PP
 Example 1:
@@ -101,7 +111,7 @@ You want all traffic coming in on eth1 to be routed to the ISP1 provider\&.
 .RS 4
 .\}
 .nf
-        #SOURCE                 DEST            PROVIDER        PRIORITY
+        #SOURCE                 DEST            PROVIDER        PRIORITY      MASK
         eth1                    \-               ISP1            1000
 .fi
 .if n \{\
@@ -117,7 +127,7 @@ You use OpenVPN (routed setup /tunX) in combination with multiple providers\&. I
 .RS 4
 .\}
 .nf
-         #SOURCE                 DEST            PROVIDER        PRIORITY
+         #SOURCE                 DEST            PROVIDER        PRIORITY     MASK
          \-                       10\&.8\&.0\&.0/24     main            1000
 .fi
 .if n \{\

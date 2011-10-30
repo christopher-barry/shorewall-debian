@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_24';
+our $VERSION = '4.4_25';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -521,6 +521,72 @@ sub calculate_quantum( $$ ) {
     int( ( $rate * 125 ) / $r2q );
 }
 
+#
+# The next two function implement handling of the IN-BANDWIDTH column in both tcdevices and tcinterfaces
+#
+sub process_in_bandwidth( $ ) {
+    my $in_rate     = shift;
+    
+    return 0 if $in_rate eq '-';
+
+    my $in_burst    = '10kb';
+    my $in_avrate   = 0;
+    my $in_band     = $in_rate;
+    my $burst;
+    my $in_interval = '250ms';
+    my $in_decay    = '4sec';
+
+    if ( $in_rate =~ s/^~// ) {
+	if ( $in_rate =~ /:/ ) {
+	    ( $in_rate, $in_interval, $in_decay ) = split /:/, $in_rate, 3;
+	    fatal_error "Invalid IN-BANDWIDTH ($in_band)" unless supplied( $in_interval ) && supplied( $in_decay );
+	    fatal_error "Invalid Interval ($in_interval)" unless $in_interval =~ /^(?:(?:250|500)ms|(?:1|2|4|8)sec)$/;
+	    fatal_error "Invalid Decay ($in_decay)"       unless $in_decay    =~ /^(?:500ms|(?:1|2|4|8|16|32|64)sec)$/;
+	    
+	    if ( $in_decay =~ /ms/ ) {
+		fatal_error "Decay must be at least twice the interval" unless $in_interval eq '250ms';
+	    } else {
+		unless ( $in_interval =~ /ms/ ) {
+		    my ( $interval, $decay ) = ( $in_interval, $in_decay );
+		    $interval =~ s/sec//;
+		    $decay    =~ s/sec//;
+
+		    fatal_error "Decay must be at least twice the interval" unless $decay > $interval;
+		} 
+	    }
+	}
+	    
+	$in_avrate = rate_to_kbit( $in_rate );
+	$in_rate = 0; 
+    } else {
+	if ( $in_band =~ /:/ ) {
+	    ( $in_band, $burst ) = split /:/, $in_rate, 2;
+	    fatal_error "Invalid burst ($burst)" unless $burst  =~ /^\d+(k|kb|m|mb|mbit|kbit|b)?$/;
+	    $in_burst = $burst;
+	}
+
+	$in_rate = rate_to_kbit( $in_band );
+	
+    }
+
+    [ $in_rate, $in_burst, $in_avrate, $in_interval, $in_decay ];
+}
+
+sub handle_in_bandwidth( $$ ) {
+    my ($physical, $arrayref ) = @_;;
+    my ($in_rate, $in_burst, $in_avrate, $in_interval, $in_decay ) = @$arrayref;
+
+    emit ( "run_tc qdisc add dev $physical handle ffff: ingress",
+	   "run_tc filter add dev $physical parent ffff: protocol all prio 10 " . 
+	   "\\\n    estimator $in_interval $in_decay basic\\" );
+
+    if ( $in_rate ) {
+	emit( "    police mpu 64 rate ${in_rate}kbit burst $in_burst action drop\n" );
+    } else {
+	emit( "    police avrate ${in_avrate}kbit action drop\n" );
+    }
+}
+	
 sub process_flow($) {
     my $flow = shift;
 
@@ -534,7 +600,7 @@ sub process_flow($) {
 }
 
 sub process_simple_device() {
-    my ( $device , $type , $in_bandwidth , $out_part ) = split_line 'tcinterfaces', { interface => 0, type => 1, in_bandwidth => 2, out_bandwidth => 3 };
+    my ( $device , $type , $in_rate , $out_part ) = split_line 'tcinterfaces', { interface => 0, type => 1, in_bandwidth => 2, out_bandwidth => 3 };
 
     fatal_error 'INTERFACE must be specified'      if $device eq '-';
     fatal_error "Duplicate INTERFACE ($device)"    if $tcdevices{$device};
@@ -559,21 +625,8 @@ sub process_simple_device() {
 	}
     }
 
-    my $in_burst = '10kb';
+    $in_rate = process_in_bandwidth( $in_rate );
 
-    if ( $in_bandwidth =~ /:/ ) {
-	my ( $in_band, $burst ) = split /:/, $in_bandwidth, 2;
-
-	if ( supplied $burst ) {
-	    fatal_error "Invalid IN-BANDWIDTH" if $burst =~ /:/;
-	    fatal_error "Invalid burst ($burst)" unless $burst =~ /^\d+(k|kb|m|mb|mbit|kbit|b)?$/;
-	    $in_burst = $burst;
-	}
-
-	$in_bandwidth = rate_to_kbit( $in_band );
-    } else {
-	$in_bandwidth = rate_to_kbit( $in_bandwidth );
-    }
 
     emit( '',
 	  '#',
@@ -588,15 +641,11 @@ sub process_simple_device() {
 
     push_indent;
 
-    emit ( "${dev}_exists=Yes",
-	   "qt \$TC qdisc del dev $physical root",
+    emit ( "qt \$TC qdisc del dev $physical root",
 	   "qt \$TC qdisc del dev $physical ingress\n"
 	 );
 
-    emit ( "run_tc qdisc add dev $physical handle ffff: ingress",
-	   "run_tc filter add dev $physical parent ffff: protocol all prio 10 u32 match ip src "  . ALLIPv4 . " police rate ${in_bandwidth}kbit burst $in_burst drop flowid :1\n",
-	   "run_tc filter add dev $physical parent ffff: protocol all prio 10 u32 match ip6 src " . ALLIPv6 . " police rate ${in_bandwidth}kbit burst $in_burst drop flowid :1\n"
-	 ) if $in_bandwidth;
+    handle_in_bandwidth( $physical, $in_rate ) if $in_rate;
 
     if ( $out_part ne '-' ) {
 	my ( $out_bandwidth, $burst, $latency, $peak, $minburst ) = split ':', $out_part;
@@ -649,8 +698,17 @@ sub process_simple_device() {
 	emit '';
     }
     
-    emit "run_tc filter add dev $physical parent $number:0 protocol all prio 1 u32 match ip protocol 6 0xff match u8 0x05 0x0f at 0 match u16 0x0000 0xffc0 at 2 match u8 0x10 0xff at 33 flowid $number:1\n";
-    emit "run_tc filter add dev $physical parent $number:0 protocol all prio 1 u32 match ip6 protocol 6 0xff match u8 0x05 0x0f at 0 match u16 0x0000 0xffc0 at 2 match u8 0x10 0xff at 33 flowid $number:1\n";
+    emit( "run_tc filter add dev $physical parent $number:0 protocol all prio 1 u32" .
+	  "\\\n    match ip protocol 6 0xff" .
+	  "\\\n    match u8 0x05 0x0f at 0" .
+	  "\\\n    match u16 0x0000 0xffc0 at 2" .
+	  "\\\n    match u8 0x10 0xff at 33 flowid $number:1\n" );
+
+    emit( "run_tc filter add dev $physical parent $number:0 protocol all prio 1 u32" .
+	  "\\\n    match ip6 protocol 6 0xff" .
+	  "\\\n    match u8 0x05 0x0f at 0" .
+	  "\\\n    match u16 0x0000 0xffc0 at 2" .
+	  "\\\n    match u8 0x10 0xff at 33 flowid $number:1\n" );
 
     save_progress_message_short qq("   TC Device $physical defined.");
 
@@ -659,7 +717,6 @@ sub process_simple_device() {
     push_indent;
 
     emit qq(error_message "WARNING: Device $physical is not in the UP state -- traffic-shaping configuration skipped");
-    emit "${dev}_exists=";
     pop_indent;
     emit 'fi';
     pop_indent;
@@ -740,22 +797,9 @@ sub validate_tc_device( ) {
 	}
     }
 
-    my $in_burst = '10kb';
+    $inband = process_in_bandwidth( $inband );
 
-    if ( $inband =~ /:/ ) {
-	my ( $in_band, $burst ) = split /:/, $inband, 2;
-
-	if ( supplied $burst ) {
-	    fatal_error "Invalid IN-BANDWIDTH" if $burst =~ /:/;
-	    fatal_error "Invalid burst ($burst)" unless $burst =~ /^\d+(k|kb|m|mb|mbit|kbit|b)?$/;
-	    $in_burst = $burst;
-	}
-
-	$inband = $in_band;
-    }
-
-    $tcdevices{$device} = { in_bandwidth  => rate_to_kbit( $inband ),
-			    in_burst      => $in_burst,
+    $tcdevices{$device} = { in_bandwidth  => $inband,
 			    out_bandwidth => rate_to_kbit( $outband ) . 'kbit',
 			    number        => $devnumber,
 			    classify      => $classify,
@@ -1555,11 +1599,7 @@ sub process_traffic_shaping() {
 		      qq(fi) );
 	    }
 
-	    if ( $devref->{in_bandwidth} ) {
-		emit ( "run_tc qdisc add dev $device handle ffff: ingress",
-		       "run_tc filter add dev $device parent ffff: protocol all prio 10 u32 match ip src 0.0.0.0/0 police rate $devref->{in_bandwidth}kbit burst $devref->{in_burst} drop flowid :1"
-		     );
-	    }
+	    handle_in_bandwidth( $device, $devref->{in_bandwidth} ) if $devref->{in_bandwidth};
 
 	    for my $rdev ( @{$devref->{redirected}} ) {
 		emit ( "run_tc qdisc add dev $rdev handle ffff: ingress" );
@@ -1628,7 +1668,11 @@ sub process_traffic_shaping() {
 		#
 		# options
 		#
-		emit "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio " . ( $priority | 10 ) ." u32 match ip protocol 6 0xff match u8 0x05 0x0f at 0 match u16 0x0000 0xffc0 at 2 match u8 0x10 0xff at 33 flowid $classid" if $tcref->{tcp_ack};
+		emit( "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio " . ( $priority | 10 ) . ' u32' .
+		      "\\\n    match ip protocol 6 0xff" .
+		      "\\\n    match u8 0x05 0x0f at 0" .
+		      "\\\n    match u16 0x0000 0xffc0 at 2" .
+		      "\\\n    match u8 0x10 0xff at 33 flowid $classid" ) if $tcref->{tcp_ack};
 
 		for my $tospair ( @{$tcref->{tos}} ) {
 		    my ( $tos, $mask ) = split q(/), $tospair;

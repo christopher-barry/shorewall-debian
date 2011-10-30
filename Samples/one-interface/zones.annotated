@@ -117,8 +117,9 @@
 #           
 #     blacklist
 #           
-#         Added in Shorewall 4.4.13. May not be specified for firewall or vserver
-#         zones.
+#         Added in Shorewall 4.4.13. Deprecated in Shorewall 4.4.25 and later in
+#         favor of rules in the BLACKLIST section of shorewall-rules (5). May not
+#         be specified for firewall or vserver zones.
 #           
 #         When specified in the IN_OPTIONS column, causes all traffic from this
 #         zone to be passed against the src entries in shorewall-blacklist(5).

@@ -64,7 +64,8 @@
 #     on) You can explicitly specify the interface number by prefixing the
 #     interface name with the number and a colon (":"). Example: 1:eth0.
 #           
-#           IN-BANDWIDTH (in_bandwidth) - bandwidth[:burst]
+#           IN-BANDWIDTH (in_bandwidth) - {-|bandwidth[:burst]|~bandwidth[:interval:
+#     decay_interval]}
 #           
 #     The incoming bandwidth of that interface. Please note that you are not able
 #     to do traffic shaping on incoming traffic, as the traffic is already
@@ -80,6 +81,17 @@
 #     The optional burst option was added in Shorewall 4.4.18. The default burst
 #     is 10kb. A larger burst can help make the bandwidth more accurate; often
 #     for fast lines, the enforced rate is well below the specified bandwidth.
+#           
+#     What is described above creates a rate/burst policing filter. Beginning
+#     with Shorewall 4.4.25, a rate-estimated policing filter may be configured
+#     instead. Rate-estimated filters should be used with ethernet adapters that
+#     have Generic Receive Offload enabled by default. See Shorewall FAQ 97a.
+#           
+#     To create a rate-estimated filter, precede the bandwidth with a tilde
+#     ("~"). The optional interval and decay_interval determine how often the
+#     rate is estimated and how many samples are retained for estimating. Please
+#     see http://ace-host.stuart.id.au/russell/files/tc/doc/estimators.txt for
+#     details.
 #           
 #           OUT-BANDWIDTH (out_bandwidth) - bandwidth
 #           
