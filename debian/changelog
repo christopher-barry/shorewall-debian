@@ -1,8 +1,9 @@
-shorewall-lite (4.4.24.1-1~bpo60+1) squeeze; urgency=low
+shorewall-lite (4.4.25-1) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * New Upstream Version
+  * Install missing /usr/share/shorewall-lite/helpers (Closes: #646281)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Oct 2011 21:33:54 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 29 Oct 2011 21:02:28 -0400
 
 shorewall-lite (4.4.24.1-1) unstable; urgency=low
 
