@@ -1,3 +1,7 @@
+Changes in 4.4.25.1
+
+1)  Reload 'blacklistsection' chains during 'refresh'.
+
 Changes in 4.4.25 Final
 
 1)  Evaluate a variable at compile-time rather than run-time.
