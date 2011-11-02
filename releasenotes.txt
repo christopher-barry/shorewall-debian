@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                     S H O R E W A L L  4 . 4 . 2 5 
+                    S H O R E W A L L  4 . 4 . 2 5 . 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,26 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.25.1
+
+1)  A 'refresh' command with no chains or tables specified will now
+    reload chains created by entries in the BLACKLIST section of the
+    rules file. 
+
+2)  The 'refresh' command did not automatically reload the rules from
+    the BLACKLIST section of the rules file. Now such rules are
+    reloaded by 'refresh'.
+
+3)  The rules compiler previously failed to detect the 'Flow Filter'
+    capability. That capability is now correctly detected.
+
+4)  The IN_BANDWIDTH handling changes in 4.4.25 was incompatible with
+    moribund distributions such as RHEL4. Restoring IN_BANDWIDTH
+    functionality on those releases required a new 'Basic Filter'
+    capability.
+    
+4.4.25
 
 1)  A defect in the optimizer that allowed incompatible rules to be
     combined has been corrected.
