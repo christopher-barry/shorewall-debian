@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 10/29/2011
+.\"      Date: 11/01/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "10/29/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "11/01/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -446,11 +446,57 @@ with the exception that
 \fBrefresh\fR
 only recreates the chains specified in the command while
 \fBrestart\fR
-recreates the entire Netfilter ruleset\&.When no chain name is given to the
-\fBrefresh\fR
-command, the mangle table is refreshed along with the blacklist chain (if any)\&. This allows you to modify
-/etc/shorewall6/tcrulesand install the changes using
-\fBrefresh\fR\&.
+recreates the entire Netfilter ruleset\&. If no
+\fIchain\fR
+is given, then a change list is constructed that includes:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+the static blacklisting chain
+\fBblacklst\fR, if it exists\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+the static blacklisting chain
+\fBblackout\fR, if it exists\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+chains created as a result of entries in the BLACKLIST section of
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[3]\d\s+2
+(5) (Shorewall 4\&.4\&.25\&.1 and later)\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+all chains in the mangle table\&.
+.RE
 .sp
 The listed chains are assumed to be in the filter table\&. You can refresh chains in other tables by prefixing the chain name with the table name followed by ":" (e\&.g\&., nat:net_dnat)\&. Chain names which follow are assumed to be in that table until the end of the list or until an entry in the list names another table\&. Built\-in chains such as FORWARD may not be refreshed\&.
 .sp
@@ -741,9 +787,9 @@ and
 \fBstop\fR
 .RS 4
 Stops the firewall\&. All existing connections, except those listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[4]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or by ADMINISABSENTMINDED\&.
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[4]\d\s+2(5) or by ADMINISABSENTMINDED\&.
 .RE
 .PP
 \fBstatus\fR
@@ -825,6 +871,11 @@ shorewall6-interfaces
 \%http://www.shorewall.net/manpages6/shorewall6-interfaces.html
 .RE
 .IP " 3." 4
+shorewall6-rules
+.RS 4
+\%http://www.shorewall.net/manpages6/manpages6/shorewall6-rules.html
+.RE
+.IP " 4." 4
 shorewall6-routestopped
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall6-routestopped.html
