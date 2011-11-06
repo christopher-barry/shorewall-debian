@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                    S H O R E W A L L  4 . 4 . 2 5 . 1
+                    S H O R E W A L L  4 . 4 . 2 5 . 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,20 +14,55 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
+4.4.25.2
+
+1)  Previously, if all the following were true:
+
+    - AUTOMAKE=Yes
+    - Current compiled script (/var/lib/shorewall/firewall or
+      /var/lib/shorewall6/firewall) up to date
+    - LEGACY_FASTSTART=No
+    - There was a saved configuration
+
+    then rather than start the current configuration, 'shorewall start
+    -f' or 'shorewall6 start -f' would incorrectly restore the saved
+    configuration.
+
+2)  The DropSmurfs and TCPFlags actions are now available in
+    Shorewall6. They were previously omitted from the IPv6 actions.std
+    file.
+
+3)  The 'rawpost' table was previously omitted from the output of the
+    'dump' command. It is now displayed.
+
+4)  Previously, if a configuration contained more than one wildcard
+    interface (physical name ending in '+'), then the generated script
+    might not work properly with Shorewall-init. This defect dates back
+    to the introduction of Shorewall-init.
+
+    Example:
+
+    ZONE	INTERFACE	BROADCAST	OPTIONS
+    z1		eth+		-		optional
+    z2		veth+		-		optional
+
+    The script will contain a case statement of this form:
+
+    	case $interface in
+	     ...
+ 	  eth*|veth+)
+	     ...
+
 4.4.25.1
 
 1)  A 'refresh' command with no chains or tables specified will now
     reload chains created by entries in the BLACKLIST section of the
     rules file. 
 
-2)  The 'refresh' command did not automatically reload the rules from
-    the BLACKLIST section of the rules file. Now such rules are
-    reloaded by 'refresh'.
-
-3)  The rules compiler previously failed to detect the 'Flow Filter'
+2)  The rules compiler previously failed to detect the 'Flow Filter'
     capability. That capability is now correctly detected.
 
-4)  The IN_BANDWIDTH handling changes in 4.4.25 was incompatible with
+3)  The IN_BANDWIDTH handling change in 4.4.25 was incompatible with
     moribund distributions such as RHEL4. Restoring IN_BANDWIDTH
     functionality on those releases required a new 'Basic Filter'
     capability.

@@ -14,3 +14,36 @@
     moribund distributions such as RHEL4.
 
     Corrected in 4.4.25.1.
+
+5)  If all the following are true:
+
+    - AUTOMAKE=Yes
+    - Current compiled script (/var/lib/shorewall/firewall or
+      /var/lib/shorewall6/firewall) up to date
+    - LEGACY_FASTSTART=No
+    - There is a saved configuration
+
+    then rather than start the current configuration, 'shorewall
+    start -f' or 'shorewall6 start -f' incorrectly restores the saved
+    configuration.
+
+    Corrected in 4.4.25.2.
+
+6)  The DropSmurfs and TCPFlags options are not available in
+    Shorewall6.
+
+    Workaround - add these two actions to /etc/shorewall6/actions.
+
+    Corrected in 4.4.25.2.
+
+7)  The 'rawpost' table is omitted from the output of the 'dump'
+    command.
+
+    Corrected in 4.4.25.2.
+
+8)  If a configuration has more than one wildcard interface (physical
+    name ending in '+'), then the generated script may not work
+    properly with Shorewall-init.
+
+    Corrected in 4.4.25.2.
+
