@@ -121,6 +121,12 @@
 #         Sets the /proc/sys/net/ipv6/conf/interface/forwarding option to the
 #         specified value. If no value is supplied, then 1 is assumed.
 #           
+#     ignore
+#           
+#         When specified, causes the generated script to ignore up/down events
+#         from Shorewall-init for this device. Additionally, the option exempts
+#         the interface from hairpin filtering.
+#           
 #     mss=number
 #           
 #         Causes forwarded TCP SYN packets entering or leaving on this interface
