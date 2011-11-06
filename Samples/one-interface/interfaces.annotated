@@ -184,6 +184,12 @@
 #           
 #         This option allows DHCP datagrams to enter and leave the interface.
 #           
+#     ignore
+#           
+#         When specified, causes the generated script to ignore up/down events
+#         from Shorewall-init for this device. Additionally, the option exempts
+#         the interface from hairpin filtering.
+#           
 #     logmartians[={0|1}]
 #           
 #         Turn on kernel martian logging (logging of packets with impossible
