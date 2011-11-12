@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                    S H O R E W A L L  4 . 4 . 2 5 . 2
+                    S H O R E W A L L  4 . 4 . 2 5 . 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,52 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.25.3
+
+1)  Previously, the following configuration produced an incorrect
+    ruleset:
+
+    zones:
+
+	host	firewall
+	uw	ipv4
+	net	ipv4
+
+    interfaces:
+
+	-	enet		detect		physical=+
+
+    hosts:
+
+	net	enet:0.0.0.0/0
+	uw	enet:$N_ALL_UW_AFFILIATED
+
+    Here's an example of the problem; from 'shorewall show INPUT':
+
+    	Chain INPUT (policy DROP 0 packets, 0 bytes)
+    	pkts  bytes  target     prot opt in     out     source ...
+    	1678  54427  dynamic    all  --  *      *       0.0.0.0/0 ...
+    	33631 4085K  enet_in    all  --  *      *       0.0.0.0/0 ...
+        0     0      ACCEPT     all  --  lo     *       0.0.0.0/0 ...
+        0     0      enet_in    all  --  *      *       0.0.0.0/0 ...
+    	...
+
+    Note that the ACCEPT rule for the loopback device occurs after
+    an unconditional jump to 'enet_in' and that there are two
+    such jumps.
+
+    Now, this sequence is generated:
+
+    	Chain INPUT (policy DROP 0 packets, 0 bytes)
+    	pkts  bytes  target     prot opt in     out     source ...
+    	1678  54427  dynamic    all  --  *      *       0.0.0.0/0 ...
+        0     0      ACCEPT     all  --  lo     *       0.0.0.0/0 ...
+    	33631 4085K  enet_in    all  --  *      *       0.0.0.0/0 ...
+    	...
+
+2)  The Debian init scripts (with the exception of Shorewall-init) now
+    support the 'status' command.
 
 4.4.25.2
 
