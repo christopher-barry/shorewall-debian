@@ -1,3 +1,9 @@
+shorewall (4.4.25.3-1~bpo60+1) squeeze; urgency=low
+
+  * Rebuilt for squeeze.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 11 Nov 2011 21:38:02 -0500
+
 shorewall (4.4.25.3-1) unstable; urgency=low
 
   * New Upstream Version
