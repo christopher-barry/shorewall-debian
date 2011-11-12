@@ -1,8 +1,9 @@
-shorewall6-lite (4.4.25.2-1~bpo60+1) squeeze; urgency=low
+shorewall6-lite (4.4.25.3-1) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * New Upstream Version
+  * Synchronize init script with upstream
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 05 Nov 2011 21:35:50 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 11 Nov 2011 21:15:30 -0500
 
 shorewall6-lite (4.4.25.2-1) unstable; urgency=low
 
