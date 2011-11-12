@@ -1,3 +1,9 @@
+Changes in 4.4.25.3
+
+1)  Fix wildcard interfaces.
+
+2)  Add 'status' support to the Debian init scripts.
+
 Changes in 4.4.25.2
 
 1)  Change incorrect behavior of 'start -f' with AUTOMAKE=Yes

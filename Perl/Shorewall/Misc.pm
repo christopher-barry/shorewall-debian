@@ -1161,8 +1161,6 @@ sub handle_loopback_traffic() {
 	    }
 	}
     }
-
-    add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => 'lo';
 }
 
 #
@@ -1172,6 +1170,7 @@ sub add_interface_jumps {
     our %input_jump_added;
     our %output_jump_added;
     our %forward_jump_added;
+    my  $lo_jump_added = 0;
     #
     # Add Nat jumps
     #
@@ -1203,6 +1202,8 @@ sub add_interface_jumps {
 	my $outputref    = $filter_table->{output_chain $interface};
 	my $interfaceref = find_interface($interface);
 
+	add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => 'lo' if $interfaceref->{physical} eq '+' && ! $lo_jump_added++;
+
 	if ( $interfaceref->{options}{port} ) {
 	    my $bridge = $interfaceref->{bridge};
 	    add_ijump ( $filter_table->{forward_chain $bridge},
@@ -1230,14 +1231,16 @@ sub add_interface_jumps {
 	} else {
 	    add_ijump ( $filter_table->{FORWARD}, j => 'ACCEPT', imatch_source_dev( $interface) , imatch_dest_dev( $interface) ) unless $interfaceref->{nets} || ! $interfaceref->{options}{bridge};
 
-	    add_ijump( $filter_table->{FORWARD} , j => $forwardref , imatch_source_dev( $interface ) ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
-	    add_ijump( $filter_table->{INPUT}   , j => $inputref ,   imatch_source_dev( $interface ) ) unless $input_jump_added{$interface}   || ! use_input_chain $interface, $inputref;
+	    add_ijump( $filter_table->{FORWARD} , j => $forwardref , imatch_source_dev( $interface ) ) if use_forward_chain( $interface, $forwardref ) && ! $forward_jump_added{$interface}++;
+	    add_ijump( $filter_table->{INPUT}   , j => $inputref ,   imatch_source_dev( $interface ) ) if use_input_chain( $interface, $inputref )     && ! $input_jump_added{$interface}++;
 
-	    unless ( $output_jump_added{$interface} || ! use_output_chain $interface, $outputref ) {
-		add_ijump $filter_table->{OUTPUT} , j => $outputref , imatch_dest_dev( $interface ) unless get_interface_option( $interface, 'port' );
+	    if ( use_output_chain $interface, $outputref ) {
+		add_ijump $filter_table->{OUTPUT} , j => $outputref , imatch_dest_dev( $interface ) unless get_interface_option( $interface, 'port' ) || $output_jump_added{$interface}++;
 	    }
 	}
     }
+
+    add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => 'lo' unless $lo_jump_added++;
 
     handle_loopback_traffic;
 }
