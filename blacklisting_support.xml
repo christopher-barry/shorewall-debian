@@ -72,11 +72,11 @@
     <title>Rule-based Blacklisting</title>
 
     <para>Beginning with Shorewall 4.4.25, the preferred method of
-    blacklisting and whitelisting is to use the BLACKLIST section of the rules
-    file. There you have access to the DROP, ACCEPT, REJECT and WHITELIST
-    actions, standard and custom macros as well as standard and custom
-    actions. See <ulink
-    url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5) for
+    blacklisting and whitelisting is to use the blrules file (<ulink
+    url="manpages/shorewall-blrules.html">shorewall-blrules</ulink> (5)).
+    There you have access to the DROP, ACCEPT, REJECT and WHITELIST actions,
+    standard and custom macros as well as standard and custom actions. See
+    <ulink url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5) for
     details.</para>
 
     <para>Example:</para>
@@ -94,6 +94,17 @@ DROP            net:81.21.54.100        all                     tcp     25
 DROP            net:84.108.168.139      all                             
 DROP            net:200.55.14.18        all
 </programlisting>
+
+    <para>Beginning with Shorewall 4.4.26, the <command>update</command>
+    command supports a <option>-b</option> option that causes your legacy
+    blacklisting configuration to use the blrules file.</para>
+
+    <note>
+      <para>If you prefer to keep your blacklisting rules in your rules file
+      (<ulink url="manpages/shorewall-rules.html">shorewall-rules</ulink>
+      (5)), you can place them in the BLACKLIST section of that file rather
+      than in blrules.</para>
+    </note>
   </section>
 
   <section>

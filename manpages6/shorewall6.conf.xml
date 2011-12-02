@@ -264,7 +264,10 @@
           a value or if you assign an empty value then DROP is assumed. The
           BLACKLIST_DISPOSITION setting has no effect on entries in the
           BLACKLIST section of <ulink
-          url="shorewall6-rules.html">shorewall6-rules</ulink> (5).</para>
+          url="shorewall6-rules.html">shorewall6-rules</ulink> (5). It
+          determines the disposition of packets sent to the <emphasis
+          role="bold">blacklog</emphasis> target of <ulink
+          url="shorewall6-blrules.html">shorewall6-blrules</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -280,7 +283,10 @@
           assign an empty value then packets from blacklisted hosts are not
           logged. The BLACKLIST_LOGLEVEL setting has no effect on entries in
           the BLACKLIST section of <ulink
-          url="shorewall6-rules.html">shorewall6-rules</ulink> (5).</para>
+          url="shorewall6-rules.html">shorewall6-rules</ulink> (5). It
+          determines the log level of packets sent to the <emphasis
+          role="bold">blacklog</emphasis> target of <ulink
+          url="shorewall6-blrules.html">shorewall6-blrules</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -291,9 +297,10 @@
         <listitem>
           <para>When set to <emphasis role="bold">Yes</emphasis> or <emphasis
           role="bold">yes</emphasis>, blacklists are only consulted for new
-          connections. This includes entries in the BLACKLIST section of
-          <ulink url="shorewall6-rules.html">shorewall6-rules</ulink>
-          (5).</para>
+          connections. This includes entries in the <ulink
+          url="???">shorewall-blrules</ulink> (5) file and in the BLACKLIST
+          section of <ulink
+          url="shorewall6-rules.html">shorewall6-rules</ulink> (5).</para>
 
           <para>When set to <emphasis role="bold">No</emphasis> or <emphasis
           role="bold">no</emphasis>, blacklists are consulted for every packet
@@ -576,6 +583,9 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
         <listitem>
+          <para>Deprecated in Shorewall 4.4.26 in favor of
+          PROVIDER_OFFSET.</para>
+
           <para>You may set HIGH_ROUTE_MARKS=Yes in to effectively divide the
           packet mark and connection mark into two mark fields.</para>
 
@@ -1105,6 +1115,55 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         </listitem>
       </varlistentry>
 
+      <varlistentry id="MASK_BITS">
+        <term><emphasis
+        role="bold">MASK_BITS</emphasis>=[<replaceable>number</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.26. Number of bits on the right of the
+          32-bit packet mark to be masked when clearing the traffic shaping
+          mark. Must be &gt;= TC_BITS and &lt;= PROVIDER_OFFSET (if
+          PROVIDER_OFFSET &gt; 0). Default value and the default values of the
+          other mark layout options is determined as follows:</para>
+
+          <table frame="none">
+            <title>Default Packet Mark Layout</title>
+
+            <tgroup cols="2">
+              <tbody>
+                <row>
+                  <entry>WIDE_TC_MARKS=No, HIGH_ROUTE_MARKS=No</entry>
+
+                  <entry>TC_BITS=8, PROVIDER_BITS=8, PROVIDER_OFFSET=0,
+                  MASK_BITS=8</entry>
+                </row>
+
+                <row>
+                  <entry>WIDE_TC_MARKS=No, HIGH_ROUTE_MARKS=Yes</entry>
+
+                  <entry>TC_BITS=8, PROVIDER_BITS=8, PROVIDER_OFFSET=8,
+                  MASK_BITS=8</entry>
+                </row>
+
+                <row>
+                  <entry>WIDE_TC_MARKS=Yes, HIGH_ROUTE_MARKS=No</entry>
+
+                  <entry>TC_BITS=14, PROVIDER_BITS=8, PROVIDER_OFFSET=0,
+                  MASK_BITS=16</entry>
+                </row>
+
+                <row>
+                  <entry>WIDE_TC_MARKS=Yes, HIGH_ROUTE_MARKS=Yes</entry>
+
+                  <entry>TC_BITS=14, PROVIDER_BITS=8, PROVIDER_OFFSET=16,
+                  MASK_BITS=16</entry>
+                </row>
+              </tbody>
+            </tgroup>
+          </table>
+        </listitem>
+      </varlistentry>
+
       <varlistentry>
         <term><emphasis role="bold">MODULE_SUFFIX=</emphasis>[<emphasis
         role="bold">"</emphasis><emphasis>extension</emphasis> ...<emphasis
@@ -1245,8 +1304,66 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
             <listitem>
               <para>Optimization category 8 - Added in Shorewall 4.4.9. When
-              set, causes chains with duplicate rules to be collapsed into a
+              set, causes chains with identical rules to be collapsed into a
               single chain.</para>
+            </listitem>
+
+            <listitem>
+              <para>Optimization category 16 - Added in Shorewall 4.4.26. When
+              set, causes sequences of <firstterm>compatible</firstterm> rules
+              to be combined into a single rule. Rules are considered
+              compatible if they differ only in their destination ports and
+              comments.</para>
+
+              <para>A sequence of combatible rules is often generated when
+              macros are invoked in sequence.</para>
+
+              <para>The ability to combine adjacent rules is limited by two
+              factors:</para>
+
+              <itemizedlist>
+                <listitem>
+                  <para>Destination port lists may only be combined up to a
+                  maximum of 15 ports, where a port-pair counts as two
+                  ports.</para>
+                </listitem>
+
+                <listitem>
+                  <para>Rules may only be combined until the length of their
+                  concatinated comment reaches 255 characters.</para>
+                </listitem>
+              </itemizedlist>
+
+              <para>When either of these limits would be exceeded, the current
+              combined rule is emitted and the compiler attemts to combine
+              rules beginning with the one that would have exceeded the limit.
+              Adjacent combined comments are separated by ', '. Empty comments
+              at the front of a group of combined comments are replaced by
+              'Others and'. Empty comments at the end of a group of combined
+              comments are replaced by 'and others'.</para>
+
+              <variablelist>
+                <varlistentry>
+                  <term>Example 1:</term>
+
+                  <listitem>
+                    <para>Rules with comments "FOO", &lt;empty&gt; and "BAR"
+                    would result in the combined comment "FOO and others,
+                    BAR".</para>
+                  </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                  <term>Example 2:</term>
+
+                  <listitem>
+                    <para>Rules with comments &lt;empty&gt;, "FOO" and "BAR"
+                    would reult in the combined comment "Others and FOO, BAR".
+                    Note: Optimize level 16 requires "Extended Multi-port
+                    Match" in your iptables and kernel.</para>
+                  </listitem>
+                </varlistentry>
+              </variablelist>
             </listitem>
           </itemizedlist>
 
@@ -1288,6 +1405,31 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           the pathname specified by this option does not exist or the named
           file is not executable, then Shorewall6 falls back to
           <filename>/usr/bin/perl/</filename></para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">PROVIDER_BITS</emphasis>=[<replaceable>number</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.26. The number of bits in the 32-bit
+          packet mark to be used for provider numbers. May be zero. See <link
+          linkend="MASK_BITS">MASK_BITS</link> above for default value.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">PROVIDER_OFFSET</emphasis>=[<replaceable>number</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.26. The offset from the right
+          (low-order end) of the provider number field in the 32-bit packet
+          mark. If non-zero, must be &gt;= TC_BITS (Shorewall automatically
+          adjusts PROVIDER_OFFSET's value). PROVIDER_OFFSET + PROVIDER_BITS +
+          ZONE_BITS must be &lt; 32. See <link
+          linkend="MASK_BITS">MASK_BITS</link> above for default value.</para>
         </listitem>
       </varlistentry>
 
@@ -1495,6 +1637,18 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           <para>If specified, gives the pathname of the 'tc' executable. If
           not specified, 'tc' is assumed and the utility will be located using
           the current PATH setting.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">TC_BITS</emphasis>=[<replaceable>number</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.26. The number of bits at the low end
+          of the 32-bit packet mark to be used for traffic shaping marking.
+          May be zero. See <link linkend="MASK_BITS">MASK_BITS</link> above
+          for default value.</para>
         </listitem>
       </varlistentry>
 
@@ -1728,11 +1882,26 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
         <listitem>
+          <para>Deprecated in Shorewall 4.4.26 in favor of TC_BITS and
+          MASK_BITS.</para>
+
           <para>When set to No (the default), traffic shaping marks are 8
           bytes wide (possible values are 1-255). When WIDE_TC_MARKS=Yes,
           traffic shaping marks are 14 bytes wide (values 1-16383). The
           setting of WIDE_TC_MARKS also has an effect on the HIGH_ROUTE_MARKS
           option (see above).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">ZONE_BITS</emphasis>=[<replaceable>number</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.4.26. When non-zero, enables automatic
+          packet marking by source zone and determines the number of bits in
+          the 32-bit packet mark to be used for the zone mark. Default value
+          is 0.</para>
         </listitem>
       </varlistentry>
 
