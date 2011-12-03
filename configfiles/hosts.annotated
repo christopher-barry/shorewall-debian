@@ -74,11 +74,9 @@
 #           
 #     blacklist
 #           
-#         This option only makes sense for ports on a bridge. As of Shorewall
-#         4.4.13, its is ignored with a warning message:
-#           
-#             WARNING: The "blacklist" host option is no longer supported and
-#             will be ignored.
+#         This option is deprecated in Shorewall 4.4.25 in favor of entries in
+#         shorewall6-blrules (5) or in the BLACKLIST section of shorewall6-rules 
+#         (5).
 #           
 #         Check packets arriving on this port against the shorewall6-blacklist(5)
 #         file.

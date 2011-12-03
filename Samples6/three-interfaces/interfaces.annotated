@@ -75,8 +75,9 @@
 #     blacklist
 #           
 #         Deprecated in Shorewall 4.4.25 and later in favor of rules in the
-#         BLACKLIST section of shorewall6-rules (5). Check packets arriving on
-#         this interface against the shorewall6-blacklist(5) file.
+#         BLACKLIST section of shorewall6-rules (5) or in shorewall6-blrules (5).
+#         Check packets arriving on this interface against the
+#         shorewall6-blacklist(5) file.
 #           
 #         Beginning with Shorewall 4.4.13:
 #           

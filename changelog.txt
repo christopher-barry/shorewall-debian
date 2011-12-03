@@ -1,18 +1,70 @@
-Changes in 4.4.25.3
+Changes in 4.4.26 Final
 
-1)  Fix wildcard interfaces.
+1)  Fix 'shorewall6 update'.
 
-2)  Add 'status' support to the Debian init scripts.
+2)  Add tracing to optimization category 16.
+
+3)  Allow provider names in enable/disable and externalize these
+    commands.
+
+4)  Allow the params file to reside in a directory other than $CONFDIR.
+
+Changes in 4.4.26 RC 2
+
+1)  Fix SAME target.
+
+2)  Correct update of mark layout.
+
+Changes in 4.4.26 RC 1
+
+1)  Implement Optimize level 16.
+
+Changes in 4.4.26 Beta 3
+
+1)  Make zone types a power of 2.
+
+2)  Add ZONE_BITS configuration option.
+
+3)  Add zone automark.
+
+4)  Correct blacklist conversion.
+
+Changes in 4.4.26 Beta 4.
+
+1)  Don't issue a warning for orphan bport zones when ZONE_BITS > 0.
+
+2)  Add new mark-layout options to the .conf files.
+
+3)  Describe the new mark-layout options in the manpages.
+
+4)  Deprecated WIDE_TS_MARKS and HIGH_ROUTE_MARKS.
+
+5)  Add 'show marks' command.
+
+Changes in 4.4.26 Beta 3
+
+1)  Formalize the mark-layout options.
+
+2)  Add support for back-to-back veths to access a bridge.
+
+Changes in 4.4.26 Beta 2
+
+1)  ULOG and NFLOG detection.
+
+Changes in 4.4.26 Beta 1
+
+1)  Add 'blrules' file.
+
+2)  Make ACCEPT a synonym of WHILELIST in the blrules file and
+    BLACKLIST section.
+
+3)  Automated conversion of legacy blacklist configurations.
 
 Changes in 4.4.25.2
 
 1)  Change incorrect behavior of 'start -f' with AUTOMAKE=Yes
 
 2)  Add DropSmurfs and TCPFlags to actions.std.
-
-3)  Document the 'ignore' option.
-
-4)  Make replacement of '+' by '*' in case statements global.
 
 Changes in 4.4.25.1
 

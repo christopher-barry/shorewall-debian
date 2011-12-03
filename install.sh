@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.25.3
+VERSION=4.4.26
 
 usage() # $1 = exit status
 {
@@ -575,15 +575,20 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/tunnels ]; then
     run_install $OWNERSHIP -m 0600 tunnels${suffix} ${DESTDIR}/etc/shorewall6/tunnels
     echo "Tunnels file installed as ${DESTDIR}/etc/shorewall6/tunnels"
 fi
-#
-# Install the blacklist file
-#
-run_install $OWNERSHIP -m 0644 blacklist           ${DESTDIR}/usr/share/shorewall6/configfiles/
-run_install $OWNERSHIP -m 0644 blacklist.annotated ${DESTDIR}/usr/share/shorewall6/configfiles/
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/blacklist ]; then
     run_install $OWNERSHIP -m 0600 blacklist${suffix} ${DESTDIR}/etc/shorewall6/blacklist
     echo "Blacklist file installed as ${DESTDIR}/etc/shorewall6/blacklist"
+fi
+#
+# Install the blacklist rules file
+#
+run_install $OWNERSHIP -m 0644 blrules           ${DESTDIR}/usr/share/shorewall6/configfiles/
+run_install $OWNERSHIP -m 0644 blrules.annotated ${DESTDIR}/usr/share/shorewall6/configfiles/
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall6/blrules ]; then
+    run_install $OWNERSHIP -m 0600 blrules${suffix} ${DESTDIR}/etc/shorewall6/blrules
+    echo "Blrules file installed as ${DESTDIR}/etc/shorewall6/blrules"
 fi
 #
 # Install the Providers file
