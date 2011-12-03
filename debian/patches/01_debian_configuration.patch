@@ -1,8 +1,8 @@
 Author: Lorenzo Martignoni <lorenzo.martignoni@poste.it>
 Description: Customize the shorewall.conf configuration file to be more like what is
 expected by Debian users.
---- shorewall-debian.orig/configfiles/shorewall.conf
-+++ shorewall-debian/configfiles/shorewall.conf
+--- shorewall.git.orig/configfiles/shorewall.conf
++++ shorewall.git/configfiles/shorewall.conf
 @@ -9,7 +9,7 @@
  #		       S T A R T U P   E N A B L E D
  ###############################################################################
@@ -21,16 +21,16 @@ expected by Debian users.
  
  TC=
  
-@@ -138,7 +138,7 @@
+@@ -136,7 +136,7 @@
  
- HIGH_ROUTE_MARKS=No
+ IMPLICIT_CONTINUE=No
  
 -IP_FORWARDING=On
 +IP_FORWARDING=Keep
  
  KEEP_RT_TABLES=No
  
-@@ -174,7 +174,7 @@
+@@ -172,7 +172,7 @@
  
  RETAIN_ALIASES=No
  
