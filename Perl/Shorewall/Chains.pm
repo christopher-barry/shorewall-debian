@@ -41,6 +41,7 @@ our @EXPORT = qw(
 		    add_ijump
 		    insert_rule
 		    insert_irule
+		    clone_rule
 		    insert_ijump
 		    rule_target
 		    clear_rule_target
@@ -55,6 +56,7 @@ our @EXPORT = qw(
 		    ensure_filter_chain
 		    ensure_manual_chain
 		    ensure_audit_chain
+		    ensure_blacklog_chain
 		    require_audit
 		    newlogchain
 		    log_rule_limit
@@ -1145,6 +1147,24 @@ sub push_irule( $$$;@ ) {
     $ruleref;
 }
 
+#
+# Compare two rule hash values. If a value is a reference, then it will be an array reference
+#
+sub compare_values( $$ ) {
+    my ( $value1, $value2 ) = @_;
+
+    return $value1 eq $value2 unless reftype $value1;
+
+    if ( reftype $value2 && @$value1 == @$value2 ) {
+	my $offset = 0;
+	for ( @$value1 ) {
+	    return 0 unless $_ eq $value2->[$offset++];
+	}
+
+	1;
+    }
+}
+
 sub add_irule( $;@ ) {
     my ( $chainref, @matches ) = @_;
 
@@ -1262,6 +1282,20 @@ sub insert_irule( $$$$;@ ) {
 }
 
 #
+# Clone an existing rule. Only the rule hash itself is cloned; reference values are shared between the new rule
+# reference and the old.
+#
+sub clone_rule( $ ) {
+    my $oldruleref = $_[0];
+    my $newruleref = {};
+
+    while ( my ( $key, $value ) = each %$oldruleref ) {
+	$newruleref->{$key} = $value;
+    }
+
+    $newruleref;
+}
+
 # Do final work to 'delete' a chain. We leave it in the chain table but clear
 # the 'referenced', 'rules', 'references' and 'blacklist' members.
 #
@@ -2168,6 +2202,24 @@ sub ensure_manual_chain($) {
     $chainref;
 }
 
+sub ensure_blacklog_chain( $$$$ ) {
+    my ( $target, $disposition, $level, $audit ) = @_;
+
+    unless ( $filter_table->{blacklog} ) {
+	my $logchainref = new_manual_chain 'blacklog';
+
+	$target =~ s/A_//;
+	$target = 'reject' if $target eq 'REJECT';
+
+	log_rule_limit( $level , $logchainref , 'blacklst' , $disposition , "$globals{LOGLIMIT}" , '', 'add',	'' );
+
+	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target ) if $audit;
+	add_ijump( $logchainref, g => $target );
+    }
+
+    'blacklog';
+}
+
 #
 # Create and populate the passed AUDIT chain if it doesn't exist. Return chain name
 #
@@ -2822,6 +2874,199 @@ sub optimize_level8( $$$ ) {
     $passes;
 }
 
+#
+# Returns a comma-separated list of destination ports from the passed rule
+#
+sub get_dports( $ ) {
+    my $ruleref = shift;
+
+    my $ports = $ruleref->{dport} || '';
+
+    unless ( $ports ) {
+	if ( my $multiref = $ruleref->{multiport} ) {
+	    if ( reftype $multiref ) {
+		for ( @$multiref ) {
+		    if ( /^--dports (.*)/ ) {
+			if ( $ports ) {
+			    $ports .= ",$1";
+			} else {
+			    $ports = $1;
+			}
+		    }
+		}
+	    } else {
+		$ports = $1 if $multiref =~ /^--dports (.*)/;
+	    }
+	}
+    }
+
+    $ports;
+}
+
+#
+# Returns a comma-separated list of multiport source ports from the passed rule
+#
+sub get_multi_sports( $ ) {
+    my $ports = '';
+
+    if ( my $multiref = $_[0]->{multiport} ) {
+	if ( reftype $multiref ) {
+	    for ( @$multiref ) {
+		if ( /^--sports (.*)/ ) {
+		    if ( $ports ) {
+			$ports .= ",$1";
+		    } else {
+			$ports = $1;
+		    }
+		}
+	    }
+	} else {
+	    $ports = $1 if $multiref =~ /^--sports (.*)/;
+	}
+    }
+
+    $ports;
+}
+
+#
+# Return an array of keys for the passed rule. 'dport' and 'comment' are omitted;
+#
+sub get_keys( $ ) {
+    sort grep $_ ne 'dport' && $_ ne 'comment',  keys %{$_[0]};
+}
+
+#
+# The arguments are a list of rule references; function returns a similar list with adjacent compatible rules combined
+#
+# Adjacent rules are compatible if:
+#
+#   - They all specify destination ports
+#   - All of the rest of their members are identical with the possible exception of 'comment'. 
+#
+#  Adjacent distinct comments are combined, separated by ', '. Redundant adjacent comments are dropped.
+#
+sub combine_dports {
+    my @rules;
+    my $rulenum  = 1;
+    my $chainref = shift;
+    my $baseref  = shift;
+
+    while ( $baseref ) {
+	{
+	    my $ruleref;
+	    my $ports1;
+	    my $basenum = $rulenum;
+	    
+	    if ( $ports1 = get_dports( $baseref ) ) {
+		my $proto        = $baseref->{p};
+		my @keys1        = get_keys( $baseref );
+		my @ports        = ( split ',', $ports1 );
+		my $ports        = port_count( $ports1 );
+		my $origports    = @ports;
+		my $comment      = $baseref->{comment} || '';
+		my $lastcomment  = $comment;
+		my $multi_sports = get_multi_sports( $baseref );
+
+	      RULE:
+
+		while ( ( $ruleref = shift ) && $ports < 15 ) {
+		    my $ports2;
+
+		    $rulenum++;
+
+		    if ( ( $ports2 = get_dports( $ruleref ) ) && $ruleref->{p} eq $proto ) {
+			#
+			# We have a candidate
+			#
+			my $comment2 = $ruleref->{comment} || '';
+
+			last if $comment2 ne $lastcomment && length( $comment ) + length( $comment2 ) > 253;
+
+			my @keys2 = get_keys( $ruleref );
+
+			last unless @keys1 == @keys2 ;
+
+			my $keynum = 0;
+
+			for my $key ( @keys1 ) {
+			    last RULE unless $key eq $keys2[$keynum++];
+			    next if compare_values( $baseref->{$key}, $ruleref->{$key} );
+			    last RULE unless $key eq 'multiport' && $multi_sports eq get_multi_sports( $ruleref );
+			}
+
+			next RULE if $ports1 eq $ports2;
+   
+			last if ( $ports += port_count( $ports2 ) ) > 15;
+
+			if ( $comment2 ) {
+			    if ( $comment ) {
+				$comment .= ", $comment2" unless $comment2 eq $lastcomment;
+			    } else {
+				$comment = 'Others and ';
+				last if length( $comment ) + length( $comment2 ) > 255;
+				$comment .= $comment2;
+			    }
+
+			    $lastcomment = $comment2;
+			} else {
+			    if ( $comment ) {
+				unless ( ( $comment2 = ' and others' ) eq $lastcomment ) {
+				    last if length( $comment ) + length( $comment2 ) > 255;
+				    $comment .= $comment2;
+				}
+			    }
+
+			    $lastcomment = $comment2;
+			}
+
+			push @ports, split ',', $ports2;
+
+			trace( $chainref, 'D', $rulenum, $ruleref ) if $debug;
+			
+		    } else {
+			last;
+		    }
+		}
+
+		if ( @ports > $origports ) {
+		    delete $baseref->{dport} if $baseref->{dport};
+
+		    if ( $multi_sports ) {
+			$baseref->{multiport} = [ '--sports ' . $multi_sports , '--dports ' . join(',', @ports ) ];
+		    } else {
+			$baseref->{'multiport'} = '--dports ' . join( ',' , @ports  );
+		    }
+
+		    $baseref->{comment} = $comment if $comment;
+
+		    trace ( $chainref, 'R', $basenum, $baseref ) if $debug;
+		}
+	    } 
+
+	    push @rules, $baseref;
+
+	    $baseref = $ruleref ? $ruleref : shift;
+	}
+    }
+
+    \@rules;
+}
+	
+sub optimize_level16( $$$ ) {
+    my ( $table, $tableref , $passes ) = @_;
+    my @chains   = ( grep $_->{referenced}, values %{$tableref} );
+    my @chains1  = @chains;
+    my $chains   = @chains;
+
+    progress_message "\n Table $table pass $passes, $chains referenced user chains, level 16...";
+
+    for my $chainref ( @chains ) {
+	$chainref->{rules} = combine_dports( $chainref, @{$chainref->{rules}} );
+    }
+
+    $passes++;
+}
+
 sub optimize_ruleset() {
     for my $table ( qw/raw rawpost mangle nat filter/ ) {
 
@@ -2830,8 +3075,9 @@ sub optimize_ruleset() {
 	my $tableref = $chain_table{$table};
 	my $passes   = 0;
 
-	$passes =  optimize_level4( $table, $tableref )           if $config{OPTIMIZE} & 4;
-	$passes =  optimize_level8( $table, $tableref , $passes ) if $config{OPTIMIZE} & 8;
+	$passes = optimize_level4(  $table, $tableref )           if $config{OPTIMIZE} & 4;
+	$passes = optimize_level8(  $table, $tableref , $passes ) if $config{OPTIMIZE} & 8;
+	$passes = optimize_level16( $table, $tableref , $passes ) if $config{OPTIMIZE} & 16;
 
 	progress_message "  Table $table Optimized -- Passes = $passes";
 	progress_message '';
@@ -3459,18 +3705,21 @@ sub do_imac( $ ) {
 #
 sub verify_mark( $ ) {
     my $mark  = $_[0];
-    my $limit = $globals{TC_MASK} | $globals{PROVIDER_MASK};
+    my $limit = $globals{EXCLUSION_MASK};
     my $mask  = $globals{TC_MASK};
     my $value = numeric_value( $mark );
 
     fatal_error "Invalid Mark or Mask value ($mark)"
-	unless defined( $value ) && $value <= $limit;
+	unless defined( $value ) && $value < $limit;
 
     if ( $value > $mask ) {
 	#
 	# Not a valid TC mark -- must be a provider mark or a user mark
 	#
-	fatal_error "Invalid Mark or Mask value ($mark)" unless ( $value & $globals{PROVIDER_MASK} ) == $value || ( $value & $globals{USER_MASK} ) == $value;
+	fatal_error "Invalid Mark or Mask value ($mark)"
+	    unless( ( $value & $globals{PROVIDER_MASK} ) == $value ||
+		    ( $value & $globals{USER_MASK} ) == $value ||
+		    ( $value & $globals{ZONE_MASK} ) == $value );
     }
 }
 
@@ -3507,6 +3756,11 @@ sub do_test ( $$ )
     $mask = '' unless defined $mask;
 
     my $invert = $testval =~ s/^!// ? '! ' : '';
+
+    if ( $config{ZONE_BITS} ) {
+	$testval = join( '/', in_hex( zone_mark( $testval ) ), in_hex( $globals{ZONE_MASK} ) ) unless $testval =~ /^\d/ || $testval =~ /:/;
+    }
+
     my $match  = $testval =~ s/:C$// ? "-m connmark ${invert}--mark" : "-m mark ${invert}--mark";
 
     fatal_error "Invalid MARK value ($originaltestval)" if $testval eq '/';
@@ -4257,7 +4511,7 @@ sub match_ipsec_in( $$ ) {
     unless ( $optionsref->{super} || $zoneref->{type} == VSERVER ) {
 	my $match = '--dir in --pol ';
 
-	if ( $zoneref->{type} == IPSEC ) {
+	if ( $zoneref->{type} & IPSEC ) {
 	    $match .= "ipsec $optionsref->{in_out}{ipsec}$optionsref->{in}{ipsec}";
 	} elsif ( have_ipsec ) {
 	    $match .= "$hostref->{ipsec} $optionsref->{in_out}{ipsec}$optionsref->{in}{ipsec}";
@@ -4280,7 +4534,7 @@ sub match_ipsec_out( $$ ) {
     unless ( $optionsref->{super} || $zoneref->{type} == VSERVER ) {
 	my $match = '--dir out --pol ';
 
-	if ( $zoneref->{type} == IPSEC ) {
+	if ( $zoneref->{type} & IPSEC ) {
 	    $match .= "ipsec $optionsref->{in_out}{ipsec}$optionsref->{out}{ipsec}";
 	} elsif ( have_ipsec ) {
 	    $match .= "$hostref->{ipsec} $optionsref->{in_out}{ipsec}$optionsref->{out}{ipsec}"

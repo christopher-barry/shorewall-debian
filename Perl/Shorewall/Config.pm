@@ -63,7 +63,7 @@ our @EXPORT = qw(
 		 require_capability
                 );
 
-our @EXPORT_OK = qw( $shorewall_dir initialize set_config_path shorewall);
+our @EXPORT_OK = qw( $shorewall_dir initialize shorewall);
 
 our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       finalize_script
@@ -87,6 +87,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       set_timestamp
 				       set_verbosity
 				       set_log
+				       set_config_path
 				       close_log
 				       set_command
 				       push_indent
@@ -126,6 +127,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       run_user_exit1
 				       run_user_exit2
 				       generate_aux_config
+				       dump_mark_layout
 
 				       $product
 				       $Product
@@ -268,6 +270,8 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 TIME_MATCH      => 'Time Match',
 		 GOTO_TARGET     => 'Goto Support',
 		 LOG_TARGET      => 'LOG Target',
+		 ULOG_TARGET     => 'ULOG Target',
+		 NFLOG_TARGET    => 'NFLOG Target',
 		 LOGMARK_TARGET  => 'LOGMARK Target',
 		 IPMARK_TARGET   => 'IPMARK Target',
 		 PERSISTENT_SNAT => 'Persistent SNAT',
@@ -446,7 +450,7 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.25.3",
+		    VERSION    => "4.4.26",
 		    CAPVERSION => 40425 ,
 		  );
     #
@@ -481,16 +485,10 @@ sub initialize( $ ) {
 	  TC => undef,
 	  IPSET => undef,
 	  PERL => undef,
-	  #
-	  #PATH is inherited
-	  #
 	  PATH => undef,
 	  SHOREWALL_SHELL => undef,
 	  SUBSYSLOCK => undef,
 	  MODULESDIR => undef,
-	  #
-	  #CONFIG_PATH is inherited
-	  #
 	  CONFIG_PATH => undef,
 	  RESTOREFILE => undef,
 	  IPSECFILE => undef,
@@ -583,7 +581,8 @@ sub initialize( $ ) {
 	  TC_BITS => undef,
 	  PROVIDER_BITS => undef,
 	  PROVIDER_OFFSET => undef,
-	  MASK_BITS => undef
+	  MASK_BITS => undef,
+	  ZONE_BITS => undef,
 	);
 
 
@@ -606,6 +605,7 @@ sub initialize( $ ) {
 		     PANIC   => 0,
 		     NONE    => '',
 		     NFLOG   => 'NFLOG',
+		     LOGMARK => 'LOGMARK',
 		   );
 
     #
@@ -656,6 +656,8 @@ sub initialize( $ ) {
 	       TIME_MATCH => undef,
 	       GOTO_TARGET => undef,
 	       LOG_TARGET => 1,         # Assume that we have it.
+	       ULOG_TARGET => undef,
+	       NFLOG_TARGET => undef,
 	       LOGMARK_TARGET => undef,
 	       IPMARK_TARGET => undef,
 	       TPROXY_TARGET => undef,
@@ -1268,7 +1270,7 @@ sub set_debug( $$ ) {
 #
 sub find_file($)
 {
-    my $filename=$_[0];
+    my ( $filename, $nosearch ) = @_;
 
     return $filename if $filename =~ '/';
 
@@ -1279,7 +1281,7 @@ sub find_file($)
 	return $file if -f $file;
     }
 
-    "$globals{CONFDIR}/$filename";
+    "$config_path[0]$filename";
 }
 
 sub split_list( $$ ) {
@@ -1569,6 +1571,8 @@ sub copy1( $ ) {
 			fatal_error "INCLUDEs nested too deeply" if @includestack >= 4;
 
 			my $filename = find_file $line[1];
+
+			warning_message "Reserved filename ($1) in INCLUDE directive" if $filename =~ '/(.*)' && $config_files{$1};
 
 			fatal_error "INCLUDE file $filename not found" unless -f $filename;
 			fatal_error "Directory ($filename) not allowed in INCLUDE" if -d _;
@@ -1947,9 +1951,10 @@ sub expand_variables( \$ ) {
 #   - Handle INCLUDE <filename>
 #
 
-sub read_a_line(;$$) {
+sub read_a_line(;$$$) {
     my $embedded_enabled = defined $_[0] ? shift : 1;
     my $expand_variables = defined $_[0] ? shift : 1;
+    my $strip_comments   = defined $_[0] ? shift : 1;
 
     while ( $currentfile ) {
 
@@ -1969,7 +1974,7 @@ sub read_a_line(;$$) {
 	    # If this isn't a continued line, remove trailing comments. Note that
 	    # the result may now end in '\'.
 	    #
-	    s/\s*#.*$// unless /\\$/;
+	    s/\s*#.*$// if $strip_comments && ! /\\$/;
 	    #
 	    # Continuation
 	    #
@@ -1977,7 +1982,7 @@ sub read_a_line(;$$) {
 	    #
 	    # Now remove concatinated comments
 	    #
-	    $currentline =~ s/#.*$//;
+	    $currentline =~ s/#.*$// if $strip_comments;
 	    #
 	    # Ignore ( concatenated ) Blank Lines
 	    #
@@ -2137,65 +2142,77 @@ sub validate_level( $ ) {
 
     if ( supplied ( $level ) ) {
 	$level =~ s/!$//;
-	my $value = $validlevels{$level};
+	my $value = $level;
+	my $qualifier;
 
-	if ( defined $value ) {
-	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' ) unless $value eq '';
+	unless ( $value =~ /^[0-7]$/ ) {
+	    level_error( $level ) unless $level =~ /^([A-Za-z0-7]+)(.*)$/ && defined( $value = $validlevels{$1} );
+	    $qualifier = $2;
+	}
+
+	if ( $value =~ /^[0-7]$/ ) {
+	    #
+	    # Syslog Level
+	    #
+	    level_error( $rawlevel ) if supplied $qualifier;
+
+	    require_capability ( 'LOG_TARGET' , "Log level $level", 's' );
 	    return $value;
 	}
 
-	if ( $level =~ /^[0-7]$/ ) {
-	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
-	    return $level;
-	}
+	return '' unless $value;
 
-	if ( $level =~ /^(NFLOG|ULOG)[(](.*)[)]$/ ) {
-	    my $olevel  = $1;
-	    my @options = split /,/, $2;
-	    my $prefix  = lc $olevel;
-	    my $index   = $prefix eq 'ulog' ? 3 : 0;
+	require_capability( "${value}_TARGET", "Log level $level", 's' );
 
-	    level_error( $level ) if @options > 3;
+	if ( $value =~ /^(NFLOG|ULOG)$/ ) {
+	    my $olevel  = $value;
 
-	    for ( @options ) {
-		if ( supplied( $_ ) ) {
-		    level_error( $level ) unless /^\d+/;
-		    $olevel .= " --${prefix}-$suffixes[$index] $_";
+	    if ( $qualifier =~ /^[(](.*)[)]$/ ) {
+		my @options = split /,/, $1;
+		my $prefix  = lc $olevel;
+		my $index   = $prefix eq 'ulog' ? 3 : 0;
+
+		level_error( $rawlevel ) if @options > 3;
+
+		for ( @options ) {
+		    if ( supplied( $_ ) ) {
+			level_error( $rawlevel ) unless /^\d+/;
+			$olevel .= " --${prefix}-$suffixes[$index] $_";
+		    }
+
+		    $index++;
 		}
 
-		$index++;
+	    } elsif ( $qualifier =~ /^ --/ ) {
+		return $rawlevel;
+	    } else {
+		level_error( $rawlevel ) if $qualifier;
 	    }
 
-	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
 	    return $olevel;
 	}
 
-	if ( $level =~ /^NFLOG --/ or $level =~ /^ULOG --/ ) {
-	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
-	    return $rawlevel;
-	}
+	#
+	# Must be LOGMARK
+	#
+	my $sublevel;
 
-	if ( $level =~ /^LOGMARK --/ ) {
-	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
-	    return $rawlevel;
-	}
+	if ( supplied $qualifier ) {
+	    return $rawlevel if $qualifier =~ /^ --/;
 
-	if ( $level =~ /LOGMARK([(](.+)[)])?$/ ) {
-	    my $sublevel = $2;
+	    if ( $qualifier =~ /[(](.+)[)]$/ ) {
+		$sublevel = $1;
 
-	    if ( $1 ) {	    
 		$sublevel = $validlevels{$sublevel} unless $sublevel =~ /^[0-7]$/;
-		level_error( $level ) unless defined $sublevel && $sublevel  =~ /^[0-7]$/;
+		level_error( $rawlevel ) unless defined $sublevel && $sublevel  =~ /^[0-7]$/;
 	    } else {
-		$sublevel = 6; # info
+		level_error( $rawlevel );
 	    }
-	    
-	    require_capability ( 'LOG_TARGET' , 'A log level other than NONE', 's' );
-	    require_capability( 'LOGMARK_TARGET' , 'LOGMARK', 's' );
-	    return "LOGMARK --log-level $sublevel";
+	} else {
+	    $sublevel = 6; # info
 	}
 
-	level_error( $rawlevel );
+	return "LOGMARK --log-level $sublevel";
     }
 
     '';
@@ -2669,6 +2686,14 @@ sub Log_Target() {
     qt1( "$iptables -A $sillyname -j LOG" );
 }
 
+sub Ulog_Target() {
+    qt1( "$iptables -A $sillyname -j ULOG" );
+}
+
+sub NFLog_Target() {
+    qt1( "$iptables -A $sillyname -j NFLOG" );
+}
+
 sub Logmark_Target() {
     qt1( "$iptables -A $sillyname -j LOGMARK" );
 }
@@ -2744,6 +2769,8 @@ our %detect_capability =
       LENGTH_MATCH => \&Length_Match,
       LOGMARK_TARGET => \&Logmark_Target,
       LOG_TARGET => \&Log_Target,
+      ULOG_TARGET => \&Ulog_Target,
+      NFLOG_TARGET => \&NFLog_Target,
       MANGLE_ENABLED => \&Mangle_Enabled,
       MANGLE_FORWARD => \&Mangle_Forward,
       MARK => \&Mark,
@@ -2887,6 +2914,8 @@ sub determine_capabilities() {
 	$capabilities{TIME_MATCH}      = detect_capability( 'TIME_MATCH' );
 	$capabilities{GOTO_TARGET}     = detect_capability( 'GOTO_TARGET' );
 	$capabilities{LOG_TARGET}      = detect_capability( 'LOG_TARGET' );
+	$capabilities{ULOG_TARGET}     = detect_capability( 'ULOG_TARGET' );
+	$capabilities{NFLOG_TARGET}    = detect_capability( 'NFLOG_TARGET' );
 	$capabilities{LOGMARK_TARGET}  = detect_capability( 'LOGMARK_TARGET' );
 	$capabilities{FLOW_FILTER}     = detect_capability( 'FLOW_FILTER' );
 	$capabilities{FWMARK_RT_MASK}  = detect_capability( 'FWMARK_RT_MASK' );
@@ -2990,6 +3019,22 @@ sub conditional_quote( $ ) {
 sub update_config_file( $ ) {
     my $annotate = shift;
 
+    sub is_set( $ ) {
+	my $value = $_[0];
+	defined( $value ) && lc( $value ) eq 'yes';
+    }
+
+    my $wide = is_set $config{WIDE_TC_MARKS};
+    my $high = is_set $config{HIGH_ROUTE_MARKS};
+
+    #
+    # Establish default values for the mark layout items
+    #
+    $config{TC_BITS}         = ( $wide ? 14 : 8 )             unless supplied $config{TC_BITS};
+    $config{MASK_BITS}       = ( $wide ? 16 : 8 )             unless supplied $config{MASK_BITS};
+    $config{PROVIDER_OFFSET} = ( $high ? $wide ? 16 : 8 : 0 ) unless supplied $config{PROVIDER_OFFSET};
+    $config{PROVIDER_BITS}   = 8                              unless supplied $config{PROVIDER_BITS};
+
     my $fn;
 
     unless ( -d "$globals{SHAREDIR}/configfiles/" ) {
@@ -3008,12 +3053,10 @@ sub update_config_file( $ ) {
     #
     my %deprecated = ( LOGRATE            => '' ,
 		       LOGBURST           => '' ,
-		       EXPORTPARAMS       => 'no' );
-    #
-    # Undocumented options -- won't be listed in the template
-    #
-    my @undocumented = ( qw( TC_BITS PROVIDER_BITS PROVIDER_OFFSET MASK_BITS ) );
-
+		       EXPORTPARAMS       => 'no',
+		       WIDE_TC_MARKS      => 'no',
+		       HIGH_ROUTE_MARKS   => 'no'
+		     );
     if ( -f $fn ) {
 	my ( $template, $output );
 
@@ -3062,29 +3105,6 @@ sub update_config_file( $ ) {
 
 	my $heading_printed;
 
-	for ( @undocumented ) {
-	    if ( defined ( my $val = $config{$_} ) ) {
-
-		unless ( $heading_printed ) {
-		    print $output <<'EOF';
-
-#################################################################################
-#                          U N D O C U M E N T E D
-#                               O P T I O N S
-#################################################################################
-
-EOF
-		    $heading_printed = 1;
-		}
-
-		$val = conditional_quote $val;
-
-		print $output "$_=$val\n\n";
-	    }
-	}
-
-	$heading_printed = 0;
-
 	for ( keys %deprecated ) {
 	    if ( supplied( my $val = $config{$_} ) ) {
 		if ( lc $val ne $deprecated{$_} ) {
@@ -3124,7 +3144,7 @@ EOF
 		progress_message3 "No update required to configuration file $configfile; $configfile.b";
 	    }
 
-	    exit 0;
+	    exit 0 unless -f find_file 'blacklist';
 	}
     } else {
 	fatal_error "$fn does not exist";
@@ -3700,23 +3720,36 @@ sub get_configuration( $$$ ) {
     numeric_option 'MASK_BITS',        $config{WIDE_TC_MARKS} ? 16 : 8,  $config{TC_BITS};
     numeric_option 'PROVIDER_BITS' ,   8, 0;
     numeric_option 'PROVIDER_OFFSET' , $config{HIGH_ROUTE_MARKS} ? $config{WIDE_TC_MARKS} ? 16 : 8 : 0, 0;
+    numeric_option 'ZONE_BITS'       , 0, 0;
+
+    require_capability 'MARK_ANYWHERE', 'A non-zero ZONE_BITS setting', 's' if $config{ZONE_BITS};
 
     if ( $config{PROVIDER_OFFSET} ) {
-	$config{PROVIDER_OFFSET} = $config{MASK_BITS} if $config{PROVIDER_OFFSET} < $config{MASK_BITS};
-	fatal_error 'PROVIDER_BITS + PROVIDER_OFFSET > 31' if $config{PROVIDER_BITS} + $config{PROVIDER_OFFSET} > 31;
-	$globals{EXCLUSION_MASK} = 1 << ( $config{PROVIDER_OFFSET} + $config{PROVIDER_BITS} );
+	$config{PROVIDER_OFFSET}  = $config{MASK_BITS} if $config{PROVIDER_OFFSET} < $config{MASK_BITS};
+	$globals{ZONE_OFFSET}     = $config{PROVIDER_OFFSET} + $config{PROVIDER_BITS};
     } elsif ( $config{MASK_BITS} >= $config{PROVIDER_BITS} ) {
-	$globals{EXCLUSION_MASK} = 1 << $config{MASK_BITS};
+	$globals{ZONE_OFFSET}     = $config{MASK_BITS};
     } else {
-	$globals{EXCLUSION_MASK} = 1 << $config{PROVIDER_BITS};
+	$globals{ZONE_OFFSET}     = $config{PROVIDER_BITS};
     }
 
-    $globals{TC_MAX}                 = make_mask( $config{TC_BITS} );
-    $globals{TC_MASK}                = make_mask( $config{MASK_BITS} );
-    $globals{PROVIDER_MIN}           = 1 << $config{PROVIDER_OFFSET};
-    $globals{PROVIDER_MASK}          = make_mask( $config{PROVIDER_BITS} ) << $config{PROVIDER_OFFSET};
+    fatal_error 'Invalid Packet Mark layout' if $config{ZONE_BITS} + $globals{ZONE_OFFSET} > 31;
+    
+    $globals{EXCLUSION_MASK} = 1 << ( $globals{ZONE_OFFSET} + $config{ZONE_BITS} );
+    $globals{PROVIDER_MIN}   = 1 << $config{PROVIDER_OFFSET};
+
+    $globals{TC_MAX}         = make_mask( $config{TC_BITS} );
+    $globals{TC_MASK}        = make_mask( $config{MASK_BITS} );
+    $globals{PROVIDER_MASK}  = make_mask( $config{PROVIDER_BITS} ) << $config{PROVIDER_OFFSET};
+
+    if ( $config{ZONE_BITS} ) {
+	$globals{ZONE_MASK} = make_mask( $config{ZONE_BITS} ) << $globals{ZONE_OFFSET};
+    } else {
+	$globals{ZONE_MASK} = 0;
+    }
 
     if ( ( my $userbits = $config{PROVIDER_OFFSET} - $config{TC_BITS} ) > 0 ) {
+	
 	$globals{USER_MASK} = make_mask( $userbits ) << $config{TC_BITS};
     } else {
 	$globals{USER_MASK} = 0;
@@ -3855,7 +3888,9 @@ sub get_configuration( $$$ ) {
 
     $val = numeric_value $config{OPTIMIZE};
 
-    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless supplied( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 15;
+    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless supplied( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 31;
+
+    require_capability 'XMULTIPORT', 'OPTIMIZE level 16', 's' if $val & 16;
 
     $globals{MARKING_CHAIN} = $config{MARK_IN_FORWARD_CHAIN} ? 'tcfor' : 'tcpre';
 
@@ -4084,6 +4119,52 @@ sub generate_aux_config() {
 
     finalize_aux_config;
 }
+
+sub dump_mark_layout() {
+    sub dumpout( $$$$$ ) {
+	my ( $name, $bits, $min, $max, $mask ) = @_;
+
+	if ( $bits ) {
+	    if ( $min == $max ) {
+		emit_unindented "$name:" . $min . ' mask ' . in_hex( $mask );
+	    } else {
+		emit_unindented "$name:" . join('-', $min, $max ) . ' (' . join( '-', in_hex( $min ), in_hex( $max ) ) . ') mask ' . in_hex( $mask );
+	    }
+	} else {
+	    emit_unindented "$name: Not Enabled";
+	}
+    }
+
+    dumpout( "Traffic Shaping",
+	     $config{TC_BITS},
+	     0,
+	     $globals{TC_MAX},
+	     $globals{TC_MASK} );
+
+    dumpout( "User",
+	     $globals{USER_MASK},
+	     $globals{TC_MAX} + 1,
+	     $globals{USER_MASK},
+	     $globals{USER_MASK} );
+    
+    dumpout( "Provider",
+	     $config{PROVIDER_BITS},
+	     $globals{PROVIDER_MIN},
+	     $globals{PROVIDER_MASK},
+	     $globals{PROVIDER_MASK} );
+
+    dumpout( "Zone",
+	     $config{ZONE_BITS},
+	     1 << $globals{ZONE_OFFSET},
+	     $globals{ZONE_MASK},
+	     $globals{ZONE_MASK} );
+
+    dumpout( "Exclusion",
+	     1,
+	     $globals{EXCLUSION_MASK},
+	     $globals{EXCLUSION_MASK},
+	     $globals{EXCLUSION_MASK} );
+}	
 
 END {
     cleanup;
