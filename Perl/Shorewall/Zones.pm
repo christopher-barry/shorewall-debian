@@ -50,6 +50,7 @@ our @EXPORT = qw( NOTHING
 		  defined_zone
 		  zone_type
 		  zone_interfaces
+		  zone_mark
 		  all_zones
 		  all_parent_zones
 		  complex_zones
@@ -75,6 +76,7 @@ our @EXPORT = qw( NOTHING
 		  get_interface_option
 		  interface_has_option
 		  set_interface_option
+		  set_interface_provider
 		  interface_zones
 		  verify_required_interfaces
 		  compile_updown
@@ -97,6 +99,14 @@ use constant { NOTHING    => 'NOTHING',
 	       IPSECPROTO => 'ah|esp|ipcomp',
 	       IPSECMODE  => 'tunnel|transport'
 	       };
+
+#
+# Option columns
+#
+use constant { IN_OUT     => 1,
+	       IN         => 2,
+	       OUT        => 3 };
+
 #
 # Zone Table.
 #
@@ -132,6 +142,7 @@ use constant { NOTHING    => 'NOTHING',
 #
 my @zones;
 my %zones;
+my %zonetypes;
 my $firewall_zone;
 
 my  %reservedName = ( all => 1,
@@ -177,15 +188,19 @@ my %physical;
 my %basemap;
 my %mapbase;
 my $family;
+my $upgrade;
 my $have_ipsec;
 my $baseseq;
 my $minroot;
+my $zonemark;
+my $zonemarkincr;
+my $zonemarklimit;
 
 use constant { FIREWALL => 1,
 	       IP       => 2,
-	       BPORT    => 3,
-	       IPSEC    => 4,
-	       VSERVER  => 5 };
+	       BPORT    => 4,
+	       IPSEC    => 8,
+	       VSERVER  => 16 };
 
 use constant { SIMPLE_IF_OPTION   => 1,
 	       BINARY_IF_OPTION   => 2,
@@ -221,8 +236,8 @@ my %validhostoptions;
 #   2. The compiler can run multiple times in the same process so it has to be
 #      able to re-initialize its dependent modules' state.
 #
-sub initialize( $ ) {
-    $family = shift;
+sub initialize( $$ ) {
+    ( $family , $upgrade ) = @_;
     @zones = ();
     %zones = ();
     $firewall_zone = '';
@@ -275,6 +290,7 @@ sub initialize( $ ) {
 			     destonly => 1,
 			     sourceonly => 1,
 			    );
+	%zonetypes = ( 1 => 'firewall', 2 => 'ipv4', 4 => 'bport4', 8 => 'ipsec4', 16 => 'vserver' );
     } else {
 	%validinterfaceoptions = (  blacklist   => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    bridge      => SIMPLE_IF_OPTION,
@@ -300,6 +316,7 @@ sub initialize( $ ) {
 			     routeback => 1,
 			     tcpflags => 1,
 			    );
+	%zonetypes = ( 1 => 'firewall', 2 => 'ipv6', 4 => 'bport6', 8 => 'ipsec4', 16 => 'vserver' );
     }
 }
 
@@ -309,9 +326,10 @@ sub initialize( $ ) {
 # => mss   = <MSS setting>
 # => ipsec = <-m policy arguments to match options>
 #
-sub parse_zone_option_list($$\$)
+sub parse_zone_option_list($$\$$)
 {
     my %validoptions = ( mss          => NUMERIC,
+			 nomark       => NOTHING,
 			 blacklist    => NOTHING,
 			 strict       => NOTHING,
 			 next         => NOTHING,
@@ -323,13 +341,13 @@ sub parse_zone_option_list($$\$)
 			 "tunnel-dst" => NETWORK,
 		       );
 
-    use constant { UNRESTRICTED => 1, NOFW => 2 , COMPLEX => 8 };
+    use constant { UNRESTRICTED => 1, NOFW => 2 , COMPLEX => 8, IN_OUT_ONLY => 16 };
     #
     # Hash of options that have their own key in the returned hash.
     #
-    my %key = ( mss => UNRESTRICTED | COMPLEX , blacklist => NOFW );
+    my %key = ( mss => UNRESTRICTED | COMPLEX , blacklist => NOFW, nomark => NOFW | IN_OUT_ONLY );
 
-    my ( $list, $zonetype, $complexref ) = @_;
+    my ( $list, $zonetype, $complexref, $column ) = @_;
     my %h;
     my $options = '';
     my $fmt;
@@ -362,11 +380,12 @@ sub parse_zone_option_list($$\$)
 	    my $key = $key{$e};
 
 	    if ( $key ) {
-		fatal_error "Option '$e' not permitted with this zone type " if $key & NOFW && ($zonetype == FIREWALL || $zonetype == VSERVER);
+		fatal_error "Option '$e' not permitted with this zone type " if $key & NOFW && ($zonetype & ( FIREWALL | VSERVER) );
+		fatal_error "Opeion '$e' is only permitted in the OPTIONS columns" if $key & IN_OUT_ONLY && $column != IN_OUT;
 		$$complexref = 1 if $key & COMPLEX;
 		$h{$e} = $val || 1;
 	    } else {
-		fatal_error "The \"$e\" option may only be specified for ipsec zones" unless $zonetype == IPSEC;
+		fatal_error "The \"$e\" option may only be specified for ipsec zones" unless $zonetype & IPSEC;
 		$options .= $invert;
 		$options .= "--$e ";
 		$options .= "$val "if defined $val;
@@ -410,14 +429,6 @@ sub process_zone( \$ ) {
     if ( $zone =~ /(\w+):([\w,]+)/ ) {
 	$zone = $1;
 	@parents = split_list $2, 'zone';
-
-	for my $p ( @parents ) {
-	    fatal_error "Invalid Parent List ($2)" unless $p;
-	    fatal_error "Unknown parent zone ($p)" unless $zones{$p};
-	    fatal_error 'Subzones of firewall zone not allowed' if $zones{$p}{type} == FIREWALL;
-	    fatal_error 'Subzones of a Vserver zone not allowed' if $zones{$p}{type} == VSERVER;
-	    push @{$zones{$p}{children}}, $zone;
-	}
     }
 
     fatal_error "Invalid zone name ($zone)"      unless $zone =~ /^[a-z]\w*$/i && length $zone <= $globals{MAXZONENAMELENGTH};
@@ -430,10 +441,11 @@ sub process_zone( \$ ) {
 	$$ip = 1;
     } elsif ( $type =~ /^ipsec([46])?$/i ) {
 	fatal_error "Invalid zone type ($type)" if $1 && $1 != $family;
+	require_capability 'POLICY_MATCH' , 'IPSEC zones', '';
 	$type = IPSEC;
     } elsif ( $type =~ /^bport([46])?$/i ) {
 	fatal_error "Invalid zone type ($type)" if $1 && $1 != $family;
-	warning_message "Bridge Port zones should have a parent zone" unless @parents;
+	warning_message "Bridge Port zones should have a parent zone" unless @parents || $config{ZONE_BITS};
 	$type = BPORT;
 	push @bport_zones, $zone;
     } elsif ( $type eq 'firewall' ) {
@@ -452,11 +464,18 @@ sub process_zone( \$ ) {
 	fatal_error "Invalid zone type ($type)";
     }
 
-    if ( $type eq IPSEC ) {
-	require_capability 'POLICY_MATCH' , 'IPSEC zones', '';
-	for ( @parents ) {
-	    set_super( $zones{$_} ) unless $zones{$_}{type} == IPSEC;
-	}
+    for my $p ( @parents ) {
+	fatal_error "Invalid Parent List ($2)" unless $p;
+	fatal_error "Unknown parent zone ($p)" unless $zones{$p};
+
+	my $ptype = $zones{$p}{type};
+
+	fatal_error 'Subzones of a Vserver zone not allowed' if $ptype & VSERVER;
+	fatal_error 'Subzones of firewall zone not allowed'  if $ptype & FIREWALL;
+
+	set_super( $zones{$p} ) if $type & IPSEC && ! ( $ptype & IPSEC );
+
+	push @{$zones{$p}{children}}, $zone;
     }
 
     my $complex = 0;
@@ -464,10 +483,10 @@ sub process_zone( \$ ) {
     my $zoneref = $zones{$zone} = { type       => $type,
 				    parents    => \@parents,
 				    bridge     => '',
-				    options    => { in_out  => parse_zone_option_list( $options , $type, $complex ) ,
-						    in      => parse_zone_option_list( $in_options , $type , $complex ) ,
-						    out     => parse_zone_option_list( $out_options , $type , $complex ) ,
-						    complex => ( $type == IPSEC || $complex ) ,
+				    options    => { in_out  => parse_zone_option_list( $options , $type, $complex , IN_OUT ) ,
+						    in      => parse_zone_option_list( $in_options , $type , $complex , IN ) ,
+						    out     => parse_zone_option_list( $out_options , $type , $complex , OUT ) ,
+						    complex => ( $type & IPSEC || $complex ) ,
 						    nested  => @parents > 0 ,
 						    super   => 0 ,
 						  } ,
@@ -475,6 +494,28 @@ sub process_zone( \$ ) {
 				    children   => [] ,
 				    hosts      => {}
 				  };
+
+    if ( $config{ZONE_BITS} ) {
+	my $mark;
+
+	if ( $type == FIREWALL ) {
+	    $mark = 0;
+	} else {
+	    unless ( $zoneref->{options}{in_out}{nomark} ) {
+		fatal_error "Zone mark overflow - please increase the setting of ZONE_BITS" if $zonemark >= $zonemarklimit;
+		$mark      = $zonemark;
+		$zonemark += $zonemarkincr;
+		$zoneref->{options}{complex} = 1;
+	    }
+	}
+
+	if ( $zoneref->{options}{in_out}{nomark} ) {
+	    progress_message_nocompress "   Zone $zone:\tmark value not assigned";
+	} else {
+	    progress_message_nocompress "   Zone $zone:\tmark value " . in_hex( $zoneref->{mark} = $mark );
+	}
+    }
+	
 
     if ( $zoneref->{options}{in_out}{blacklist} ) {
 	for ( qw/in out/ ) {
@@ -496,6 +537,10 @@ sub determine_zones()
 {
     my @z;
     my $ip = 0;
+
+    $zonemark      = 1 << $globals{ZONE_OFFSET};
+    $zonemarkincr  = $zonemark;
+    $zonemarklimit = $zonemark << $config{ZONE_BITS};
 
     if ( my $fn = open_file 'zones' ) {
 	first_entry "$doing $fn...";
@@ -535,7 +580,7 @@ sub determine_zones()
 #
 sub haveipseczones() {
     for my $zoneref ( values %zones ) {
-	return 1 if $zoneref->{type} == IPSEC;
+	return 1 if $zoneref->{type} & IPSEC;
     }
 
     0;
@@ -548,22 +593,13 @@ sub zone_report()
 {
     progress_message2 "Determining Hosts in Zones...";
 
-    my @translate;
-
-    if ( $family == F_IPV4 ) {
-	@translate = ( undef, 'firewall', 'ipv4', 'bport4', 'ipsec4', 'vserver' );
-    } else {
-	@translate = ( undef, 'firewall', 'ipv6', 'bport6', 'ipsec6', 'vserver' );
-    }
-
-    for my $zone ( @zones )
-    {
+    for my $zone ( @zones ) {
 	my $zoneref   = $zones{$zone};
 	my $hostref   = $zoneref->{hosts};
 	my $type      = $zoneref->{type};
 	my $optionref = $zoneref->{options};
 
-	progress_message_nocompress "   $zone ($translate[$type])";
+	progress_message_nocompress "   $zone ($zonetypes{$type})";
 
 	my $printed = 0;
 
@@ -595,7 +631,7 @@ sub zone_report()
 	}
 
 	unless ( $printed ) {
-	    fatal_error "No bridge has been associated with zone $zone" if $type == BPORT && ! $zoneref->{bridge};
+	    fatal_error "No bridge has been associated with zone $zone" if $type & BPORT && ! $zoneref->{bridge};
 	    warning_message "*** $zone is an EMPTY ZONE ***" unless $type == FIREWALL;
 	}
 
@@ -605,16 +641,7 @@ sub zone_report()
 #
 # This function is called to create the contents of the ${VARDIR}/zones file
 #
-sub dump_zone_contents()
-{
-    my @xlate;
-
-    if ( $family == F_IPV4 ) {
-	@xlate = ( undef, 'firewall', 'ipv4', 'bport4', 'ipsec4', 'vserver' );
-    } else {
-	@xlate = ( undef, 'firewall', 'ipv6', 'bport6', 'ipsec6', 'vserver' );
-    }
-
+sub dump_zone_contents() {
     for my $zone ( @zones )
     {
 	my $zoneref    = $zones{$zone};
@@ -622,9 +649,10 @@ sub dump_zone_contents()
 	my $type       = $zoneref->{type};
 	my $optionref  = $zoneref->{options};
 
-	my $entry      =  "$zone $xlate[$type]";
+	my $entry      =  "$zone $zonetypes{$type}";
 
-	$entry .= ":$zoneref->{bridge}" if $type == BPORT;
+	$entry .= ":$zoneref->{bridge}" if $type & BPORT;
+	$entry .= ( " mark=" . in_hex( $zoneref->{mark} ) ) if exists $zoneref->{mark};
 
 	if ( $hostref ) {
 	    for my $type ( sort keys %$hostref ) {
@@ -735,7 +763,7 @@ sub add_group_to_zone($$$$$)
 
     $zoneref->{options}{in_out}{routeback} = 1 if $options->{routeback};
 
-    my $gtype = $type == IPSEC ? 'ipsec' : 'ip';
+    my $gtype = $type & IPSEC ? 'ipsec' : 'ip';
 
     $hostsref     = ( $zoneref->{hosts}           || ( $zoneref->{hosts} = {} ) );
     $typeref      = ( $hostsref->{$gtype}         || ( $hostsref->{$gtype} = {} ) );
@@ -747,7 +775,7 @@ sub add_group_to_zone($$$$$)
 
     push @{$interfaceref}, { options => $options,
 			     hosts   => \@newnetworks,
-			     ipsec   => $type == IPSEC ? 'ipsec' : 'none' ,
+			     ipsec   => $type & IPSEC ? 'ipsec' : 'none' ,
 			     exclusions => \@exclusions };
 
     $interfaces{$interface}{options}{routeback} ||= ( $type != IPSEC && $options->{routeback} );
@@ -775,6 +803,12 @@ sub zone_interfaces( $ ) {
     find_zone( $_[0] )->{interfaces};
 }
 
+sub zone_mark( $ ) {
+    my $zoneref = find_zone( $_[0] );
+    fatal_error "Zone $_[0] has no assigned mark" unless exists $zoneref->{mark};
+    $zoneref->{mark};
+}
+
 sub defined_zone( $ ) {
     $zones{$_[0]};
 }
@@ -784,11 +818,11 @@ sub all_zones() {
 }
 
 sub off_firewall_zones() {
-   grep ( ! ( $zones{$_}{type} == FIREWALL || $zones{$_}{type} == VSERVER )  ,  @zones );
+   grep ( ! ( $zones{$_}{type} & ( FIREWALL | VSERVER ) )  ,  @zones );
 }
 
 sub non_firewall_zones() {
-   grep ( $zones{$_}{type} != FIREWALL  ,  @zones );
+   grep ( ! ( $zones{$_}{type} & FIREWALL ) ,  @zones );
 }
 
 sub all_parent_zones() {
@@ -804,7 +838,7 @@ sub complex_zones() {
 }
 
 sub vserver_zones() {
-    grep ( $zones{$_}{type} == VSERVER, @zones );
+    grep ( $zones{$_}{type} & VSERVER, @zones );
 }
 
 sub firewall_zone() {
@@ -903,7 +937,7 @@ sub process_interface( $$ ) {
 
 	fatal_error "$interface is not a defined bridge" unless $interfaces{$interface} && $interfaces{$interface}{options}{bridge};
 	$interfaces{$interface}{ports}++;
-	fatal_error "Bridge Ports may only be associated with 'bport' zones" if $zone && $zoneref->{type} != BPORT;
+	fatal_error "Bridge Ports may only be associated with 'bport' zones" if $zone && ! ( $zoneref->{type} & BPORT );
 
 	if ( $zone ) {
 	    if ( $zoneref->{bridge} ) {
@@ -912,15 +946,15 @@ sub process_interface( $$ ) {
 		$zoneref->{bridge} = $interface;
 	    }
 
-	    fatal_error "Vserver zones may not be associated with bridge ports" if $zoneref->{type} == VSERVER;
+	    fatal_error "Vserver zones may not be associated with bridge ports" if $zoneref->{type} & VSERVER;
 	}
 
 	$bridge = $interface;
 	$interface = $port;
     } else {
 	fatal_error "Duplicate Interface ($interface)" if $interfaces{$interface};
-	fatal_error "Zones of type 'bport' may only be associated with bridge ports" if $zone && $zoneref->{type} == BPORT;
-	fatal_error "Vserver zones may not be associated with interfaces" if $zone && $zoneref->{type} == VSERVER;
+	fatal_error "Zones of type 'bport' may only be associated with bridge ports" if $zone && $zoneref->{type} & BPORT;
+	fatal_error "Vserver zones may not be associated with interfaces" if $zone && $zoneref->{type} & VSERVER;
 
 	$bridge = $interface;
     }
@@ -986,7 +1020,7 @@ sub process_interface( $$ ) {
 	    fatal_error "Invalid Interface option ($option)" unless my $type = $validinterfaceoptions{$option};
 
 	    if ( $zone ) {
-		fatal_error qq(The "$option" option may not be specified for a Vserver zone") if $zoneref->{type} == VSERVER && ! ( $type & IF_OPTION_VSERVER );
+		fatal_error qq(The "$option" option may not be specified for a Vserver zone") if $zoneref->{type} & VSERVER && ! ( $type & IF_OPTION_VSERVER );
 	    } else {
 		fatal_error "The \"$option\" option may not be specified on a multi-zone interface" if $type & IF_OPTION_ZONEONLY;
 	    }
@@ -1780,7 +1814,7 @@ sub process_host( ) {
 	fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^!?\+[a-zA-Z][-\w]*$/;
     }
 
-    if ( $type == BPORT ) {
+    if ( $type & BPORT ) {
 	if ( $zoneref->{bridge} eq '' ) {
 	    fatal_error 'Bridge Port Zones may only be associated with bridge ports' unless $interfaceref->{options}{port};
 	    $zoneref->{bridge} = $interfaces{$interface}{bridge};
@@ -1806,14 +1840,14 @@ sub process_host( ) {
 	    } elsif ( $option eq 'blacklist' ) {
 		$zoneref->{options}{in}{blacklist} = 1;
 	    } elsif ( $validhostoptions{$option}) {
-		fatal_error qq(The "$option" option is not allowed with Vserver zones) if $type == VSERVER && ! ( $validhostoptions{$option} & IF_OPTION_VSERVER );
+		fatal_error qq(The "$option" option is not allowed with Vserver zones) if $type & VSERVER && ! ( $validhostoptions{$option} & IF_OPTION_VSERVER );
 		$options{$option} = 1;
 	    } else {
 		fatal_error "Invalid option ($option)";
 	    }
 	}
 
-	fatal_error q(A host entry for a Vserver zone may not specify the 'ipsec' option) if $ipsec && $zoneref->{type} == VSERVER;
+	fatal_error q(A host entry for a Vserver zone may not specify the 'ipsec' option) if $ipsec && $zoneref->{type} & VSERVER;
 
 	$optionsref = \%options;
     }
@@ -1834,7 +1868,7 @@ sub process_host( ) {
     $hosts = join( '', ALLIP , $hosts ) if substr($hosts, 0, 2 ) eq ',!';
 
     if ( $hosts eq 'dynamic' ) {
-	fatal_error "Vserver zones may not be dynamic" if $type == VSERVER;
+	fatal_error "Vserver zones may not be dynamic" if $type & VSERVER;
 	require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
 	my $physical = chain_base( physical_name $interface );
 	my $set      = $family == F_IPV4 ? "${zone}_${physical}" : "6_${zone}_${physical}";
@@ -1846,7 +1880,7 @@ sub process_host( ) {
     #
     # We ignore the user's notion of what interface vserver addresses are on and simply invent one for all of the vservers.
     #
-    $interface = '%vserver%' if $type == VSERVER;
+    $interface = '%vserver%' if $type & VSERVER;
 
     add_group_to_zone( $zone, $type , $interface, [ split_list( $hosts, 'host' ) ] , $optionsref);
 
@@ -1888,7 +1922,7 @@ sub find_hosts_by_option( $ ) {
     my $option = $_[0];
     my @hosts;
 
-    for my $zone ( grep $zones{$_}{type} != FIREWALL , @zones ) {
+    for my $zone ( grep ! ( $zones{$_}{type} & FIREWALL ) , @zones ) {
 	while ( my ($type, $interfaceref) = each %{$zones{$zone}{hosts}} ) {
 	    while ( my ( $interface, $arrayref) = ( each %{$interfaceref} ) ) {
 		for my $host ( @{$arrayref} ) {

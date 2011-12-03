@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.25.3
+VERSION=4.4.26
 
 usage() # $1 = exit status
 {
@@ -605,15 +605,20 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/tunnels ]; then
     run_install $OWNERSHIP -m 0600 configfiles/tunnels${suffix} ${DESTDIR}/etc/shorewall/tunnels
     echo "Tunnels file installed as ${DESTDIR}/etc/shorewall/tunnels"
 fi
-#
-# Install the blacklist file
-#
-run_install $OWNERSHIP -m 0644 configfiles/blacklist           ${DESTDIR}/usr/share/shorewall/configfiles
-run_install $OWNERSHIP -m 0644 configfiles/blacklist.annotated ${DESTDIR}/usr/share/shorewall/configfiles
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/blacklist ]; then
     run_install $OWNERSHIP -m 0600 configfiles/blacklist${suffix} ${DESTDIR}/etc/shorewall/blacklist
     echo "Blacklist file installed as ${DESTDIR}/etc/shorewall/blacklist"
+fi
+#
+# Install the blacklist rules file
+#
+run_install $OWNERSHIP -m 0644 configfiles/blrules           ${DESTDIR}/usr/share/shorewall/configfiles
+run_install $OWNERSHIP -m 0644 configfiles/blrules.annotated ${DESTDIR}/usr/share/shorewall/configfiles
+
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/shorewall/blrules ]; then
+    run_install $OWNERSHIP -m 0600 configfiles/blrules${suffix} ${DESTDIR}/etc/shorewall/blrules
+    echo "Blacklist rules file installed as ${DESTDIR}/etc/shorewall/blrules"
 fi
 #
 # Install the findgw file
