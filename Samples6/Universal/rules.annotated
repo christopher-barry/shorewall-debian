@@ -24,11 +24,16 @@
 #           
 #           BLACKLIST
 #           
-#     This section was added in Shorewall 4.4.25. Rules in this section are
-#     applied depending on the setting of BLACKLISTNEWONLY in shorewall.conf(5).
-#     If BLACKLISTNEWONLY=No, then they are applied regardless of the connection
-#     tracking state of the packet. If BLACKLISTNEWONLY=Yes, they are applied to
-#     connections in the NEW and INVALID states.
+#     This section was added in Shorewall 4.4.25.
+#           
+#     Rules in this section are applied depending on the setting of
+#     BLACKLISTNEWONLY in shorewall6.conf(5). If BLACKLISTNEWONLY=No, then they
+#     are applied regardless of the connection tracking state of the packet. If
+#     BLACKLISTNEWONLY=Yes, they are applied to connections in the NEW and
+#     INVALID states.
+#           
+#     When there are rules in this sectionas well as in shorewall-blrules (5),
+#     those in this section are processed last.
 #           
 #           ALL
 #           
@@ -661,7 +666,6 @@
 ###########################################################################################################################################################################
 #ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME       HEADERS   SWITCH
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
-#SECTION BLACKLIST
 #SECTION ALL
 #SECTION ESTABLISHED
 #SECTION RELATED
