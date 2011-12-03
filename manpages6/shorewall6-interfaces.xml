@@ -122,8 +122,10 @@ loc     eth2            -</programlisting>
               <listitem>
                 <para>Deprecated in Shorewall 4.4.25 and later in favor of
                 rules in the BLACKLIST section of <ulink
-                url="shorewall6-rules.html">shorewall6-rules</ulink> (5).
-                Check packets arriving on this interface against the <ulink
+                url="shorewall6-rules.html">shorewall6-rules</ulink> (5) or
+                in<ulink url="shorewall6-blrules.html"> shorewall6-blrules
+                </ulink>(5). Check packets arriving on this interface against
+                the <ulink
                 url="shorewall6-blacklist.html">shorewall6-blacklist</ulink>(5)
                 file.</para>
 
@@ -213,6 +215,17 @@ loc     eth2            -</programlisting>
                 <para>Sets the /proc/sys/net/ipv6/conf/interface/forwarding
                 option to the specified value. If no value is supplied, then 1
                 is assumed.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">ignore</emphasis></term>
+
+              <listitem>
+                <para>When specified, causes the generated script to ignore
+                up/down events from Shorewall-init for this device.
+                Additionally, the option exempts the interface from hairpin
+                filtering.</para>
               </listitem>
             </varlistentry>
 
