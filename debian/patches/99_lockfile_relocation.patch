@@ -1,7 +1,7 @@
 Author: Lorenzo Martignoni <martignlo@debian.org>
 Description: Move lockfile to /var/lock/shorewall
---- shorewall-debian.orig/lib.base
-+++ shorewall-debian/lib.base
+--- shorewall.git.orig/lib.base
++++ shorewall.git/lib.base
 @@ -100,7 +100,8 @@
      local try
      try=0
@@ -12,7 +12,7 @@ Description: Move lockfile to /var/lock/shorewall
      local lockpid
  
      MUTEX_TIMEOUT=${MUTEX_TIMEOUT:-60}
-@@ -144,7 +145,8 @@
+@@ -146,7 +147,8 @@
  #
  mutex_off()
  {

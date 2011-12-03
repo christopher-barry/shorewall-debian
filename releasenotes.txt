@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                    S H O R E W A L L  4 . 4 . 2 5 . 3
+                     S H O R E W A L L  4 . 4 . 2 6 
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,163 +14,40 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.4.25.3
+1)  This release includes all corrections included in 4.4.25.1 through
+    .3.
 
-1)  Previously, the following configuration produced an incorrect
-    ruleset:
+2)  In 4.4.25, ACCEPT behaved in the BLACKLIST section the same way as
+    in the other rules file sections. This could lead to connections
+    being accepted inadvertently.
 
-    zones:
+    Now, ACCEPT behaves like WHITELIST; that is, it exempts the packet
+    from the remaining rules in the BLACKLIST section.
 
-	host	firewall
-	uw	ipv4
-	net	ipv4
+3)  Previously, Shorewall did not detect the ULOG and NFLOG
+    capabilities. This lead to run-time failures during 'start' and
+    'restart' as well as confusing error messages during compilation
+    when ULOG or NFLOG was used when the LOG target was not available.
 
-    interfaces:
+    ULOG and NFLOG are now detected capabilities so, if you use a
+    capabilities file, you will need to regenerate it in order to use
+    these log levels.
 
-	-	enet		detect		physical=+
+4)  The SAME tcrules target was broken in Shorewall 4.4.22. It now
+    works correctly again.
 
-    hosts:
+5)  Previously, 'shorewall6 update' did not update shorewall6.conf. The
+    command now works as expected.
 
-	net	enet:0.0.0.0/0
-	uw	enet:$N_ALL_UW_AFFILIATED
+6)  In earlier releases, the compiler was attempting to process the
+    params file before it was aware of the setting of CONFIG_PATH. This
+    could cause the params file to be missed if it was not located in
+    /etc/shorewall[6] or in the directory named in the start
+    (restart,compile,check,...) command.
 
-    Here's an example of the problem; from 'shorewall show INPUT':
-
-    	Chain INPUT (policy DROP 0 packets, 0 bytes)
-    	pkts  bytes  target     prot opt in     out     source ...
-    	1678  54427  dynamic    all  --  *      *       0.0.0.0/0 ...
-    	33631 4085K  enet_in    all  --  *      *       0.0.0.0/0 ...
-        0     0      ACCEPT     all  --  lo     *       0.0.0.0/0 ...
-        0     0      enet_in    all  --  *      *       0.0.0.0/0 ...
-    	...
-
-    Note that the ACCEPT rule for the loopback device occurs after
-    an unconditional jump to 'enet_in' and that there are two
-    such jumps.
-
-    Now, this sequence is generated:
-
-    	Chain INPUT (policy DROP 0 packets, 0 bytes)
-    	pkts  bytes  target     prot opt in     out     source ...
-    	1678  54427  dynamic    all  --  *      *       0.0.0.0/0 ...
-        0     0      ACCEPT     all  --  lo     *       0.0.0.0/0 ...
-    	33631 4085K  enet_in    all  --  *      *       0.0.0.0/0 ...
-    	...
-
-2)  The Debian init scripts (with the exception of Shorewall-init) now
-    support the 'status' command.
-
-4.4.25.2
-
-1)  Previously, if all the following were true:
-
-    - AUTOMAKE=Yes
-    - Current compiled script (/var/lib/shorewall/firewall or
-      /var/lib/shorewall6/firewall) up to date
-    - LEGACY_FASTSTART=No
-    - There was a saved configuration
-
-    then rather than start the current configuration, 'shorewall start
-    -f' or 'shorewall6 start -f' would incorrectly restore the saved
-    configuration.
-
-2)  The DropSmurfs and TCPFlags actions are now available in
-    Shorewall6. They were previously omitted from the IPv6 actions.std
-    file.
-
-3)  The 'rawpost' table was previously omitted from the output of the
-    'dump' command. It is now displayed.
-
-4)  Previously, if a configuration contained more than one wildcard
-    interface (physical name ending in '+'), then the generated script
-    might not work properly with Shorewall-init. This defect dates back
-    to the introduction of Shorewall-init.
-
-    Example:
-
-    ZONE	INTERFACE	BROADCAST	OPTIONS
-    z1		eth+		-		optional
-    z2		veth+		-		optional
-
-    The script will contain a case statement of this form:
-
-    	case $interface in
-	     ...
- 	  eth*|veth+)
-	     ...
-
-4.4.25.1
-
-1)  A 'refresh' command with no chains or tables specified will now
-    reload chains created by entries in the BLACKLIST section of the
-    rules file. 
-
-2)  The rules compiler previously failed to detect the 'Flow Filter'
-    capability. That capability is now correctly detected.
-
-3)  The IN_BANDWIDTH handling change in 4.4.25 was incompatible with
-    moribund distributions such as RHEL4. Restoring IN_BANDWIDTH
-    functionality on those releases required a new 'Basic Filter'
-    capability.
-    
-4.4.25
-
-1)  A defect in the optimizer that allowed incompatible rules to be
-    combined has been corrected.
-
-    Example:
-
-        Rule1:            -i eth1 -j chainx
-        Rule in chainx:   -i eth2 -j ACCEPT 
-	Incorrect result: -i eth2 -j ACCEPT
-
-    With the change in this release, Rule1 will remain as it is.
-
-2)  Routes and rules added as a result of entries in
-    /etc/shorewall6/providers were previously not deleted by 
-    'stop' or 'restart'. Repeated 'restart' commands could therefore
-    lead to an incorrect routing configuration.
-
-3)  Previously, capital letters were disallowed in IPv6 addresses. They
-    are now permitted.
-
-4)  If the COPY column in /etc/shorewall6/providers was non-empty,
-    previously a run-time error could occur when copying a table. The
-    diagnostic produced by ip was:
-
-       Either "to" is duplicate, or "cache" is garbage
-
-5)  When copying IPv6 routes, the generated script previously attempted
-    to copy 'cache' entries. Those entries are now omitted.
-
-6)  Previously, the use of large provider numbers could cause some 
-    Shorewall-generated routing rules to be ineffective.
-
-    Example (provider numbers 110 and 120):
-
-    	0:      from all lookup local 
-	10109:  from all fwmark 0x6e/0xff lookup 110 
-	10119:  from all fwmark 0x78/0xff lookup 120 
-	11000:  from 2001:470:1f04:262::1/64 lookup 110 
-	11001:  from 2001:470:c:316::1/64 lookup 120 
-	32766:  from all lookup main 
-	47904:  from 2001:470:8388::1 lookup 110 <===========
-	50464:  from 2001:470:f032::1 lookup 120 <===========
-
-    Now, all routing rules generated by provider interface IP (and IP6)
-    addresses are created at priority 20000.
-
-    	0:      from all lookup local 
-	10109:  from all fwmark 0x6e/0xff lookup 110 
-	10119:  from all fwmark 0x78/0xff lookup 120 
-	11000:  from 2001:470:1f04:262::1/64 lookup 110 
-	11001:  from 2001:470:c:316::1/64 lookup 120 
-	20000:  from 2001:470:8388::1 lookup 110 <===========
-	20000:  from 2001:470:f032::1 lookup 120 <===========
-	32766:  from all lookup main 
-
-7)  In some contexts, IPv6 addresses of the form ::i.j.k.l were
-    incorrectly classified as invalid by the configuration compiler.
+    Now, /sbin/shorewall[6] passes $CONFIG_PATH to the compiler
+    (/usr/share/shorewall/compiler.pl) in the new '--config_path'
+    option.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -183,127 +60,227 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  The original static blacklisting implementation was
-    interface-oriented and only handled blacklisting by source
-    address.  In Shorewall 4.4.12, the ability to blacklist by
-    destination address was added and blacklisting could be specified
-    as a ZONE option. This change, plus additional changes in
-    subsequent releases has lead to an implementation that is complex
-    and hard to extend.
+1)  A new 'blrules' file has been added as an alternative to rules in
+    the BLACKLIST section of the rules file. When rules are present in
+    both the blrules file and in the BLACKLIST section, those in
+    blrules are processed first.
 
-    In this release, a new static blacklisting facility has been
-    implemented. This facility is separate from the legacy facility, so
-    existing configurations will continue to work without change.
+2)  A '-b' option has been added to the 'update' command. In addition
+    to updating the shorewall.conf file (shorewall6.conf), this option
+    causes the compiler to convert your current legacy blacklist
+    configuration to use the new blrules file.
 
-    A BLACKLIST section has been added to the rules file. This section
-    is now the first section, having been added ahead of the ALL
-    section. The set of packets that are subject to blacklisting is
-    still governed by the setting of BLACKLISTNEWONLY in
-    shorewall.conf. The settings of BLACKLIST_LOGLEVEL and
-    BLACKLIST_DISPOSITION are not relevant to the new implementation.
-    Most of the actions available in other sections of the rules file
-    are available in the BLACKLIST section and logging is specified on
-    a rule-by-rule basis in the normal way.
+    Changes include:
 
-    In addition to the other actions available, a WHITELIST action has
-    been added which exempts matching packets from being passed to the
-    remaining rules in the section.
+    a) blrules is populated with entries equivalent to your existing
+       blacklist file.
 
-    Each "zone2zone" chain (e.g., net2fw) that has blacklist rules has
-    a companion blacklisting chain. The name of the blacklisting chain
-    is formed by appending "~" to the zone2zone chain. For example,
-    'net2fw' blacklist rules appear in the chain net2fw~. 
+    b) Your existing blacklist file is renamed blacklist.bak.
 
-    There is a likelihood that multiple blacklisting chains will have
-    exactly the same rules. This is especially true when 'all' is used 
-    as the zone name in the SOURCE and/or DEST columns. When 
-    optimization level 8 is used, these identical chains are combined 
-    into a single chain with the name ~blacklistN, where N is a number 
-    (possibly with multiple digits).
+    c) The 'blacklist' keyword is removed from your zones, interfaces
+       and hosts files. When one of these files is modified, the
+       unmodified original is saved in a .bak file.
 
-    The 'nosurfs' and 'tcpflags' interface options generate rules that
-    will be traversed prior to those in the BLACKLIST section. If you
-    want similar rules to be travered on packets that were not dropped
-    or rejected in the BLACKLIST chain, you can use the new
-    'DropSmurfs' and/or 'TCPFlags' standard actions.
+    As part of this change, the 'blacklog' target is permitted in the
+    blrules file when BLACKLIST_LOG_LEVEL is specified in
+    shorewall.conf (shorewall6.conf). It logs the packet at the
+    specified level, then disposes of it based on the setting of
+    BLACKLIST_DISPOSITION.
 
-    The DropSmurfs action has a single parameter whose default value
-    is  '-'. The action silently drops smurfs without auditing. If you 
-    want to audit these drops, use DropSmurfs(audit). Logging can be 
-    specified in the normal way (e.g., DropSmurfs:info).
+3)  The Debian init files (with the exception of Shorewall-init) now
+    support the 'status' command.
 
-    The TCPFlags action has two parameters whose default values are
-    DROP and -. The first action determines what is to be done with
-    matching packets and can have the values DROP, REJECT or ACCEPT. If
-    you want the action to be audited, pass 'audit' in the second
-    parameter. 
+4)  This release formalizes the feature that has long been
+    documented at http://www.shorewall.net/PacketMarking.html#Values.
 
-    Example: TCPFlags(REJECT,audit)
+    The WIDE_TC_MARKS and HIGH_ROUTE_MARKS options have traditionally
+    been used to define the various fields in a packet/connection mark.
+    But more flexible control is provided using these options.
 
-    Again, logging is specified in the normal way.
+       TC_BITS
 
-    The 'maclist' interface option can also generate rules that are
-    traversed prior to those in the BLACKLIST section. If you want them
-    to come after the the blacklist rules, simply recode your maclist
-    rules in the NEW section of the rules file. The 'macipmap' ipset
-    type is ideally suited for this task.
+           The number of bits at the least-significant end of the mark
+           to be used for traffic shaping marking. May be zero.
 
-    Example: assumes the ipset name is macipmap and that the
-     	     zone to be verified is named wlan
+       PROVIDER_BITS
 
-	 /etc/shorewall/rules:
+           The number of bits in the mark to be used for provider
+           marks. May be zero.
 
-		SECTION NEW
-		DROP:info	wlan:!+macipmap		all
+       PROVIDER_OFFSET
 
-2)  '6in4' has been added as a synonum for '6to4' in the TYPE column of
-    the tunnels file.
+           The offset from the right (low-order end) of the provider
+           number field. If non-zero, must be >= TC_BITS. Shorewall
+           automatically adjusts PROVIDER OFFSETs value to inforce this
+           restriction. May be zero, in which case the TC mark field
+           and Provider mark field overlay.
 
-3)  The handling of IN_BANDWIDTH in both /etc/shorewall/tcdevices and
-    /etc/shorewall/tcinterfaces has been changed. Previously:
+       MASK_BITS
 
-    a) Simple rate/burst policing was applied using the value(s)
-       supplied.
+           The number of low-order bits to be masked when clearing the
+           traffic shaping mark. Must be >= TC_BITS and <=
+           PROVIDER_OFFSET (provider that PROVIDER_OFFSET > 0).
 
-    b) IPv4 and IPv6 were policed separately.
+    Beginning with Shorewall 4.4.12, the field between MASK_BITS and
+    PROVIDER_OFFSET can be used for any purpose you want.
 
-    Beginning with this release, you have the option of configuring a
-    rate estimated policing filter. This type of filter is discussed at
-    http://ace-host.stuart.id.au/russell/files/tc/doc/extimators.txt.     
+    Beginning with Shorewall 4.4.13, the first unused bit from the
+    right is used by Shorewall as an 'exclusion mark' which allows
+    exclusion in CONTINUE, NONAT and ACCEPT+ rules.
 
-    You specify an estimeting filter by preceding the IN-BANDWIDTH with
-    a tilde ('~').
+    It is actually the values of the above four options that determine
+    how Packet/Connection Marks are layed out. Their default values are
+    derived from the settings of WIDE_TC_MARKS and HIGH_ROUTE_MARKS as
+    shown in the table at
+    http://www.shorewall.net/PacketMarking.html#Values.
 
-    Example: ~40mbit
+    The 'shorewall update' ('shorewall6 update') command will supply
+    values for these options based on the settings of WIDE_TC_MARKS and
+    HIGH_ROUTE_MARKS.
 
-    This example limits incoming traffic to an *average* rate of 40mbit.
+    The 'shorewall show marks' ('shorewall6 show marks') command shows
+    the range of each field in both decimal and hex.
 
-    There are two other other parameters that can be specified, in
-    addition to the average rate - <interval> and
-    <decay_interval>. There is an excellent description of these
-    parameters in the document referenced above.
+    Example (TC_BITS=0, MASK_BITS=0, PROVIDER_BITS=2,
+    PROVIDER_OFFSET=16, ZONE_BITS=4):
 
-    Example: ~40mbit:1sec:8sec
+    	Shorewall 4.4.26 -  Mark Layout at gw - Sun Nov 20
+           2:08:23 PST 2011
 
-    In that example, the <interval> is 1 second and the
-    <decay_interval> is 8 seconds. If not given, the default values are
-    250ms and 4 seconds. Both parameters must be supplied if either is
-    supplied.
+        Traffic Shaping: Not Enabled
+    	User:1-65535 (0x1-0xffff) mask 0xffff
+    	Provider:65536-196608 (0x10000-0x30000) mask 0x30000
+    	Zone:262144-3932160 (0x40000-0x3c0000) mask 0x3c0000
+    	Exclusion:4194304 mask 0x400000
 
-    Also in this release, the policing of IPv4 and IPv6 has been
-    combined so a single filter is applied to all traffic on a
-    configured interface.
+    As of this release WIDE_TC_MARKS and HIGH_ROUTE_MARKS are
+    deprecated.
 
-4)  Shorewall6 now supports the 'balance' and 'fallback' provider
-    options. These options are restricted to one interface per
-    configuration for each option.
+5)  This release introduces limited support for using back-to-back veth
+    devices to access a bridge.
 
-5)  The scripts generated by Shorewall6 now support the 'enable' and
-    'disable' commands.
+    Consider this setup:
 
-6)  A 'MARK' column has been added to the route_rules file. See
-    shorewall-route_rules (5) and shorewall6-route_rules (5) for
-    details.
+                                                 -- eth1 (zone1)
+                                                /
+       WAN ---- eth0      veth0 <-> veth1-- br0 --- eth2 (zone2)
+                                                \
+                                                 -- eth3 (zone3)
+
+    In this configuration, it is veth0 that has an IP address; the
+    bridge does not.
+
+    Because veth1 is a port on br0, Netfilter allows filtering between
+    that interface and each of the other ports. All connections from
+    the firewall (fw) and the WAN ((net) enter the bridge through
+    veth1. All traffic from zone1-zone3 enter the routing firewall
+    through veth0.
+
+    Note that, in this configuration, packets between zones1-zone3 and
+    the rest of the world go through Netfilter twice. Assume that we
+    associate veth0 with an ip zone called 'bridge' and veth1 with a
+    bport zone called 'portal'. Then the two traversals of Netfilter
+    are:
+
+    a)  Between eth1-eth3 and veth1. Source zone is zone1-zone3 and the
+        destination zone is 'portal'.
+
+    b)  Between veth0 and the final destination. The source zone is
+        bridge and the destination zone is either fw or net.
+
+    A similar scenario occurs with traffic originating in the net or
+    firewall zones and  destined for zone1-zone3.
+
+    As you can see, the problem here is that in the first traversal, we
+    know the real source zone but not the real destination zone; and in
+    the second traversal, we know the real destination zone but not the
+    real source zone.
+
+    The solution allows us to know the real source zone during the
+    second traversal.
+
+    A new ZONE_BITS option is added to shorewall.conf
+    (shorewall6.conf). Its value determines the number of bits of the
+    packet mark to use for zone marks. When ZONE_BITS is non-zero,
+    Shorewall automatically assigns a mark value to each zone (the
+    firewall zone always has value 0). Zone marks are assigned to all
+    zones except those that specify 'nomark' in the OPTION column of
+    their zones file entry. In the above example, the bridge and portal
+    zones would have 'nomark' specified.
+
+    With ZONE_BITS and 'nomark' specified appropriately, now each
+    packet from the 'bridge' zone has a packet mark that lets us know
+    which of the three bport zones (zone1-zone3) the packet originated
+    on.
+
+    Similarly, packets entering the bridge through veth1 have a mark
+    value that records whether the packet is from the net zone or the
+    fw zone.
+
+    As part of these changes, the compiler now accepts a zone name in
+    the MARK column of the rules file, when ZONE_BITS is non-zero. This
+    permits rules of this type:
+
+    	    ACCEPT   bridge	net ...	; mark=zone2
+
+    to control connections from zone2 to the net, and rules such as
+
+       	    ACCEPT   portal     zone1 ...; mark=net 
+
+    to control connections from the net to zone1.
+
+    One final note; DNAT rules should be placed in the first traversal
+    (net->bridge on input).
+
+    See http://www.shorewall.net/bridge-Shorewall-perl for a fuller
+    example.
+
+6)  This release introduces optimization category 16. When this
+    category is enabled, sequences of 'compatible' rules are combined
+    into a single rule.
+
+    A sequence of rules is considered compatible if the rules differ
+    only in their destination ports and comments.
+
+    A sequence of combatible rules is often generated when macros are
+    invoked in sequence.
+
+    The ability to combine adjacent rules is limited by two factors:
+
+    - Destination port lists may only be combined up to a maximum of 15
+      ports, where a port-pair counts as two ports.
+
+    - Rules may only be combined until the length of their concatinated
+      comments reach 255 characters.
+
+    When either of these limits would be exceeded, the current combined
+    rule is emitted and the compiler attemts to combine rules beginning
+    with the one that would have exceeded the limit.
+
+    Adjacent combined comments are separated by ', '. Empty comments at
+    the front of a group of combined comments are replaced by 'Others
+    and'. Empty comments at the end of a group of combined comments are
+    replaced by 'and others'.
+
+    Example 1: Rules with comments "FOO", <empty> and "BAR" would
+    	       result in the combined comment "FOO and others, BAR".
+
+    Example 2: Rules with comments <empty>, "FOO" and "BAR" would reult
+    	       in the combined comment "Others and FOO, BAR".
+
+    Note: Optimize level 16 requires "Extended Multi-port Match" in your
+    	  iptables and kernel.
+
+7)  The 'enable' and 'disable' commands, previously supported only by
+    the compiled firewall script, are now supported by the CLI programs
+    (/sbin/shorewall, /sbin/shorewall-lite, etc.) as well.
+
+    In earlier releases, these commands only allowed the provider to be
+    specified by its physical interface name, thus making it impossible
+    to enable/disable individual providers sharing a single
+    interface. The commands now accept a provider name for all optional
+    providers. For those that share an interface, only the provider
+    name is accepted.
 
 ----------------------------------------------------------------------------
              I V.  R E L E A S E  4 . 4  H I G H L I G H T S
@@ -520,26 +497,270 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     where 'iface' is a capitalized interface name (e.g., ETH0) and
     'provider' is the capitalized name of a provider.
 
-15) Support for the OPTIONS column in /etc/shorewall/blacklist
-    (/etc/shorewall6/blacklist) has been removed. Blacklisting by
-    destination IP address will be included in a later Shorewall
-    release.
-
-16) If your /etc/shorewall/params (or /etc/shorewall6/params) file
+15) If your /etc/shorewall/params (or /etc/shorewall6/params) file
     sends output to Standard Output, you need to be aware that the
     output will be redirected to Standard Error beginning with
     Shorewall 4.4.16.
 
-17) Beginning with Shorewall 4.4.17, the EXPORTPARAMS option is
+16) Beginning with Shorewall 4.4.17, the EXPORTPARAMS option is
     deprecated. With EXPORTPARAMS=No, the variables set by
     /etc/shorewall/params (/etc/shorewall6/params) at compile time are
     now available in the compiled firewall script.
 
-18) The 'iprange' and 'ipaddr' commands require the 'bc' utility.
+17) The 'iprange' and 'ipaddr' commands require the 'bc' utility.
+
+18) Beginning with Shorewall 4.4.26, the WIDE_TC_MARKS and
+    HIGH_ROUTE_MARKS options are deprecated in favor of TC_BITS,
+    MARK_BITS, PROVIDER_BITS and PROVIDER_OFFSET. The 'shorewall
+    update' ('shorewall6 update') command will set these net options
+    based on the values of the deprecated ones.
 
 ----------------------------------------------------------------------------
 V I.  P R O B L E M S  C O R R E C T E D  A N D  N E W   F E A T U R E S
       I N   P R I O R  R E L E A S E S
+----------------------------------------------------------------------------
+         P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 5
+----------------------------------------------------------------------------
+
+4.4.25.2
+
+1)  Previously, if all the following were true:
+
+    - AUTOMAKE=Yes
+    - Current compiled script (/var/lib/shorewall/firewall or
+      /var/lib/shorewall6/firewall) up to date
+    - LEGACY_FASTSTART=No
+    - There was a saved configuration
+
+    then rather than start the current configuration, 'shorewall start
+    -f' or 'shorewall6 start -f' would incorrectly restore the saved
+    configuration.
+
+2)  The DropSmurfs and TCPFlags actions are now available in
+    Shorewall6. They were previously omitted from the IPv6 actions.std
+    file.
+
+3)  The 'rawpost' table was previously omitted from the output of the
+    'dump' command. It is now displayed.
+
+4)  Previously, if a configuration contained more than one wildcard
+    interface (physical name ending in '+'), then the generated script
+    might not work properly with Shorewall-init. This defect dates back
+    to the introduction of Shorewall-init.
+
+    Example:
+
+    ZONE	INTERFACE	BROADCAST	OPTIONS
+    z1		eth+		-		optional
+    z2		veth+		-		optional
+
+    The script will contain a case statement of this form:
+
+    	case $interface in
+	     ...
+ 	  eth*|veth+)
+	     ...
+
+4.4.25.1
+
+1)  A 'refresh' command with no chains or tables specified will now
+    reload chains created by entries in the BLACKLIST section of the
+    rules file. 
+
+2)  The rules compiler previously failed to detect the 'Flow Filter'
+    capability. That capability is now correctly detected.
+
+3)  The IN_BANDWIDTH handling change in 4.4.25 was incompatible with
+    moribund distributions such as RHEL4. Restoring IN_BANDWIDTH
+    functionality on those releases required a new 'Basic Filter'
+    capability.
+    
+4.4.25
+
+1)  A defect in the optimizer that allowed incompatible rules to be
+    combined has been corrected.
+
+    Example:
+
+        Rule1:            -i eth1 -j chainx
+        Rule in chainx:   -i eth2 -j ACCEPT 
+	Incorrect result: -i eth2 -j ACCEPT
+
+    With the change in this release, Rule1 will remain as it is.
+
+2)  Routes and rules added as a result of entries in
+    /etc/shorewall6/providers were previously not deleted by 
+    'stop' or 'restart'. Repeated 'restart' commands could therefore
+    lead to an incorrect routing configuration.
+
+3)  Previously, capital letters were disallowed in IPv6 addresses. They
+    are now permitted.
+
+4)  If the COPY column in /etc/shorewall6/providers was non-empty,
+    previously a run-time error could occur when copying a table. The
+    diagnostic produced by ip was:
+
+       Either "to" is duplicate, or "cache" is garbage
+
+5)  When copying IPv6 routes, the generated script previously attempted
+    to copy 'cache' entries. Those entries are now omitted.
+
+6)  Previously, the use of large provider numbers could cause some 
+    Shorewall-generated routing rules to be ineffective.
+
+    Example (provider numbers 110 and 120):
+
+    	0:      from all lookup local 
+	10109:  from all fwmark 0x6e/0xff lookup 110 
+	10119:  from all fwmark 0x78/0xff lookup 120 
+	11000:  from 2001:470:1f04:262::1/64 lookup 110 
+	11001:  from 2001:470:c:316::1/64 lookup 120 
+	32766:  from all lookup main 
+	47904:  from 2001:470:8388::1 lookup 110 <===========
+	50464:  from 2001:470:f032::1 lookup 120 <===========
+
+    Now, all routing rules generated by provider interface IP (and IP6)
+    addresses are created at priority 20000.
+
+    	0:      from all lookup local 
+	10109:  from all fwmark 0x6e/0xff lookup 110 
+	10119:  from all fwmark 0x78/0xff lookup 120 
+	11000:  from 2001:470:1f04:262::1/64 lookup 110 
+	11001:  from 2001:470:c:316::1/64 lookup 120 
+	20000:  from 2001:470:8388::1 lookup 110 <===========
+	20000:  from 2001:470:f032::1 lookup 120 <===========
+	32766:  from all lookup main 
+
+7)  In some contexts, IPv6 addresses of the form ::i.j.k.l were
+    incorrectly classified as invalid by the configuration compiler.
+
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 4 . 2 5
+----------------------------------------------------------------------------
+
+1)  The original static blacklisting implementation was
+    interface-oriented and only handled blacklisting by source
+    address.  In Shorewall 4.4.12, the ability to blacklist by
+    destination address was added and blacklisting could be specified
+    as a ZONE option. This change, plus additional changes in
+    subsequent releases has lead to an implementation that is complex
+    and hard to extend.
+
+    In this release, a new static blacklisting facility has been
+    implemented. This facility is separate from the legacy facility, so
+    existing configurations will continue to work without change.
+
+    A BLACKLIST section has been added to the rules file. This section
+    is now the first section, having been added ahead of the ALL
+    section. The set of packets that are subject to blacklisting is
+    still governed by the setting of BLACKLISTNEWONLY in
+    shorewall.conf. The settings of BLACKLIST_LOGLEVEL and
+    BLACKLIST_DISPOSITION are not relevant to the new implementation.
+    Most of the actions available in other sections of the rules file
+    are available in the BLACKLIST section and logging is specified on
+    a rule-by-rule basis in the normal way.
+
+    In addition to the other actions available, a WHITELIST action has
+    been added which exempts matching packets from being passed to the
+    remaining rules in the section.
+
+    Each "zone2zone" chain (e.g., net2fw) that has blacklist rules has
+    a companion blacklisting chain. The name of the blacklisting chain
+    is formed by appending "~" to the zone2zone chain. For example,
+    'net2fw' blacklist rules appear in the chain net2fw~. 
+
+    There is a likelihood that multiple blacklisting chains will have
+    exactly the same rules. This is especially true when 'all' is used 
+    as the zone name in the SOURCE and/or DEST columns. When 
+    optimization level 8 is used, these identical chains are combined 
+    into a single chain with the name ~blacklistN, where N is a number 
+    (possibly with multiple digits).
+
+    The 'nosurfs' and 'tcpflags' interface options generate rules that
+    will be traversed prior to those in the BLACKLIST section. If you
+    want similar rules to be travered on packets that were not dropped
+    or rejected in the BLACKLIST chain, you can use the new
+    'DropSmurfs' and/or 'TCPFlags' standard actions.
+
+    The DropSmurfs action has a single parameter whose default value
+    is  '-'. The action silently drops smurfs without auditing. If you 
+    want to audit these drops, use DropSmurfs(audit). Logging can be 
+    specified in the normal way (e.g., DropSmurfs:info).
+
+    The TCPFlags action has two parameters whose default values are
+    DROP and -. The first action determines what is to be done with
+    matching packets and can have the values DROP, REJECT or ACCEPT. If
+    you want the action to be audited, pass 'audit' in the second
+    parameter. 
+
+    Example: TCPFlags(REJECT,audit)
+
+    Again, logging is specified in the normal way.
+
+    The 'maclist' interface option can also generate rules that are
+    traversed prior to those in the BLACKLIST section. If you want them
+    to come after the the blacklist rules, simply recode your maclist
+    rules in the NEW section of the rules file. The 'macipmap' ipset
+    type is ideally suited for this task.
+
+    Example: assumes the ipset name is macipmap and that the
+     	     zone to be verified is named wlan
+
+	 /etc/shorewall/rules:
+
+		SECTION NEW
+		DROP:info	wlan:!+macipmap		all
+
+2)  '6in4' has been added as a synonum for '6to4' in the TYPE column of
+    the tunnels file.
+
+3)  The handling of IN_BANDWIDTH in both /etc/shorewall/tcdevices and
+    /etc/shorewall/tcinterfaces has been changed. Previously:
+
+    a) Simple rate/burst policing was applied using the value(s)
+       supplied.
+
+    b) IPv4 and IPv6 were policed separately.
+
+    Beginning with this release, you have the option of configuring a
+    rate estimated policing filter. This type of filter is discussed at
+    http://ace-host.stuart.id.au/russell/files/tc/doc/extimators.txt.     
+
+    You specify an estimeting filter by preceding the IN-BANDWIDTH with
+    a tilde ('~').
+
+    Example: ~40mbit
+
+    This example limits incoming traffic to an *average* rate of 40mbit.
+
+    There are two other other parameters that can be specified, in
+    addition to the average rate - <interval> and
+    <decay_interval>. There is an excellent description of these
+    parameters in the document referenced above.
+
+    Example: ~40mbit:1sec:8sec
+
+    In that example, the <interval> is 1 second and the
+    <decay_interval> is 8 seconds. If not given, the default values are
+    250ms and 4 seconds. Both parameters must be supplied if either is
+    supplied.
+
+    Also in this release, the policing of IPv4 and IPv6 has been
+    combined so a single filter is applied to all traffic on a
+    configured interface.
+
+4)  Shorewall6 now supports the 'balance' and 'fallback' provider
+    options. These options are restricted to one interface per
+    configuration for each option.
+
+5)  The scripts generated by Shorewall6 now support the 'enable' and
+    'disable' commands.
+
+6)  A 'MARK' column has been added to the route_rules file. See
+    shorewall-route_rules (5) and shorewall6-route_rules (5) for
+    details.
+
 ----------------------------------------------------------------------------
          P R O B L E M S   C O R R E C T E D   I N   4 . 4 . 2 4
 ----------------------------------------------------------------------------

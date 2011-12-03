@@ -155,9 +155,22 @@ sub copy_table( $$$ ) {
     emit ( '    case $net in',
 	   '        default)',
 	   '            ;;',
-	   '        *)',
-	   "            run_ip route add table $number \$net \$route $realm",
-	   '            ;;',
+	   '        *)' );
+	   
+    if ( $family == F_IPV4 ) {
+	emit ( '            case $net in',
+	       '                255.255.255.255*)',
+	       '                    ;;',
+	       '                *)',
+	       "                    run_ip route add table $number \$net \$route $realm",
+	       '                    ;;',
+	       '            esac',
+	     );
+    } else {
+	emit ( "            run_ip route add table $number \$net \$route $realm" );
+    }
+
+    emit ( '            ;;',
 	   '    esac',
 	   "done\n"
 	 );
@@ -189,9 +202,21 @@ sub copy_and_edit_table( $$$$ ) {
 	    '            ;;',
 	    '        *)',
 	    '            case $(find_device $route) in',
-	    "                $copy)",
-	    "                    run_ip route add table $number \$net \$route $realm",
-	    '                    ;;',
+	    "                $copy)" );
+    if ( $family == F_IPV4 ) {
+	emit (  '                    case $net in',
+		'                        255.255.255.255*)',
+		'                            ;;',
+		'                        *)',
+		"                            run_ip route add table $number \$net \$route $realm",
+		'                            ;;',
+		'                    esac',
+	     );
+    } else {
+	emit (  "                    run_ip route add table $number \$net \$route $realm" );
+    } 
+
+    emit (  '                    ;;',
 	    '            esac',
 	    '            ;;',
 	    '    esac',
@@ -360,8 +385,11 @@ sub process_a_provider() {
 		$loose   = 1;
 		$default_balance = 0;
 	    } elsif ( $option eq 'optional' ) {
-		warning_message q(The 'optional' provider option is deprecated - use the 'optional' interface option instead);
-		set_interface_option $interface, 'optional', 1;
+		unless ( $shared ) {
+		    warning_message q(The 'optional' provider option is deprecated - use the 'optional' interface option instead);
+		    set_interface_option $interface, 'optional', 1;
+		}
+
 		$optional = 1;
 	    } elsif ( $option =~ /^src=(.*)$/ ) {
 		fatal_error "OPTION 'src' not allowed on shared interface" if $shared;
@@ -672,7 +700,9 @@ sub add_a_provider( $$ ) {
 	    $weight = 1;
 	}
 
-	emit( "setup_${dev}_tc" ) if $tcdevices->{$interface};
+	unless ( $shared ) {
+	    emit( "setup_${dev}_tc" ) if $tcdevices->{$interface};
+	}
 
 	emit ( qq(progress_message2 "   Provider $table ($number) Started") );
 
@@ -751,11 +781,13 @@ sub add_a_provider( $$ ) {
 	emit (". $undo",
 	      "> $undo" );
 
-	emit( '', 
-	      "qt \$TC qdisc del dev $physical root",
-	      "qt \$TC qdisc del dev $physical ingress\n" ) if $tcdevices->{$interface};
+	unless ( $shared ) {
+	    emit( '', 
+		  "qt \$TC qdisc del dev $physical root",
+		  "qt \$TC qdisc del dev $physical ingress\n" ) if $tcdevices->{$interface};
+	}
 
-	emit( "progress_message2 \"Provider $table stopped\"" );
+	emit( "progress_message2 \"   Provider $table ($number) stopped\"" );
 
 	pop_indent;
 
@@ -1100,14 +1132,21 @@ EOF
     for my $provider (@providers ) {
 	my $providerref = $providers{$provider};
 
-	emit( "$providerref->{physical})",
-	      "    if [ -z \"`\$IP -$family route ls table $providerref->{number}`\" ]; then", 
-	      "        start_provider_$provider",
-	      '    else',
-	      '        startup_error "Interface $g_interface is already enabled"',
-	      '    fi',
-	      '    ;;'
-	    ) if $providerref->{optional};
+	if ( $providerref->{optional} ) {
+	    if ( $providerref->{shared} || $providerref->{physical} eq $provider) {
+		emit "$provider})";
+	    } else {
+		emit( "$providerref->{physical}|$provider)" );
+	    }
+
+	    emit ( "    if [ -z \"`\$IP -$family route ls table $providerref->{number}`\" ]; then", 
+		   "        start_provider_$provider",
+		   '    else',
+		   '        startup_error "Interface $g_interface is already enabled"',
+		   '    fi',
+		   '    ;;'
+		 );
+	}
     }
 
     pop_indent;
@@ -1115,7 +1154,7 @@ EOF
 
     emit << 'EOF';;
         *)
-            startup_error "$g_interface is not an optional provider interface"
+            startup_error "$g_interface is not an optional provider or provider interface"
             ;;
     esac
 }
@@ -1381,17 +1420,17 @@ sub handle_stickiness( $ ) {
 
 		for my $chainref ( $stickyref, $setstickyref ) {
 		    if ( $chainref->{name} eq 'sticky' ) {
-			$rule1 = $_;
+			$rule1 = clone_rule( $_ );
 
 			set_rule_target( $rule1, 'MARK',   "--set-mark $mark" );
 			set_rule_option( $rule1, 'recent', "--name $list --update --seconds 300" );
 
-			$rule2 = $_;
+			$rule2 = clone_rule( $_ );
 
 			clear_rule_target( $rule2 );
 			set_rule_option( $rule2, 'mark', "--mark 0/$mask -m recent --name $list --remove" );
 		    } else {
-			$rule1 = $_;
+			$rule1 = clone_rule( $_ );
 
 			clear_rule_target( $rule1 );
 			set_rule_option( $rule1, 'mark', "--mark $mark\/$mask -m recent --name $list --set" ); 
@@ -1414,17 +1453,29 @@ sub handle_stickiness( $ ) {
 
 		for my $chainref ( $stickoref, $setstickoref ) {
 		    if ( $chainref->{name} eq 'sticko' ) {
-			$rule1 = $_;
+			$rule1 = {};
+
+			while ( my ( $key, $value ) = each %$_ ) {
+			    $rule1->{$key} = $value;
+			}
 
 			set_rule_target( $rule1, 'MARK',   "--set-mark $mark" );
-			set_rule_option( $rule1, 'recent', " --name $list --rdest --update --seconds 300 -j MARK --set-mark $mark" );
+			set_rule_option( $rule1, 'recent', " --name $list --rdest --update --seconds 300" );
 
-			$rule2 = $_;
+			$rule2 = {};
+
+			while ( my ( $key, $value ) = each %$_ ) {
+			    $rule2->{$key} = $value;
+			}
 			
 			clear_rule_target( $rule2 );
 			set_rule_option  ( $rule2, 'mark', "--mark 0\/$mask -m recent --name $list --rdest --remove" );
 		    } else {
-			$rule1 = $_;
+			$rule1 = {};
+
+			while ( my ( $key, $value ) = each %$_ ) {
+			    $rule1->{$key} = $value;
+			}
 
 			clear_rule_target( $rule1 );
 			set_rule_option  ( $rule1, 'mark', "--mark $mark -m recent --name $list --rdest --set" );

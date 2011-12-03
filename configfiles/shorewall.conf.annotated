@@ -94,7 +94,8 @@ BLACKLIST_LOGLEVEL=
 #     a syslog level (Example: BLACKLIST_LOGLEVEL=debug). If you do not assign a
 #     value or if you assign an empty value then packets from blacklisted hosts
 #     are not logged. The BLACKLIST_LOGLEVEL setting has no effect on entries in
-#     the BLACKLIST section of shorewall-rules (5).
+#     the BLACKLIST section of shorewall-rules (5). It determines the log level
+#     of packets sent to the blacklog target of shorewall-blrules(5).
 # 
 LOG_MARTIANS=Yes
 #
@@ -567,7 +568,8 @@ BLACKLISTNEWONLY=Yes
 # BLACKLISTNEWONLY={Yes|No}
 # 
 #     When set to Yes or yes, blacklists are only consulted for new connections.
-#     That includes entries in the BLACKLIST section of shorewall-rules (5).
+#     That includes entries in the shorewall-blrules (5) file and in the
+#     BLACKLIST section of shorewall-rules (5).
 # 
 #     When set to No or no, blacklists are consulted for every packet (will slow
 #     down your firewall noticably if you have large blacklists). If the
@@ -745,44 +747,6 @@ IMPLICIT_CONTINUE=No
 #     are not subject to this special treatment. With IMPLICIT_CONTINUE=Yes, an
 #     implicit CONTINUE policy may be overridden by including an explicit policy
 #     (one that does not specify "all" in either the SOURCE or the DEST columns).
-# 
-HIGH_ROUTE_MARKS=No
-#
-# HIGH_ROUTE_MARKS={Yes|No}
-# 
-#     Prior to version 3.2.0, it was not possible to use connection marking in
-#     shorewall-tcrules(5) if you had a multi-ISP configuration that uses the
-#     track option.
-# 
-#     You may set HIGH_ROUTE_MARKS=Yes in to effectively divide the packet mark
-#     and connection mark into two mark fields.
-# 
-#     The width of the fields are determined by the setting of WIDE_TC_MARKS. If
-#     WIDE_TC_MARKS=No (the default):
-# 
-#      a. The MARK field in the providers file must have a value that is less
-#         than 65536 and that is a multiple of 256 (using hex representation, the
-#         values are 0x0100-0xFF00 with the low-order 8 bits being zero).
-# 
-#      b. You may only set those mark values in the PREROUTING chain.
-# 
-#      c. Marks used for traffic shaping must still be in the range of 1-255 and
-#         may still not be set in the PREROUTING chain.
-# 
-#     When WIDE_TC_MARKS=Yes:
-# 
-#      a. The MARK field in the providers file must have a value that is a
-#         multiple of 65536 (using hex representation, the values are
-#         0x010000-0xFF0000 with the low-order 16 bits being zero).
-# 
-#      b. You may only set those mark values in the PREROUTING chain.
-# 
-#      c. Marks used for traffic shaping must be in the range of 1-16383 and may
-#         still not be set in the PREROUTING chain.
-# 
-#     Regardless of the setting of WIDE_TC_MARKS, when you SAVE or RESTORE in
-#     tcrules, only the TC mark value is saved or restored. Shorewall handles
-#     saving and restoring the routing (provider) marks.
 # 
 IP_FORWARDING=On
 #
@@ -1014,12 +978,41 @@ OPTIMIZE=0
 #             chain and the rules from the second chain are appended to it.
 # 
 #       ● Optimization category 8 - Added in Shorewall 4.4.9. When set, causes
-#         chains with duplicate rules to be collapsed into a single chain.
+#         chains with identical rules to be collapsed into a single chain.
 # 
-#         Caution
+#       ● Optimization category 16 - Added in Shorewall 4.4.26. When set, causes
+#         sequences of compatible rules to be combined into a single rule. Rules
+#         are considered compatible if they differ only in their destination
+#         ports and comments.
 # 
-#         Optimization category 8 adds significantly to the time required to
-#         compile a large ruleset.
+#         A sequence of combatible rules is often generated when macros are
+#         invoked in sequence.
+# 
+#         The ability to combine adjacent rules is limited by two factors:
+# 
+#           ○ Destination port lists may only be combined up to a maximum of 15
+#             ports, where a port-pair counts as two ports.
+# 
+#           ○ Rules may only be combined until the length of their concatinated
+#             comment reaches 255 characters.
+# 
+#         When either of these limits would be exceeded, the current combined
+#         rule is emitted and the compiler attemts to combine rules beginning
+#         with the one that would have exceeded the limit. Adjacent combined
+#         comments are separated by ', '. Empty comments at the front of a group
+#         of combined comments are replaced by 'Others and'. Empty comments at
+#         the end of a group of combined comments are replaced by 'and others'.
+# 
+#         Example 1:
+# 
+#             Rules with comments "FOO", <empty> and "BAR" would result in the
+#             combined comment "FOO and others, BAR".
+# 
+#         Example 2:
+# 
+#             Rules with comments <empty>, "FOO" and "BAR" would reult in the
+#             combined comment "Others and FOO, BAR". Note: Optimize level 16
+#             requires "Extended Multi-port Match" in your iptables and kernel.
 # 
 #     The default value is zero which disables all optimizations.
 # 
@@ -1206,15 +1199,6 @@ USE_DEFAULT_RT=No
 #     If USE_DEFAULT_RT is not set or if it is set to the empty string then
 #     USE_DEFAULT_RT=No is assumed.
 # 
-WIDE_TC_MARKS=No
-#
-# WIDE_TC_MARKS={Yes|No}
-# 
-#     When set to No (the default), traffic shaping marks are 8 bytes wide
-#     (possible values are 1-255). When WIDE_TC_MARKS=Yes, traffic shaping marks
-#     are 14 bytes wide (values 1-16383). The setting of WIDE_TC_MARKS also has
-#     an effect on the HIGH_ROUTE_MARKS option (see above).
-# 
 ZONE2ZONE=2
 #
 # ZONE2ZONE={2|-}
@@ -1241,7 +1225,8 @@ BLACKLIST_DISPOSITION=DROP
 #     and iptables.
 # 
 #     The BLACKLIST_DISPOSITION setting has no effect on entries in the BLACKLIST
-#     section of shorewall-rules (5).
+#     section of shorewall-rules (5). It determines the disposition of packets
+#     sent to the blacklog target of shorewall-blrules (5).
 # 
 MACLIST_DISPOSITION=REJECT
 #
@@ -1288,6 +1273,65 @@ TCP_FLAGS_DISPOSITION=DROP
 #     A_DROP and A_REJECT are audited versions of DROP and REJECT respectively
 #     and were added in Shorewall 4.4.20. They require AUDIT_TARGET in the kernel
 #     and iptables.
+# 
+################################################################################
+#			P A C K E T  M A R K  L A Y O U T
+################################################################################
+TC_BITS=
+#
+# TC_BITS=[number]
+# 
+#     The number of bits at the low end of the 32-bit packet mark to be used for
+#     traffic shaping marking. May be zero. See MASK_BITS above for default
+#     value.
+# 
+PROVIDER_BITS=
+#
+# PROVIDER_BITS=[number]
+# 
+#     Added in Shorewall 4.4.26. The number of bits in the 32-bit packet mark to
+#     be used for provider numbers. May be zero. See MASK_BITS above for default
+#     value.
+# 
+PROVIDER_OFFSET=
+#
+# PROVIDER_OFFSET=[number]
+# 
+#     Added in Shorewall 4.4.26. The offset from the right (low-order end) of the
+#     provider number field in the 32-bit packet mark. If non-zero, must be >=
+#     TC_BITS (Shorewall automatically adjusts PROVIDER_OFFSET's value).
+#     PROVIDER_OFFSET + PROVIDER_BITS + ZONE_BITS must be < 32. See MASK_BITS
+#     above for default value.
+# 
+MASK_BITS=
+#
+# MASK_BITS=[number]
+# 
+#     Added in Shorewall 4.4.26. Number of bits on the right of the 32-bit packet
+#     mark to be masked when clearing the traffic shaping mark. Must be >=
+#     TC_BITS and <= PROVIDER_OFFSET (if PROVIDER_OFFSET > 0). Default value and
+#     the default values of the other mark layout options is determined as
+#     follows:
+# 
+#     Table 1. Default Packet Mark Layout
+# 
+#     WIDE_TC_MARKS=No,             TC_BITS=8, PROVIDER_BITS=8, PROVIDER_OFFSET=
+#     HIGH_ROUTE_MARKS=No           0, MASK_BITS=8
+#     WIDE_TC_MARKS=No,             TC_BITS=8, PROVIDER_BITS=8, PROVIDER_OFFSET=
+#     HIGH_ROUTE_MARKS=Yes          8, MASK_BITS=8
+#     WIDE_TC_MARKS=Yes,            TC_BITS=14, PROVIDER_BITS=8, PROVIDER_OFFSET=
+#     HIGH_ROUTE_MARKS=No           0, MASK_BITS=16
+#     WIDE_TC_MARKS=Yes,            TC_BITS=14, PROVIDER_BITS=8, PROVIDER_OFFSET=
+#     HIGH_ROUTE_MARKS=Yes          16, MASK_BITS=16
+# 
+# 
+ZONE_BITS=0
+#
+# ZONE_BITS=[number]
+# 
+#     Added in Shorewall 4.4.26. When non-zero, enables automatic packet marking
+#     by source zone and determines the number of bits in the 32-bit packet mark
+#     to be used for the zone mark. Default value is 0.
 # 
 ################################################################################
 #                            L E G A C Y  O P T I O N
