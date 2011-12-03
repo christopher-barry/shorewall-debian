@@ -1,0 +1,410 @@
+'\" t
+.\"     Title: shorewall6-lite
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 12/02/2011
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
+.\"
+.TH "SHOREWALL6\-LITE" "8" "12/02/2011" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+shorewall6-lite \- Administration tool for Shoreline Firewall 6 Lite (Shorewall6\-lite)
+.SH "SYNOPSIS"
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBclear\fR
+.HP \w'\fBshorewall\fR\ 'u
+\fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdisable\fR {\ \fIinterface\fR\ |\ \fIprovider\fR\ }
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdrop\fR \fIaddress\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBdump\fR [\fB\-x\fR] [\fB\-m\fR]
+.HP \w'\fBshorewall\fR\ 'u
+\fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBenable\fR {\ \fIinterface\fR\ |\ \fIprovider\fR\ }
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBforget\fR [\fIfilename\fR]
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBhelp\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBhits\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogdrop\fR \fIaddress\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBlogwatch\fR [\fB\-m\fR] [\fIrefresh\-interval\fR]
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogreject\fR \fIaddress\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreject\fR \fIaddress\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR\ [\fB\-n\fR]\ [\fB\-p\fR] 
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsave\fR [\fIfilename\fR]
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-x\fR] [\fB\-t\fR\ {\fBfilter\fR|\fBmangle\fR|\fBraw\fR}] [[\fBchain\fR]\ \fIchain\fR...]
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-f\fR] \fBcapabilities\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR {\fBactions|classifiers|connections|config|zones\fR}
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-x\fR] \fBmangle\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR \fBtc\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-m\fR] \fBlog\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR\ [\-\fBn\fR]\ [\-\fBp\fR]\ [\-\fBf\fR] 
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBstatus\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBversion\fR
+.SH "DESCRIPTION"
+.PP
+The shorewall6\-lite utility is used to control the Shoreline Firewall 6 (Shorewall6) Lite\&.
+.SH "OPTIONS"
+.PP
+The
+\fBtrace\fR
+and
+\fBdebug\fR
+options are used for debugging\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping\&.htm#Trace\fR\m[]\&.
+.PP
+The nolock
+\fBoption\fR
+prevents the command from attempting to acquire the Shorewall6 Lite lockfile\&. It is useful if you need to include
+\fBshorewall6\-lite\fR
+commands in the
+started
+extension script\&.
+.PP
+The
+\fIoptions\fR
+control the amount of output that the command produces\&. They consist of a sequence of the letters
+\fBv\fR
+and
+\fBq\fR\&. If the options are omitted, the amount of output is determined by the setting of the VERBOSITY parameter in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. Each
+\fBv\fR
+adds one to the effective verbosity and each
+\fBq\fR
+subtracts one from the effective VERBOSITY\&. Anternately,
+\fBv\fR
+may be followed immediately with one of \-1,0,1,2 to specify a specify VERBOSITY\&. There may be no white space between
+\fBv\fR
+and the VERBOSITY\&.
+.PP
+The
+\fIoptions\fR
+may also include the letter
+\fBt\fR
+which causes all progress messages to be timestamped\&.
+.SH "COMMANDS"
+.PP
+The available commands are listed below\&.
+.PP
+\fBallow\fR
+.RS 4
+Re\-enables receipt of packets from hosts previously blacklisted by a
+\fBdrop\fR,
+\fBlogdrop\fR,
+\fBreject\fR, or
+\fBlogreject\fR
+command\&.
+.RE
+.PP
+\fBclear\fR
+.RS 4
+Clear will remove all rules and chains installed by Shorewall6 Lite\&. The firewall is then wide open and unprotected\&. Existing connections are untouched\&. Clear is often used to see if the firewall is causing connection problems\&.
+.RE
+.PP
+\fBdisable\fR
+.RS 4
+Added in Shorewall 4\&.4\&.26\&. Disables the optional provider associated with the specified
+\fIinterface\fR
+or
+\fIprovider\fR\&. Where more than one provider share a single network interface, a
+\fIprovider\fR
+name must be given\&.
+.RE
+.PP
+\fBdrop\fR
+.RS 4
+Causes traffic from the listed
+\fIaddress\fRes to be silently dropped\&.
+.RE
+.PP
+\fBdump\fR
+.RS 4
+Produces a verbose report about the firewall configuration for the purpose of problem analysis\&.
+.sp
+The
+\fB\-x\fR
+option causes actual packet and byte counts to be displayed\&. Without that option, these counts are abbreviated\&. The
+\fB\-m\fR
+option causes any MAC addresses included in Shorewall6 Lite log messages to be displayed\&.
+.RE
+.PP
+\fBenable\fR
+.RS 4
+Added in Shorewall 4\&.4\&.26\&. Enables the optional provider associated with the specified
+\fIinterface\fR
+or
+\fIprovider\fR\&. Where more than one provider share a single network interface, a
+\fIprovider\fR
+name must be given\&.
+.RE
+.PP
+\fBforget\fR
+.RS 4
+Deletes /var/lib/shorewall6\-lite/\fIfilenam\fRe and /var/lib/shorewall6\-lite/save\&. If no
+\fIfilename\fR
+is given then the file specified by RESTOREFILE in
+\m[blue]\fBshorewall6\-lite\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) is assumed\&.
+.RE
+.PP
+\fBhelp\fR
+.RS 4
+Displays a syntax summary\&.
+.RE
+.PP
+\fBhits\fR
+.RS 4
+Generates several reports from Shorewall6 Lite log messages in the current log file\&.
+.RE
+.PP
+\fBlogdrop\fR
+.RS 4
+Causes traffic from the listed
+\fIaddress\fRes to be logged then discarded\&.
+.RE
+.PP
+\fBlogwatch\fR
+.RS 4
+Monitors the log file specified by theLOGFILE option in
+\m[blue]\fBshorewall6\-lite\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) and produces an audible alarm when new Shorewall6 Lite messages are logged\&. The
+\fB\-m\fR
+option causes the MAC address of each packet source to be displayed if that information is available\&. The
+\fIrefresh\-interval\fR
+specifies the time in seconds between screen refreshes\&. You can enter a negative number by preceding the number with "\-\-" (e\&.g\&.,
+\fBshorewall6\-lite logwatch \-\- \-30\fR)\&. In this case, when a packet count changes, you will be prompted to hit any key to resume screen refreshes\&.
+.RE
+.PP
+\fBlogreject\fR
+.RS 4
+Causes traffic from the listed
+\fIaddress\fRes to be logged then rejected\&.
+.RE
+.PP
+\fBreset\fR
+.RS 4
+All the packet and byte counters in the firewall are reset\&.
+.RE
+.PP
+\fBrestart\fR
+.RS 4
+Restart is similar to
+\fBshorewall6\-lite stop\fR
+followed by
+\fBshorewall6\-lite start\fR\&. Existing connections are maintained\&.
+.sp
+The
+\fB\-n\fR
+option causes Shorewall6 to avoid updating the routing table(s)\&.
+.sp
+The
+\fB\-p\fR
+option causes the connection tracking table to be flushed; the
+\fBconntrack\fR
+utility must be installed to use this option\&.
+.RE
+.PP
+\fBrestore\fR
+.RS 4
+Restore Shorewall6 Lite to a state saved using the
+\fBshorewall6\-lite save\fR
+command\&. Existing connections are maintained\&. The
+\fIfilename\fR
+names a restore file in /var/lib/shorewall6\-lite created using
+\fBshorewall6\-lite save\fR; if no
+\fIfilename\fR
+is given then Shorewall6 Lite will be restored from the file specified by the RESTOREFILE option in
+\m[blue]\fBshorewall6\-lite\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.RE
+.PP
+\fBsave\fR
+.RS 4
+The dynamic blacklist is stored in /var/lib/shorewall6\-lite/save\&. The state of the firewall is stored in /var/lib/shorewall6\-lite/\fIfilename\fR
+for use by the
+\fBshorewall6\-lite restore\fR
+and
+\fBshorewall6\-lite \-f start\fR
+commands\&. If
+\fIfilename\fR
+is not given then the state is saved in the file specified by the RESTOREFILE option in
+\m[blue]\fBshorewall6\-lite\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.RE
+.PP
+\fBshow\fR
+.RS 4
+The show command can have a number of different arguments:
+.PP
+\fBactions\fR
+.RS 4
+Produces a report about the available actions (built\-in, standard and user\-defined)\&.
+.RE
+.PP
+\fBcapabilities\fR
+.RS 4
+Displays your kernel/iptables capabilities\&. The
+\fB\-f\fR
+option causes the display to be formatted as a capabilities file for use with
+\fBcompile \-e\fR\&.
+.RE
+.PP
+[ [ \fBchain\fR ] \fIchain\fR \&.\&.\&. ]
+.RS 4
+The rules in each
+\fIchain\fR
+are displayed using the
+\fBip6tables \-L\fR
+\fIchain\fR
+\fB\-n \-v\fR
+command\&. If no
+\fIchain\fR
+is given, all of the chains in the filter table are displayed\&. The
+\fB\-x\fR
+option is passed directly through to iptables and causes actual packet and byte counts to be displayed\&. Without this option, those counts are abbreviated\&. The
+\fB\-t\fR
+option specifies the Netfilter table to display\&. The default is
+\fBfilter\fR\&.
+.sp
+If the
+\fBt\fR
+option and the
+\fBchain\fR
+keyword are both omitted and any of the listed
+\fIchain\fRs do not exist, a usage message will be displayed\&.
+.RE
+.PP
+\fBclassifiers\fR
+.RS 4
+Displays information about the packet classifiers defined on the system as a result of traffic shaping configuration\&.
+.RE
+.PP
+\fBconfig\fR
+.RS 4
+Dispays distribution\-specific defaults\&.
+.RE
+.PP
+\fBconnections\fR
+.RS 4
+Displays the IPv6 connections currently being tracked by the firewall\&.
+.RE
+.PP
+\fBmangle\fR
+.RS 4
+Displays the Netfilter mangle table using the command
+\fBip6tables \-t mangle \-L \-n \-v\fR\&.The
+\fB\-x\fR
+option is passed directly through to iptables and causes actual packet and byte counts to be displayed\&. Without this option, those counts are abbreviated\&.
+.RE
+.PP
+\fBtc\fR
+.RS 4
+Displays information about queuing disciplines, classes and filters\&.
+.RE
+.PP
+\fBzones\fR
+.RS 4
+Displays the current composition of the Shorewall6 Lite zones on the system\&.
+.RE
+.RE
+.PP
+\fBstart\fR
+.RS 4
+Start shorewall6 Lite\&. Existing connections through shorewall6\-lite managed interfaces are untouched\&. New connections will be allowed only if they are allowed by the firewall rules or policies\&. If
+\fB\-f\fR
+is specified, the saved configuration specified by the RESTOREFILE option in
+\m[blue]\fBshorewall6\-lite\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) will be restored if that saved configuration exists and has been modified more recently than the files in /etc/shorewall6\&.
+.sp
+The
+\fB\-n\fR
+option causes Shorewall6 to avoid updating the routing table(s)\&.
+.sp
+The
+\fB\-p\fR
+option causes the connection tracking table to be flushed; the
+\fBconntrack\fR
+utility must be installed to use this option\&.
+.RE
+.PP
+\fBstop\fR
+.RS 4
+Stops the firewall\&. All existing connections, except those listed in
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in shorewall6\&.conf(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or by ADMINISABSENTMINDED\&.
+.RE
+.PP
+\fBstatus\fR
+.RS 4
+Produces a short report about the state of the Shorewall6\-configured firewall\&.
+.RE
+.PP
+\fBversion\fR
+.RS 4
+Displays Shorewall6\-lite\*(Aqs version\&.
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall6\-lite/
+.SH "SEE ALSO"
+.PP
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]\&\s-2\u[4]\d\s+2
+.PP
+shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+.SH "NOTES"
+.IP " 1." 4
+shorewall6.conf
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6.conf.html
+.RE
+.IP " 2." 4
+shorewall6-lite.conf
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-lite.conf.html
+.RE
+.IP " 3." 4
+shorewall6-routestopped
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-routestopped.html
+.RE
+.IP " 4." 4
+http://www.shorewall.net/starting_and_stopping_shorewall.htm
+.RS 4
+\%http://www.shorewall.net/starting_and_stopping_shorewall6.htm
+.RE

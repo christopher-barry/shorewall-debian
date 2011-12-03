@@ -1,0 +1,58 @@
+'\" t
+.\"     Title: shorewall6-lite-vardir
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 12/02/2011
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
+.\"
+.TH "SHOREWALL6\-LITE\-VA" "5" "12/02/2011" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+vardir \- Shorewall6 Lite file
+.SH "SYNOPSIS"
+.HP \w'\fB/etc/shorewall6\-lite/vardir\fR\ 'u
+\fB/etc/shorewall6\-lite/vardir\fR
+.SH "DESCRIPTION"
+.PP
+This file does not exist by default\&. You may create the file if you want to change the directory used by Shorewall6 Lite to store state information, including compiled firewall scripts\&. By default, the directory used is
+/var/lib/shorewall6\-lite/\&.
+.PP
+The file contains a single variable assignment:
+.PP
+\fBVARDIR=\fR\fIdirectory\fR
+.PP
+where
+\fIdirectory\fR
+is the name of a directory\&. If you add this file, you should copy the files from
+/var/lib/shorewall6\-lite
+to the new directory before performing a
+\fBshorewall6\-lite restart\fR\&.
+.SH "EXAMPLE"
+.PP
+VARDIR=/root/shorewall6
+.SH "FILES"
+.PP
+/etc/shorewall6\-lite/vardir
+.SH "SEE ALSO"
+.PP
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)

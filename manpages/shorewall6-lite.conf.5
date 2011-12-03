@@ -1,0 +1,128 @@
+'\" t
+.\"     Title: shorewall6-lite.conf
+.\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
+.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
+.\"      Date: 12/02/2011
+.\"    Manual: [FIXME: manual]
+.\"    Source: [FIXME: source]
+.\"  Language: English
+.\"
+.TH "SHOREWALL6\-LITE\&.C" "5" "12/02/2011" "[FIXME: source]" "[FIXME: manual]"
+.\" -----------------------------------------------------------------
+.\" * Define some portability stuff
+.\" -----------------------------------------------------------------
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.\" http://bugs.debian.org/507673
+.\" http://lists.gnu.org/archive/html/groff/2009-02/msg00013.html
+.\" ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.ie \n(.g .ds Aq \(aq
+.el       .ds Aq '
+.\" -----------------------------------------------------------------
+.\" * set default formatting
+.\" -----------------------------------------------------------------
+.\" disable hyphenation
+.nh
+.\" disable justification (adjust text to left margin only)
+.ad l
+.\" -----------------------------------------------------------------
+.\" * MAIN CONTENT STARTS HERE *
+.\" -----------------------------------------------------------------
+.SH "NAME"
+shorewall6-lite.conf \- Shorewall6 Lite global configuration file
+.SH "SYNOPSIS"
+.HP \w'\fB/etc/shorewall6\-lite/shorewall6\-lite\&.conf\fR\ 'u
+\fB/etc/shorewall6\-lite/shorewall6\-lite\&.conf\fR
+.SH "DESCRIPTION"
+.PP
+This file sets options that apply to Shorewall6 Lite as a whole\&.
+.PP
+The file consists of Shell comments (lines beginning with \*(Aq#\*(Aq), blank lines and assignment statements (\fIvariable\fR=\fIvalue\fR)\&. Each variable\*(Aqs setting is preceded by comments that describe the variable and it\*(Aqs effect\&.
+.PP
+Any option not specified in this file gets its value from the shorewall6\&.conf file used during compilation of /var/lib/shorewall6\-lite/firewall\&. Those settings may be found in the file /var/lib/shorewall6\-lite/firewall\&.conf\&.
+.SH "OPTIONS"
+.PP
+The following options may be set in shorewall6\&.conf\&.
+.PP
+\fBIP6TABLES=\fR[\fIpathname\fR]
+.RS 4
+This parameter names the ip6tables executable to be used by Shorewall6\&. If not specified or if specified as a null value, then the ip6tables executable located using the PATH option is used\&.
+.RE
+.PP
+\fBLOGFILE=\fR[\fIpathname\fR]
+.RS 4
+This parameter tells the /sbin/shorewall6 program where to look for Shorewall6 messages when processing the
+\fBdump\fR,
+\fBlogwatch\fR,
+\fBshow log\fR, and
+\fBhits\fR
+commands\&. If not assigned or if assigned an empty value, /var/log/messages is assumed\&.
+.RE
+.PP
+\fBLOGFORMAT=\fR[\fB"\fR\fIformattemplate\fR\fB"\fR]
+.RS 4
+The value of this variable generate the \-\-log\-prefix setting for Shorewall6 logging rules\&. It contains a \(lqprintf\(rq formatting template which accepts three arguments (the chain name, logging rule number (optional) and the disposition)\&. To use LOGFORMAT with fireparse, set it as:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+    LOGFORMAT="fp=%s:%d a=%s "
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+If the LOGFORMAT value contains the substring \(lq%d\(rq then the logging rule number is calculated and formatted in that position; if that substring is not included then the rule number is not included\&. If not supplied or supplied as empty (LOGFORMAT="") then \(lqShorewall6:%s:%s:\(rq is assumed\&.
+.RE
+.PP
+\fBPATH\fR\fB\fB=\fR\fR\fB\fIpathname\fR\fR\fB[\fR\fB\fB:\fR\fR\fB\fIpathname\fR\fR\fB]\&.\&.\&.\fR
+.RS 4
+Determines the order in which Shorewall6 searches directories for executable files\&.
+.RE
+.PP
+\fBRESTOREFILE=\fR[\fIfilename\fR]
+.RS 4
+Specifies the simple name of a file in /var/lib/shorewall6 to be used as the default restore script in the
+\fBshorewall6 save\fR,
+\fBshorewall6 restore\fR,
+\fBshorewall6 forget \fRand
+\fBshorewall6 \-f start\fR
+commands\&.
+.RE
+.PP
+\fBSHOREWALL_SHELL=\fR[\fIpathname\fR]
+.RS 4
+This option is used to specify the shell program to be used to interpret the compiled script\&. If not specified or specified as a null value, /bin/sh is assumed\&. Using a light\-weight shell such as ash or dash can significantly improve performance\&.
+.RE
+.PP
+\fBSUBSYSLOCK=\fR[\fIpathname\fR]
+.RS 4
+This parameter should be set to the name of a file that the firewall should create if it starts successfully and remove when it stops\&. Creating and removing this file allows Shorewall6 to work with your distribution\*(Aqs initscripts\&. For RedHat, this should be set to /var/lock/subsys/shorewall6\&. For Debian, the value is /var/state/shorewall6 and in LEAF it is /var/run/shorwall\&.
+.RE
+.PP
+\fBVERBOSITY=\fR[\fB\fInumber\fR\fR]
+.RS 4
+Shorewall6 has traditionally been very noisy (produced lots of output)\&. You may set the default level of verbosity using the VERBOSITY OPTION\&.
+.sp
+Values are:
+.RS 4
+0 \- Silent\&. You may make it more verbose using the \-v
+            option
+.RE
+.RS 4
+1 \- Major progress messages displayed
+.RE
+.RS 4
+2 \- All progress messages displayed (old default
+            behavior)
+.RE
+If not specified, then 2 is assumed\&.
+.RE
+.SH "FILES"
+.PP
+/etc/shorewall6\-lite/shorewall6\&.conf
+.SH "SEE ALSO"
+.PP
+\m[blue]\fBhttp://www\&.shorewall\&.net/Documentation_Index\&.html\fR\m[]
+.PP
+shorewall6\-lite(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-ipsec(5), shorewall6\-maclist(5), shorewall6\-masq(5), shorewall6\-nat(5), shorewall6\-netmap(5), shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-proxyarp(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
