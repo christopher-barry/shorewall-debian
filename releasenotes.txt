@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                     S H O R E W A L L  4 . 4 . 2 6 
+                   S H O R E W A L L  4 . 4 . 2 6 . 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,26 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.26.1
+
+1)  The Perl module version numbers have now been updated to reflect
+    changes in 4.4.26.
+
+2)  The 4.4.26 rules compiler does not issue a warning when a
+    capabilities file was generated with Shorewall 4.4.25, even though
+    new capabilities were added in 4.4.26. This has been corrected so
+    that a warning is generated.
+
+3)  When TC_ENABLED=Shared, CLASSIFY rules could not be used in the
+    tcrules file. Thanks to a patch from Chris Boot, this now works as
+    expected.
+
+4)  The quoted part of the progress message 'Provider "..." compiled'
+    was inadvertently omitted by a change in Shorewall 4.4.23. That
+    text has now been restored.
+
+4.4.26
 
 1)  This release includes all corrections included in 4.4.25.1 through
     .3.
