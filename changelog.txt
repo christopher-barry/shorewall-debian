@@ -1,3 +1,16 @@
+Changes in 4.4.26.1
+
+1)  Belatedly update module versions.
+
+2)  Bump CAPVERSION in the compiler.
+
+3)  Correct a couple of minor typos.
+
+4)  Apply Chris Boot's patch for TC_ENABLED=Simple
+
+5)  Restore the quoted part of the 'Provider "..." compiled' progress
+    message.
+
 Changes in 4.4.26 Final
 
 1)  Fix 'shorewall6 update'.
