@@ -152,7 +152,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_24';
+our $VERSION = '4.4_26';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -450,8 +450,8 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.26",
-		    CAPVERSION => 40425 ,
+		    VERSION    => "4.4.26.1",
+		    CAPVERSION => 40426 ,
 		  );
     #
     # From shorewall.conf file

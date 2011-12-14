@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_25';
+our $VERSION = '4.4_26';
 
 my $family;
 
