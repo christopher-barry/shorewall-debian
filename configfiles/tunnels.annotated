@@ -7,21 +7,21 @@
 # http://www.shorewall.net/manpages6/shorewall6-tunnels.html
 #
 ###############################################################################
-#           
-#           The tunnels file is used to define rules for encapsulated (usually encrypted)
-#           traffic to pass between the Shorewall6 system and a remote gateway. Traffic
-#           flowing through the tunnel is handled using the normal zone/policy/rule
-#           mechanism. See http://www.shorewall.net/VPNBasics.html for details.
-#           
-#           The columns in the file are as follows (where the column name is followed by a
-#           different name in parentheses, the different name is used in the alternate
-#           specification syntax).
-#           
-#           TYPE - {ipsec[:{noah|ah}]|ipsecnat|gre|l2tp|pptpclient|pptpserver|{openvpn|
+# 
+# The tunnels file is used to define rules for encapsulated (usually encrypted)
+# traffic to pass between the Shorewall6 system and a remote gateway. Traffic
+# flowing through the tunnel is handled using the normal zone/policy/rule
+# mechanism. See http://www.shorewall.net/VPNBasics.html for details.
+# 
+# The columns in the file are as follows (where the column name is followed by a
+# different name in parentheses, the different name is used in the alternate
+# specification syntax).
+# 
+# TYPE - {ipsec[:{noah|ah}]|ipsecnat|gre|l2tp|pptpclient|pptpserver|{openvpn|
 #     openvpnclient|openvpnserver}[:{tcp|udp}][:port]|generic:protocol[:port]}
-#           
+# 
 #     Types are as follows:
-#           
+# 
 #             ipsec         - IPv6 IPSEC
 #             ipsecnat      - IPv6 IPSEC with NAT Traversal (UDP port 4500 encapsulation)
 #             gre           - Generalized Routing Encapsulation (Protocol 47)
@@ -30,92 +30,92 @@
 #             openvpnclient - OpenVPN client runs on the firewall
 #             openvpnserver - OpenVPN server runs on the firewall
 #             generic       - Other tunnel type
-#           
+# 
 #     If the type is ipsec, it may be followed by :ah to indicate that the
 #     Authentication Headers protocol (51) is used by the tunnel (the default is
 #     :noah which means that protocol 51 is not used). NAT traversal is only
 #     supported with ESP (protocol 50) so ipsecnat tunnels don't allow the ah
 #     option (ipsecnat:noah may be specified but is redundant).
-#           
+# 
 #     If type is openvpn, openvpnclient or openvpnserver it may optionally be
 #     followed by ":" and tcp or udp to specify the protocol to be used. If not
 #     specified, udp is assumed. Note: At this writing, OpenVPN does not support
 #     IPv6.
-#           
+# 
 #     If type is openvpn, openvpnclient or openvpnserver it may optionally be
 #     followed by ":" and the port number used by the tunnel. if no ":" and port
 #     number are included, then the default port of 1194 will be used. . Where
 #     both the protocol and port are specified, the protocol must be given first
 #     (e.g., openvpn:tcp:4444).
-#           
+# 
 #     If type is generic, it must be followed by ":" and a protocol name (from /
 #     etc/protocols) or a protocol number. If the protocol is tcp or udp (6 or
 #     17), then it may optionally be followed by ":" and a port number.
-#           
-#           ZONE - zone
-#           
+# 
+# ZONE - zone
+# 
 #     The zone of the physical interface through which tunnel traffic passes.
 #     This is normally your internet zone.
-#           
-#           GATEWAY - address-or-range
-#           
+# 
+# GATEWAY - address-or-range
+# 
 #     The IP address of the remote tunnel gateway. If the remote gateway has no
 #     fixed address (Road Warrior) then specify the gateway as ::/0. May be
 #     specified as a network address and if your kernel and ip6tables include
 #     iprange match support then IP address ranges are also allowed.
-#           
-#           GATEWAY ZONES (gateway_zone) - [zone[,zone]...]
-#           
+# 
+# GATEWAY ZONES (gateway_zone) - [zone[,zone]...]
+# 
 #     Optional. If the gateway system specified in the third column is a
 #     standalone host then this column should contain a comma-separated list of
 #     the names of the zones that the host might be in. This column only applies
 #     to IPSEC tunnels where it enables ISAKMP traffic to flow through the tunnel
 #     to the remote gateway.
-#           
-#           Example
-#           
-#           Example 1:
-#           
+# 
+# Example
+# 
+# Example 1:
+# 
 #     IPSec tunnel.
-#           
+# 
 #     The remote gateway is 2001:cec792b4:1::44. The tunnel does not use the AH
 #     protocol
-#           
+# 
 #             #TYPE           ZONE    GATEWAY
 #             ipsec:noah      net     2002:cec792b4:1::44
-#           
-#           Example 2:
-#           
+# 
+# Example 2:
+# 
 #     Road Warrior (LapTop that may connect from anywhere) where the "gw" zone is
 #     used to represent the remote LapTop
-#           
+# 
 #             #TYPE           ZONE    GATEWAY                 GATEWAY ZONES
 #             ipsec           net     ::/0                    gw
-#           
-#           Example 3:
-#           
+# 
+# Example 3:
+# 
 #     Host 2001:cec792b4:1::44 is a standalone system connected via an ipsec
 #     tunnel to the firewall system. The host is in zone gw.
-#           
+# 
 #             #TYPE           ZONE    GATEWAY                 GATEWAY ZONES
 #             ipsec           net     2001:cec792b4:1::44     gw
-#           
-#           Example 4:
-#           
+# 
+# Example 4:
+# 
 #     OPENVPN tunnel. The remote gateway is 2001:cec792b4:1::44 and openvpn uses
 #     port 7777.
-#           
+# 
 #             #TYPE           ZONE    GATEWAY                 GATEWAY ZONES
 #             openvpn:7777    net     2001:cec792b4:1::44
-#           
-#           Example 8:
-#           
+# 
+# Example 8:
+# 
 #     You have a tunnel that is not one of the supported types. Your tunnel uses
 #     UDP port 4444. The other end of the tunnel is 2001:cec792b4:1::44.
-#           
+# 
 #             #TYPE            ZONE    GATEWAY                GATEWAY ZONES
 #             generic:udp:4444 net     2001:cec792b4:1::44
-#           
+# 
 ###############################################################################
 #TYPE			ZONE	GATEWAY		GATEWAY
 #						ZONE
