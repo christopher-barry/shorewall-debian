@@ -1,9 +1,9 @@
 #
-# Shorewall6 4.2-- /usr/share/shorewall/lib.base
+# Shorewall 4.4 -- /usr/share/shorewall/lib.base
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 1999,2000,2001,2002,2003,2004,2005,2006,2007,2008 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999,2000,2001,2002,2003,2004,2005,2006,2007 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -23,20 +23,18 @@
 # This library contains the code common to all Shorewall components.
 #
 # - It is loaded by /sbin/shorewall.
-# - It is loaded by /usr/share/shorewall/firewall.
-# - It is loaded by /usr/share/shorewall-shell/compiler.
-# - It is released as part of Shorewall Lite where it is used by /sbin/shorewall-lite
-#   and /usr/share/shorewall-lite/shorecap.
-# - It is released as part of Shorewall Perl where it is copied into the compiled script
-#   by the compiler.
+# - It is released as part of Shorewall[6] Lite where it is used by /sbin/shorewall[6]-lite
+#   and /usr/share/shorewall[6]-lite/shorecap.
 #
 
 SHOREWALL_LIBVERSION=40407
-SHOREWALL_CAPVERSION=40426
+SHOREWALL_CAPVERSION=40427
 
-[ -n "${VARDIR:=/var/lib/shorewall6}" ]
-[ -n "${SHAREDIR:=/usr/share/shorewall6}" ]
-[ -n "${CONFDIR:=/etc/shorewall6}" ]
+[ -n "${g_program:=shorewall6-lite}" ]
+[ -n "${VARDIR:=/var/lib/$g_program}" ]
+[ -n "${SHAREDIR:=/usr/share/$g_program}" ]
+[ -n "${CONFDIR:=/etc/$g_program}" ]
+[ -n "${g_family:=6}" ]
 
 #
 # Conditionally produce message
@@ -159,13 +157,13 @@ mutex_off()
 
 find_interface_by_mac() {
     local mac
-    mac=$1 
-    local first 
+    mac=$1
+    local first
     local second
     local rest
     local dev
 
-    ip link list | while read first second rest; do
+    $IP link list | while read first second rest; do
 	case $first in
 	    *:)
                 dev=$second
@@ -179,6 +177,159 @@ find_interface_by_mac() {
     done
 }
 
+[ -z "$LEFTSHIFT" ] && . ${g_basedir}/lib.common
+
+#
+# Validate an IP address
+#
+valid_address() {
+    local x
+    local y
+    local ifs
+    ifs=$IFS
+
+    IFS=.
+
+    for x in $1; do
+	case $x in
+	    [0-9]|[0-9][0-9]|[1-2][0-9][0-9])
+		[ $x -lt 256 ] || { IFS=$ifs; return 2; }
+                ;;
+	    *)
+	        IFS=$ifs
+		return 2
+		;;
+	esac
+    done
+
+    IFS=$ifs
+
+    return 0
+}
+
+#
+# Miserable Hack to work around broken BusyBox ash in OpenWRT
+#
+addr_comp() {
+    test $(bc <<EOF
+$1 > $2
+EOF
+) -eq 1
+
+}
+
+#
+# Enumerate the members of an IP range -- When using a shell supporting only
+# 32-bit signed arithmetic, the range cannot span 128.0.0.0.
+#
+# Comes in two flavors:
+#
+# ip_range() - produces a mimimal list of network/host addresses that spans
+#              the range.
+#
+# ip_range_explicit() - explicitly enumerates the range.
+#
+ip_range() {
+    local first
+    local last
+    local l
+    local x
+    local y
+    local z
+    local vlsm
+
+    case $1 in
+	!*)
+	    #
+	    # Let iptables complain if it's a range
+	    #
+	    echo $1
+	    return
+	    ;;
+	[0-9]*.*.*.*-*.*.*.*)
+            ;;
+	*)
+	    echo $1
+	    return
+	    ;;
+    esac
+
+    first=$(decodeaddr ${1%-*})
+    last=$(decodeaddr ${1#*-})
+
+    if addr_comp $first $last; then
+	fatal_error "Invalid IP address range: $1"
+    fi
+
+    l=$(( $last + 1 ))
+
+    while addr_comp $l $first; do
+	vlsm=
+	x=31
+	y=2
+	z=1
+
+	while [ $(( $first % $y )) -eq 0 ] && ! addr_comp $(( $first + $y )) $l; do
+	    vlsm=/$x
+	    x=$(( $x - 1 ))
+	    z=$y
+	    y=$(( $y * 2 ))
+	done
+
+	echo $(encodeaddr $first)$vlsm
+	first=$(($first + $z))
+    done
+}
+
+ip_range_explicit() {
+    local first
+    local last
+
+    case $1 in
+    [0-9]*.*.*.*-*.*.*.*)
+	;;
+    *)
+	echo $1
+	return
+	;;
+    esac
+
+    first=$(decodeaddr ${1%-*})
+    last=$(decodeaddr ${1#*-})
+
+    if addr_comp $first $last; then
+	fatal_error "Invalid IP address range: $1"
+    fi
+
+    while ! addr_comp $first $last; do
+	echo $(encodeaddr $first)
+	first=$(($first + 1))
+    done
+}
+
+#
+# Netmask to VLSM
+#
+ip_vlsm() {
+    local mask
+    mask=$(decodeaddr $1)
+    local vlsm
+    vlsm=0
+    local x
+    x=$(( 128 << 24 )) # 0x80000000
+
+    while [ $(( $x & $mask )) -ne 0 ]; do
+	[ $mask -eq $x ] && mask=0 || mask=$(( $mask $LEFTSHIFT 1 )) # Not all shells shift 0x80000000 left properly.
+	vlsm=$(($vlsm + 1))
+    done
+
+    if [ $(( $mask & 2147483647 )) -ne 0 ]; then # 2147483647 = 0x7fffffff
+	echo "Invalid net mask: $1" >&2
+    else
+	echo $vlsm
+    fi
+}
+
 #
 # Set default config path
 #
@@ -190,8 +341,8 @@ ensure_config_path() {
 	. $F
     fi
 
-    if [ -n "$SHOREWALL_DIR" ]; then
-	[ "${CONFIG_PATH%%:*}" = "$SHOREWALL_DIR" ] || CONFIG_PATH=$SHOREWALL_DIR:$CONFIG_PATH
+    if [ -n "$g_shorewalldir" ]; then
+	[ "${CONFIG_PATH%%:*}" = "$g_shorewalldir" ] || CONFIG_PATH=$g_shorewalldir:$CONFIG_PATH
     fi
 }
 
@@ -245,7 +396,7 @@ find_echo() {
     result=$(which echo)
     [ -n "$result" ] && { echo "$result -e"; return; }
 
-    echo echo 
+    echo echo
 }
 
 # Determine which version of mktemp is present (if any) and set MKTEMP accortingly:
@@ -310,5 +461,3 @@ mktempfile() {
 	esac
     fi
 }
-
-. ${SHAREDIR}/lib.common
