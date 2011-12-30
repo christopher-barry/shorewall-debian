@@ -1,6 +1,6 @@
 # Set Debian configuration defaults.
---- shorewall-debian.orig/configfiles/shorewall6.conf
-+++ shorewall-debian/configfiles/shorewall6.conf
+--- shorewall.git.orig/configfiles/shorewall6.conf
++++ shorewall.git/configfiles/shorewall6.conf
 @@ -10,7 +10,7 @@
  #		       S T A R T U P   E N A B L E D
  ###############################################################################
@@ -10,7 +10,7 @@
  
  ###############################################################################
  #		              V E R B O S I T Y
-@@ -68,7 +68,7 @@
+@@ -70,7 +70,7 @@
  
  SHOREWALL_SHELL=/bin/sh
  
