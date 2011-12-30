@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-notrack
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 12/13/2011
+.\"      Date: 12/30/2011
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-NOTRACK" "5" "12/13/2011" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-NOTRACK" "5" "12/30/2011" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -34,9 +34,119 @@ notrack \- shorewall6 notrack file
 \fB/etc/shorewall6/notrack\fR
 .SH "DESCRIPTION"
 .PP
-The notrack file is used to exempt certain traffic from Netfilter connection tracking\&. Traffic matching entries in this file will not be tracked\&.
+The original intent of the notrack file was to exempt certain traffic from Netfilter connection tracking\&. Traffic matching entries in this file were not to be tracked\&.
+.PP
+The role of the file was expanded in Shorewall 4\&.4\&.27 to include all rules tht can be added in the Netfilter
+\fBraw\fR
+table\&.
+.PP
+The file supports two different column layouts: FORMAT 1 and FORMAT 2, FORMAT 1 being the default\&. The two differ in that FORMAT 2 has an additional leading ACTION column\&. When an entry in the file of this form is encountered, the format of the following entries are assumed to be of the specified
+\fIformat\fR\&.
+.RS 4
+FORMAT \fIformat\fR
+.RE
+.PP
+where
+\fIformat\fR
+is either
+\fB1\fR
+or
+\fB2\fR\&.
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
+.PP
+\fBACTION\fR \- {\fBNOTRACK\fR|\fBCT\fR:\fIoption\fR:\fIargs\fR}
+.RS 4
+This column is only present when FORMAT = 2\&. Values other than NOTRACK require
+CT Targetsupport in your iptables and kernel\&.
+.sp
+Possible values for
+\fIoption\fR
+and
+\fIarg\fRs are:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBnotrack\fR
+(no
+\fIarg\fR)
+.sp
+Disables connection tracking for this packet, the same as if NOTRACK has been specified in this column\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBhelper\fR:\fIname\fR
+.sp
+Use the helper identified by the name to this connection\&. This is more flexible than loading the conntrack helper with preset ports\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBctevents\fR:\fIevent\fR,\&.\&.\&.
+.sp
+Only generate the specified conntrack events for this connection\&. Possible event types are:
+\fBnew\fR,
+\fBrelated\fR,
+\fBdestroy\fR,
+\fBreply\fR,
+\fBassured\fR,
+\fBprotoinfo\fR,
+\fBhelper\fR,
+\fBmark\fR
+(this is connection mark, not packet mark),
+\fBnatseqinfo\fR, and
+\fBsecmark\fR\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBexpevents\fR\fB:new\fR
+.sp
+Only generate a new expectation events for this connection\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+\fBzone\fR:\fIid\fR
+.sp
+Assign this packet to zone
+\fIid\fR
+and only have lookups done in that zone\&. By default, packets have zone 0\&.
+.RE
+.sp
+When FORMAT = 1, this column is not present and the rule is processed as if NOTRACK had been entered in this column\&.
+.RE
 .PP
 SOURCE \(en \fIzone\fR[:\fIinterface\fR][:\fIaddress\-list\fR]
 .RS 4
