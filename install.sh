@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.26.1
+VERSION=4.4.27
 
 usage() # $1 = exit status
 {
@@ -276,7 +276,7 @@ echo "Installing Shorewall6 Version $VERSION"
 #
 # Check for /sbin/shorewall6
 #
-if [ -f ${DESTDIR}/sbin/shorewall6 ]; then
+if [ -f ${DESTDIR}/sbin/shorewall6 -o -h ${DESTDIR}/sbin/shorewall6 ]; then
     first_install=""
 else
     first_install="Yes"
@@ -298,7 +298,6 @@ else
    eval sed -i \'s\|g_perllib=.\*\|g_perllib=$PERLLIB\|\' ${DESTDIR}/bin/shorewall6
    echo "shorewall6 control program installed in ${DESTDIR}/bin/shorewall6"
 fi
-
 
 #
 # Install the Firewall Script
@@ -354,6 +353,8 @@ delete_file ${DESTDIR}/usr/share/shorewall6/lib.proxyarp
 delete_file ${DESTDIR}/usr/share/shorewall6/lib.tc
 delete_file ${DESTDIR}/usr/share/shorewall6/lib.tcrules
 delete_file ${DESTDIR}/usr/share/shorewall6/lib.tunnels
+delete_file ${DESTDIR}/usr/share/shorewall6/lib.cli
+delete_file ${DESTDIR}/usr/share/shorewall6/lib.common
 delete_file ${DESTDIR}/usr/share/shorewall6/prog.header6
 delete_file ${DESTDIR}/usr/share/shorewall6/prog.footer6
 
@@ -836,10 +837,8 @@ done
 # Install the libraries
 #
 for f in lib.* ; do
-    if [ -f $f ]; then
-	install_file $f ${DESTDIR}/usr/share/shorewall6/$f 0644
-	echo "Library ${f#*.} file installed as ${DESTDIR}/usr/share/shorewall6/$f"
-    fi
+    install_file $f ${DESTDIR}/usr/share/shorewall6/$f 0644
+    echo "Library ${f#*.} file installed as ${DESTDIR}/usr/share/shorewall6/$f"
 done
 #
 # Symbolically link 'functions' to lib.base

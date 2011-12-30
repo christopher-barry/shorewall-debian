@@ -197,6 +197,14 @@ MACLIST_LOG_LEVEL=info
 #     want to log these connection requests, set to the empty value (e.g.,
 #     MACLIST_LOG_LEVEL="").
 # 
+RELATED_LOG_LEVEL=
+#
+# RELATED_LOG_LEVEL=log-level
+# 
+#     Added in Shorewall 4.4.27. Packets in the related state that do not match
+#     any rule in the RELATED section of shorewall6-rules (5) are logged at this
+#     level. The default value is empty which means no logging is performed.
+# 
 SFILTER_LOG_LEVEL=info
 #
 # SFILTER_LOG_LEVEL=log-level
@@ -1025,6 +1033,17 @@ USE_DEFAULT_RT=No
 #     If USE_DEFAULT_RT is not set or if it is set to the empty string then
 #     USE_DEFAULT_RT=No is assumed.
 # 
+USE_PHYSICAL_NAMES=No
+#
+# USE_PHYSICAL_NAMES=[Yes|No]
+# 
+#     Added in Shorewall 4.4.27. Normally, when Shorewall creates a Netfilter
+#     chain that relates to an interface, it uses the interfaces's logical name
+#     as the base of the chain name. For example, if the logical name for an
+#     interface is OAKLAND, then the input chain for traffic arriving on that
+#     interface would be 'OAKLAND_in'. If this option is set to Yes, then the
+#     physical name of the interface will be used the base of the chain name.
+# 
 ZONE2ZONE=2
 #
 # ZONE2ZONE={2|-}
@@ -1049,7 +1068,7 @@ BLACKLIST_DISPOSITION=DROP
 #     determines the disposition of packets sent to the blacklog target of
 #     shorewall6-blrules(5).
 # 
-MACLIST_DISPOSITION=REJECTTTT
+MACLIST_DISPOSITION=REJECT
 #
 # MACLIST_DISPOSITION=[ACCEPT|DROP|REJECT|A_DROP|A_REJECT]
 # 
@@ -1062,6 +1081,18 @@ MACLIST_DISPOSITION=REJECTTTT
 #     A_DROP and A_REJECT are audited versions of DROP and REJECT respectively
 #     and were added in Shorewall 4.4.20. They require AUDIT_TARGET in the kernel
 #     and ip6tables.
+# 
+RELATED_DISPOSITION=ACCEPT
+#
+# RELATED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT]
+# 
+#     Added in Shorewall 4.4.27. Shorewall has traditionally ACCEPTed RELATED
+#     packets that don't match any rule in the RELATED section of
+#     shorewall6-rules (5). Concern about the safety of this practice resulted in
+#     the addition of this option. When a packet in RELATED state fails to match
+#     any rule in the RELATED section, the packet is disposed of based on this
+#     setting. The default value is ACCEPT for compatibility with earlier
+#     versions.
 # 
 SFILTER_DISPOSITION=DROP
 #
