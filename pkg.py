@@ -276,28 +276,32 @@ if op == 'import':
             sys.exit(1)
 
     # Pull bug reports, and remind user to check for closures
-    bugs_fixed_upstream = debianbts.get_bugs('package', pkg_name, 'tag', 'fixed-upstream')
-    bugs_upstream = debianbts.get_bugs('package', pkg_name, 'tag', 'upstream')
-    bugs_all = debianbts.get_bugs('package', pkg_name)
-    print "\n" + "**********" * 8
-    if len(bugs_fixed_upstream) > 0: print "\nBugs tagged 'fixed-upstream':"
-    for b in bugs_fixed_upstream:
-        if b in bugs_all: bugs_all.remove(b) # avoid repeats below
-        s = debianbts.get_status(b)
-        if not s[0].done:
-            print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
-    if len(bugs_upstream) > 0: print "\nBugs tagged 'upstream':"
-    for b in bugs_upstream:
-        if b in bugs_all: bugs_all.remove(b) # avoid repeats below
-        s = debianbts.get_status(b)
-        if not s[0].done:
-            print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
-    if len(bugs_all) > 0: print "\nAll other bugs:"
-    for b in bugs_all:
-        s = debianbts.get_status(b)
-        if not s[0].done:
-            print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
-    print "\nPlease remember to check for and make note of closed bugs\n"
+    try:
+        bugs_fixed_upstream = debianbts.get_bugs('package', pkg_name, 'tag', 'fixed-upstream')
+        bugs_upstream = debianbts.get_bugs('package', pkg_name, 'tag', 'upstream')
+        bugs_all = debianbts.get_bugs('package', pkg_name)
+        print "\n" + "**********" * 8
+        if len(bugs_fixed_upstream) > 0: print "\nBugs tagged 'fixed-upstream':"
+        for b in bugs_fixed_upstream:
+            if b in bugs_all: bugs_all.remove(b) # avoid repeats below
+            s = debianbts.get_status(b)
+            if not s[0].done:
+                print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
+        if len(bugs_upstream) > 0: print "\nBugs tagged 'upstream':"
+        for b in bugs_upstream:
+            if b in bugs_all: bugs_all.remove(b) # avoid repeats below
+            s = debianbts.get_status(b)
+            if not s[0].done:
+                print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
+        if len(bugs_all) > 0: print "\nAll other bugs:"
+        for b in bugs_all:
+            s = debianbts.get_status(b)
+            if not s[0].done:
+                print "\tBug %s: %s" % (s[0].bug_num, s[0].subject)
+        print "\nPlease remember to check for and make note of closed bugs\n"
+    except SOAPpy.Errors.HTTPError, HTTPError:
+        print "\nUnable to retrieve bug information from Debian BTS.\n"
+        print "\nPlease manually check for bugs that can be closed.\n"
     print "**********" * 8 + "\n"
     os.system("dch --newversion %s-1 New Upstream Version" % pkg_ver)
     os.system('git status')
