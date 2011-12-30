@@ -4,204 +4,204 @@
 # For information about entries in this file, type "man shorewall-secmarks"
 #
 ############################################################################################################
-#           
-#           Important
-#           
-#           Unlike rules in the shorewall-rules(5) file, evaluation of rules in this file
-#           will continue after a match. So the final secmark for each packet will be the
-#           one assigned by the LAST rule that matches.
-#           
-#           The secmarks file is used to associate an SELinux context with packets. It was
-#           added in Shorewall version 4.4.13.
-#           
-#           The columns in the file are as follows (where the column name is followed by a
-#           different name in parentheses, the different name is used in the alternate
-#           specification syntax).
-#           
-#           SECMARK - {SAVE|RESTORE|context|COMMENT comment}
-#           
+# 
+# Important
+# 
+# Unlike rules in the shorewall-rules(5) file, evaluation of rules in this file
+# will continue after a match. So the final secmark for each packet will be the
+# one assigned by the LAST rule that matches.
+# 
+# The secmarks file is used to associate an SELinux context with packets. It was
+# added in Shorewall version 4.4.13.
+# 
+# The columns in the file are as follows (where the column name is followed by a
+# different name in parentheses, the different name is used in the alternate
+# specification syntax).
+# 
+# SECMARK - {SAVE|RESTORE|context|COMMENT comment}
+# 
 #     SAVE
-#           
+# 
 #         If an SELinux context is associated with the packet, the context is
 #         saved in the connection. Normally, the remaining columns should be left
 #         blank.
-#           
+# 
 #     RESTORE
-#           
+# 
 #         If an SELinux context is not currently associated with the packet, then
 #         the saved context (if any) is associated with the packet. Normally, the
 #         remaining columns should be left blank.
-#           
+# 
 #     context
-#           
+# 
 #         An SELinux context.
-#           
+# 
 #     COMMENT
-#           
+# 
 #         The remainder of the line is treated as a comment which is attached to
 #         subsequent rules until another COMMENT line is found or until the end
 #         of the file is reached. To stop adding comments to rules, use a line
 #         with only the word COMMENT.
-#           
-#           CHAIN:STATE (chain) - {P|I|F|O|T}[:{N|I|NI|E|ER}]
-#           
+# 
+# CHAIN:STATE (chain) - {P|I|F|O|T}[:{N|I|NI|E|ER}]
+# 
 #     This column determines the CHAIN where the SElinux context is to be
 #     applied:
-#           
+# 
 #     P - PREROUTING
 #     I - INPUT
 #     F - FORWARD
 #     O - OUTPUT
 #     T - POSTROUTING
-#           
+# 
 #     It may be optionally followed by a colon and an indication of the Netfilter
 #     connection state(s) at which the context is to be applied:
-#           
+# 
 #     :N - NEW connection
 #     :I - INVALID connection
 #     :NI - NEW or INVALID connection
 #     :E - ESTABLISHED connection
 #     :ER - ESTABLISHED or RELATED connection
-#           
-#           SOURCE - {-interface|[interface:]address-or-range[,address-or-range]...}[
+# 
+# SOURCE - {-interface|[interface:]address-or-range[,address-or-range]...}[
 #     exclusion]
-#           
+# 
 #     May be:
-#           
+# 
 #      1. An interface name - matches traffic entering the firewall on the
 #         specified interface. May not be used in classify rules or in rules
 #         using the T in the CHAIN column.
-#           
+# 
 #      2. A comma-separated list of host or network IP addresses or MAC
 #         addresses.
-#           
+# 
 #      3. An interface name followed by a colon (":") followed by a
 #         comma-separated list of host or network IP addresses or MAC addresses.
-#           
+# 
 #     MAC addresses must be prefixed with "~" and use "-" as a separator.
-#           
+# 
 #     Example: ~00-A0-C9-15-39-78
-#           
+# 
 #     You may exclude certain hosts from the set already defined through use of
 #     an exclusion (see shorewall-exclusion(5)).
-#           
+# 
 #     Addresses may be specified using an ipset name preceded by '+'.
-#           
-#           DEST - {-|{interface|[interface:]address-or-range[,address-or-range]...}[
+# 
+# DEST - {-|{interface|[interface:]address-or-range[,address-or-range]...}[
 #     exclusion]
-#           
+# 
 #     May be:
-#           
+# 
 #      1. An interface name. May not be used in the PREROUTING or INPUT chains.
 #         The interface name may be optionally followed by a colon (":") and an
 #         IP address list.
-#           
+# 
 #      2. A comma-separated list of host or network IP addresses. The list may
 #         include ip address ranges if your kernel and iptables include iprange
 #         support.
-#           
+# 
 #     You may exclude certain hosts from the set already defined through use of
 #     an exclusion (see shorewall-exclusion(5)).
-#           
+# 
 #     Addresses may be specified using an ipset name preceded by '+'.
-#           
-#           PROTO - {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|protocol-name|all}
-#           
+# 
+# PROTO - {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|protocol-name|all}
+# 
 #     Protocol - ipp2p requires ipp2p match support in your kernel and iptables.
-#           
-#           PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
-#           
+# 
+# PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
+# 
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
 #     column is interpreted as the destination icmp-type(s). ICMP types may be
 #     specified as a numeric type, a numberic type and code separated by a slash
 #     (e.g., 3/4), or a typename. See http://www.shorewall.net/
 #     configuration_file_basics.htm#ICMP.
-#           
+# 
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option
 #     without the leading "--" (example bit for bit-torrent). If no PORT is
 #     given, ipp2p is assumed.
-#           
+# 
 #     This column is ignored if PROTOCOL = all but must be entered if any of the
 #     following field is supplied. In that case, it is suggested that this field
 #     contain "-"
-#           
-#           SOURCE PORT(S) (sport) - [-|port-name-number-or-range[,
+# 
+# SOURCE PORT(S) (sport) - [-|port-name-number-or-range[,
 #     port-name-number-or-range]...]
-#           
+# 
 #     Optional source port(s). If omitted, any source port is acceptable.
 #     Specified as a comma-separated list of port names, port numbers or port
 #     ranges.
-#           
-#           USER - [!][user-name-or-number][:group-name-or-number]
-#           
+# 
+# USER - [!][user-name-or-number][:group-name-or-number]
+# 
 #     This optional column may only be non-empty if the SOURCE is the firewall
 #     itself.
-#           
+# 
 #     When this column is non-empty, the rule applies only if the program
 #     generating the output is running under the effective user and/or group
 #     specified (or is NOT running under that id if "!" is given).
-#           
+# 
 #     Examples:
-#           
+# 
 #     joe
-#           
+# 
 #         program must be run by joe
-#           
+# 
 #     :kids
-#           
+# 
 #         program must be run by a member of the 'kids' group
-#           
+# 
 #     !:kids
-#           
+# 
 #         program must not be run by a member of the 'kids' group
-#           
-#           MARK - [!]value[/mask][:C]
-#           
+# 
+# MARK - [!]value[/mask][:C]
+# 
 #     Defines a test on the existing packet or connection mark. The rule will
 #     match only if the test returns true.
-#           
+# 
 #     If you don't want to define a test but need to specify anything in the
 #     following columns, place a "-" in this field.
-#           
+# 
 #     !
-#           
+# 
 #         Inverts the test (not equal)
-#           
+# 
 #     value
-#           
+# 
 #         Value of the packet or connection mark.
-#           
+# 
 #     mask
-#           
+# 
 #         A mask to be applied to the mark before testing.
-#           
+# 
 #     :C
-#           
+# 
 #         Designates a connection mark. If omitted, the packet mark's value is
 #         tested.
-#           
-#           EXAMPLE
-#           
-#           Mark the first incoming packet of a connection on the loopback interface and
-#           destined for address 127.0.0.1 and tcp port 3306 with context
-#           system_u:object_r:mysqld_t:s0 and save that context in the conntrack table. On
-#           subsequent input packets in the connection, set the context from the conntrack
-#           table.
-#           
-#           /etc/shorewall/interfaces:
-#           
-#           #ZONE      INTERFACE      BROADCAST       OPTIONS
-#           -          lo             -               ignore
-#           
-#           /etc/shorewall/secmarks:
-#           
-#           #SECMARK                              CHAIN:     SOURCE  DEST       PROTO   DEST       SOURCE      USER/     MARK
-#           #                                     STATE                                 PORT(S)    PORT(S)     GROUP
-#           system_u:object_r:mysqld_packet_t:s0  I:N        lo      127.0.0.1  tcp     3306
-#           SAVE                                  I:N        lo      127.0.0.1  tcp     3306
-#           RESTORE                               I:ER
-#           
+# 
+# EXAMPLE
+# 
+# Mark the first incoming packet of a connection on the loopback interface and
+# destined for address 127.0.0.1 and tcp port 3306 with context
+# system_u:object_r:mysqld_t:s0 and save that context in the conntrack table. On
+# subsequent input packets in the connection, set the context from the conntrack
+# table.
+# 
+# /etc/shorewall/interfaces:
+# 
+# #ZONE      INTERFACE      BROADCAST       OPTIONS
+# -          lo             -               ignore
+# 
+# /etc/shorewall/secmarks:
+# 
+# #SECMARK                              CHAIN:     SOURCE  DEST       PROTO   DEST       SOURCE      USER/     MARK
+# #                                     STATE                                 PORT(S)    PORT(S)     GROUP
+# system_u:object_r:mysqld_packet_t:s0  I:N        lo      127.0.0.1  tcp     3306
+# SAVE                                  I:N        lo      127.0.0.1  tcp     3306
+# RESTORE                               I:ER
+# 
 ############################################################################################################
 #SECMARK			CHAIN:	SOURCE		DEST		PROTO	DEST	SOURCE	USER/	MARK
 #				STATE						PORT(S)	PORT(S) GROUP

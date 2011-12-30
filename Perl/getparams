@@ -28,12 +28,24 @@
 #      $3 = Address family (4 o4 6)
 #
 if [ "$3" = 6 ]; then
-    . /usr/share/shorewall6/lib.base
-    . /usr/share/shorewall6/lib.cli
+    SHAREDIR=/usr/share/shorewall6
+    CONFDIR=/etc/shorewall6
+    g_product="Shorewall6"
+    g_family=6
+    g_tool=
+    g_basedir=/usr/share/shorewall
 else
-    . /usr/share/shorewall/lib.base
-    . /usr/share/shorewall/lib.cli
+    g_program=shorewall
+    SHAREDIR=/usr/share/shorewall
+    CONFDIR=/etc/shorewall
+    g_product="Shorewall"
+    g_family=4
+    g_tool=
+    g_basedir=/usr/share/shorewall
 fi
+
+. /usr/share/shorewall/lib.base
+. /usr/share/shorewall/lib.cli
 
 CONFIG_PATH="$2"
 

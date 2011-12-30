@@ -52,7 +52,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_26';
+our $VERSION = '4.4_27';
 #
 # Globals are documented in the initialize() function
 #
@@ -764,11 +764,33 @@ sub ensure_rules_chain( $ )
 #
 sub finish_chain_section ($$) {
     my ($chainref, $state ) = @_;
-    my $chain = $chainref->{name};
+    my $chain               = $chainref->{name};
+    my $related_level       = $config{RELATED_LOG_LEVEL};
+    my $related_target      = $globals{RELATED_TARGET};
     
     push_comment(''); #These rules should not have comments
 
-    add_ijump $chainref, j => 'ACCEPT', state_imatch $state unless $config{FASTACCEPT};
+    if ( $state =~ /RELATED/ && ( $related_level || $related_target ne 'ACCEPT' ) ) {
+
+	if ( $related_level ) {
+	    my $relatedref = new_chain( 'filter', "+$chainref->{name}" );
+	    log_rule( $related_level,
+		      $relatedref,
+		      $config{RELATED_DISPOSITION},
+		      '' );
+	    add_ijump( $relatedref, g => $related_target );
+		    
+	    $related_target = $relatedref->{name};
+	}
+
+	add_ijump $chainref, g => $related_target, state_imatch 'RELATED';
+
+	$state =~ s/,?RELATED//;
+    }
+
+    if ( $state ) {
+	add_ijump $chainref, j => 'ACCEPT', state_imatch $state unless $config{FASTACCEPT};
+    }
 
     if ($sections{NEW} ) {
 	if ( $chainref->{is_policy} ) {
@@ -2000,7 +2022,10 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
     }
 
     unless ( $section eq 'NEW' || $inaction ) {
-	fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" if $config{FASTACCEPT};
+	if ( $config{FASTACCEPT} ) {
+	    fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" unless $section eq 'RELATED' && ( $config{RELATED_DISPOSITION} ne 'ACCEPT' || $config{RELATED_LOG_LEVEL} )
+	}
+
 	fatal_error "$basictarget rules are not allowed in the $section SECTION" if $actiontype & ( NATRULE | NONAT );
 	$rule .= "$globals{STATEMATCH} $section " unless $section eq 'ALL' || $blacklist;
     }
@@ -2453,9 +2478,12 @@ sub process_rules() {
 
 			 if ( supplied $level ) {
 			     ensure_blacklog_chain( $target, $disposition, $level, $audit );
+			     ensure_audit_blacklog_chain( $target, $disposition, $level ) if have_capability 'AUDIT_TARGET';
 			 } elsif ( $audit ) {
 			     require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$disposition", 's';
 			     verify_audit( $disposition );
+			 } elsif ( have_capability 'AUDIT_TARGET' ) {
+			     verify_audit( 'A_' . $disposition );
 			 }
 		     } );
 	
@@ -2464,6 +2492,10 @@ sub process_rules() {
 	process_rule while read_a_line;
 	    
 	$section = '';
+
+	if ( my $chainref = $filter_table->{A_blacklog} ) {
+	    $chainref->{referenced} = 0 unless %{$chainref->{references}};
+	}
     }
 
     $fn = open_file 'rules';
