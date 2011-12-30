@@ -1,15 +1,56 @@
+Changes in 4.4.27 Final
+
+1)  Handle 'audit' when BLACKLIST_LOGLEVEL specified but no audit in
+    BLACKLIST_DISPOSITION.
+
+Changes in 4.4.27 RC 2
+
+1)  Allow chain designator in CLASSIFY rules.
+
+2)  Correct an error message.
+
+3)  Verify helper names and protocols.
+
+Changes in 4.4.27 RC 1
+
+1)  Change /sbin/shorewall6 back to a file.
+
+2)  Rename SHOREWALL_DIR -> g_shorewalldir in the shell code.
+
+3)  Add USE_PHYSICAL_NAMES option.
+
+4)  Correct 'show ipa'.
+
+5)  Correct routing rules for ipv6 providers.
+
+Changes in 4.4.27 Beta 3
+
+1)  Merge lib.cli-lite into lib.cli
+
+2)  Allow variables from the .conf file to be used in other config
+    files.
+
+3)  Remove a redundant capabilities test.
+
+Changes in 4.4.27 Beta 2
+
+1)  Unify capability detection
+
+2)  Implement CT target support.
+
+3)  Apply Chris Boot's patch for TC_ENABLED=Shared
+
+4)  Add RELATED_DISPOSITION and RELATED_LOG_LEVEL
+
+5)  More code consolidation
+
+Changes in 4.4.27 Beta 1
+
+1)  Combine similar files
+
 Changes in 4.4.26.1
 
 1)  Belatedly update module versions.
-
-2)  Bump CAPVERSION in the compiler.
-
-3)  Correct a couple of minor typos.
-
-4)  Apply Chris Boot's patch for TC_ENABLED=Simple
-
-5)  Restore the quoted part of the 'Provider "..." compiled' progress
-    message.
 
 Changes in 4.4.26 Final
 

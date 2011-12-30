@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_26';
+our $VERSION = '4.4_27';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -103,6 +103,9 @@ my  %flow_keys = ( 'src'            => 1,
 		   'sk-uid'         => 1,
 		   'sk-gid'         => 1,
 		   'vlan-tag'       => 1 );
+
+my %designator = ( F => 'tcfor' ,
+		   T => 'tcpost' );
 
 my  %tosoptions = ( 'tos-minimize-delay'       => '0x10/0x10' ,
 		    'tos-maximize-throughput'  => '0x08/0x08' ,
@@ -207,38 +210,51 @@ sub process_tc_rule( ) {
 
     fatal_error "Invalid MARK ($originalmark)" unless supplied $mark;
 
+    my $chain    = $globals{MARKING_CHAIN};
+    my $classid  = 0;
+
     if ( $remainder ) { 
 	if ( $originalmark =~ /^\w+\(?.*\)$/ ) {
 	    $mark = $originalmark; # Most likely, an IPv6 address is included in the parameter list
 	} else {
-	    fatal_error "Invalid MARK ($originalmark)";
+	    fatal_error "Invalid MARK ($originalmark)" 
+		unless ( $mark =~ /^([0-9a-fA-F]+)$/ &&
+			 $designator =~ /^([0-9a-fA-F]+)$/ && 
+			 ( $chain = $designator{$remainder} ) );
+	    $mark    = join( ':', $mark, $designator );
+	    $classid = 1;
 	}
     }
 
-    my $chain  = $globals{MARKING_CHAIN};
     my $target = 'MARK --set-mark';
     my $tcsref;
     my $connmark = 0;
-    my $classid  = 0;
     my $device   = '';
     my $fw       = firewall_zone;
     my $list;
 
     if ( $source ) {
 	if ( $source eq $fw ) {
-	    $chain = 'tcout';
+	    if ( $classid ) {
+		fatal_error ":F is not allowed when the SOURCE is the firewall" if $chain eq 'tcfor';
+	    } else {
+		$chain = 'tcout';
+	    }
 	    $source = '';
-	} else {
-	    $chain = 'tcout' if $source =~ s/^($fw)://;
+	} elsif ( $source =~ s/^($fw):// ) {
+	    fatal_error ":F is not allowed when the SOURCE is the firewall" if $chain eq 'tcfor';
+	    $chain = 'tcout';
 	}
     }
 
     if ( $dest ) {
 	if ( $dest eq $fw ) {
+	    fatal_error 'A CLASSIFY rule may not have $FW as the DEST' if $classid;
 	    $chain = 'tcin';
 	    $dest  = '';
-	} else {
-	    $chain = 'tcin' if $dest =~ s/^($fw)://;
+	} elsif ( $dest =~ s/^($fw):// ) {
+	    fatal_error 'A CLASSIFY rule may not have $FW as the DEST' if $classid;
+	    $chain = 'tcin';
 	}
     }
 
@@ -259,11 +275,16 @@ sub process_tc_rule( ) {
 	    require_capability ('CONNMARK' , "CONNMARK Rules", '' ) if $connmark;
 
 	} else {
-	    fatal_error "Invalid MARK ($originalmark)"   unless $mark =~ /^([0-9a-fA-F]+)$/ and $designator =~ /^([0-9a-fA-F]+)$/;
+	    unless ( $classid ) {
+		fatal_error "Invalid MARK ($originalmark)" unless $mark =~ /^([0-9a-fA-F]+)$/ and $designator =~ /^([0-9a-fA-F]+)$/;
+		fatal_error 'A CLASSIFY rule may not have $FW as the DEST' if $chain eq 'tcin';
+		$chain = 'tcpost';
+		$mark  = $originalmark;
+	    }
 
 	    if ( $config{TC_ENABLED} eq 'Internal' || $config{TC_ENABLED} eq 'Shared' ) {
 		$originalmark = join( ':', normalize_hex( $mark ), normalize_hex( $designator ) );
-		fatal_error "Unknown Class ($originalmark)}" unless ( $device = $classids{$originalmark} );
+		fatal_error "Unknown Class ($mark)}" unless ( $device = $classids{$mark} );
 		fatal_error "IFB Classes may not be specified in tcrules" if @{$tcdevices{$device}{redirected}};
 
 		unless ( $tcclasses{$device}{hex_value $designator}{leaf} ) {
@@ -278,9 +299,7 @@ sub process_tc_rule( ) {
 		}
 	    }
 
-	    $chain   = 'tcpost';
 	    $classid = 1;
-	    $mark    = $originalmark;
 	    $target  = 'CLASSIFY --set-class';
 	}
     }

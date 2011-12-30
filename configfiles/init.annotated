@@ -10,76 +10,76 @@
 # http://shorewall.net/shorewall_extension_scripts.htm
 #
 ###############################################################################
-#           
-#           Shorewall-init is an optional package (added in Shorewall 4.4.10) that can be
-#           installed along with Shorewall, Shorewall6, Shorewall-lite and/or
-#           Shorewall6-lite. It provides two key features:
-#           
+# 
+# Shorewall-init is an optional package (added in Shorewall 4.4.10) that can be
+# installed along with Shorewall, Shorewall6, Shorewall-lite and/or
+# Shorewall6-lite. It provides two key features:
+# 
 #  1. It can close (stop) the firewall during boot prior to starting the network.
 #     This can prevent unwanted connections from being accepted after the network
 #     comes up but before the firewall is started.
-#           
+# 
 #  2. It can interface with your distribution's ifup/ifdown scripts and/or
 #     NetworkManager to allow firewall actions when an interface starts or stops.
-#           
-#           These two capabilities can be enabled separately.
-#           
-#           After you install the shorewall-init package, you can activate it by modifying
-#           the Shorewall-init configuration file:
-#           
+# 
+# These two capabilities can be enabled separately.
+# 
+# After you install the shorewall-init package, you can activate it by modifying
+# the Shorewall-init configuration file:
+# 
 #   ● On Debian-based system, the file is /etc/default/shorewall-init.
-#           
+# 
 #   ● On other systems, the file is /etc/sysconfig/shorewall-init.
-#           
-#           To activate the safe boot feature, edit the configuration file and set PRODUCTS
-#           to a space-separated list of Shorewall products that you want to be closed
-#           before networking starts.
-#           
-#           Example:
-#           
-#           PRODUCTS="shorewall shorewall6"
-#           
-#           You also must insure that the compiled scripts for the listed products are
-#           compiled using Shorewall 4.4.10 or later.
-#           
-#           Shorewall
-#           
+# 
+# To activate the safe boot feature, edit the configuration file and set PRODUCTS
+# to a space-separated list of Shorewall products that you want to be closed
+# before networking starts.
+# 
+# Example:
+# 
+# PRODUCTS="shorewall shorewall6"
+# 
+# You also must insure that the compiled scripts for the listed products are
+# compiled using Shorewall 4.4.10 or later.
+# 
+# Shorewall
+# 
 #     shorewall compile
-#           
-#           Shorewall6
-#           
+# 
+# Shorewall6
+# 
 #     shorewall6 compile
-#           
-#           Shorewall-lite
-#           
+# 
+# Shorewall-lite
+# 
 #     On the administrative system, enter the command shorewall export firewall
 #     from the firewall's configuration directory.
-#           
-#           Shorewall6-lite
-#           
+# 
+# Shorewall6-lite
+# 
 #     On the administrative system, enter the command shorewall6 export firewall
 #     from the firewall's configuration directory.
-#           
-#           The second feature (ifup/ifdown and NetworkManager integration) should only be
-#           activated on systems that do not use a link status monitor line swping or LSM.
-#           
+# 
+# The second feature (ifup/ifdown and NetworkManager integration) should only be
+# activated on systems that do not use a link status monitor line swping or LSM.
+# 
 #   ● Edit the configuration file and set IFUPDOWN=1
-#           
-#           For NetworkManager integration, you will want to disable firewall startup at
-#           boot and delay it to when your interface comes up. For this to work correctly,
-#           you must set the required or the optional option on at least one interface
-#           then:
-#           
+# 
+# For NetworkManager integration, you will want to disable firewall startup at
+# boot and delay it to when your interface comes up. For this to work correctly,
+# you must set the required or the optional option on at least one interface
+# then:
+# 
 #   ● On Debian-based systems, edit /etc/default/product for each product listed
 #     in the PRODUCTS setting and set startup=0.
-#           
+# 
 #   ● On other systems, use the distribution's service control tool (insserv,
 #     chkconfig, etc.) to disable startup of the products listed in the PRODUCTS
 #     setting.
-#           
-#           On a laptop with both ethernet and wireless interfaces, you will want to make
-#           both interfaces optional and set the REQUIRE_INTERFACE option to Yes in
-#           shorewall.conf (5) or shorewall6.conf (5). This causes the firewall to remain
-#           stopped until at least one of the interfaces comes up.
-#           
+# 
+# On a laptop with both ethernet and wireless interfaces, you will want to make
+# both interfaces optional and set the REQUIRE_INTERFACE option to Yes in
+# shorewall.conf (5) or shorewall6.conf (5). This causes the firewall to remain
+# stopped until at least one of the interfaces comes up.
+# 
 ###############################################################################
