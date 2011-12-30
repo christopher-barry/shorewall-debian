@@ -1,8 +1,8 @@
-shorewall-doc (4.4.26-1~bpo60+1) squeeze; urgency=low
+shorewall-doc (4.4.27-1) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * New Upstream Version
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 02 Dec 2011 21:15:19 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 30 Dec 2011 14:51:08 -0500
 
 shorewall-doc (4.4.26-1) unstable; urgency=low
 
