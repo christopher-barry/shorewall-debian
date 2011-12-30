@@ -152,7 +152,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_26';
+our $VERSION = '4.4_27';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -287,6 +287,7 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 CONDITION_MATCH => 'Condition Match',
 		 IPTABLES_S      => 'iptables -S',
 		 BASIC_FILTER    => 'Basic Filter',
+		 CT_TARGET       => 'CT Target',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -450,8 +451,8 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.26.1",
-		    CAPVERSION => 40426 ,
+		    VERSION    => "4.4.27",
+		    CAPVERSION => 40427 ,
 		  );
     #
     # From shorewall.conf file
@@ -470,6 +471,7 @@ sub initialize( $ ) {
 	  LOGBURST => undef,
 	  LOGALLNEW => undef,
 	  BLACKLIST_LOGLEVEL => undef,
+	  RELATED_LOG_LEVEL => undef,
 	  RFC1918_LOG_LEVEL => undef,
 	  MACLIST_LOG_LEVEL => undef,
 	  TCP_FLAGS_LOG_LEVEL => undef,
@@ -567,6 +569,7 @@ sub initialize( $ ) {
 	  COMPLETE => undef,
 	  EXPORTMODULES => undef,
 	  LEGACY_FASTSTART => undef,
+	  USE_PHYSICAL_NAMES => undef,
 	  #
 	  # Packet Disposition
 	  #
@@ -575,6 +578,7 @@ sub initialize( $ ) {
 	  BLACKLIST_DISPOSITION => undef,
 	  SMURF_DISPOSITION => undef,
 	  SFILTER_DISPOSITION => undef,
+	  RELATED_DISPOSITION => undef,
 	  #
 	  # Mark Geometry
 	  #
@@ -672,6 +676,7 @@ sub initialize( $ ) {
 	       CONDITION_MATCH => undef,
 	       IPTABLES_S => undef,
 	       BASIC_FILTER => undef,
+	       CT_TARGET => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -1790,7 +1795,7 @@ sub embedded_shell( $ ) {
 sub embedded_perl( $ ) {
     my $multiline = shift;
 
-    my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\nuse Shorewall::Config qw/shorewall/;\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
+    my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\nuse Shorewall::Config (qw/shorewall/);\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
 
     if ( $multiline ) {
 	#
@@ -1929,9 +1934,11 @@ sub expand_variables( \$ ) {
 	if ( $var =~ /^\d+$/ ) {
 	    fatal_error "Undefined parameter (\$$var)" unless $var > 0 && defined $actparms[$var];
 	    $val = $actparms[$var];
-	} else {
-	    fatal_error "Undefined shell variable (\$$var)" unless exists $params{$var};
+	} elsif ( exists $params{$var} ) {
 	    $val = $params{$var};
+	} else {
+	    fatal_error "Undefined shell variable (\$$var)" unless exists $config{$var};
+	    $val = $config{$var};
 	}
 
 	$val = '' unless defined $val;
@@ -2738,6 +2745,19 @@ sub Iptables_S() {
     qt1( "$iptables -S INPUT" )
 }
 
+sub Ct_Target() {
+    my $ct_target;
+
+    if ( have_capability 'RAW_TABLE' ) {
+	qt1( "$iptables -t raw -N $sillyname" );
+	$ct_target = qt1( "$iptables -t raw -A $sillyname -j CT --notrack" );
+	qt1( "$iptables -t raw -F $sillyname" );
+	qt1( "$iptables -t raw -X $sillyname" );
+    }
+
+    $ct_target;
+}
+
 our %detect_capability =
     ( ACCOUNT_TARGET =>\&Account_Target,
       AUDIT_TARGET => \&Audit_Target,
@@ -2750,6 +2770,7 @@ our %detect_capability =
       CONNMARK => \&Connmark,
       CONNMARK_MATCH => \&Connmark_Match,
       CONNTRACK_MATCH => \&Conntrack_Match,
+      CT_TARGET => \&Ct_Target,
       ENHANCED_REJECT => \&Enhanced_Reject,
       EXMARK => \&Exmark,
       FLOW_FILTER => \&Flow_Filter,
@@ -2926,6 +2947,7 @@ sub determine_capabilities() {
 	$capabilities{CONDITION_MATCH} = detect_capability( 'CONDITION_MATCH' );
 	$capabilities{IPTABLES_S}      = detect_capability( 'IPTABLES_S' );
 	$capabilities{BASIC_FILTER}    = detect_capability( 'BASIC_FILTER' );
+	$capabilities{CT_TARGET}       = detect_capability( 'CT_TARGET' );
 
 
 	qt1( "$iptables -F $sillyname" );
@@ -3514,7 +3536,6 @@ sub get_configuration( $$$ ) {
 
     get_capabilities( $export );
 
-
     $globals{STATEMATCH} = '-m conntrack --ctstate' if have_capability 'CONNTRACK_MATCH';
 
     if ( my $rate = $config{LOGLIMIT} ) {
@@ -3713,6 +3734,7 @@ sub get_configuration( $$$ ) {
     default_yes_no 'COMPLETE'                   , '';
     default_yes_no 'EXPORTMODULES'              , '';
     default_yes_no 'LEGACY_FASTSTART'           , 'Yes';
+    default_yes_no 'USE_PHYSICAL_NAMES'         , '';
 
     require_capability 'MARK' , 'FORWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 
@@ -3781,6 +3803,7 @@ sub get_configuration( $$$ ) {
     default_log_level 'MACLIST_LOG_LEVEL',   '';
     default_log_level 'TCP_FLAGS_LOG_LEVEL', '';
     default_log_level 'RFC1918_LOG_LEVEL',   '';
+    default_log_level 'RELATED_LOG_LEVEL',   '';
 
     warning_message "RFC1918_LOG_LEVEL=$config{RFC1918_LOG_LEVEL} ignored. The 'norfc1918' interface/host option is no longer supported" if $config{RFC1918_LOG_LEVEL};
 
@@ -3813,6 +3836,23 @@ sub get_configuration( $$$ ) {
     } else {
 	$config{MACLIST_DISPOSITION}  = 'REJECT';
 	$globals{MACLIST_TARGET}      = 'reject';
+    }
+
+    if ( $val = $config{RELATED_DISPOSITION} ) {
+	if ( $val =~ /^(?:A_)?(?:DROP|ACCEPT)$/ ) {
+	    $globals{RELATED_TARGET} = $val;
+	} elsif ( $val eq 'REJECT' ) {
+	    $globals{RELATED_TARGET} = 'reject';
+	} elsif ( $val eq 'A_REJECT' ) {
+	    $globals{RELATED_TARGET} = $val;
+	} else {
+	    fatal_error "Invalid value ($config{RELATED_DISPOSITION}) for RELATED_DISPOSITION"
+	}
+
+	require_capability 'AUDIT_TARGET' , "MACLIST_DISPOSITION=$val", 's' if $val =~ /^A_/;
+    } else {
+	$config{RELATED_DISPOSITION}  =
+	$globals{RELATED_TARGET}      = 'ACCEPT';
     }
 
     if ( $val = $config{MACLIST_TABLE} ) {

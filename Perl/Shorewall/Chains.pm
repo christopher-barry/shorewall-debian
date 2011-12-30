@@ -57,6 +57,7 @@ our @EXPORT = qw(
 		    ensure_manual_chain
 		    ensure_audit_chain
 		    ensure_blacklog_chain
+		    ensure_audit_blacklog_chain
 		    require_audit
 		    newlogchain
 		    log_rule_limit
@@ -66,6 +67,7 @@ our @EXPORT = qw(
 		    get_action_logging
 
 		    %chain_table
+		    %helpers
 		    $raw_table
 		    $rawpost_table
 		    $nat_table
@@ -172,6 +174,7 @@ our %EXPORT_TAGS = (
 				       do_tos
 				       do_connbytes
 				       do_helper
+				       validate_helper
 				       do_headers
 				       do_condition
 				       have_ipset_rules
@@ -219,7 +222,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_26';
+our $VERSION = '4.4_27';
 
 #
 # Chain Table
@@ -281,6 +284,7 @@ our $rawpost_table;
 our $nat_table;
 our $mangle_table;
 our $filter_table;
+our %helpers;
 my  $comment;
 my  @comments;
 my  $export;
@@ -554,7 +558,18 @@ sub initialize( $$$ ) {
     $hashlimitset       = 0;
     $ipset_rules        = 0 if $hard;
 
-    %ipset_exists       = ();
+    %ipset_exists       = ();   
+
+    %helpers = ( amanda          => TCP,
+		 ftp             => TCP,
+		 h323            => UDP,
+		 irc             => TCP,
+		 netbios_ns      => UDP,
+		 pptp            => TCP,
+		 sane            => TCP,
+		 sip             => UDP,
+		 snmp            => UDP,
+		 tftp            => UDP);
     #
     # The chain table is initialized via a call to initialize_chain_table() after the configuration and capabilities have been determined.
     #
@@ -1556,7 +1571,8 @@ sub blacklist_chain($$) {
 #
 sub forward_chain($)
 {
-    $_[0] . '_fwd';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_fwd';
 }
 
 #
@@ -1607,7 +1623,8 @@ sub use_forward_chain($$) {
 #
 sub input_chain($)
 {
-    $_[0] . '_in';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_in';
 }
 
 #
@@ -1668,7 +1685,8 @@ sub use_input_chain($$) {
 #
 sub output_chain($)
 {
-    $_[0] . '_out';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_out';
 }
 
 #
@@ -1676,15 +1694,17 @@ sub output_chain($)
 #
 sub prerouting_chain($) 
 {
-    $_[0] . '_pre';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_pre';
 }
 	    
 #
-# Prerouting Chain for an interface
+# Postouting Chain for an interface
 #
 sub postrouting_chain($) 
 {
-    $_[0] . '_post';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_post';
 }
 	    
 #
@@ -1736,7 +1756,8 @@ sub use_output_chain($$) {
 #
 sub masq_chain($)
 {
-    $_[0] . '_masq';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_masq';
 }
 
 #
@@ -1751,7 +1772,8 @@ sub syn_flood_chain ( $ ) {
 #
 sub mac_chain( $ )
 {
-    $_[0] . '_mac';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_mac';
 }
 
 sub macrecent_target($)
@@ -1780,7 +1802,8 @@ sub notrack_chain( $ )
 #
 sub snat_chain( $ )
 {
-    $_[0] . '_snat';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_snat';
 }
 
 #
@@ -1788,7 +1811,8 @@ sub snat_chain( $ )
 #
 sub ecn_chain( $ )
 {
-    $_[0] . '_ecn';
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_ecn';
 }
 
 #
@@ -1798,7 +1822,7 @@ sub first_chains( $ ) #$1 = interface
 {
     my $c = $_[0];
 
-    ( $c . '_fwd', $c . '_in' );
+    ( forward_chain( $c ), input_chain( $c ) );
 }
 
 #
@@ -2218,6 +2242,21 @@ sub ensure_blacklog_chain( $$$$ ) {
     }
 
     'blacklog';
+}
+
+sub ensure_audit_blacklog_chain( $$$ ) {
+    my ( $target, $disposition, $level ) = @_;
+
+    unless ( $filter_table->{A_blacklog} ) {
+	my $logchainref = new_manual_chain 'A_blacklog';
+
+	log_rule_limit( $level , $logchainref , 'blacklst' , $disposition , "$globals{LOGLIMIT}" , '', 'add',	'' );
+
+	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target );
+	add_ijump( $logchainref, g => $target );
+    }
+
+    'A_blacklog';
 }
 
 #
@@ -3979,15 +4018,46 @@ sub do_connbytes( $ ) {
 }
 
 #
-# Create a soft "-m helper" match for the passed argument
+# Validate a helper/protocol pair
+#
+sub validate_helper( $;$ ) {
+    my ( $helper, $proto ) = @_;
+    my $helper_base = $helper;
+    $helper_base =~ s/-\d+$//;
+
+    my $helper_proto = $helpers{$helper_base};
+
+    if ( $helper_proto) {	    
+	#
+	#  Recognized helper
+	#
+	if ( supplied $proto ) {
+	    my $protonum = -1;
+
+	    fatal_error "Unknown PROTO ($protonum)" unless defined ( $protonum = resolve_proto( $proto ) );	
+
+	    unless ( $protonum == $helper_proto ) {
+		fatal_error "The $helper_base helper requires PROTO=" . (proto_name $helper_proto );
+	    }
+	}
+    } else {
+	fatal_error "Unrecognized helper ($helper_base)";
+    }
+}
+
+#
+# Create an "-m helper" match for the passed argument
 #
 sub do_helper( $ ) {
     my $helper = shift;
 
     return '' if $helper eq '-';
 
-    qq(-m helper --helper "$helper" );
+    validate_helper( $helper );
+
+    qq(-m helper --helper "$helper" ) if defined wantarray;
 }
+
 
 #
 # Create a "-m length" match for the passed LENGTH
@@ -4796,6 +4866,8 @@ sub set_chain_variables() {
 
 	emit( 'IPTABLES_RESTORE=${IPTABLES}-restore',
 	      '[ -x "$IPTABLES_RESTORE" ] || startup_error "$IPTABLES_RESTORE does not exist or is not executable"' );
+
+	emit( 'g_tool=$IPTABLES' );
     } else {
 	if ( $config{IP6TABLES} ) {
 	    emit( qq(IP6TABLES="$config{IP6TABLES}"),
@@ -4809,6 +4881,8 @@ sub set_chain_variables() {
 
 	emit( 'IP6TABLES_RESTORE=${IP6TABLES}-restore',
 	      '[ -x "$IP6TABLES_RESTORE" ] || startup_error "$IP6TABLES_RESTORE does not exist or is not executable"' );
+
+	emit( 'g_tool=$IP6TABLES' );
     }
 
     if ( $config{IP} ) {

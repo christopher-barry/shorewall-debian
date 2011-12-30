@@ -599,8 +599,7 @@ sub add_a_provider( $$ ) {
 	    emit "run_ip route replace $gateway src $address dev $physical ${mtu}";
 	    emit "run_ip route replace $gateway src $address dev $physical ${mtu}table $number $realm";
 	} else {
-	    emit "qt \$IP -6 route del $gateway src $address dev $physical ${mtu}";
-	    emit "run_ip route add $gateway src $address dev $physical ${mtu}";
+	    emit "qt \$IP -6 route add $gateway src $address dev $physical ${mtu}";
 	    emit "qt \$IP -6 route del $gateway src $address dev $physical ${mtu}table $number $realm";
 	    emit "run_ip route add $gateway src $address dev $physical ${mtu}table $number $realm";
 	}
@@ -631,7 +630,10 @@ sub add_a_provider( $$ ) {
 	$fallback = 1;
     }
 
-    emit ( qq(\nqt \$IP rule add from all table ) . DEFAULT_TABLE . qq( prio 32767\n) ) if $family == F_IPV6;
+    emit( qq(\n) ,
+	  qq(if ! \$IP -6 rule ls | egrep -q "32767:[[:space:]]+from all lookup (default|253)"; then) ,
+	  qq(    qt \$IP -6 rule add from all table ) . DEFAULT_TABLE . qq( prio 32767\n) ,
+	  qq(fi) ) if $family == F_IPV6;
 
     unless ( $local ) {
 	emit '';

@@ -23,16 +23,18 @@
 # This library contains the code common to all Shorewall components.
 #
 # - It is loaded by /sbin/shorewall.
-# - It is released as part of Shorewall Lite where it is used by /sbin/shorewall-lite
-#   and /usr/share/shorewall-lite/shorecap.
+# - It is released as part of Shorewall[6] Lite where it is used by /sbin/shorewall[6]-lite
+#   and /usr/share/shorewall[6]-lite/shorecap.
 #
 
 SHOREWALL_LIBVERSION=40407
-SHOREWALL_CAPVERSION=40426
+SHOREWALL_CAPVERSION=40427
 
-[ -n "${VARDIR:=/var/lib/shorewall}" ]
-[ -n "${SHAREDIR:=/usr/share/shorewall}" ]
-[ -n "${CONFDIR:=/etc/shorewall}" ]
+[ -n "${g_program:=shorewall}" ]
+[ -n "${VARDIR:=/var/lib/$g_program}" ]
+[ -n "${SHAREDIR:=/usr/share/$g_program}" ]
+[ -n "${CONFDIR:=/etc/$g_program}" ]
+[ -n "${g_family:=4}" ]
 
 #
 # Conditionally produce message
@@ -175,7 +177,7 @@ find_interface_by_mac() {
     done
 }
 
-[ -z "$LEFTSHIFT" ] && . ${SHAREDIR}/lib.common
+[ -z "$LEFTSHIFT" ] && . ${g_basedir}/lib.common
 
 #
 # Validate an IP address
@@ -339,8 +341,8 @@ ensure_config_path() {
 	. $F
     fi
 
-    if [ -n "$SHOREWALL_DIR" ]; then
-	[ "${CONFIG_PATH%%:*}" = "$SHOREWALL_DIR" ] || CONFIG_PATH=$SHOREWALL_DIR:$CONFIG_PATH
+    if [ -n "$g_shorewalldir" ]; then
+	[ "${CONFIG_PATH%%:*}" = "$g_shorewalldir" ] || CONFIG_PATH=$g_shorewalldir:$CONFIG_PATH
     fi
 }
 
@@ -378,9 +380,8 @@ resolve_file() # $1 = file name
     esac
 }
 
-# Function to truncate a string -- It uses 'cut -b -<n>'
-# rather than ${v:first:last} because light-weight shells like ash and
-# dash do not support that form of expansion.
+#
+# Determine how to do "echo -e"
 #
 
 find_echo() {

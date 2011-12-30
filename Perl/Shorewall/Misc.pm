@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_26';
+our $VERSION = '4.4_27';
 
 my $family;
 
@@ -397,7 +397,6 @@ sub convert_blacklist() {
 	if ( supplied $level ) {
 	    $target = 'blacklog';
 	} elsif ( $audit ) {
-	    require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$disposition", 's';
 	    $target = verify_audit( $disposition );
 	}
 
@@ -691,6 +690,7 @@ sub add_common_rules ( $ ) {
     my $dynamicref;
 
     my @state     = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID' : ();
+    my $faststate = $config{RELATED_DISPOSITION} eq 'ACCEPT' && $config{RELATED_LOG_LEVEL} eq '' ? 'ESTABLISHED,RELATED' : 'ESTABLISHED';
     my $level     = $config{BLACKLIST_LOGLEVEL};
     my $rejectref = $filter_table->{reject};
 
@@ -704,7 +704,9 @@ sub add_common_rules ( $ ) {
 
     setup_mss;
 
-    add_ijump( $filter_table->{OUTPUT} , j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ) if ( $config{FASTACCEPT} );
+    if ( $config{FASTACCEPT} ) {
+	add_ijump( $filter_table->{OUTPUT} , j => 'ACCEPT', state_imatch $faststate )
+    } 
 
     my $policy   = $config{SFILTER_DISPOSITION};
     $level       = $config{SFILTER_LOG_LEVEL};
@@ -775,7 +777,7 @@ sub add_common_rules ( $ ) {
 		$interfaceref->{options}{use_forward_chain} = 1;
 	    }
 
-	    add_ijump( $chainref, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ), $chainref->{filtered}++ if $config{FASTACCEPT};
+	    add_ijump( $chainref, j => 'ACCEPT', state_imatch $faststate ), $chainref->{filtered}++ if $config{FASTACCEPT};
 	    add_ijump( $chainref, j => $dynamicref, @state ), $chainref->{filtered}++ if $dynamicref;
 
 	    $chainref = $filter_table->{input_chain $interface};
@@ -785,7 +787,7 @@ sub add_common_rules ( $ ) {
 		$interfaceref->{options}{use_input_chain} = 1;
 	    }
 	
-	    add_ijump( $chainref, j => 'ACCEPT', state_imatch 'ESTABLISHED,RELATED' ), $chainref->{filtered}++ if $config{FASTACCEPT};
+	    add_ijump( $chainref, j => 'ACCEPT', state_imatch $faststate ), $chainref->{filtered}++ if $config{FASTACCEPT};
 	    add_ijump( $chainref, j => $dynamicref, @state ), $chainref->{filtered}++ if $dynamicref;
 	}
     }
