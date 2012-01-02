@@ -1,3 +1,10 @@
+shorewall6 (4.4.27-2) UNRELEASED; urgency=low
+
+  * Add Indonesian Debconf translation, thanks to Mahyuddin Susanto
+    (Closes: #654158)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 02 Jan 2012 16:17:33 -0500
+
 shorewall6 (4.4.27-1) unstable; urgency=low
 
   * New Upstream Version
