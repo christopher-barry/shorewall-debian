@@ -1,6 +1,5 @@
-
 ----------------------------------------------------------------------------
-                        S H O R E W A L L  4 . 4 . 2 7
+                      S H O R E W A L L  4 . 4 . 2 7 . 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +12,64 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.27.1
+
+1)  When optimization category 4 is used, unconditional jumps at the
+    end of chains are replaced with the rules in the target chain. This
+    can result in rulesets that are considerably larger than
+    necessary. Beginning with this release, replacement will only occur
+    if:
+
+    a)  The jump is the only reference to the target chain; or
+    b)  The target chain contains 3 or less rules.
+
+2)  The feature introduced in 4.4.25 that allowed provider names in the
+    'enable' and 'disable' commands was only implemented for
+    'enable'. It is now implemented for 'disable' as well.
+
+3)  When detecting IPv6 global addresses through an interface, 
+    Shorewall6-generated scripts were ignoring addresses beginning
+    with '3'.
+
+4)  A typo in /usr/share/shorewall/prog.header caused an 'awk' script
+    to fail when saving a multi-hop default route during 'start'.
+
+5)  The Shorewall uninstall.sh script previously removed the manpages
+    from all Shorewall packages. Similarly, the Shorewall6 uninstall.sh
+    script removed the Shorewall6 Lite manpages along with the
+    Shorewall6 manpages. Now, both scripts remove just the manpages
+    from their respective packages.
+
+6)  The value '0' is once again accepted in the IN_BANDWIDTH columns of
+    tcinterfaces and tcrules, and causes no ingress policing to be
+    configured.
+
+7)  MARK_IN_FORWARD_CHAIN=Yes no longer generates an error when 
+    $FW:<address> is entered in the SOURCE column of the tcrules file.
+
+8)  In most Shorewall 4.4 versions, if an exported params file
+    (EXPORTPARAMS=Yes in shorewall.conf) generates any output to
+    stdout, then the following messages would appear during
+    start/restart:
+
+      Compiling /etc/shorewall/routestopped...
+      Shorewall configuration compiled to /var/lib/shorewall/.restart
+      printf: 214: Build: expected numeric value
+      printf: 214: ipset: expected numeric value
+      printf: 214: of: expected numeric value
+      Processing /etc/shorewall/params ...
+      Build ipset of blacklisted addresses
+      Usage: /var/lib/shorewall/.restart [ options ] <command>
+
+         <command> is one of:
+   	 start
+   	 stop
+	 ...
+
+    This has now been corrected.
+
+4.4.27
 
 1)  Shorewall 4.4.27 includes all defect corrections provider by
     Shorewall 4.4.26.1.
