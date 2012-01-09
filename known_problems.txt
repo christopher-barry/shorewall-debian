@@ -1,3 +1,61 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
 
+2)  The feature introduced in 4.4.25 that allowed provider names in the
+    'enable' and 'disable' commands id only implemented for
+    'enable'.
+
+    Corrected in 4.4.27.1.
+
+3)  When detecting IPv6 global addresses through an interface, 
+    Shorewall6-generated scripts are ignoring addresses beginning
+    with '3'.
+
+    Corrected in 4.4.27.1.
+
+4)  A typo in /usr/share/shorewall/prog.header causes an 'awk' script
+    to fail when saving a multi-hop default route during 'start'.
+
+    Corrected in 4.4.27.1.
+
+5)  The Shorewall uninstall.sh script removes the manpages from all
+    Shorewall packages. Similarly, the Shorewall6 uninstall.sh script
+    removes the Shorewall6 Lite manpages along with the Shorewall6
+    manpages.
+
+    Corrected in 4.4.27.1.
+
+6)  The value '0' in the IN_BANDWIDTH columns of prevents all incoming
+    traffic.
+
+    Workaround: Use '-' instead of '0'.
+
+    Corrected in 4.4.27.1.
+
+7)  MARK_IN_FORWARD_CHAIN=Yes generates an error when $FW:<address> is
+    entered in the SOURCE column of the tcrules file.
+
+    Corrected in 4.4.27.1.
+
+8)  In most Shorewall 4.4 versions, if an exported params file
+    (EXPORTPARAMS=Yes in shorewall.conf) generates any output to
+    stdout, then the following messages would appear during
+    start/restart:
+
+      Compiling /etc/shorewall/routestopped...
+      Shorewall configuration compiled to /var/lib/shorewall/.restart
+      printf: 214: Build: expected numeric value
+      printf: 214: ipset: expected numeric value
+      printf: 214: of: expected numeric value
+      Processing /etc/shorewall/params ...
+      Build ipset of blacklisted addresses
+      Usage: /var/lib/shorewall/.restart [ options ] <command>
+
+         <command> is one of:
+   	 start
+   	 stop
+	 ...
+
+    Corrected in 4.4.27.1.
+
+
