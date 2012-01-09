@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.4.27
+VERSION=4.4.27.1
 
 usage() # $1 = exit status
 {
@@ -115,8 +115,17 @@ rm -rf $PERLLIB}/Shorewall/*
 rm -rf ${LIBEXEC}/shorewall
 rm -rf /usr/share/shorewall
 rm -rf /usr/share/shorewall-*.bkout
-rm -rf /usr/share/man/man5/shorewall*
-rm -rf /usr/share/man/man8/shorewall*
+
+for f in /usr/share/man/man5/shorewall* /usr/share/man/man8/shorewall*; do
+    case $f in
+	shorewall6*|shorewall-lite*)
+	    ;;
+	*)
+	    rm -f $f
+	    ;;
+    esac
+done
+
 rm -f  /etc/logrotate.d/shorewall
 rm -f  /lib/systemd/system/shorewall.service
 
