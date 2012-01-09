@@ -1,0 +1,73 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall6 4.4.27-1\n"
+"Report-Msgid-Bugs-To: shorewall6@packages.debian.org\n"
+"POT-Creation-Date: 2009-03-09 01:12+0000\n"
+"PO-Revision-Date: 2012-01-02 10:36+0700\n"
+"Last-Translator: Mahyuddin Susanto <udienz@ubuntu.com>\n"
+"Language-Team: Debian Indonesia Translator <debian-l10n-indonesian@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Poedit-Language: Indonesian\n"
+"X-Poedit-Country: INDONESIA\n"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "No automatic restart for Shorewall6"
+msgstr "Tidak ada otomatis hidup-ulang untuk Shorewall6"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "Shorewall6 will not be restarted automatically after being upgraded, to prevent changes in configuration files causing network outages."
+msgstr "Shorewall6 tidak akan di hidup-ulangkan secara otomatis setelah pemutakhiran, untuk mencegah perubahan pengaturan berkas yang disebabkan pemadaman jaringan"
+
+#. Type: note
+#. Description
+#: ../shorewall6.templates:2001
+msgid "You should check Shorewall6's configuration files and restart it with 'invoke-rc.d shorewall6 restart'."
+msgstr "Anda harus memerika pengaturan berkas Shorewall6 dan hidup-ulangkan dengan 'invoke-rc.d shorewall6 restart'."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Restart Shorewall6?"
+msgstr "Hidup-ulangkan Shorewall6"
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "To avoid the risk of failures and network outages, configuration files should be checked carefully before the firewall is restarted."
+msgstr "Untuk menghindari resiko kegagalan dan pemadaman jaringan, pengaturan berkas harus di cek secara hati-hati sebelum firewall di hidup-ulang kan."
+
+#. Type: boolean
+#. Description
+#: ../shorewall6.templates:3001
+msgid "Please choose whether you want to restart Shorewall6 immediately."
+msgstr "Silakan pilih apakah anda ingin hidup-ulangkan Shorewall6 secepatnya"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Invalid Shorewall6 configuration detected"
+msgstr "Terdeteksi pengaturan salah di Shorewall6"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "Shorewall6 is configured to restart on upgrades."
+msgstr "Shorewall6 diatur untuk hidup-ulang ketika diperbarui"
+
+#. Type: error
+#. Description
+#: ../shorewall6.templates:4001
+msgid "However, the current configuration for Shorewall6 is invalid and it will fail to restart. You should fix the program's configuration, then restart it with 'invoke-rc.d shorewall6 restart'."
+msgstr "Bagaimanapun juga, pengaturan Shorewall yang ada sekarang salah dan akan gagal ketika hidup-ulang. Anda harus membenarkan pengaturan program, kemudian hidup-ulang dengan 'invoke-rc.d shorewall6 restart'."
+
