@@ -242,7 +242,6 @@ sub process_tc_rule( ) {
 	    }
 	    $source = '';
 	} elsif ( $source =~ s/^($fw):// ) {
-	    fatal_error ":F is not allowed when the SOURCE is the firewall" if $chain eq 'tcfor';
 	    $chain = 'tcout';
 	}
     }
@@ -546,7 +545,7 @@ sub calculate_quantum( $$ ) {
 sub process_in_bandwidth( $ ) {
     my $in_rate     = shift;
     
-    return 0 if $in_rate eq '-';
+    return 0 if $in_rate eq '-' or $in_rate eq '0';
 
     my $in_burst    = '10kb';
     my $in_avrate   = 0;

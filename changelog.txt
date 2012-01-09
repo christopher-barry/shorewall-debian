@@ -1,3 +1,15 @@
+Changes in 4.4.27.1
+
+1)  Don't replicate long chains.
+
+2)  Make 'debug' and 'trace' work in the Lite products.
+
+3)  Allow Provider name in 'disable' command.
+
+4)  Fix uninstall bugs.
+
+5)  Allow output to stdout in an exported params file.
+
 Changes in 4.4.27 Final
 
 1)  Handle 'audit' when BLACKLIST_LOGLEVEL specified but no audit in
