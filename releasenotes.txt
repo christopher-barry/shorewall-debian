@@ -1,5 +1,5 @@
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 4 . 2 7 . 1
+                      S H O R E W A L L  4 . 4 . 2 7 . 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +12,26 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.4.27.2
+
+1)  A long-standing problem with Shorewall's 'save' facility has been
+    discovered. The defect can cause rules to be dropped during 'save'
+    so that they are not available to be reapplied during
+    'restore'. This can occur in 'safe-restart' when the prompt is not
+    acknowledged or when it is acknowledged with 'n'.
+
+    The problem can occur when:
+
+    a)	There are IPSEC zones or hosts present; and
+    b)  GOTO Target support is available in the kernel and iptables.
+
+    Example of rule that will be dropped:
+
+      -A eth2_fwd -m policy --dir in --pol ipsec -g AAA_frwd
+
+    The defective code has been corrected so that rules are no longer
+    dropped.
 
 4.4.27.1
 
