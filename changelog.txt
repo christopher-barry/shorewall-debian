@@ -1,3 +1,10 @@
+Changes in 4.4.27.3
+
+1)  Ensure a routing rule targeting the main table when
+    USE_DEFAULT_RT=Yes.
+
+2)  Restore shorewall-init functionality.
+
 Changes in 4.4.27.2
 
 1)  Correct problem that can drop rules during 'save'.
