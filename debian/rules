@@ -1,0 +1,52 @@
+#!/usr/bin/make -f
+#
+# Shorewall firewall (http://www.shorewall.net)
+# debianized version
+
+# shorewall version
+export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+
+SRWL=$(CURDIR)/debian/shorewall-core
+
+build: build-arch build-indep
+build-arch: build-stamp
+build-indep: build-stamp
+build-stamp:
+	dh_testdir
+# 	there's nothing to compile ;-)
+	touch build-stamp
+
+clean:
+	dh_testdir
+	dh_testroot
+	rm -f build-stamp
+	rm -rf $(SRWL)
+	dh_clean
+
+install: build
+	dh_testdir
+	dh_testroot
+	dh_clean -k
+	dh_installdirs
+	dh_install
+	PREFIX=$(SRWL) DEBIAN=Yes $(CURDIR)/install.sh
+	find $(SRWL) -type d -empty -delete
+
+binary-indep: build install
+	dh_testdir
+	dh_testroot
+	dh_installdocs releasenotes.txt
+	dh_installchangelogs changelog.txt
+	dh_installdebconf
+	dh_compress
+	dh_fixperms -Xetc/shorewall-core -Xvar/lib/shorewall-core
+	dh_installdeb
+	dh_gencontrol
+	dh_md5sums
+	dh_builddeb -v
+
+binary-arch: build install
+
+binary: binary-indep binary-arch
+
+.PHONY: build clean binary-indep binary-arch binary install

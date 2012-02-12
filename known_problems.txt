@@ -1,0 +1,13 @@
+1)  On systems running Upstart, shorewall-init cannot reliably secure
+    the firewall before interfaces are brought up.
+
+2)  Handling of the LIBEXEC and PERLLIB environmental variables is
+    broken in the installers.
+
+    Workaround: Before running the Shorewall-core installer, edit the
+    lib.cli file and modify these two lines as needed:
+
+    	    g_libexec=/usr/share/
+	    g_perllib=/usr/share/shorewall/
+
+

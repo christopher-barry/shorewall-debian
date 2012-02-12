@@ -1,0 +1,6 @@
+shorewall-core (4.5.0.1-1) unstable; urgency=low
+
+  * Initial release (Closes: #659561)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 11 Feb 2012 21:37:41 -0500
+
