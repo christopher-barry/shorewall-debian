@@ -142,8 +142,6 @@
 # 
 #     blacklist
 # 
-#         Deprecated in Shorewall 4.4.25 and later in favor of rules in the
-#         BLACKLIST section of shorewall-rules (5) or in shorewall-blrules (5).
 #         Checks packets arriving on this interface against the
 #         shorewall-blacklist(5) file.
 # 
@@ -224,11 +222,10 @@
 # 
 #     maclist
 # 
-#         Deprecated in Shorewall 4.4.25 and later in favor of rules in the
-#         BLACKLIST section of shorewall-rules (5). Connection requests from this
-#         interface are compared against the contents of shorewall-maclist(5). If
-#         this option is specified, the interface must be an ethernet NIC and
-#         must be up before Shorewall is started.
+#         Connection requests from this interface are compared against the
+#         contents of shorewall-maclist(5). If this option is specified, the
+#         interface must be an ethernet NIC and must be up before Shorewall is
+#         started.
 # 
 #     mss=number
 # 
@@ -252,9 +249,8 @@
 # 
 #     nosmurfs
 # 
-#         Deprecated in Shorewall 4.4.25 and later in favor of the DropSmurfs
-#         standard action. Filter packets for smurfs (packets with a broadcast
-#         address as the source).
+#         Filter packets for smurfs (packets with a broadcast address as the
+#         source).
 # 
 #         Smurfs will be optionally logged based on the setting of
 #         SMURF_LOG_LEVEL in shorewall.conf(5). After logging, the packets are
@@ -381,12 +377,11 @@
 # 
 #     tcpflags
 # 
-#         Deprecated in Shorewall 4.4.25 and later in favor of the TCPFlags
-#         standard action. Packets arriving on this interface are checked for
-#         certain illegal combinations of TCP flags. Packets found to have such a
-#         combination of flags are handled according to the setting of
-#         TCP_FLAGS_DISPOSITION after having been logged according to the setting
-#         of TCP_FLAGS_LOG_LEVEL.
+#         Packets arriving on this interface are checked for certain illegal
+#         combinations of TCP flags. Packets found to have such a combination of
+#         flags are handled according to the setting of TCP_FLAGS_DISPOSITION
+#         after having been logged according to the setting of
+#         TCP_FLAGS_LOG_LEVEL.
 # 
 #     upnp
 # 

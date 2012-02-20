@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -136,6 +136,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $doing
 				       $done
 				       $currentline
+				       $currentfilename
 				       $debug
 				       %config
 				       %globals
@@ -152,7 +153,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_0';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -288,6 +289,9 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 IPTABLES_S      => 'iptables -S',
 		 BASIC_FILTER    => 'Basic Filter',
 		 CT_TARGET       => 'CT Target',
+		 STATISTIC_MATCH => 
+		                    'Statistics Match',
+		 IMQ_TARGET      => 'IMQ Target',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -367,7 +371,7 @@ my @actparms;
 
 our $currentline;            # Current config file line image
 my  $currentfile;            # File handle reference
-my  $currentfilename;        # File NAME
+our $currentfilename;        # File NAME
 my  $currentlinenumber;      # Line number
 my  $perlscript;             # File Handle Reference to current temporary file being written by an in-line Perl script
 my  $perlscriptname;         # Name of that file.
@@ -405,6 +409,15 @@ use constant { MIN_VERBOSITY => -1,
 
 my %validlevels;             # Valid log levels.
 
+#
+# Deprecated options with their default values
+#
+my %deprecated = ( LOGRATE            => '' ,
+		   LOGBURST           => '' ,
+		   EXPORTPARAMS       => 'no',
+		   WIDE_TC_MARKS      => 'no',
+		   HIGH_ROUTE_MARKS   => 'no'
+		 );
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -451,8 +464,8 @@ sub initialize( $ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.4.27.3",
-		    CAPVERSION => 40427 ,
+		    VERSION    => "4.5.0.1",
+		    CAPVERSION => 40501 ,
 		  );
     #
     # From shorewall.conf file
@@ -677,6 +690,8 @@ sub initialize( $ ) {
 	       IPTABLES_S => undef,
 	       BASIC_FILTER => undef,
 	       CT_TARGET => undef,
+	       STATISTIC_MATCH => undef,
+	       IMQ_TARGET => undef,
 	       CAPVERSION => undef,
 	       KERNELVERSION => undef,
 	       );
@@ -971,10 +986,10 @@ sub emitstd {
 #
 # Write passed message to the script with newline but no indentation.
 #
-sub emit_unindented( $ ) {
+sub emit_unindented( $;$ ) {
     assert( $script_enabled );
 
-    print $script "$_[0]\n" if $script;
+    print $script $_[1] ? "$_[0]" : "$_[0]\n" if $script;
 }
 
 #
@@ -2758,6 +2773,14 @@ sub Ct_Target() {
     $ct_target;
 }
 
+sub Statistic_Match() {
+    qt1( "$iptables -A $sillyname -m statistic --mode nth --every 2 --packet 1" );
+}
+
+sub Imq_Target() {
+    qt1( "$iptables -t mangle -A $sillyname -j IMQ --todev 0" );
+}
+
 our %detect_capability =
     ( ACCOUNT_TARGET =>\&Account_Target,
       AUDIT_TARGET => \&Audit_Target,
@@ -2779,6 +2802,7 @@ our %detect_capability =
       HASHLIMIT_MATCH => \&Hashlimit_Match,
       HEADER_MATCH => \&Header_Match,
       HELPER_MATCH => \&Helper_Match,
+      IMQ_TARGET => \&Imq_Target,
       IPMARK_TARGET => \&IPMark_Target,
       IPP2P_MATCH => \&Ipp2p_Match,
       IPRANGE_MATCH => \&IPRange_Match,
@@ -2812,6 +2836,7 @@ our %detect_capability =
       RAWPOST_TABLE => \&Rawpost_Table,
       REALM_MATCH => \&Realm_Match,
       RECENT_MATCH => \&Recent_Match,
+      STATISTIC_MATCH => \&Statistic_Match,
       TCPMSS_MATCH => \&Tcpmss_Match,
       TIME_MATCH => \&Time_Match,
       TPROXY_TARGET => \&Tproxy_Target,
@@ -2948,6 +2973,8 @@ sub determine_capabilities() {
 	$capabilities{IPTABLES_S}      = detect_capability( 'IPTABLES_S' );
 	$capabilities{BASIC_FILTER}    = detect_capability( 'BASIC_FILTER' );
 	$capabilities{CT_TARGET}       = detect_capability( 'CT_TARGET' );
+	$capabilities{STATISTIC_MATCH} = detect_capability( 'STATISTIC_MATCH' );
+	$capabilities{IMQ_TARGET}      = detect_capability( 'IMQ_TARGET' );
 
 
 	qt1( "$iptables -F $sillyname" );
@@ -3070,16 +3097,7 @@ sub update_config_file( $ ) {
 	#
 	$fn = $annotate ? "$globals{SHAREDIR}/configfiles/${product}.conf.annotated" : "$globals{SHAREDIR}/configfiles/${product}.conf";
     }
-    #
-    # Deprecated options with their default values
-    #
-    my %deprecated = ( LOGRATE            => '' ,
-		       LOGBURST           => '' ,
-		       EXPORTPARAMS       => 'no',
-		       WIDE_TC_MARKS      => 'no',
-		       HIGH_ROUTE_MARKS   => 'no'
-		     );
-    if ( -f $fn ) {
+   if ( -f $fn ) {
 	my ( $template, $output );
 
 	open $template, '<' , $fn or fatal_error "Unable to open $fn: $!";
@@ -3198,6 +3216,9 @@ sub process_shorewall_conf( $$ ) {
 		    warning_message "Unknown configuration option ($var) ignored", next unless exists $config{$var};
 
 		    $config{$var} = ( $val =~ /\"([^\"]*)\"$/ ? $1 : $val );
+		    
+		    warning_message "Option $var=$val is deprecated"
+			if $deprecated{$var} && supplied $val && lc $config{$var} ne $deprecated{$var};
 		} else {
 		    fatal_error "Unrecognized $product.conf entry";
 		}
@@ -3463,11 +3484,13 @@ sub add_param( $$ ) {
 sub export_params() {
     my $count = 0;
 
-    while ( my ( $param, $value ) = each %params ) {
+    for my $param ( sort keys %params ) {
 	#
 	# Don't export params added by the compiler
 	#
 	next if exists $compiler_params{$param};
+
+	my $value = $params{$param};
 	#
 	# Values in %params are generated from the output of 'export -p'.
 	# The different shells have different conventions for delimiting
@@ -3969,6 +3992,13 @@ sub get_configuration( $$$ ) {
     } else {
 	$config{LOCKFILE} = '';
     }
+
+    report_capabilities unless $config{LOAD_HELPERS_ONLY};
+
+    require_capability( 'MULTIPORT'       , "Shorewall $globals{VERSION}" , 's' );
+    require_capability( 'RECENT_MATCH'    , 'MACLIST_TTL' , 's' )           if $config{MACLIST_TTL};
+    require_capability( 'XCONNMARK'       , 'HIGH_ROUTE_MARKS=Yes' , 's' )  if $config{PROVIDER_OFFSET} > 0;
+    require_capability( 'MANGLE_ENABLED'  , 'Traffic Shaping' , 's'      )  if $config{TC_ENABLED};
 }
 
 #

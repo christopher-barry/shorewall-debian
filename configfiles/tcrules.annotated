@@ -9,7 +9,7 @@
 #
 # See http://shorewall.net/PacketMarking.html for a detailed description of
 # the Netfilter/Shorewall packet marking mechanism.
-######################################################################################################################
+######################################################################################################################################
 # 
 # Entries in this file cause packets to be marked as a means of classifying them
 # for traffic control or policy routing.
@@ -295,6 +295,12 @@
 #         packets is set to number. The valid range of values for number is
 #         1-255.
 # 
+#     11. IMQ(number)
+# 
+#         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
+#         the IMQ identified by number. Requires IMQ Target support in your
+#         kernel and iptables.
+# 
 # SOURCE - {-|{interface|$FW}|[{interface|$FW}:]address-or-range[,
 #     address-or-range]...}[exclusion]
 # 
@@ -504,6 +510,14 @@
 #     #CLASSIFY                                        PORT(S)
 #     4:T       0.0.0.0/0 0.0.0.0/0 TCP     -          -       -    -    -      -   -         ftp
 # 
+# PROBABILITY - [probability]
+# 
+#     Added in Shorewall 4.5.0. When non-empty, requires the Statistics Match
+#     capability in your kernel and ip6tables and causes the rule to match
+#     randomly but with the given probability. The probability is a number 0 <
+#     probability <= 1 and may be expressed at up to 8 decimal points of
+#     precision.
+# 
 # Example
 # 
 # Example 1:
@@ -532,6 +546,6 @@
 #     packet is P2P, set the packet mark to 4. If the packet mark has been set,
 #     save it to the connection mark.
 # 
-######################################################################################################################
-#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER
+######################################################################################################################################
+#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER    PROBABILITY
 #						PORT(S)	PORT(S)

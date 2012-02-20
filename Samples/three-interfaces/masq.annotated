@@ -24,8 +24,7 @@
 # 
 # If you have more than one ISP link, adding entries to this file will not force
 # connections to go out through a particular link. You must use entries in
-# shorewall-route_rules(5) or PREROUTING entries in shorewall-tcrules(5) to do
-# that.
+# shorewall-rtrules(5) or PREROUTING entries in shorewall-tcrules(5) to do that.
 # 
 # The columns in the file are as follows.
 # 
