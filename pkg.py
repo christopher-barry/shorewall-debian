@@ -123,7 +123,7 @@ except getopt.GetoptError, err:
 # Set some defaults for the global variables used in the script
 ops = ['import', 'build', 'tag', 'upload']
 op = ''
-packages = ['shorewall', 'shorewall6', 'shorewall-lite', 'shorewall6-lite', 'shorewall-init', 'shorewall-doc']
+packages = ['shorewall', 'shorewall6', 'shorewall-core', 'shorewall-lite', 'shorewall6-lite', 'shorewall-init', 'shorewall-doc']
 packages_to_process = []
 build_prog = '/usr/bin/pdebuild'
 build_prog_opts = ''
