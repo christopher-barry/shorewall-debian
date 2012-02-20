@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_0';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -194,8 +194,15 @@ sub initialize( $ ) {
 }
 
 sub process_tc_rule( ) {
-    my ( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers ) = 
-	split_line1 'tcrules file', { mark => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, headers => 12 };
+    my ( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability );
+    if ( $family == F_IPV4 ) {
+	( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability ) =
+	    split_line1 'tcrules file', { mark => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, probability => 12 };
+	$headers = '-';
+    } else {
+	( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability ) = 
+	    split_line1 'tcrules file', { mark => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, headers => 12, probability => 13 };
+    }
 
     our @tccmd;
 
@@ -240,8 +247,10 @@ sub process_tc_rule( ) {
 	    } else {
 		$chain = 'tcout';
 	    }
+
 	    $source = '';
 	} elsif ( $source =~ s/^($fw):// ) {
+	    fatal_error ":F is not allowed when the SOURCE is the firewall" if ( $designator || '' ) eq 'F';
 	    $chain = 'tcout';
 	}
     }
@@ -370,7 +379,7 @@ sub process_tc_rule( ) {
 				$val = numeric_value ($s);
 				fatal_error "Invalid Shift Bits ($s)" unless defined $val && $val >= 0 && $val < 128;
 				$shift = $s;
-			    }
+			    }			    
 			} else {
 			    fatal_error "Invalid MARK/CLASSIFY ($cmd)" unless $cmd eq 'IPMARK';
 			}
@@ -451,6 +460,10 @@ sub process_tc_rule( ) {
 			} else {
 			    $target .= " --hl-set $param";
 			}
+		    } elsif ( $target eq 'IMQ' ) {
+			assert( $cmd =~ /^IMQ\((\d+)\)$/ );
+			require_capability 'IMQ_TARGET', 'IMQ', 's';
+			$target .= " --todev $1";
 		    }
 
 		    if ( $rest ) {
@@ -496,7 +509,8 @@ sub process_tc_rule( ) {
 				     do_tos( $tos ) .
 				     do_connbytes( $connbytes ) .
 				     do_helper( $helper ) .
-				     do_headers( $headers ) ,
+				     do_headers( $headers ) .
+				     do_probability( $probability ) ,
 				     $source ,
 				     $dest ,
 				     '' ,
@@ -1967,7 +1981,13 @@ sub setup_tc() {
 			  mark      => NOMARK,
 			  mask      => '',
 			  connmark  => 0
-			} 
+			},
+			{ match     => sub( $ ) { $_[0] =~ /^IMQ\(\d+\)$/ },
+			  target    => 'IMQ',
+			  mark      => NOMARK,
+			  mask      => '',
+			  connmark  => 0
+			},
 		      );
 
 	if ( my $fn = open_file 'tcrules' ) {

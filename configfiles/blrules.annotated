@@ -19,7 +19,7 @@
 # shorewall-rules (5). The differece in the two files lies in the ACTION (first)
 # column.
 # 
-# ACTION- {ACCEPT|CONTINUE|DROP|A_DROP|REJECT|A_REJECT|WHITELIES|LOG|QUEUE|
+# ACTION- {ACCEPT|CONTINUE|DROP|A_DROP|REJECT|A_REJECT|WHITELIST|LOG|QUEUE|
 #     NFQUEUE[(queuenumber)]|COMMENT|action|macro[(target)]}[:{log-level|none}[!]
 #     [:tag]]
 # 

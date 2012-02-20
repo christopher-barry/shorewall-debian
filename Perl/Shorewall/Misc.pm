@@ -1,9 +1,9 @@
 #
-# Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Misc.pm
+# Shorewall 4.5 -- /usr/share/shorewall/Shorewall/Misc.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_0';
 
 my $family;
 
@@ -698,7 +698,6 @@ sub add_common_rules ( $ ) {
 	add_rule_pair dont_delete( new_standard_chain( 'logdrop' ) ),   '' , 'DROP'   , $level ;
 	add_rule_pair dont_delete( new_standard_chain( 'logreject' ) ), '' , 'reject' , $level ;
 	$dynamicref = dont_optimize( new_standard_chain( 'dynamic' ) );
-	add_ijump $filter_table->{INPUT}, j => $dynamicref, @state;
 	add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
     }
 
@@ -753,8 +752,8 @@ sub add_common_rules ( $ ) {
 	$target1 = $target;
     }
 
-    for $interface ( grep $_ ne '%vserver%', all_interfaces ) {
-	ensure_chain( 'filter', $_ ) for first_chains( $interface ), output_chain( $interface );
+    for $interface ( all_real_interfaces ) {
+	ensure_chain( 'filter', $_ ) for first_chains( $interface ), output_chain( $interface ), option_chains( $interface ), output_option_chain( $interface );
 
 	my $interfaceref = find_interface $interface;
 
@@ -762,33 +761,28 @@ sub add_common_rules ( $ ) {
 
 	    my @filters = @{$interfaceref->{filter}};
 	
-	    $chainref = $filter_table->{forward_chain $interface};
+	    $chainref = $filter_table->{forward_option_chain $interface};
 	
 	    if ( @filters ) {
 		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
-		$interfaceref->{options}{use_forward_chain} = 1;
 	    } elsif ( $interfaceref->{bridge} eq $interface ) {
 		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_dest_dev( $interface ), @ipsec ), $chainref->{filtered}++
 		    unless( $config{ROUTE_FILTER} eq 'on' ||
 			    $interfaceref->{options}{routeback} ||
 			    $interfaceref->{options}{routefilter} ||
 			    $interfaceref->{physical} eq '+' );
-
-		$interfaceref->{options}{use_forward_chain} = 1;
 	    }
 
-	    add_ijump( $chainref, j => 'ACCEPT', state_imatch $faststate ), $chainref->{filtered}++ if $config{FASTACCEPT};
-	    add_ijump( $chainref, j => $dynamicref, @state ), $chainref->{filtered}++ if $dynamicref;
-
-	    $chainref = $filter_table->{input_chain $interface};
 	
 	    if ( @filters ) {
+		$chainref = $filter_table->{input_option_chain $interface};
 		add_ijump( $chainref , g => $target, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
-		$interfaceref->{options}{use_input_chain} = 1;
 	    }
 	
-	    add_ijump( $chainref, j => 'ACCEPT', state_imatch $faststate ), $chainref->{filtered}++ if $config{FASTACCEPT};
-	    add_ijump( $chainref, j => $dynamicref, @state ), $chainref->{filtered}++ if $dynamicref;
+	    for ( option_chains( $interface ) ) {
+		add_ijump( $filter_table->{$_}, j => $dynamicref, @state ) if $dynamicref;
+		add_ijump( $filter_table->{$_}, j => 'ACCEPT', state_imatch $faststate ) if $config{FASTACCEPT};
+	    }
 	}
     }
 
@@ -872,12 +866,9 @@ sub add_common_rules ( $ ) {
 	    my @policy     = have_ipsec ? ( policy => "--pol $ipsec --dir in" ) : ();
 	    my $target     = source_exclusion( $hostref->[3], $chainref );
 
-	    for $chain ( first_chains $interface ) {
+	    for $chain ( option_chains $interface ) {
 		add_ijump( $filter_table->{$chain} , j => $target, @state, imatch_source_net( $hostref->[2] ), @policy );
 	    }
-
-	    set_interface_option $interface, 'use_input_chain', 1;
-	    set_interface_option $interface, 'use_forward_chain', 1;
 	}
     }
 
@@ -927,14 +918,11 @@ sub add_common_rules ( $ ) {
 	my $ports = $family == F_IPV4 ? '67:68' : '546:547';
 
 	for $interface ( @$list ) {
-	    set_interface_option $interface, 'use_input_chain', 1;
-	    set_interface_option $interface, 'use_forward_chain', 1;
-	    
 	    set_rule_option( add_ijump( $filter_table->{$_} , j => 'ACCEPT', p => "udp --dport $ports" ) ,
 			     'dhcp',
-			     1 ) for input_chain( $interface ), output_chain( $interface );
+			     1 ) for input_option_chain( $interface ), output_option_chain( $interface );
 
-	    add_ijump( $filter_table->{forward_chain $interface} ,
+	    add_ijump( $filter_table->{forward_option_chain $interface} ,
 		       j => 'ACCEPT', 
 		       p =>  "udp --dport $ports" ,
 		       imatch_dest_dev( $interface ) )
@@ -992,11 +980,9 @@ sub add_common_rules ( $ ) {
 	    my $target     = source_exclusion( $hostref->[3], $chainref );
 	    my @policy     = have_ipsec ? ( policy => "--pol $hostref->[1] --dir in" ) : ();
 
-	    for $chain ( first_chains $interface ) {
+	    for $chain ( option_chains $interface ) {
 		add_ijump( $filter_table->{$chain} , j => $target, p => 'tcp', imatch_source_net( $hostref->[2] ), @policy );
 	    }
-	    set_interface_option $interface, 'use_input_chain', 1;
-	    set_interface_option $interface, 'use_forward_chain', 1;
 	}
     }
 
@@ -1025,7 +1011,7 @@ sub add_common_rules ( $ ) {
 	    progress_message2 "$doing UPnP" unless $announced;
 
 	    for $interface ( @$list ) {
-		my $chainref = $filter_table->{input_chain $interface};
+		my $chainref = $filter_table->{input_option_chain $interface};
 		my $base     = uc chain_base get_physical $interface;
 		my $variable = get_interface_gateway $interface;
 
@@ -1174,12 +1160,9 @@ sub setup_mac_lists( $ ) {
 	    if ( $table eq 'filter' ) {
 		my $chainref = source_exclusion( $hostref->[3], $filter_table->{mac_chain $interface} );
 
-		for my $chain ( first_chains $interface ) {
+		for my $chain ( option_chains $interface ) {
 		    add_ijump $filter_table->{$chain} , j => $chainref, @source, @state, @policy;
 		}
-
-		set_interface_option $interface, 'use_input_chain', 1;
-		set_interface_option $interface, 'use_forward_chain', 1;
 	    } else {
 		my $chainref = source_exclusion( $hostref->[3], $mangle_table->{mac_chain $interface} );
 		add_ijump $mangle_table->{PREROUTING}, j => $chainref, imatch_source_dev( $interface ), @source, @state, @policy;
@@ -1384,6 +1367,7 @@ sub add_interface_jumps {
     our %output_jump_added;
     our %forward_jump_added;
     my  $lo_jump_added = 0;
+    my @interfaces = grep $_ ne '%vserver%', @_;
     #
     # Add Nat jumps
     #
@@ -1395,7 +1379,7 @@ sub add_interface_jumps {
     addnatjump 'POSTROUTING' , 'nat_out';
     addnatjump 'PREROUTING', 'dnat';
 
-    for my $interface ( grep $_ ne '%vserver%', @_ ) {
+    for my $interface ( @interfaces  ) {
 	addnatjump 'PREROUTING'  , input_chain( $interface )  , imatch_source_dev( $interface );
 	addnatjump 'POSTROUTING' , output_chain( $interface ) , imatch_dest_dev( $interface );
 	addnatjump 'POSTROUTING' , masq_chain( $interface ) , imatch_dest_dev( $interface );
@@ -1409,7 +1393,7 @@ sub add_interface_jumps {
     #
     # Add the jumps to the interface chains from filter FORWARD, INPUT, OUTPUT
     #
-    for my $interface ( grep $_ ne '%vserver%', @_ ) {
+    for my $interface ( @interfaces ) {
 	my $forwardref   = $filter_table->{forward_chain $interface};
 	my $inputref     = $filter_table->{input_chain $interface};
 	my $outputref    = $filter_table->{output_chain $interface};
@@ -1489,58 +1473,19 @@ sub generate_matrix() {
     my  %ipsec_jump_added   = ();
 
     progress_message2 'Generating Rule Matrix...';
-    progress_message  '  Handling blacklisting and complex zones...';
+    progress_message  '  Handling complex zones...';
 
     #
-    # Special processing for complex and/or blacklisting configurations
+    # Special processing for complex configurations
     #
     for my $zone ( @zones ) {
 	my $zoneref = find_zone( $zone );
-	my $simple  =  @zones <= 2 && ! $zoneref->{options}{complex};
+	
+	next if  @zones <= 2 && ! $zoneref->{options}{complex};
 	#
-	# Handle blacklisting first
+	# Complex zone or we have more than one non-firewall zone -- process_rules created a zone forwarding chain
 	#
-	if ( $zoneref->{options}{in}{blacklist} ) {
-	    my $blackref = $filter_table->{blacklst};
-	    insert_ijump ensure_rules_chain( rules_chain( $zone, $_ ) ) , j => $blackref , -1, @state for firewall_zone, @vservers;
-
-	    if ( $simple ) {
-		#
-		# We won't create a zone forwarding chain for this zone so we must add blacklisting jumps to the rules chains
-		#
-		for my $zone1 ( @zones ) {
-		    my $ruleschain    = rules_chain( $zone, $zone1 );
-		    my $ruleschainref = $filter_table->{$ruleschain};
-
-		    if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
-			insert_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, -1, @state );
-		    }
-		}
-	    }
-	}
-
-	if ( $zoneref->{options}{out}{blacklist} ) {
-	    my $blackref = $filter_table->{blackout};
-	    insert_ijump ensure_rules_chain( rules_chain( firewall_zone, $zone ) ) , j => $blackref , -1, @state;
-
-	    for my $zone1 ( @zones, @vservers ) {
-		my $ruleschain    = rules_chain( $zone1, $zone );
-		my $ruleschainref = $filter_table->{$ruleschain};
-
-		if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
-		    insert_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, -1, @state );
-		}
-	    }
-	}
-
-	next if $simple;
-
-	#
-	# Complex zone or we have more than one non-firewall zone -- create a zone forwarding chain
-	#
-	my $frwd_ref = new_standard_chain zone_forward_chain( $zone );
-
-	insert_ijump( $frwd_ref , j => $filter_table->{blacklst}, -1, @state ) if $zoneref->{options}{in}{blacklist};
+	my $frwd_ref = $filter_table->{zone_forward_chain( $zone )};
 
 	add_ijump( $frwd_ref , j => 'MARK --set-mark ' . in_hex( $zoneref->{mark} ) . '/' . in_hex( $globals{ZONE_MASK} ) ) if $zoneref->{mark};
 
@@ -1778,7 +1723,6 @@ sub generate_matrix() {
 			my $interfacechainref = $filter_table->{input_chain $interface};
 			my @interfacematch;
 			my $use_input;
-			my $blacklist = $zoneref->{options}{in}{blacklist};
 
 			if ( @vservers || use_input_chain( $interface, $interfacechainref ) || ! $chain2 || ( @{$interfacechainref->{rules}} && ! $chain2ref ) ) {
 			    $inputchainref = $interfacechainref;
@@ -2031,8 +1975,6 @@ sub generate_matrix() {
     progress_message '  Finishing matrix...';
 
     add_interface_jumps @interfaces unless $interface_jumps_added;
-
-    promote_blacklist_rules;
 
     my %builtins = ( mangle => [ qw/PREROUTING INPUT FORWARD POSTROUTING/ ] ,
 		     nat=>     [ qw/PREROUTING OUTPUT POSTROUTING/ ] ,

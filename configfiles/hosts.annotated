@@ -79,10 +79,6 @@
 # 
 #     blacklist
 # 
-#         This option is deprecated in Shorewall 4.4.25 in favor of entries in
-#         shorewall-blrules (5) or in the BLACKLIST section of shorewall-rules 
-#         (5).
-# 
 #         Check packets arriving on this port against the shorewall-blacklist(5)
 #         file.
 # 

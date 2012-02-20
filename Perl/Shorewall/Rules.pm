@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -52,7 +52,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_0';
 #
 # Globals are documented in the initialize() function
 #
@@ -116,7 +116,6 @@ my %auditpolicies = ( ACCEPT => 1,
 		      DROP   => 1,
 		      REJECT => 1
 		    );
-
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -145,8 +144,7 @@ sub initialize( $ ) {
     #
     # These are set to 1 as sections are encountered.
     #
-    %sections = ( BLACKLIST   => 0,
-		  ALL         => 0,
+    %sections = ( ALL         => 0,
 		  ESTABLISHED => 0,
 		  RELATED     => 0,
 		  NEW         => 0
@@ -678,8 +676,6 @@ sub complete_standard_chain ( $$$$ ) {
     policy_rules $stdchainref , $policy , $loglevel, $defaultaction, 0;
 }
 
-sub require_audit($$;$);
-
 #
 # Create and populate the synflood chains corresponding to entries in /etc/shorewall/policy
 #
@@ -744,7 +740,7 @@ sub ensure_rules_chain( $ )
 
     my $chainref = $filter_table->{$chain};
 
-    $chainref = dont_move( new_chain( 'filter', $chain ) ) unless $chainref;
+    $chainref = new_chain( 'filter', $chain ) unless $chainref;
 
     unless ( $chainref->{referenced} ) {
 	if ( $section =~/^(NEW|DONE)$/ ) {
@@ -1431,7 +1427,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$$ );
 
 #
 # Populate an action invocation chain. As new action tuples are encountered,
-# the function will be called recursively by process_rules_common().
+# the function will be called recursively by process_rule1().
 #
 sub process_action( $) {
     my $chainref = shift;
@@ -1719,9 +1715,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 	#
 	fatal_error "Macro invocations nested too deeply" if ++$macro_nest_level > MAX_MACRO_NEST_LEVEL;
 
-	if ( $param ne '' ) {
-	    $current_param = $param unless $param eq 'PARAM';
-	}
+	$current_param = $param unless $param eq '' || $param eq 'PARAM';
 
 	my $generated = process_macro( $basictarget,
 				       $chainref,
@@ -1763,7 +1757,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
     #
     # We can now dispense with the postfix character
     #
-    fatal_error "The +, - and ! modifiers are not allowed in the bllist file or in the BLACKLIST section" if $action =~ s/[\+\-!]$// && $blacklist;
+    fatal_error "The +, - and ! modifiers are not allowed in the blrules file" if $action =~ s/[\+\-!]$// && $blacklist;
     #
     # Handle actions
     #
@@ -1829,7 +1823,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 			  CONTINUE => sub { $action = 'RETURN'; } ,
 
 			  WHITELIST => sub { 
-			      fatal_error "'WHITELIST' may only be used in the blrules file and in the 'BLACKLIST' section" unless $blacklist; 
+			      fatal_error "'WHITELIST' may only be used in the blrules file" unless $blacklist; 
 			      $action = 'RETURN';
 			  } ,
 
@@ -2023,7 +2017,9 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 
     unless ( $section eq 'NEW' || $inaction ) {
 	if ( $config{FASTACCEPT} ) {
-	    fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" unless $section eq 'RELATED' && ( $config{RELATED_DISPOSITION} ne 'ACCEPT' || $config{RELATED_LOG_LEVEL} )
+	    fatal_error "Entries in the $section SECTION of the rules file not permitted with FASTACCEPT=Yes" unless 
+		$section eq 'BLACKLIST' ||
+		( $section eq 'RELATED' && ( $config{RELATED_DISPOSITION} ne 'ACCEPT' || $config{RELATED_LOG_LEVEL} ) )
 	}
 
 	fatal_error "$basictarget rules are not allowed in the $section SECTION" if $actiontype & ( NATRULE | NONAT );
@@ -2310,15 +2306,15 @@ sub process_section ($) {
     fatal_error "Duplicate or out of order SECTION $sect" if $sections{$sect};
     $sections{$sect} = 1;
 
-    if ( $sect eq 'ALL' ) {
-	$sections{BLACKLIST} = 1;
+    if ( $sect eq 'BLACKLIST' ) {
+	fatal_error "The BLACKLIST section has been eliminated. Please move your BLACKLIST rules to the 'blrules' file";
     } elsif ( $sect eq 'ESTABLISHED' ) {
-	$sections{'BLACKLIST','ALL'} = ( 1, 1);
+	$sections{ALL} = 1;
     } elsif ( $sect eq 'RELATED' ) {
-	@sections{'BLACKLIST','ALL','ESTABLISHED'} = ( 1, 1, 1);
+	@sections{'ALL','ESTABLISHED'} = ( 1, 1);
 	finish_section 'ESTABLISHED';
     } elsif ( $sect eq 'NEW' ) {
-	@sections{'BLACKLIST','ALL','ESTABLISHED','RELATED'} = ( 1, 1, 1, 1 );
+	@sections{'ALL','ESTABLISHED','RELATED'} = ( 1, 1, 1 );
 	finish_section ( ( $section eq 'RELATED' ) ? 'RELATED' : 'ESTABLISHED,RELATED' );
     }
 
@@ -2463,18 +2459,93 @@ sub process_rule ( ) {
 }
 
 #
-# Process the Rules File
+# Add jumps to the blacklst and blackout chains
 #
-sub process_rules() {
+sub classic_blacklist() {
+    my $fw       = firewall_zone;
+    my @zones    = off_firewall_zones;
+    my @vservers = vserver_zones;
+    my @state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID' : ();
+    my $result;
+    
+    for my $zone ( @zones ) {
+	my $zoneref = find_zone( $zone );
+	my $simple  =  @zones <= 2 && ! $zoneref->{options}{complex};
+	
+	if ( $zoneref->{options}{in}{blacklist} ) {
+	    my $blackref = $filter_table->{blacklst};
+	    add_ijump ensure_rules_chain( rules_chain( $zone, $_ ) ) , j => $blackref , @state for firewall_zone, @vservers;
+
+	    if ( $simple ) {
+		#
+		# We won't create a zone forwarding chain for this zone so we must add blacklisting jumps to the rules chains
+		#
+		for my $zone1 ( @zones ) {
+		    my $ruleschain    = rules_chain( $zone, $zone1 );
+		    my $ruleschainref = $filter_table->{$ruleschain};
+
+		    if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
+			add_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, @state );
+		    }
+		}
+	    }
+
+	    $result = 1;
+	}
+
+	if ( $zoneref->{options}{out}{blacklist} ) {
+	    my $blackref = $filter_table->{blackout};
+	    add_ijump ensure_rules_chain( rules_chain( firewall_zone, $zone ) ) , j => $blackref , @state;
+
+	    for my $zone1 ( @zones, @vservers ) {
+		my $ruleschain    = rules_chain( $zone1, $zone );
+		my $ruleschainref = $filter_table->{$ruleschain};
+
+		if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
+		    add_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, @state );
+		}
+	    }
+
+	    $result = 1;
+	}
+
+	unless ( $simple ) {
+	    #
+	    # Complex zone or we have more than one non-firewall zone -- create a zone forwarding chain
+	    #
+	    my $frwd_ref = new_standard_chain zone_forward_chain( $zone );
+
+	    add_ijump( $frwd_ref , j => $filter_table->{blacklst}, @state ) if $zoneref->{options}{in}{blacklist};
+	}
+    }
+
+    $result;
+}
+
+#
+# Process the BLRules and Rules Files
+#
+sub process_rules( $ ) {
+    my $convert = shift;
+    my $blrules = 0;
+    #
+    # Generate jumps to the classic blacklist chains
+    #
+    $blrules = classic_blacklist unless $convert;
+    #
+    # Process the blrules file
+    #
+    $section = 'BLACKLIST';
+
     my $fn = open_file 'blrules';
 
     if ( $fn ) {
 	first_entry( sub () {
 			 my ( $level, $disposition ) = @config{'BLACKLIST_LOGLEVEL', 'BLACKLIST_DISPOSITION' };
-			 my $audit       = $disposition =~ /^A_/;
-			 my $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
+			 my  $audit       = $disposition =~ /^A_/;
+			 my  $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
 
-			 progress_message2 "$doing $fn...";
+			 progress_message2 "$doing $currentfilename...";
 
 			 if ( supplied $level ) {
 			     ensure_blacklog_chain( $target, $disposition, $level, $audit );
@@ -2485,18 +2556,17 @@ sub process_rules() {
 			 } elsif ( have_capability 'AUDIT_TARGET' ) {
 			     verify_audit( 'A_' . $disposition );
 			 }
-		     } );
-	
-	$section = 'BLACKLIST';
+
+			 $blrules = 1;
+		     }
+		   );
 
 	process_rule while read_a_line;
-	    
-	$section = '';
-
-	if ( my $chainref = $filter_table->{A_blacklog} ) {
-	    $chainref->{referenced} = 0 unless %{$chainref->{references}};
-	}
     }
+
+    $section = '';
+
+    add_interface_options( $blrules );
 
     $fn = open_file 'rules';
 
