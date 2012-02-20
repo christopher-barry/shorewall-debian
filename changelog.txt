@@ -1,0 +1,73 @@
+Changes in 4.5.0.1
+
+1)  Unghost blacklist file.
+
+2)  Fix LIBEXEC/PERLLIB handling.
+
+3)  Correct a typo in the blrules files.
+
+4)  Eliminate compiler crash from unknown IPv6 interface.
+
+Changes in 4.5.0 Final
+
+1)  Updated release documents.
+
+Changes in 4.5.0 RC 2
+
+1)  Correct 'get_routed_networks()' in lib.core.
+
+2)  Move Samples and Manpages under their corresponding product
+    directories.
+
+Changes in 4.5.0 RC 1
+
+1)  Sort the routing table in 'show_routing'.
+
+2)  Restore shorewall-init functionality.
+
+3)  Correct 'ip -p route' commands for Proxy NDP.
+
+Changes in 4.5.0 Beta 4
+
+1)  Implement load=<load-factor>
+
+2)  Add STARTOPTIONS and RESTARTOPTIONS to /etc/default/shorweall*
+    (/etc/sysconfig/shorewall*).
+
+3)  Ensure a routing rule targeting the main table when
+    USE_DEFAULT_RT=Yes.
+
+Changes in 4.5.0 Beta 3
+
+1)  Move lib.core from Shorewall-core to Shorewall.
+
+2)  Make '0' equivalent to '-' in the IN_BANDWIDTH column.
+
+3)  Fix MARK_IN_FORWARD_CHAIN=Yes with $FW source
+
+4)  Allow runtime address variables in the SOURCE column of
+    route_rules.
+
+5)  Add a PROBABILITY column to the tcrules file.
+
+6)  Don't rm /usr/share/shorewall/wait4ifup during Shorewall install.
+
+7)  Combine prog.footer and prog.footer6
+
+Changes in 4.5.0 Beta 2
+
+1)  Move common routines from prog.header/prog.header6 to lib.core.
+
+2)  Unify install between Shorewall and Shorewall6.
+
+2)  Unify install between Shorewall-lite and Shorewall6-lite.  
+
+Changes in 4.5.0 Beta 1
+
+1)  Reorganize blacklist and interface option handling.
+
+2)  Allow <timeout> on safe- commands.
+
+3)  Add Shorewall Core package
+
+
