@@ -51,7 +51,6 @@ install: build
 #  global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall/*
 #  must be executable
-	chmod 755 $(SRWL)/usr/share/shorewall/wait4ifup
 	chmod 755 $(SRWL)/usr/share/shorewall/getparams
 
 binary-indep: build install
