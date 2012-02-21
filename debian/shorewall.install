@@ -99,6 +99,5 @@ configfiles/tos	/usr/share/doc/shorewall/default-config
 configfiles/tos.annotated	/usr/share/doc/shorewall/default-config
 configfiles/tunnels	/usr/share/doc/shorewall/default-config
 configfiles/tunnels.annotated	/usr/share/doc/shorewall/default-config
-wait4ifup	/usr/share/shorewall
 configfiles/zones	/usr/share/doc/shorewall/default-config
 configfiles/zones.annotated	/usr/share/doc/shorewall/default-config
