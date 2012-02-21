@@ -120,12 +120,8 @@ loc     eth2            -</programlisting>
               <term><emphasis role="bold">blacklist</emphasis></term>
 
               <listitem>
-                <para>Deprecated in Shorewall 4.4.25 and later in favor of
-                rules in the BLACKLIST section of <ulink
-                url="shorewall6-rules.html">shorewall6-rules</ulink> (5) or
-                in<ulink url="shorewall6-blrules.html"> shorewall6-blrules
-                </ulink>(5). Check packets arriving on this interface against
-                the <ulink
+                <para>Check packets arriving on this interface against the
+                <ulink
                 url="shorewall6-blacklist.html">shorewall6-blacklist</ulink>(5)
                 file.</para>
 
@@ -385,14 +381,11 @@ loc     eth2            -</programlisting>
               <term><emphasis role="bold">tcpflags</emphasis></term>
 
               <listitem>
-                <para>Deprecated in Shorewall 4.4.25 and later in favor of
-                invoking the TCPFlags standard action in <ulink
-                url="shorewall6-rules.html">shorewall6-rules</ulink> (5).
-                Packets arriving on this interface are checked for certain
-                illegal combinations of TCP flags. Packets found to have such
-                a combination of flags are handled according to the setting of
-                TCP_FLAGS_DISPOSITION after having been logged according to
-                the setting of TCP_FLAGS_LOG_LEVEL.</para>
+                <para>Packets arriving on this interface are checked for
+                certain illegal combinations of TCP flags. Packets found to
+                have such a combination of flags are handled according to the
+                setting of TCP_FLAGS_DISPOSITION after having been logged
+                according to the setting of TCP_FLAGS_LOG_LEVEL.</para>
               </listitem>
             </varlistentry>
 
@@ -481,7 +474,7 @@ dmz     eth2      -</programlisting>
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-maclist(5),
     shoewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
-    shorewall6-providers(5), shorewall6-route_rules(5),
+    shorewall6-providers(5), shorewall6-rtrules(5),
     shorewall6-routestopped(5), shorewall6-rules(5), shorewall6.conf(5),
     shorewall6-secmarks(5), shorewall6-tcclasses(5), shorewall6-tcdevices(5),
     shorewall6-tcrules(5), shorewall6-tos(5), shorewall6-tunnels(5),

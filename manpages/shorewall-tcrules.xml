@@ -458,6 +458,16 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
               is set to <replaceable>number</replaceable>. The valid range of
               values for <replaceable>number</replaceable> is 1-255.</para>
             </listitem>
+
+            <listitem>
+              <para><emphasis
+              role="bold">IMQ</emphasis>(<replaceable>number</replaceable>)</para>
+
+              <para>Added in Shorewall 4.5.1. Specifies that the packet should
+              be passed to the IMQ identified by
+              <replaceable>number</replaceable>. Requires IMQ Target support
+              in your kernel and iptables.</para>
+            </listitem>
           </orderedlist>
         </listitem>
       </varlistentry>
@@ -827,6 +837,21 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
 4:T       0.0.0.0/0 0.0.0.0/0 TCP     -          -       -    -    -      -   -         ftp</programlisting></para>
         </listitem>
       </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">PROBABILITY</emphasis> -
+        [probability]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.0. When non-empty, requires the
+          <firstterm>Statistics Match</firstterm> capability in your kernel
+          and ip6tables and causes the rule to match randomly but with the
+          given <replaceable>probability</replaceable>. The
+          <replaceable>probability</replaceable> is a number 0 &lt;
+          <replaceable>probability</replaceable> &lt;= 1 and may be expressed
+          at up to 8 decimal points of precision.</para>
+        </listitem>
+      </varlistentry>
     </variablelist>
   </refsect1>
 
@@ -892,7 +917,7 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
     shorewall-hosts(5), shorewall_interfaces(5), shorewall-ipsets(5),
     shorewall-maclist(5), shorewall-masq(5), shorewall-nat(5),
     shorewall-netmap(5), shorewall-params(5), shorewall-policy(5),
-    shorewall-providers(5), shorewall-proxyarp(5), shorewall-route_rules(5),
+    shorewall-providers(5), shorewall-proxyarp(5), shorewall-rtrules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
     shorewall-tos(5), shorewall-tunnels(5), shorewall-zones(5)</para>
