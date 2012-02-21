@@ -28,6 +28,12 @@
 
       <year>2009</year>
 
+      <year>2010</year>
+
+      <year>2011</year>
+
+      <year>2012</year>
+
       <holder>Thomas M. Eastep</holder>
     </copyright>
 
@@ -43,9 +49,9 @@
   </articleinfo>
 
   <warning>
-    <para>This document describes the Multi-ISP facility in Shorewall 4.3.5
-    and later. If you are running an earlier release, please see the
-    documentation for that release.</para>
+    <para>This document describes the Multi-ISP facility in <emphasis
+    role="bold">Shorewall 4.5.0 and later</emphasis>. If you are running an
+    earlier release, please see the documentation for that release.</para>
   </warning>
 
   <warning>
@@ -138,7 +144,7 @@
       <para>Entries in <filename>/etc/shorewall/providers</filename> can
       specify that outgoing connections are to be load-balanced between the
       two ISPs. Entries in <filename>/etc/shorewall/tcrules</filename> and
-      <filename>/etc/shorewall/route_rules</filename> can be used to direct
+      <filename>/etc/shorewall/rtrules</filename> can be used to direct
       particular outgoing connections to one ISP or the other. Use of
       <filename>/etc/shorewall/tcrules</filename> is not required for
       <filename>/etc/shorewall/providers</filename> to work, but in most
@@ -403,8 +409,8 @@
                     specify <emphasis role="bold">balance</emphasis> even if
                     you don't need it. You can still use entries in
                     <filename>/etc/shorewall/tcrules</filename> and
-                    <filename>/etc/shorewall/route_rules</filename> to force
-                    all traffic to one provider or another.<note>
+                    <filename>/etc/shorewall/rtrules</filename> to force all
+                    traffic to one provider or another.<note>
                         <para>If you don't heed this advice then please read
                         and follow the advice in <ulink
                         url="FAQ.htm#faq57">FAQ 57</ulink> and <ulink
@@ -450,9 +456,9 @@
                   not specified. So, if you have multiple IP addresses on a
                   provider interface, you may be able to replace the rules
                   that Shorewall generates with one or two rules in
-                  <filename>/etc/shorewall/route_rules</filename>. In that
-                  case, you can specify <emphasis role="bold">loose</emphasis>
-                  to suppress Shorewall's rule generation. See the <link
+                  <filename>/etc/shorewall/rtrules</filename>. In that case,
+                  you can specify <emphasis role="bold">loose</emphasis> to
+                  suppress Shorewall's rule generation. See the <link
                   linkend="Complete">example</link> below.</para>
                 </listitem>
               </varlistentry>
@@ -624,7 +630,7 @@
       omit interfaces like <emphasis role="bold">tun</emphasis> interfaces
       that are created dynamically. Traffic to networks handled by those
       interfaces should be routed through the main table using entries in
-      <filename>/etc/shorewall/route_rules</filename> (see Example 2 <link
+      <filename>/etc/shorewall/rtrules</filename> (see Example 2 <link
       linkend="Examples">below</link>) or by using <link
       linkend="USE_DEFAULT_RT">USE_DEFAULT_RT=Yes</link>.</para>
 
@@ -685,7 +691,7 @@
       with the provider's MARK value in
       <filename>/etc/shorewall/tcrules</filename> and you must do that marking
       in the PREROUTING chain; or, you must provide the appropriate rules in
-      <filename>/etc/shorewall/route_rules</filename>.</para>
+      <filename>/etc/shorewall/rtrules</filename>.</para>
     </section>
 
     <section>
@@ -720,7 +726,7 @@ eth1             0.0.0.0/0            130.252.99.27</programlisting>
         effect on which ISP a particular connection will be sent through. That
         is rather the purpose of entries in
         <filename>/etc/shorewall/tcrules</filename> and
-        <filename>/etc/shorewall/route_rules</filename>.</para>
+        <filename>/etc/shorewall/rtrules</filename>.</para>
       </warning>
     </section>
 
@@ -957,9 +963,9 @@ eth3             0.0.0.0/0         16.105.78.4</programlisting></para>
 
       <para>Note that some traffic originating on the firewall doesn't have a
       SOURCE IP address before routing. At least one Shorewall user reports
-      that an entry in <filename>/etc/shorewall/route_rules</filename> with
-      'lo' in the SOURCE column seems to be the most reliable way to direct
-      such traffic to a particular ISP.</para>
+      that an entry in <filename>/etc/shorewall/rtrules</filename> with 'lo'
+      in the SOURCE column seems to be the most reliable way to direct such
+      traffic to a particular ISP.</para>
 
       <para>Example:</para>
 
@@ -967,13 +973,14 @@ eth3             0.0.0.0/0         16.105.78.4</programlisting></para>
 lo          -         shorewall       1000</programlisting>
     </section>
 
-    <section id="route_rules">
-      <title>/etc/shorewall/route_rules</title>
+    <section id="rtrules">
+      <title>/etc/shorewall/rtrules (formerly
+      /etc/shorewall/route_rules)</title>
 
-      <para>The <filename>route_rules</filename> file allows assigning certain
+      <para>The <filename>rtrules</filename> file allows assigning certain
       traffic to a particular provider just as entries in the
       <filename>tcrules</filename> file. The difference between the two files
-      is that entries in <filename>route_rules</filename> are independent of
+      is that entries in <filename>rtrules</filename> are independent of
       Netfilter.</para>
 
       <section id="Routing_rules">
@@ -998,8 +1005,8 @@ gateway:~ #</programlisting>
         with MARK 1 going to Blarg and mark 2 going to Comcast.</para>
       </section>
 
-      <section id="route_rules_columns">
-        <title>Columns in the route_rules file</title>
+      <section id="rtrules_columns">
+        <title>Columns in the rtrules file</title>
 
         <para>Columns in the file are:</para>
 
@@ -1293,8 +1300,7 @@ lillycat: #</programlisting>
       <para>Although 'balance' is automatically assumed when
       USE_DEFAULT_RT=Yes, you can easily cause all traffic to use one provider
       except when you explicitly direct it to use the other provider via
-      <ulink
-      url="manpages/shorewall-route_rules.html">shorewall-route_rules</ulink>
+      <ulink url="manpages/shorewall-rtrules.html">shorewall-rtrules</ulink>
       (5) or <ulink
       url="manpages/shorewall-tcrules.html">shorewall-tcrules</ulink>
       (5).</para>
@@ -1304,7 +1310,7 @@ lillycat: #</programlisting>
 
       <para>/etc/shorewall/providers:<programlisting>#NAME    NUMBER MARK DUPLICATE INTERFACE GATEWAY       OPTIONS
 linksys       1    1    -        wlan0   172.20.1.1    track,balance=1,optional
-shorewall     2    2    -        eth0    192.168.1.254 track,balance=2,optional</programlisting>/etc/shorewall/route_rules:<programlisting>#SOURCE     DEST      PROVIDER        PRIORITY
+shorewall     2    2    -        eth0    192.168.1.254 track,balance=2,optional</programlisting>/etc/shorewall/rtrules:<programlisting>#SOURCE     DEST      PROVIDER        PRIORITY
 -           -         shorewall       11999</programlisting></para>
 
       <para>Tuomo Soini describes the following issue when using
@@ -1325,7 +1331,7 @@ shorewall     2    2    -        eth0    192.168.1.254 track,balance=2,optional<
       interface because the main routing table included a route to the
       /19.</para>
 
-      <para>The solution was to add an additional entry to route_rules:</para>
+      <para>The solution was to add an additional entry to rtrules:</para>
 
       <programlisting>#SOURCE             DEST           PROVIDER       PRIORITY
 70.90.191.0/27      91.156.0.0/19  ISP1           900</programlisting>
@@ -1337,6 +1343,99 @@ shorewall     2    2    -        eth0    192.168.1.254 track,balance=2,optional<
 999:    from all lookup main 
 10000:  from all fwmark 0x100 lookup ISP1 
 10001:  from all fwmark 0x200 lookup ISP2</programlisting>
+    </section>
+
+    <section id="load">
+      <title>An alternative form of balancing</title>
+
+      <para>Beginning with Shorewall 4.5.0, an alternative to the
+      <option>balance</option>=<replaceable>weight</replaceable> option in
+      <ulink
+      url="manpages/shorewall-providers.html">shorewall-providers</ulink> (5)
+      is available in the form of a PROBABILITY column in <ulink
+      url="???">shorewall-tcrules</ulink> (5). This feature requires the
+      <firstterm>Statistic Match</firstterm> capability in your iptables and
+      kernel.</para>
+
+      <para>This method works when there are multiple links to the same ISP
+      where both links have the same default gateway.</para>
+
+      <para>The key features of this method are:</para>
+
+      <orderedlist>
+        <listitem>
+          <para>Providers to be balanced are given a <replaceable>load
+          factor</replaceable> using the <option>load</option>= option in
+          <ulink
+          url="manpages/shorewall-providers.html">shorewall-providers</ulink>
+          (5).</para>
+        </listitem>
+
+        <listitem>
+          <para>A load factor is a number in the range 0 &lt; number &lt;= 1
+          and specifies the probability that any particular new connection
+          will be assigned to the associated provider.</para>
+        </listitem>
+
+        <listitem>
+          <para>When one of the interfaces is disabled or enabled, the load
+          factors of the currently-available interfaces are adjusted so that
+          the sum of these remaining load factors totals to the sum of all
+          interfaces that specify <option>load</option>=.</para>
+        </listitem>
+      </orderedlist>
+
+      <para>Here's an example that sends 1/3 of the connections through
+      provider ComcastC and the rest through ComastB.</para>
+
+      <para><filename>/etc/shorewall/shorewall.conf</filename>:</para>
+
+      <programlisting>MARK_IN_FORWARD_CHAIN=No
+...
+USE_DEFAULT_RT=Yes
+...
+TC_BITS=0
+PROVIDER_BITS=2
+PROVIDER_OFFSET=16
+MASK_BITS=8
+ZONE_BITS=4
+</programlisting>
+
+      <note>
+        <para>PROVIDER_OFFSET=16 and ZONE_BITS=4 means that the provider mask
+        will be 0xf0000.</para>
+      </note>
+
+      <para><filename>/etc/shorewall/providers</filename>:</para>
+
+      <programlisting>#NAME    NUMBER MARK DUPLICATE  INTERFACE GATEWAY       OPTIONS
+ComcastB 1      -    -          eth1      70.90.191.126 loose,balance,load=0.66666667
+ComcastC 2      -    -          eth0      detect        loose,fallback,load=0.33333333</programlisting>
+
+      <note>
+        <para>The <option>loose</option> option is specified so that the
+        compiler will not generate and rules based on interface IP addresses.
+        That way we have complete control over the priority of such rules
+        through entries in the rtrules file.</para>
+      </note>
+
+      <para><filename>/etc/shorewall/rtrules</filename>:</para>
+
+      <programlisting>#SOURCE             DEST  PROVIDER  PRIORITY
+70.90.191.120/29    -     ComcastB  1000
+&amp;eth0               -     ComcastC  1000</programlisting>
+
+      <note>
+        <para>This example assumes that eth0 has a dynamic address, so
+        <emphasis role="bold">&amp;eth0</emphasis> is used in the SOURCE
+        column. That will cause the first IP address of eth0 to be substituted
+        when the firewall is started/restarted.</para>
+      </note>
+
+      <note>
+        <para>Priority = 1000 means that these rules will come before rules
+        that select a provider based on marks.</para>
+      </note>
     </section>
 
     <section id="LinkMonitor">
@@ -1453,6 +1552,11 @@ DOWN_COUNT=2</programlisting>
             <filename><replaceable>interface</replaceable>.status</filename>
             where <replaceable>interface</replaceable> is the interface (e.g.,
             <filename>eth0.status</filename>).</para>
+
+            <important>
+              <para>Beginning with Shorewall 4.5.0, the generated script
+              automatically maintains this .status file.</para>
+            </important>
           </listitem>
 
           <listitem>
@@ -1812,9 +1916,10 @@ Your LSM Daemon
 
 EOM
 
-[ ${STATE} = up ] &amp;&amp; state=0 || state=1
+# Uncomment the next two lines if you are running Shorewall 4.4.x or earlier
 
-echo $state &gt; ${VARDIR}/${DEVICE}.status
+# [ ${STATE} = up ] &amp;&amp; state=0 || state=1
+# echo $state &gt; ${VARDIR}/${DEVICE}.status
 
 /sbin/shorewall restart -f &gt;&gt; /var/log/lsm 2&gt;&amp;1
 
@@ -1885,10 +1990,10 @@ Your LSM Daemon
 EOM
 
 <emphasis role="bold">if [ ${STATE} = up ]; then
-   echo 0 &gt; ${VARDIR}/${DEVICE}.status
+# echo 0 &gt; ${VARDIR}/${DEVICE}.status # Uncomment this line if you are running Shorewall 4.4.x or earlier
   ${VARDIR}/firewall enable ${DEVICE}
 else
-   echo 1 &gt; ${VARDIR}/${DEVICE}.status
+#  echo 1 &gt; ${VARDIR}/${DEVICE}.status # Uncomment this line if you are running Shorewall 4.4.x or earlier
    ${VARDIR}/firewall disable ${DEVICE}
 fi
 </emphasis>
@@ -1930,13 +2035,13 @@ exit 0
         </listitem>
 
         <listitem>
-          <para>You must add route_rules entries for networks that are
-          accessed through a particular provider.</para>
+          <para>You must add rtrules entries for networks that are accessed
+          through a particular provider.</para>
         </listitem>
 
         <listitem>
           <para>If you have additional IP addresses through either provider,
-          you must add <filename>route_rules</filename> to direct traffic FROM
+          you must add <filename>rtrules</filename> to direct traffic FROM
           each of those addresses through the appropriate provider.</para>
         </listitem>
 
@@ -2039,7 +2144,7 @@ wireless       3        3    -         wlan0                172.20.1.1   track,o
         </listitem>
       </orderedlist>
 
-      <para>Here is the route_rules file:<programlisting>#SOURCE                 DEST                    PROVIDER        PRIORITY
+      <para>Here is the rtrules file:<programlisting>#SOURCE                 DEST                    PROVIDER        PRIORITY
 -                       206.124.146.176/31      avvanta         1000
 -                       206.124.146.178/31      avvanta         1000
 -                       206.124.146.180/32      avvanta         1000</programlisting></para>
@@ -2154,7 +2259,7 @@ wlan0                   192.168.0.0/24</programlisting><note>
         <para>Connections initiated by the server and connections requested by
         clients on the firewall that have bound their local socket to one of
         the DSL IP addresses. Two entries in
-        <filename>/etc/shorewall/route_rules</filename> take care of that
+        <filename>/etc/shorewall/rtrules</filename> take care of that
         traffic.</para>
       </listitem>
     </itemizedlist>
@@ -2194,7 +2299,7 @@ Comcast     2 0x200 main      eth3      detect          track,balance           
     provider. The 'tun*' included in the COPY column is there because I run a
     routed OpenVPN server on the firewall.</para>
 
-    <para><filename>/etc/shorewall/route_rules</filename>:</para>
+    <para><filename>/etc/shorewall/rtrules</filename>:</para>
 
     <programlisting>#SOURCE            DEST           PROVIDER PRIORITY
 -                  172.20.0.0/24  main     1000    # Addresses assigned by routed OpenVPN server
@@ -2203,8 +2308,8 @@ Comcast     2 0x200 main      eth3      detect          track,balance           
 -                  216.168.3.44   Avvanta  26000   # Avvanta NNTP Server -- verifies source IP address
 #LAST LINE -- ADD YOUR ENTRIES BEFORE THIS ONE -- DO NOT REMOVE</programlisting>
 
-    <para>The <filename>/etc/shorewall/route_rules </filename>entries provide
-    all of the provider selection necessary so my
+    <para>The <filename>/etc/shorewall/rtrules </filename>entries provide all
+    of the provider selection necessary so my
     <filename>/etc/shorewall/tcrules</filename> file is used exclusively for
     traffic shaping of the Avvanta line. Note that I still need to provide
     values in the MARK colum of <filename>/etc/shorewall/providers</filename>

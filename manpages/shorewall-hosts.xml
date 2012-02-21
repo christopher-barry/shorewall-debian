@@ -148,12 +148,6 @@
               <term><emphasis role="bold">blacklist</emphasis></term>
 
               <listitem>
-                <para>This option is deprecated in Shorewall 4.4.25 in favor
-                of entries in <ulink
-                url="shorewall-blrules.html">shorewall-blrules</ulink> (5) or
-                in the BLACKLIST section of <ulink
-                url="shorewall-rules.html">shorewall-rules </ulink>(5).</para>
-
                 <para>Check packets arriving on this port against the <ulink
                 url="shorewall-blacklist.html">shorewall-blacklist</ulink>(5)
                 file.</para>
@@ -275,7 +269,7 @@ vpn         ppp+:192.168.3.0/24</programlisting></para>
     shorewall-maclist(5), shorewall-masq(5), shorewall-nat(5),
     shorewall-nesting(5), shorewall-netmap(5), shorewall-params(5),
     shorewall-policy(5), shorewall-providers(5), shorewall-proxyarp(5),
-    shorewall-route_rules(5), shorewall-routestopped(5), shorewall-rules(5),
+    shorewall-rtrules(5), shorewall-routestopped(5), shorewall-rules(5),
     shorewall.conf(5), shorewall-secmarks(5), shorewall-tcclasses(5),
     shorewall-tcdevices(5), shorewall-tcrules(5), shorewall-tos(5),
     shorewall-tunnels(5), shorewall-zones(5)</para>
