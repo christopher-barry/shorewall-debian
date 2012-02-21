@@ -7,6 +7,8 @@ action.template	/usr/share/shorewall6
 action.*	/usr/share/shorewall6
 configfiles/blacklist	/usr/share/doc/shorewall6/default-config
 configfiles/blacklist.annotated	/usr/share/doc/shorewall6/default-config
+configfiles/blrules	/usr/share/doc/shorewall6/default-config
+configfiles/blrules.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/clear	/usr/share/shorewall6
 configpath	/usr/share/shorewall6
 helpers	/usr/share/doc/shorewall6/default-config
@@ -21,13 +23,15 @@ configfiles/isusable	/usr/share/doc/shorewall6/default-config
 lib.* /usr/share/shorewall6
 configfiles/maclist	/usr/share/doc/shorewall6/default-config
 configfiles/maclist.annotated	/usr/share/doc/shorewall6/default-config
-macro.*	/usr/share/shorewall6
+Macros/macro.*	/usr/share/shorewall6
 Makefile	/etc/shorewall6
 Makefile-lite	/usr/share/shorewall6
 modules	/usr/share/doc/shorewall6/default-config
 modules	/usr/share/shorewall6
 modules.*	/usr/share/doc/shorewall6/default-config
 modules.*	/usr/share/shorewall6
+configfiles/netmap	/usr/share/doc/shorewall6/default-config
+configfiles/netmap.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/notrack	/usr/share/doc/shorewall6/default-config
 configfiles/notrack.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/params	/usr/share/doc/shorewall6/default-config
@@ -41,10 +45,10 @@ configfiles/proxyndp.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/refresh	/usr/share/doc/shorewall6/default-config
 configfiles/refreshed	/usr/share/doc/shorewall6/default-config
 configfiles/restored	/usr/share/doc/shorewall6/default-config
-configfiles/route_rules	/usr/share/doc/shorewall6/default-config
-configfiles/route_rules.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/routes	/usr/share/doc/shorewall6/default-config
 configfiles/routes.annotated	/usr/share/doc/shorewall6/default-config
+configfiles/rtrules	/usr/share/doc/shorewall6/default-config
+configfiles/rtrules.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/routestopped	/usr/share/doc/shorewall6/default-config
 configfiles/routestopped.annotated	/usr/share/doc/shorewall6/default-config
 configfiles/rules	/usr/share/doc/shorewall6/default-config
@@ -79,6 +83,5 @@ configfiles/tos.annotated	/usr/share/doc/shorewall6/default-config
 tunnel	/usr/share/doc/shorewall6/default-config
 configfiles/tunnels	/usr/share/doc/shorewall6/default-config
 configfiles/tunnels.annotated	/usr/share/doc/shorewall6/default-config
-wait4ifup	/usr/share/shorewall6
 configfiles/zones	/usr/share/doc/shorewall6/default-config
 configfiles/zones.annotated	/usr/share/doc/shorewall6/default-config
