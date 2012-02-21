@@ -74,8 +74,6 @@
 # 
 #     blacklist
 # 
-#         Deprecated in Shorewall 4.4.25 and later in favor of rules in the
-#         BLACKLIST section of shorewall6-rules (5) or in shorewall6-blrules (5).
 #         Check packets arriving on this interface against the
 #         shorewall6-blacklist(5) file.
 # 
@@ -217,12 +215,11 @@
 # 
 #     tcpflags
 # 
-#         Deprecated in Shorewall 4.4.25 and later in favor of invoking the
-#         TCPFlags standard action in shorewall6-rules (5). Packets arriving on
-#         this interface are checked for certain illegal combinations of TCP
-#         flags. Packets found to have such a combination of flags are handled
-#         according to the setting of TCP_FLAGS_DISPOSITION after having been
-#         logged according to the setting of TCP_FLAGS_LOG_LEVEL.
+#         Packets arriving on this interface are checked for certain illegal
+#         combinations of TCP flags. Packets found to have such a combination of
+#         flags are handled according to the setting of TCP_FLAGS_DISPOSITION
+#         after having been logged according to the setting of
+#         TCP_FLAGS_LOG_LEVEL.
 # 
 #     proxyndp[={0|1}]
 # 

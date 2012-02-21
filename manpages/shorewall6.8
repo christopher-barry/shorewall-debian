@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 01/21/2012
+.\"      Date: 02/18/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "01/21/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "02/18/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -79,9 +79,9 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsafe\-restart\fR [\fB\-d\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsafe\-restart\fR [\fB\-d\fR] [\fB\-t\fR\ \fItimeout\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBsafe\-start\fR [\fB\-d\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBsafe\-start\fR [\fB\-d\fR] [\fB\-t\fR\ \fItimeout\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsave\fR [\fIfilename\fR]
 .HP \w'\fBshorewall6\fR\ 'u
@@ -600,11 +600,37 @@ is given then Shorewall6 will be restored from the file specified by the RESTORE
 Only allowed if Shorewall6 is running\&. The current configuration is saved in /var/lib/shorewall6/safe\-restart (see the save command below) then a
 \fBshorewall6 restart\fR
 is done\&. You will then be prompted asking if you want to accept the new configuration or not\&. If you answer "n" or if you fail to answer within 60 seconds (such as when your new configuration has disabled communication with your terminal), the configuration is restored from the saved configuration\&. If a directory is given, then Shorewall6 will look in that directory first when opening configuration files\&.
+.sp
+Begining with Shorewall 4\&.5\&.0, you may specify a different
+\fItimeout\fR
+value using the
+\fB\-t\fR
+option\&. The numeric
+\fItimeout\fR
+may optionally be followed by an
+\fBs\fR,
+\fBm\fR
+or
+\fBh\fR
+suffix (e\&.g\&., 5m) to specify seconds, minutes or hours respectively\&. If the suffix is omitted, seconds is assumed\&.
 .RE
 .PP
 \fBsafe\-start\fR
 .RS 4
 Shorewall6 is started normally\&. You will then be prompted asking if everything went all right\&. If you answer "n" or if you fail to answer within 60 seconds (such as when your new configuration has disabled communication with your terminal), a shorewall6 clear is performed for you\&. If a directory is given, then Shorewall6 will look in that directory first when opening configuration files\&.
+.sp
+Begining with Shorewall 4\&.5\&.0, you may specify a different
+\fItimeout\fR
+value using the
+\fB\-t\fR
+option\&. The numeric
+\fItimeout\fR
+may optionally be followed by an
+\fBs\fR,
+\fBm\fR
+or
+\fBh\fR
+suffix (e\&.g\&., 5m) to specify seconds, minutes or hours respectively\&. If the suffix is omitted, seconds is assumed\&.
 .RE
 .PP
 \fBsave\fR
@@ -804,6 +830,15 @@ or
 is performed after
 \fItimeout\fR
 seconds\&.
+.sp
+Begining with Shorewall 4\&.5\&.0, the numeric
+\fItimeout\fR
+may optionally be followed by an
+\fBs\fR,
+\fBm\fR
+or
+\fBh\fR
+suffix (e\&.g\&., 5m) to specify seconds, minutes or hours respectively\&. If the suffix is omitted, seconds is assumed\&.
 .RE
 .PP
 \fBupdate\fR
@@ -851,7 +886,7 @@ option is included, the version of Shorewall will also be displayed\&.
 .PP
 \m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]
 .PP
-shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-route_rules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6.conf
