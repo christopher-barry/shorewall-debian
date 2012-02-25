@@ -115,9 +115,7 @@
 # 
 #     blacklist
 # 
-#         Added in Shorewall 4.4.13. Deprecated in Shorewall 4.4.25 and later in
-#         favor of rules in the BLACKLIST section of shorewall6-rules (5) or in
-#         shorewall6-blrules (5). May not be specified for firewall or vserver
+#         Added in Shorewall 4.4.13. May not be specified for firewall or vserver
 #         zones.
 # 
 #         When specified in the IN_OPTIONS column, causes all traffic from this

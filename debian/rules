@@ -59,8 +59,6 @@ install: build
 	echo $(VFULL) > $(SRWL)/usr/share/shorewall6/version
 #  global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall6/*
-#  must be executable
-	chmod 755 $(SRWL)/usr/share/shorewall6/wait4ifup
 # remove useless license file from /usr/share/doc/shorewall6/examples
 	rm $(SRWL)/usr/share/doc/shorewall6/examples/LICENSE
 
