@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.4.27.3
+VERSION=4.5.0.1
 
 usage() # $1 = exit status
 {
@@ -213,7 +213,7 @@ fi
 if [ -n "$DEBIAN" ]; then
     install_file init.debian.sh ${DESTDIR}/etc/init.d/shorewall-init 0544
 elif [ -n "$FEDORA" ]; then
-    install_file init.debian.sh ${DESTDIR}/etc/init.d/shorewall-init 0544
+    install_file init.fedora.sh ${DESTDIR}/etc/init.d/shorewall-init 0544
 #elif [ -n "$ARCHLINUX" ]; then
 #    install_file init.archlinux.sh ${DESTDIR}${DEST}/$INIT 0544
 else
