@@ -7,6 +7,8 @@ action.template	/usr/share/shorewall
 action.*	/usr/share/shorewall
 configfiles/blacklist	/usr/share/doc/shorewall/default-config
 configfiles/blacklist.annotated	/usr/share/doc/shorewall/default-config
+configfiles/blrules	/usr/share/doc/shorewall/default-config
+configfiles/blrules.annotated	/usr/share/doc/shorewall/default-config
 configfiles/clear	/usr/share/doc/shorewall/default-config
 configpath	/usr/share/shorewall
 configfiles/ecn	/usr/share/doc/shorewall/default-config
@@ -54,12 +56,12 @@ configfiles/proxyarp.annotated	/usr/share/doc/shorewall/default-config
 configfiles/refresh	/usr/share/doc/shorewall/default-config
 configfiles/refreshed	/usr/share/doc/shorewall/default-config
 configfiles/restored	/usr/share/doc/shorewall/default-config
-configfiles/route_rules	/usr/share/doc/shorewall/default-config
-configfiles/route_rules.annotated	/usr/share/doc/shorewall/default-config
 configfiles/routes	/usr/share/doc/shorewall/default-config
 configfiles/routes.annotated	/usr/share/doc/shorewall/default-config
 configfiles/routestopped	/usr/share/doc/shorewall/default-config
 configfiles/routestopped.annotated	/usr/share/doc/shorewall/default-config
+configfiles/rtrules	/usr/share/doc/shorewall/default-config
+configfiles/rtrules.annotated	/usr/share/doc/shorewall/default-config
 configfiles/rules	/usr/share/doc/shorewall/default-config
 configfiles/rules.annotated	/usr/share/doc/shorewall/default-config
 Samples/README.txt	/usr/share/doc/shorewall/examples
@@ -97,6 +99,5 @@ configfiles/tos	/usr/share/doc/shorewall/default-config
 configfiles/tos.annotated	/usr/share/doc/shorewall/default-config
 configfiles/tunnels	/usr/share/doc/shorewall/default-config
 configfiles/tunnels.annotated	/usr/share/doc/shorewall/default-config
-wait4ifup	/usr/share/shorewall
 configfiles/zones	/usr/share/doc/shorewall/default-config
 configfiles/zones.annotated	/usr/share/doc/shorewall/default-config

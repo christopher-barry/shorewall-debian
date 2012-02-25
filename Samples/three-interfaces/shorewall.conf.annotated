@@ -1166,7 +1166,7 @@ TRACK_PROVIDERS=Yes
 #     passed to the PREROUTING tcrules. This was done so that tcrules could reset
 #     the packet mark to zero, thus allowing the packet to be routed using the
 #     'main' routing table. Using the main table allowed dynamic routes (such as
-#     those added for VPNs) to be effective. The route_rules file was created to
+#     those added for VPNs) to be effective. The rtrules file was created to
 #     provide a better alternative to clearing the packet mark. As a consequence,
 #     passing these packets to PREROUTING complicates things without providing
 #     any real benefit. Beginning with Shorewall 4.4.6, when TRACK_PROVIDERS=Yes

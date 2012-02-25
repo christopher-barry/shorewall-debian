@@ -1,10 +1,10 @@
 #! /usr/bin/perl -w
 #
-#     The Shoreline Firewall Packet Filtering Firewall Compiler - V4.4
+#     The Shoreline Firewall Packet Filtering Firewall Compiler - V4.5
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -43,7 +43,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_0';
 
 my $export;
 
@@ -71,7 +71,7 @@ sub initialize_package_globals( $ ) {
 #
 # First stage of script generation.
 #
-#    Copy prog.header and lib.common to the generated script.
+#    Copy prog.header, lib.core and lib.common to the generated script.
 #    Generate the various user-exit jacket functions.
 #
 #    Note: This function is not called when $command eq 'check'. So it must have no side effects other
@@ -95,6 +95,7 @@ sub generate_script_1( $ ) {
 		copy $globals{SHAREDIRPL} . 'prog.header6';
 	    }
 
+	    copy2 $globals{SHAREDIRPL} . '/lib.core', 0;
 	    copy2 $globals{SHAREDIRPL} . '/lib.common', 0;
 	}
 
@@ -473,6 +474,7 @@ sub generate_script_3($) {
     fi
 EOF
     pop_indent;
+    setup_load_distribution;
     setup_forwarding( $family , 1 );
     push_indent;
 
@@ -485,14 +487,18 @@ else
     if [ \$COMMAND = refresh ]; then
         chainlist_reload
 EOF
+    setup_load_distribution;
     setup_forwarding( $family , 0 );
 
+    emit( '        run_refreshed_exit' ,
+	  '        do_iptables -N shorewall' ,
+	  "        set_state Started $config_dir" ,
+	  '    else' ,
+	  '        setup_netfilter' );
+    
+    setup_load_distribution;
+
     emit<<"EOF";
-        run_refreshed_exit
-        do_iptables -N shorewall
-        set_state Started $config_dir
-    else
-        setup_netfilter
         conditionally_flush_conntrack
 EOF
     setup_forwarding( $family , 0 );
@@ -616,14 +622,9 @@ sub compiler {
     #                      S H O R E W A L L . C O N F  A N D  C A P A B I L I T I E S
     #
     get_configuration( $export , $update , $annotate );
-
-    report_capabilities unless $config{LOAD_HELPERS_ONLY};
-
-    require_capability( 'MULTIPORT'       , "Shorewall $globals{VERSION}" , 's' );
-    require_capability( 'RECENT_MATCH'    , 'MACLIST_TTL' , 's' )           if $config{MACLIST_TTL};
-    require_capability( 'XCONNMARK'       , 'HIGH_ROUTE_MARKS=Yes' , 's' )  if $config{PROVIDER_OFFSET} > 0;
-    require_capability( 'MANGLE_ENABLED'  , 'Traffic Shaping' , 's'      )  if $config{TC_ENABLED};
-
+    #
+    # Create a temp file to hold the script
+    #
     if ( $scriptfilename ) {
 	set_command( 'compile', 'Compiling', 'Compiled' );
 	create_temp_script( $scriptfilename , $export );
@@ -632,7 +633,7 @@ sub compiler {
     }
     #
     # Chain table initialization depends on shorewall.conf and capabilities. So it must be deferred until
-    # shorewall.conf has been processed and the capabilities have been determined.
+    # now when shorewall.conf has been processed and the capabilities have been determined.
     #
     initialize_chain_table(1);
     #
@@ -790,7 +791,7 @@ sub compiler {
     #
     # Process the rules file.
     #
-    process_rules;
+    process_rules( $convert );
     #
     # Add Tunnel rules.
     #
@@ -813,6 +814,8 @@ sub compiler {
 	# Compiling a script - generate the zone by zone matrix
 	#
 	generate_matrix;
+
+	optimize_level0;
 
 	if ( $config{OPTIMIZE} & 0x1E ) {
 	    progress_message2 'Optimizing Ruleset...';
@@ -856,13 +859,7 @@ sub compiler {
 	#
 	# Copy the footer to the script
 	#
-	unless ( $test ) {
-	    if ( $family == F_IPV4 ) {
-		copy $globals{SHAREDIRPL} . 'prog.footer';
-	    } else {
-		copy $globals{SHAREDIRPL} . 'prog.footer6';
-	    }
-	}
+	copy $globals{SHAREDIRPL} . 'prog.footer' unless $test;
 
 	disable_script;
 	#
@@ -883,16 +880,18 @@ sub compiler {
 	    #
 	    generate_matrix;
 
-	    if ( $config{OPTIMIZE} & 0x1E ) {
+	    optimize_level0;
+
+	    if ( $config{OPTIMIZE} & OPTIMIZE_MASK ) {
 		progress_message2 'Optimizing Ruleset...';
 		#
 		# Optimize Policy Chains
 		#
-		optimize_policy_chains if $config{OPTIMIZE} & 2;
+		optimize_policy_chains if $config{OPTIMIZE} & OPTIMIZE_POLICY_MASK;
 		#
 		# Ruleset Optimization
 		#
-		optimize_ruleset if $config{OPTIMIZE} & 0x1C;
+		optimize_ruleset if $config{OPTIMIZE} & OPTIMIZE_RULESET_MASK;
 	    }
 
 	    enable_script if $debug;

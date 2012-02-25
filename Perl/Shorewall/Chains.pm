@@ -1,9 +1,9 @@
 #
-# Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Chains.pm
+# Shorewall 4.5 -- /usr/share/shorewall/Shorewall/Chains.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -28,6 +28,7 @@ package Shorewall::Chains;
 require Exporter;
 
 use Scalar::Util 'reftype';
+use Digest::SHA1 qw(sha1);
 use Shorewall::Config qw(:DEFAULT :internal);
 use Shorewall::Zones;
 use Shorewall::IPAddrs;
@@ -65,6 +66,7 @@ our @EXPORT = qw(
 		    dont_delete
 		    dont_move
 		    get_action_logging
+		    add_interface_options
 
 		    %chain_table
 		    %helpers
@@ -98,6 +100,9 @@ our %EXPORT_TAGS = (
 				       ALL_RESTRICT
 				       ALL_COMMANDS
 				       NOT_RESTORE
+				       OPTIMIZE_POLICY_MASK
+				       OPTIMIZE_RULESET_MASK
+				       OPTIMIZE_MASK
 
 				       state_imatch
 				       initialize_chain_table
@@ -113,14 +118,17 @@ our %EXPORT_TAGS = (
 				       push_comment
 				       pop_comment
 				       forward_chain
+				       forward_option_chain
 				       rules_chain
 				       blacklist_chain
 				       zone_forward_chain
 				       use_forward_chain
 				       input_chain
+				       input_option_chain
 				       zone_input_chain
 				       use_input_chain
 				       output_chain
+				       output_option_chain
 				       prerouting_chain
 				       postrouting_chain
 				       zone_output_chain
@@ -133,7 +141,9 @@ our %EXPORT_TAGS = (
 				       snat_chain
 				       ecn_chain
 				       notrack_chain
+				       load_chain
 				       first_chains
+				       option_chains
 				       reserved_name
 				       find_chain
 				       ensure_chain
@@ -148,6 +158,7 @@ our %EXPORT_TAGS = (
 				       new_nat_chain
 				       optimize_chain
 				       check_optimization
+				       optimize_level0
 				       optimize_ruleset
 				       setup_zone_mss
 				       newexclusionchain
@@ -176,6 +187,7 @@ our %EXPORT_TAGS = (
 				       do_helper
 				       validate_helper
 				       do_headers
+				       do_probability
 				       do_condition
 				       have_ipset_rules
 				       record_runtime_address
@@ -197,7 +209,6 @@ our %EXPORT_TAGS = (
 				       do_ipsec
 				       log_rule
 				       expand_rule
-				       promote_blacklist_rules
 				       addnatjump
 				       set_chain_variables
 				       mark_firewall_not_started
@@ -222,7 +233,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_0';
 
 #
 # Chain Table
@@ -254,7 +265,6 @@ our $VERSION = '4.4_27';
 #                                                               ]
 #                                               logchains    => { <key1> = <chainref1>, ... }
 #                                               references   => { <ref1> => <refs>, <ref2> => <refs>, ... }
-#                                               blacklist    => <number of blacklist rules at the head of the rules array> ( 0 or 1 )
 #                                               blacklistsection
 #                                                            => Chain was created by entries in the BLACKLIST section of the rules file
 #                                               action       => <action tuple that generated this chain>
@@ -339,6 +349,16 @@ my $ipset_rules;
 # Determines the commands for which a particular interface-oriented shell variable needs to be set
 #
 use constant { ALL_COMMANDS => 1, NOT_RESTORE => 2 };
+
+#
+# Optimization masks
+#
+use constant { 
+	       OPTIMIZE_POLICY_MASK  => 0x02 , # Call optimize_policy_chains()
+	       OPTIMIZE_RULESET_MASK => 0x1C , # Call optimize_ruleset()
+	     };
+
+use constant { OPTIMIZE_MASK => OPTIMIZE_POLICY_MASK | OPTIMIZE_RULESET_MASK };
 
 #
 # These hashes hold the shell code to set shell variables. The key is the name of the variable; the value is the code to generate the variable's contents
@@ -660,11 +680,19 @@ sub set_rule_option( $$$ ) {
     my $opttype = $opttype{$option} || MATCH;
 
     if ( exists $ruleref->{$option} ) {
-	assert( defined $ruleref->{$option} );
+	assert( defined( my $value1 = $ruleref->{$option} ) );
 
 	if ( $opttype == MATCH ) {
 	    assert( $globals{KLUDGEFREE} );
-	    $ruleref->{$option} = [ $ruleref->{$option} ] unless reftype $ruleref->{$option};
+
+	    unless ( reftype $value1 ) {
+		unless ( reftype $value ) {
+		    return if $value1 eq $value;
+		}
+
+		$ruleref->{$option} = [ $ruleref->{$option} ];
+	    }
+
 	    push @{$ruleref->{$option}}, ( reftype $value ? @$value : $value );
 	} elsif ( $opttype == EXCLUSIVE ) {
 	    $ruleref->{$option} .= ",$value";
@@ -1221,9 +1249,7 @@ sub delete_reference( $$ ) {
 #    Chain reference , Rule Number, Rule
 #
 # In the first function, the rule number is zero-relative. In the second function,
-# the rule number is one-relative. In the first function, if the rule number is < 0, then
-# the rule is a jump to a blacklist chain (blacklst or blackout). The rule will be
-# inserted at the front of the chain and the chain's 'blacklist' member incremented.
+# the rule number is one-relative.
 #
 sub insert_rule1($$$)
 {
@@ -1234,11 +1260,6 @@ sub insert_rule1($$$)
     $ruleref->{comment}  = "$comment" if $comment;
     assert( ! ( $ruleref->{cmdlevel} = $chainref->{cmdlevel}) );
     $ruleref->{mode} = CAT_MODE;
-
-    if ( $number < 0 ) {
-	$chainref->{blacklist}++;
-	$number = 0;
-    }
 
     splice( @{$chainref->{rules}}, $number, 0, $ruleref );
 
@@ -1280,11 +1301,6 @@ sub insert_irule( $$$$;@ ) {
 	$ruleref->{comment} = $comment unless $ruleref->{comment};
     }
 
-    if ( $number < 0 ) {
-	$chainref->{blacklist}++;
-	$number = 0;
-    }
-
     splice( @{$chainref->{rules}}, $number, 0, $ruleref );
 
     trace( $chainref, 'I', ++$number, format_rule( $chainref, $ruleref ) ) if $debug;
@@ -1312,13 +1328,12 @@ sub clone_rule( $ ) {
 }
 
 # Do final work to 'delete' a chain. We leave it in the chain table but clear
-# the 'referenced', 'rules', 'references' and 'blacklist' members.
+# the 'referenced', 'rules', and 'references' members.
 #
 sub delete_chain( $ ) {
     my $chainref = shift;
 
     $chainref->{referenced}  = 0;
-    $chainref->{blacklist}   = 0;
     $chainref->{rules}       = [];
     $chainref->{references}  = {};
     trace( $chainref, 'X', undef, '' ) if $debug;
@@ -1388,7 +1403,7 @@ sub decrement_reference_count( $$ ) {
 #
 # The rules generated by interface options are added to the interfaces's input chain and
 # forward chain. Shorewall::Rules::generate_matrix() may decide to move those rules to
-# the head of a rules chain (behind any blacklist rule already there).
+# the head of a rules chain.
 #
 sub move_rules( $$ ) {
     my ($chain1, $chain2 ) = @_;
@@ -1399,15 +1414,12 @@ sub move_rules( $$ ) {
 	my $rules     = $chain2->{rules};
 	my $count     = @{$chain1->{rules}};
 	my $tableref  = $chain_table{$chain1->{table}};
-	my $blacklist = $chain2->{blacklist};
 	my $filtered;
 	my $filtered1 = $chain1->{filtered};
 	my $filtered2 = $chain2->{filtered};
 	my @filtered1;
 	my @filtered2;
 	my $rule;
-
-	assert( ! $chain1->{blacklist} );
 	#
 	# We allow '+' in chain names and '+' is an RE meta-character. Escape it.
 	#
@@ -1427,11 +1439,11 @@ sub move_rules( $$ ) {
 	push @filtered2 , shift @{$chain2->{rules}} while $filtered--;
 
 	if ( $debug ) {
-	    my $rule = $blacklist + $filtered2;
+	    my $rule = $filtered2;
 	    trace( $chain2, 'A', ++$rule, $_ ) for @{$chain1->{rules}};
 	}
 
-	splice @$rules, $blacklist, 0, @{$chain1->{rules}};
+	unshift @$rules, @{$chain1->{rules}};
 
 	$chain2->{referenced} = 1;
 
@@ -1439,16 +1451,9 @@ sub move_rules( $$ ) {
 	# In a firewall->x policy chain, multiple DHCP ACCEPT rules can be moved to the head of the chain.
 	# This hack avoids that.
 	#
-	if ( $blacklist ) {
-	    my $rule = shift @{$rules};
-	    shift @{$rules} while @{$rules} > 1 && $rules->[0]{dhcp} && $rules->[1]{dhcp};
-	    unshift @{$rules}, $rule;
-	} else {
-	    shift @{$rules} while @{$rules} > 1 && $rules->[0]{dhcp} && $rules->[1]{dhcp};
-	}
-
+	shift @{$rules} while @{$rules} > 1 && $rules->[0]{dhcp} && $rules->[1]{dhcp};
 	#
-	# Now insert the filter rules at the head of the chain (before blacklist rules)
+	# Now insert the filter rules at the head of the chain
 	#
 
 	if ( $filtered1 ) {
@@ -1492,8 +1497,6 @@ sub copy_rules( $$;$ ) {
     my $name1      = $chain1->{name};
     my $name       = $name1;
     my $name2      = $chain2->{name};
-    my $blacklist1 = $chain1->{blacklist};
-    my $blacklist2 = $chain2->{blacklist};
     my @rules1     = @{$chain1->{rules}};
     my $rules2     = $chain2->{rules};
     my $count      = @{$chain1->{rules}};
@@ -1502,38 +1505,11 @@ sub copy_rules( $$;$ ) {
     # We allow '+' in chain names and '+' is an RE meta-character. Escape it.
     #
     pop @$rules2 unless $nojump; # Delete the jump to chain1
-
-    if ( $blacklist2 && $blacklist1 ) {
-	#
-	# Chains2 already has a blacklist jump -- delete the one at the head of chain1's rule list
-	#
-	my $rule = shift @rules1;
-
-	my $chainb = $rule->{target};
-
-	assert( $chainb =~ /^black/ );
-
-	delete_reference $chain1, $chainb;
-
-	assert( ! --$chain1->{blacklist} );
-	$blacklist1 = 0;
-    }
     #
     # Chain2 is now a referent of all of Chain1's targets
     #
     for ( @rules1 ) {
 	increment_reference_count( $tableref->{$_->{target}}, $name2 ) if $_->{target};
-    }
-
-    if ( $blacklist1 ) {
-	assert( $blacklist1 == 1 );
-
-	trace( $chain2, 'A', 1 , $rules1[0]) if $debug;
-
- 	unshift @$rules2, shift @rules1;
-
-	$chain1->{blacklist} = 0;
-	$chain2->{blacklist} = 1;
     }
 
     if ( $debug ) {
@@ -1545,7 +1521,7 @@ sub copy_rules( $$;$ ) {
 
     progress_message "  $count rules from $chain1->{name} appended to $chain2->{name}" if $count;
 
-    unless ( --$chain1->{references}{$name2} ) {
+    unless ( $nojump || --$chain1->{references}{$name2} ) {
 	delete $chain1->{references}{$name2};
 	delete_chain_and_references( $chain1 ) unless keys %{$chain1->{references}};
     }
@@ -1616,6 +1592,30 @@ sub use_forward_chain($$) {
     #                                            the zone has  multiple interfaces
     #                                            and this interface has option rules
     $interfaceref->{options}{use_forward_chain} && keys %{ zone_interfaces( $zone ) } > 1;
+}
+
+#
+# Input Option Chain for an interface
+#
+sub input_option_chain($) {
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_iop';
+}
+
+#
+# Output Option Chain for an interface
+#
+sub output_option_chain($) {
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_oop';
+}
+
+#
+# Forward Option Chain for an interface
+#
+sub forward_option_chain($) {
+    my $interface = shift;
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_fop';
 }
 
 #
@@ -1798,6 +1798,13 @@ sub notrack_chain( $ )
 }
 
 #
+# Load Chain for a provider
+#
+sub load_chain( $ ) {
+    '~' . $_[0];
+}
+
+#
 # SNAT Chain to an interface
 #
 sub snat_chain( $ )
@@ -1826,6 +1833,16 @@ sub first_chains( $ ) #$1 = interface
 }
 
 #
+# Option chains for an interface
+#
+sub option_chains( $ ) #$1 = interface
+{
+    my $c = $_[0];
+
+    ( forward_option_chain( $c ), input_option_chain( $c ) );
+}
+
+#
 # Returns true if the passed name is that of a Shorewall-generated chain
 #
 sub reserved_name( $ ) {
@@ -1850,7 +1867,6 @@ sub new_chain($$)
 		     log            => 1,
 		     cmdlevel       => 0,
 		     references     => {},
-		     blacklist      => 0,
 		     filtered       => 0
 		   };
 
@@ -2193,7 +2209,6 @@ sub new_builtin_chain($$$)
     $chainref->{policy}      = $policy;
     $chainref->{builtin}     = 1;
     $chainref->{dont_delete} = 1;
-    $chainref->{dont_move}   = 1;
     $chainref;
 }
 
@@ -2435,7 +2450,7 @@ sub initialize_chain_table($) {
 	#
 	# Create this chain early in case it is needed by Policy actions
 	#
-	dont_move new_standard_chain 'reject';
+	new_standard_chain 'reject';
     }
 }
 
@@ -2651,6 +2666,25 @@ sub check_optimization( $ ) {
 #
 # Perform Optimization
 #
+# When an unreferenced chain is found, itis deleted unless its 'dont_delete' flag is set.
+sub optimize_level0() {
+    for my $table ( qw/raw rawpost mangle nat filter/ ) {
+	next if $family == F_IPV6 && $table eq 'nat';
+	my $tableref = $chain_table{$table};
+	my @chains  = grep $_->{referenced}, values %$tableref;
+	my $chains  = @chains; 
+	
+	for my $chainref ( @chains ) {
+	    #
+	    # If the chain isn't branched to, then delete it
+	    #
+	    unless ( $chainref->{dont_delete} || keys %{$chainref->{references}} ) {
+		delete_chain $chainref if $chainref->{referenced};
+	    }
+	}
+    }
+}
+
 sub optimize_level4( $$ ) {
     my ( $table, $tableref ) = @_;
     my $progress = 1;
@@ -2658,7 +2692,6 @@ sub optimize_level4( $$ ) {
     #
     # Make repeated passes through each table looking for short chains (those with less than 2 entries)
     #
-    # When an unreferenced chain is found, itis deleted unless its 'dont_delete' flag is set.
     # When an empty chain is found, delete the references to it.
     # When a chain with a single entry is found, replace it's references by its contents
     #
@@ -2749,7 +2782,6 @@ sub optimize_level4( $$ ) {
 			    # Replace references to this chain with the target and add the matches
 			    #
 			    $progress = 1 if replace_references1 $chainref, $firstrule;
-			    
 			}
 		    }
 		}
@@ -2758,8 +2790,9 @@ sub optimize_level4( $$ ) {
     }
 
     #
-    # In this loop, we look for chains that end in an unconditional jump. If the target of the jump
-    # is subject to deletion (dont_delete = false), the jump is replaced by target's rules.
+    # In this loop, we look for chains that end in an unconditional jump. The jump is replaced by
+    # the target's rules, provided that the target chain is short (< 4 rules) or has only one
+    # reference. This prevents multiple copies of long chains being created.
     #
     $progress = 1;
 
@@ -2780,7 +2813,7 @@ sub optimize_level4( $$ ) {
 		# Last rule is a simple branch
 		my $targetref = $tableref->{$lastrule->{target}};
 
-		if ( $targetref && ! ( $targetref->{builtin} || $targetref->{dont_move} ) && ( keys %{$targetref->{references}} < 2 || @{$targetref->{rules}} < 4 ) ) {
+		if ( $targetref && ( keys %{$targetref->{references}} < 2 || @{$targetref->{rules}} < 4 ) ) {
 		    copy_rules( $targetref, $chainref );
 		    $progress = 1;
 		}
@@ -2819,7 +2852,7 @@ sub optimize_level8( $$$ ) {
 	    }
 	}
 
-	$chainref->{digest} = $digest;
+	$chainref->{digest} = sha1 $digest;
     }
 
     for my $chainref ( @chains ) {
@@ -4120,7 +4153,21 @@ sub do_headers( $ ) {
 	}
     }
 
-    "-m ipv6header ${invert}--header ${headers} ${soft}";
+    "-m ipv6header ${invert}--header ${headers} ${soft} ";
+}
+
+sub do_probability( $ ) {
+    my $probability = shift;
+
+    return '' if $probability eq '-';
+
+    require_capability 'STATISTIC_MATCH', 'A non-empty PROBABILITY column', 's';
+
+    my $invert = $probability =~ s/^!// ? '! ' : "";
+    
+    fatal_error "Invalid PROBABILITY ($probability)" unless $probability =~ /^0?\.\d{1,8}$/;
+
+    "-m statistic --mode random --probability $probability ";
 }
 
 #
@@ -5800,60 +5847,179 @@ sub expand_rule( $$$$$$$$$$;$ )
 }
 
 #
-# Where a zone sharing a multi-zone interface has an 'in' blacklist rule, move the rule to the beginning of
-# the associated interface chain
+# Returns true if the passed interface is associated with exactly one zone
 #
-sub promote_blacklist_rules() {
-    my $chainbref = $filter_table->{blacklst};
+sub copy_options( $ ) {
+    keys %{interface_zones( shift )} == 1;
+}
 
-    return 1 unless $chainbref;
+#
+# This function is called after the blacklist rules have been added to the canonical chains. It 
+# either copies the relevant interface option rules into each canonocal chain, or it inserts one
+# or more jumps to the relevant option chains. The argument indicates whether blacklist rules are
+# present.
+#
+sub add_interface_options( $ ) {
 
-    my $promoted = 1;
-
-    while ( $promoted ) {
-	$promoted = 0;
+    if ( $_[0] ) {
 	#
-	# Copy 'blacklst''s references since they will change in the following loop
+	# We have blacklist rules.
+	my %input_chains;
+	my %forward_chains;
+
+	for my $interface ( all_real_interfaces ) {
+	    $input_chains{$interface}   = $filter_table->{input_option_chain $interface};
+	    $forward_chains{$interface} = $filter_table->{forward_option_chain $interface};
+	}
 	#
-	my @references = map $filter_table->{$_}, keys %{$chainbref->{references}};
+	# Generate a digest for each chain
+	#
+	for my $chainref ( values %input_chains, values %forward_chains ) {
+	    my $digest = '';
 
-	for my $chain1ref ( @references ) {
-	    assert( $chain1ref->{blacklist} == 1 );
+	    assert( $chainref );
 
-	    my $copied = 0;
-	    my $rule   = $chain1ref->{rules}[0];
-	    my $chain1 = $chain1ref->{name};
+	    for ( @{$chainref->{rules}} ) {
+		if ( $digest ) {
+		    $digest .= ' |' . format_rule( $chainref, $_, 1 );
+		} else {
+		    $digest = format_rule( $chainref, $_, 1 );
+		}
+	    }
+	    
+	    $chainref->{digest} = sha1 $digest;
+	}
+	#
+	# Insert jumps to the interface chains into the rules chains
+	#
+	for my $zone1 ( off_firewall_zones ) {
+	    my @input_interfaces   = keys %{zone_interfaces( $zone1 )};
+	    my @forward_interfaces = @input_interfaces;
+	    
+	    if ( @input_interfaces > 1 ) {
+		#
+		# This zone has multiple interfaces - discover if all of the interfaces have the same 
+		# input and/or forward options
+		#
+		my $digest;
+	      INPUT:
+		{
+		    for ( @input_interfaces ) {
+			if ( defined $digest ) {
+			    last INPUT unless $input_chains{$_}->{digest} eq $digest;
+			} else {
+			    $digest = $input_chains{$_}->{digest};
+			}
+		    }
 
-	    for my $chain2ref ( map $filter_table->{$_}, keys %{$chain1ref->{references}} ) {
-		unless ( $chain2ref->{builtin} ) {
-		    #
-		    # This is not INPUT or FORWARD -- we wouldn't want to move the
-		    # rule to the head of one of those chains
-		    $copied++;
-		    #
-		    # Copy the blacklist rule to the head of the parent chain (after any
-		    # filter rules) unless it already has a blacklist rule.
-		    #
-		    unless ( $chain2ref->{blacklist} ) {
-			splice @{$chain2ref->{rules}}, $chain2ref->{filtered}, 0, $rule;
-			add_reference $chain2ref, $chainbref;
-			$chain2ref->{blacklist} = 1;
+		    @input_interfaces = ( $input_interfaces[0] );
+		}
+
+		$digest = undef;
+
+	      FORWARD:
+		{
+		    for ( @forward_interfaces ) {
+			if ( defined $digest ) {
+			    last FORWARD unless $forward_chains{$_}->{digest} eq $digest;
+			} else {
+			    $digest = $forward_chains{$_}->{digest};
+			}
+		    }
+
+		    @forward_interfaces = ( $forward_interfaces[0] );
+		}
+	    }  
+	    #
+	    # Now insert the jumps
+	    #
+	    for my $zone2 ( all_zones ) {
+		my $chainref = $filter_table->{rules_chain( $zone1, $zone2 )};
+		my $chain1ref;
+	    
+		if ( zone_type( $zone2 ) & (FIREWALL | VSERVER ) ) {
+		    if ( @input_interfaces == 1 && copy_options( $input_interfaces[0] ) ) {
+			$chain1ref = $input_chains{$input_interfaces[0]};
+
+			if ( @{$chain1ref->{rules}}  ) {
+			    copy_rules $chain1ref, $chainref, 1;
+			    $chainref->{referenced} = 1;
+			}
+		    } else {
+			for my $interface ( @input_interfaces ) {
+			    $chain1ref = $input_chains{$interface};
+			    add_ijump ( $chainref , j => $chain1ref->{name}, @input_interfaces > 1 ? imatch_source_dev( $interface ) : () ) if @{$chain1ref->{rules}};
+			}
+		    }
+		} else {
+		    if ( @forward_interfaces == 1 && copy_options( $forward_interfaces[0] ) ) {
+			$chain1ref = $forward_chains{$forward_interfaces[0]};
+			if ( @{$chain1ref->{rules}} ) {
+			    copy_rules $chain1ref, $chainref, 1;
+			    $chainref->{referenced} = 1;
+			}
+		    } else {
+			for my $interface ( @forward_interfaces ) {
+			    $chain1ref = $forward_chains{$interface};
+			    add_ijump ( $chainref , j => $chain1ref->{name}, @forward_interfaces > 1 ? imatch_source_dev( $interface ) : () ) if  @{$chain1ref->{rules}};
+			}
 		    }
 		}
 	    }
+	}
+	#
+	# Now take care of jumps to the interface output option chains
+	#
+	for my $zone1 ( firewall_zone, vserver_zones ) {
+	    for my $zone2 ( off_firewall_zones ) {
+		my $chainref = $filter_table->{rules_chain( $zone1, $zone2 )};
+		my @interfaces = keys %{zone_interfaces( $zone2 )};
+		my $chain1ref;
 
-	    if ( $copied ) {
-		shift @{$chain1ref->{rules}};
-		$chain1ref->{blacklist} = 0;
-		delete_reference $chain1ref, $chainbref;
-		$promoted = 1;
+		for my $interface ( @interfaces ) {
+		    $chain1ref = $filter_table->{output_option_chain $interface};
+
+		   if ( @{$chain1ref->{rules}} ) {
+			copy_rules( $chain1ref, $chainref, 1 );
+			$chainref->{referenced} = 1;
+		    }
+		}
+	    }
+	}
+    } else {
+	#
+	# No Blacklisting - simply move the option chain rules to the interface chains
+	#
+	for my $interface ( all_real_interfaces ) {
+	    my $chainref;
+	    my $chain1ref;
+
+	    $chainref = $filter_table->{input_option_chain $interface};
+	   
+	    if( @{$chainref->{rules}} ) {
+		move_rules $chainref, $chain1ref = $filter_table->{input_chain $interface};
+		set_interface_option( $interface, 'use_input_chain', 1 );
+	    }
+
+	    $chainref = $filter_table->{forward_option_chain $interface};
+
+	    if ( @{$chainref->{rules}} ) {
+		move_rules $chainref, $chain1ref = $filter_table->{forward_chain $interface};
+		set_interface_option( $interface, 'use_forward_chain' , 1 );
+	    }
+
+	    $chainref = $filter_table->{output_option_chain $interface};
+
+	   if ( @{$chainref->{rules}} ) {
+		move_rules $chainref, $chain1ref = $filter_table->{output_chain $interface};
+		set_interface_option( $interface, 'use_output_chain' , 1 );
 	    }
 	}
     }
 }
 
 #
-# The following code generates the input to iptables-restore from the contents of the
+# The following functions generate the input to iptables-restore from the contents of the
 # @rules arrays in the chain table entries.
 #
 # We always write the iptables-restore input into a file then pass the
@@ -5861,9 +6027,9 @@ sub promote_blacklist_rules() {
 # has (have) something to look at to determine the error
 #
 # We may have to generate part of the input at run-time. The rules array in each chain
-# table entry may contain both rules (begin with '-A') or shell source. We alternate between
-# writing the rules ('-A') into the temporary file to be passed to iptables-restore
-# (CAT_MODE) and and writing shell source into the generated script (CMD_MODE).
+# table entry may contain both rules or shell source, determined by the contents of the 'mode'
+# member. We alternate between writing the rules into the temporary file to be passed to 
+# iptables-restore (CAT_MODE) and and writing shell source into the generated script (CMD_MODE).
 #
 # The following two functions are responsible for the mode transitions.
 #

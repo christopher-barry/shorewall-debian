@@ -61,6 +61,7 @@ our @EXPORT = qw( NOTHING
 		  chain_base
 		  validate_interfaces_file
 		  all_interfaces
+		  all_real_interfaces
 		  all_bridges
 		  interface_number
 		  find_interface
@@ -88,7 +89,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.4_26';
+our $VERSION = '4.5_0';
 
 #
 # IPSEC Option types
@@ -610,11 +611,14 @@ sub zone_report()
 		for my $interface ( sort keys %$interfaceref ) {
 		    my $iref     = $interfaces{$interface};
 		    my $arrayref = $interfaceref->{$interface};
+
 		    for my $groupref ( @$arrayref ) {
 			my $hosts      = $groupref->{hosts};
+
 			if ( $hosts ) {
 			    my $grouplist  = join ',', ( @$hosts );
 			    my $exclusions = join ',', @{$groupref->{exclusions}};
+
 			    $grouplist = join '!', ( $grouplist, $exclusions) if $exclusions;
 
 			    if ( $family == F_IPV4 ) {
@@ -625,7 +629,6 @@ sub zone_report()
 			    $printed = 1;
 			}
 		    }
-
 		}
 	    }
 	}
@@ -661,6 +664,7 @@ sub dump_zone_contents() {
 		for my $interface ( sort keys %$interfaceref ) {
 		    my $iref     = $interfaces{$interface};
 		    my $arrayref = $interfaceref->{$interface};
+
 		    for my $groupref ( @$arrayref ) {
 			my $hosts     = $groupref->{hosts};
 
@@ -1306,6 +1310,13 @@ sub all_interfaces() {
 }
 
 #
+# Return all non-vserver interfaces
+#
+sub all_real_interfaces() {
+    grep $_ ne '%vserver%', @interfaces;
+}
+
+#
 # Return a list of bridges
 #
 sub all_bridges() {
@@ -1803,7 +1814,7 @@ sub process_host( ) {
 	$interface = $1;
 	$hosts = $2;
 
-	fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface})->{root};
+	fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
     } else {
 	fatal_error "Invalid HOST(S) column contents: $hosts" 
     }
