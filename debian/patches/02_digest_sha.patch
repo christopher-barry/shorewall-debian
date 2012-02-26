@@ -1,0 +1,11 @@
+--- shorewall.git.orig/Perl/Shorewall/Chains.pm
++++ shorewall.git/Perl/Shorewall/Chains.pm
+@@ -28,7 +28,7 @@
+ require Exporter;
+ 
+ use Scalar::Util 'reftype';
+-use Digest::SHA1 qw(sha1);
++use Digest::SHA qw(sha1);
+ use Shorewall::Config qw(:DEFAULT :internal);
+ use Shorewall::Zones;
+ use Shorewall::IPAddrs;
