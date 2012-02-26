@@ -1,8 +1,8 @@
-shorewall-core (4.5.0.1-1~bpo60+1) squeeze; urgency=low
+shorewall-core (4.5.0.1-2) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * Add a "Breaks" relationship with shorewall (<< 4.5.0~)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 25 Feb 2012 17:51:55 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 25 Feb 2012 20:47:26 -0500
 
 shorewall-core (4.5.0.1-1) unstable; urgency=low
 
