@@ -1,3 +1,5 @@
+Author: Roberto C. Sanchez <roberto@connexer.com>
+Description: Use Digest::SHA instead of Digest::SHA1 (which is obsolete and no longer available in Sid)
 --- shorewall.git.orig/Perl/Shorewall/Chains.pm
 +++ shorewall.git/Perl/Shorewall/Chains.pm
 @@ -28,7 +28,7 @@
