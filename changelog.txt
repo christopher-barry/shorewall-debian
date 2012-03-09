@@ -1,3 +1,17 @@
+Changes in 4.5.0.3
+
+1)  Add /sbin/shorewall-init
+
+2)  Allow DEBUG in params file.
+
+3)  Correct 'shorewall trace stop'.
+
+Changes in 4.5.0.2
+
+1)  Fix init scripts.
+
+2)  Fix Fedora/Redhat install.
+
 Changes in 4.5.0.1
 
 1)  Unghost blacklist file.
