@@ -1,8 +1,10 @@
-shorewall (4.5.0.1-3~bpo60+1) squeeze; urgency=low
+shorewall (4.5.0.3-1) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * New Upstream Version
+  * Add Turkish debconf translation, thanks to Atila KOÇ (Closes: #663102)
+  * Update to Standards-Version 3.9.3 (no changes)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 25 Feb 2012 23:38:45 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 08 Mar 2012 22:53:28 -0500
 
 shorewall (4.5.0.1-3) unstable; urgency=low
 
