@@ -1,3 +1,9 @@
+shorewall6-lite (4.5.0.3-1~bpo60+1) squeeze; urgency=low
+
+  * Rebuilt for squeeze.
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 08 Mar 2012 23:17:13 -0500
+
 shorewall6-lite (4.5.0.3-1) unstable; urgency=low
 
   * New Upstream Version
