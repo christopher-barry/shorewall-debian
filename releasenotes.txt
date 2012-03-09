@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                    S H O R E W A L L  4 . 5 . 0 . 1
+                    S H O R E W A L L  4 . 5 . 0 . 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,41 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.0.3
+
+1)  The .service file with Shorewall Init specified that
+    /sbin/shorewall-init should be run for start and stop, but there
+    was no such file.
+
+    Now, the installer will install /sbin/shorewall-init and will omit
+    installing /etc/rc.d/init.d/shorewall-init when systemd is being
+    used.
+
+2)  If the variable DEBUG was set to a non-empty value in the environment
+    or in /etc/shorewall/params, then 'shorewall stop' and 'shorewall
+    clear' would not totally remove the old ruleset and a subsequent
+    'shorewall start' would fail.
+
+3)  'shorewall trace stop' or 'shorewall trace clear' would previously
+    fail to remove the entire ruleset.
+
+4.5.0.2
+
+1)  The init scripts from shorewall.net that were installed on systems
+    other than Redhat-based and Debian-based systems were broken.
+    
+    '/etc/init.d/shorewall start' and /etc/init.d/shorewall restart'
+    failed with:
+
+    	 "ERROR: No directory 'start'"
+
+    or
+
+	"ERROR: No directory 'restart'"
+
+2)  The Shorewall-init installer now works correctly when installing
+    the product on a Redhat-based distribution.
 
 4.5.0.1
 
