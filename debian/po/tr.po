@@ -1,0 +1,77 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# Atila KOÇ <akoc@artielektronik.com.tr>, 2012.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: shorewall\n"
+"Report-Msgid-Bugs-To: shorewall@packages.debian.org\n"
+"POT-Creation-Date: 2008-05-20 14:37-0400\n"
+"PO-Revision-Date: 2012-03-07 09:43+0200\n"
+"Last-Translator: Atila KOÇ <akoc@artielektronik.com.tr>\n"
+"Language-Team: Turkish <debian-l10n-turkish@lists.debian.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid "No automatic restart for Shorewall"
+msgstr "Shorewall kendiliğinden başlamayacak"
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid "Shorewall will not be restarted automatically after being upgraded, to prevent changes in configuration files causing network outages."
+msgstr "Yapılandırma dosyalarındaki değişikliklerin ağ iletişimi kaybına neden olmaması için Shorewall yükseltme sonrasında yeniden başlatılmayacak."
+
+#. Type: note
+#. Description
+#: ../shorewall.templates:2001
+msgid "You should check Shorewall's configuration files and restart it with 'invoke-rc.d shorewall restart'."
+msgstr "Shorewall'un yapılandırma dosyalarını incelemeli ve 'invoke-rc.d shorewall restart' komutunu çalıştırarak yeniden başlatmalısınız."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Restart Shorewall?"
+msgstr "Shorewall yeniden başlatılsın mı?"
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "This release of Shorewall introduces some changes in the configuration files - see /usr/share/doc/shorewall/releasenotes.txt.gz."
+msgstr "Shorewall'un bu sürümü yapılandırma dosyalarına değişiklikler getirmiştir, ayrıntılı bilgi için /usr/share/doc/shorewall/releasenotes.txt.gz dosyasını inceleyiniz."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "To avoid the risk of failures and network outages these files should be checked carefully before the firewall is restarted."
+msgstr "Olası başarısızlıklardan ve ağ iletişimi kaybından kaçınmak için güvenlik duvarı yeniden başlatılmadan önce bu dosyalar dikkatle incelenmelidir."
+
+#. Type: boolean
+#. Description
+#: ../shorewall.templates:3001
+msgid "Please choose whether you want to restart Shorewall immediately."
+msgstr "Shorewall'u şimdi yeniden başlatmak isteyip istemediğinizi belirtiniz."
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Invalid Shorewall configuration detected"
+msgstr "Geçersiz Shorewall yapılandırması algılandı"
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "Shorewall is configured to restart on upgrades."
+msgstr "Shorewall yükseltmeler sonrasında yeniden başlayacak şekilde yapılandırıldı."
+
+#. Type: error
+#. Description
+#: ../shorewall.templates:4001
+msgid "However, the current configuration for Shorewall is invalid and it will fail to restart. You should fix the program's configuration, then restart it with 'invoke-rc.d shorewall restart'."
+msgstr "Oysa Shorewall'un şu anki yapılandırması geçersiz ve bu nedenle yeniden başlayamayacak. Programın yapılandırmasını düzenleyip 'invoke-rc.d shorewall restart' komutunu çalıştırarak yeniden başlatmalısınız."
+
