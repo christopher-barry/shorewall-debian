@@ -4,7 +4,7 @@ Priority: optional
 Maintainer: Roberto C. Sanchez <roberto@connexer.com>
 Homepage: http://www.shorewall.net
 Build-Depends: debhelper (>= 5), po-debconf
-Standards-Version: 3.9.2
+Standards-Version: 3.9.3
 Vcs-Browser: http://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/debian;a=tree
 Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
 
