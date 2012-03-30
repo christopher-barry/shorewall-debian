@@ -1,8 +1,9 @@
-shorewall-doc (4.5.0-2) UNRELEASED; urgency=low
+shorewall-doc (4.5.1-1) unstable; urgency=low
 
+  * New Upstream Version
   * Update to Standards-Version 3.9.3 (no changes)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 08 Mar 2012 22:51:11 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 30 Mar 2012 18:55:11 -0400
 
 shorewall-doc (4.5.0-1) unstable; urgency=low
 
