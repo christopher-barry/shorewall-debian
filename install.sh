@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.0.3
+VERSION=4.5.1.1
 
 usage() # $1 = exit status
 {
@@ -30,8 +30,6 @@ usage() # $1 = exit status
     echo "usage: $ME"
     echo "       $ME -v"
     echo "       $ME -h"
-    echo "       $ME -s"
-    echo "       $ME -f"
     exit $1
 }
 
@@ -87,6 +85,13 @@ install_file() # $1 = source $2 = target $3 = mode
     run_install $T $OWNERSHIP -m $3 $1 ${2}
 }
 
+cd "$(dirname $0)"
+
+#
+# Load packager's settings if any
+#
+[ -f ../shorewall-pkg.config ] && . ../shorewall-pkg.config
+
 [ -n "$DESTDIR" ] || DESTDIR="$PREFIX"
 
 #
@@ -98,13 +103,13 @@ T="-T"
 
 [ -n "${LIBEXEC:=/usr/share}" ]
 [ -n "${PERLLIB:=/usr/share/shorewall}" ]
-MACHOST=
 
 case "$LIBEXEC" in
     /*)
 	;;
     *)
-	LIBEXEC=/usr/${LIBEXEC}
+	echo "The LIBEXEC setting must be an absolute path name" >&2
+	exit 1
 	;;
 esac
 
@@ -112,14 +117,41 @@ case "$PERLLIB" in
     /*)
 	;;
     *)
-	PERLLIB=/usr/${PERLLIB}
+	echo "The PERLLIB setting must be an absolute path name" >&2
+	exit 1
 	;;
 esac
 
 INSTALLD='-D'
 
-case $(uname) in
-    CYGWIN*)
+if [ -z "$BUILD" ]; then
+    case $(uname) in
+	cygwin*)
+	    BUILD=cygwin
+	    ;;
+	Darwin)
+	    BUILD=apple
+	    ;;
+	*)
+	    if [ -f /etc/debian_version ]; then
+		BUILD=debian
+	    elif [ -f /etc/redhat-release ]; then
+		BUILD=redhat
+	    elif [ -f /etc/slackware-version ] ; then
+		BUILD=slackware
+	    elif [ -f /etc/SuSE-release ]; then
+		BUILD=suse
+	    elif [ -f /etc/arch-release ] ; then
+		BUILD=archlinux
+	    else
+		BUILD=linux
+	    fi
+	    ;;
+    esac
+fi
+
+case $BUILD in
+    cygwin*)
 	if [ -z "$DESTDIR" ]; then
 	    DEST=
 	    INIT=
@@ -127,18 +159,16 @@ case $(uname) in
 
 	OWNER=$(id -un)
 	GROUP=$(id -gn)
-	CYGWIN=Yes
 	;;
-    Darwin)
+    apple)
 	if [ -z "$DESTDIR" ]; then
 	    DEST=
 	    INIT=
+	    SPARSE=Yes
 	fi
 
 	[ -z "$OWNER" ] && OWNER=root
 	[ -z "$GROUP" ] && GROUP=wheel
-	MAC=Yes
-        MACHOST=Yes
 	INSTALLD=
 	T=
 	;;
@@ -168,14 +198,6 @@ while [ $finished -eq 0 ]; do
 			echo "Shorewall Firewall Installer Version $VERSION"
 			exit 0
 			;;
-		    a*)
-			ANNOTATED=Yes
-			option=${option#a}
-			;;
-		    p*)
-			ANNOTATED=
-			option=${option#p}
-			;;
 		    *)
 			usage 1
 			;;
@@ -197,41 +219,28 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 # Determine where to install the firewall script
 #
 
+[ -n "$HOST" ] || HOST=$BUILD
+
+case "$HOST" in
+    cygwin)
+	echo "Installing Cygwin-specific configuration..."
+	;;
+    apple)
+	echo "Installing Mac-specific configuration...";
+	;;
+    debian|redhat|slackware|archlinux|linux|suse)
+	;;
+    *)
+	echo "ERROR: Unknown HOST \"$HOST\"" >&2
+	exit 1;
+	;;
+esac
+
 if [ -n "$DESTDIR" ]; then
-    if [ -z "$CYGWIN" ]; then
+    if [ $BUILD != cygwin ]; then
 	if [ `id -u` != 0 ] ; then
 	    echo "Not setting file owner/group permissions, not running as root."
 	    OWNERSHIP=""
-	fi
-    fi
-
-    install -d $OWNERSHIP -m 755 ${DESTDIR}/sbin
-    install -d $OWNERSHIP -m 755 ${DESTDIR}${DEST}
-
-    CYGWIN=
-    MAC=
-else
-    if [ -n "$CYGWIN" ]; then
-	echo "Installing Cygwin-specific configuration..."
-    elif [ -n "$MAC" ]; then
-	echo "Installing Mac-specific configuration..."
-    else
-	if [ -f /etc/debian_version ]; then
-	    echo "Installing Debian-specific configuration..."
-	    DEBIAN=yes
-	elif [ -f /etc/redhat-release ]; then
-	    echo "Installing Redhat/Fedora-specific configuration..."
-	    FEDORA=yes
-	elif [ -f /etc/slackware-version ] ; then
-	    echo "Installing Slackware-specific configuration..."
-	    DEST="/etc/rc.d"
-	    MANDIR="/usr/man"
-	    SLACKWARE=yes
-	elif [ -f /etc/arch-release ] ; then
-	    echo "Installing ArchLinux-specific configuration..."
-	    DEST="/etc/rc.d"
-	    INIT="shorewall"
-	    ARCHLINUX=yes
 	fi
     fi
 fi
@@ -247,7 +256,12 @@ echo "Installing Shorewall Core Version $VERSION"
 # Create /usr/share/shorewall
 #
 mkdir -p ${DESTDIR}${LIBEXEC}/shorewall
-chmod 755 ${DESTDIR}/usr/share/shorewall
+chmod 755 ${DESTDIR}${LIBEXEC}/shorewall
+
+if [ $LIBEXEC != /usr/shorewall/ ]; then
+    mkdir -p ${DESTDIR}/usr/share/shorewall
+    chmod 755 ${DESTDIR}/usr/share/shorewall
+fi
 #
 # Install wait4ifup
 #
@@ -264,7 +278,7 @@ for f in lib.* ; do
     echo "Library ${f#*.} file installed as ${DESTDIR}/usr/share/shorewall/$f"
 done
 
-if [ -z "$MACHOST" ]; then
+if [ $BUILD != apple ]; then
     eval sed -i \'s\|g_libexec=.\*\|g_libexec=$LIBEXEC\|\' ${DESTDIR}/usr/share/shorewall/lib.cli
     eval sed -i \'s\|g_perllib=.\*\|g_perllib=$PERLLIB\|\' ${DESTDIR}/usr/share/shorewall/lib.cli
 else

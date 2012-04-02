@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                    S H O R E W A L L  4 . 5 . 0 . 3
+                     S H O R E W A L L  4 . 5 . 1 . 1
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +12,244 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+4.5.1.1
+
+1)  When checking or compiling for export (-e option), /sbin/shorewall
+    would previously issue a warning message if the SHOREWALL_SHELL
+    specified in the remote firewall's shorewall.conf did not exist.
+
+2)  The changes to TOS handling in 4.5.1 are incompatible with older
+    releases such as RHEL5 and derivatives. That has been corrected.
+
+3)  The rules compiler now verifies that the protocol is TCP, UDP, SCTP
+    or DCCP when checking a port range (low:high or low-high).
+
+4)  Previously, start or restart using the init script would fail with
+    an error message referencing 'SHOREWALL_INIT_SCRIPT'. This defect
+    was not visible to users that set AUTOMAKE=Yes or that run
+    Shorewall-init.
+
+4.5.1
+
+1)  This release includes all defect repair from versions
+    4.5.0.1-4.5.0.3.
+
+2)  The Shorewall-init installer now installs the proper init script on
+    Redhat and Fedora.
+
+3)  A typo has been corrected in the blrules man pages.
+
+4)  Previously, if the interface appearing in the HOSTS column of
+    /etc/shorewall6/hosts was not defined in
+    /etc/shorewall6/interfaces, then the compiler would terminate with
+    a Perl diagnostic:
+
+      	   Can't use an undefined value as a HASH reference at
+      	   /usr/share/shorewall/Shorewall/Zones.pm line 1817,
+      	   <$currentfile> line ...
+
+5)  The handling of the LIBEXEC and PERLLIB variables was broken in the
+    base 4.5.0 release. Simon Mater has supplied a fix which is
+    included in this release.
+
+6)  On systems running systemd, init scripts are no longer installed in
+    /etc/rc.d/init.d.
+
+7)  The Shorewall Init installer now correctly detects the use of
+    systemd.
+
+8)  On systems running systemd, the installer now installs
+    /sbin/shorewall-init. That file has not existed previously, even
+    though shorewall-init.service is trying to use it.
+
+9)  The compiler was previously failing to validate the contents of the
+    LENGTH and TOS columns in /etc/shorewall/tcrules. The contents of
+    those columns are now validated by the compiler and an appropriate
+    error message is issued if validation fails.
+
+10) The column headings in the tos files are now in the proper
+    order. Previously, the SOURCE PORT and DEST PORT columns were
+    reversed.
+
+----------------------------------------------------------------------------
+           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+1)  On systems running Upstart, shorewall-init cannot reliably secure
+    the firewall before interfaces are brought up.
+
+----------------------------------------------------------------------------
+      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  Support is now included for IMQ. This takes the form of of
+    IMQ(<number>) in the MARK/CLASSIFY column of
+    /etc/shorewall/tcrules.
+
+2)  It is no longer necessary to specify a MARK value for the default
+    class under a device that does not specify the 'classify'
+    option. Simple set the MARK column to '-' in the default class.
+
+3)  Previously, the install scripts included in the Shorewall packages
+    were very restrictive. They could either be run to install directly
+    onto the system in a distribution-dependent way, or they could
+    install into a directory in a distribution-independent way. This
+    limited their usefullness to packagers.
+
+    Beginning with this release, the install scripts handle the install
+    system and the target system independently. When running an
+    installer, the following environmental variables can be set:
+
+    a)  BUILD - Describes the system where the installer is
+        running. Accepted values are:
+
+	    cygwin    - Cygwin running under a Microsoft OS
+	    apple     - OS X
+	    debian    - Debian,Ubuntu,etc.
+	    redhat    - Fedora,RHEL,Centos,Foobar,etc.
+	    slackware - Slackware
+	    archlinux - Arch Linux
+	    linux     - Generic Linux
+	    
+        If BUILD is not set, then the installer uses its existing
+        algorithm for detecting the current OS and distribution.
+
+    b)  HOST - Describes the system where the installed package
+        will run.
+
+	- For Shorewall and Shorewall6, the possible values are
+          the same as for BUILD.
+
+        - If HOST is not set, the value of BUILD (through setting or
+          detection) is used.
+    
+        - For Shorewall-lite and Shorewall6-lite, the possible choices
+          are debian,  redhat, suse, slackware, archlinux and
+          linux.
+
+    	- For Shorewall-init, the possible choices are debian,
+          redhat, and suse.
+
+    c)  INITDIR - Gives the absolute path name of the directory
+    	containing the init scripts.
+
+    The choice of HOST and TARGET follow the naming of similar macros
+    in rpm and autoconf.
+
+    As part of these changes, LIBEXEC and PERLLIB must now hold an
+    absolute pathname. So, for example, if you have been using
+
+    	LIBEXEC=libexec
+
+    you will need to change to
+
+        LIBEXEC=/usr/libexec
+
+    Additionally, support has been added for sourcing a file containing
+    option settings. The file name is 'shorewall-pkg.config' in the
+    parent directory of the untar'ed package file.
+
+5)  The .spec files included with each package have undergone
+    considerable revision.
+
+    When running the package ./install.sh script:
+
+    a) The setting for LIBEXEC is taken from the standard '_libexecdir'
+       rpm macro.
+
+    b) The setting for PERLLIB is taken from the standard
+       'perl_privlib' rpm macro.
+
+    c) The setting for INITDIR is taken from the standard
+       '_initddir' rpm macro.
+
+    d) The setting of BUILD is detected by the install script.
+
+    e) The setting for TARGET is taken from the standard '_vendor' rpm
+       macro.
+
+    The rpms included with Shorewall are built with these settings of
+    the standard rpm-supplied macros:
+
+    	%_libexecdir  	   	/usr/libexec
+        %perl_privlib		/usr/share/shorewall
+	%_initddir		/etc/init.d
+	%_vendor		suse
+ 
+    The setting of %perl_sitelib is chosen for portability, since there
+    seems to be no common location for site-specific Perl modules among
+    the rpm-based distributions.
+
+6)  A SWITCH column has been added to /etc/shorewall/masq. This column
+    allows for enabling and disabling a rule based on a setting in
+    /proc/net/nf_condition. See shorewall-masq(5) for details.
+
+7)  The rules compiler now issues a warning when the 'src' ipset flag
+    is used in a destination column or the 'dst' ipset flag is used in
+    a source column.
+
+8)  Support has been added for matching and setting the "Differentiated
+    Services Code Point" (DSCP) field in the IP header. See
+    shorewall-tcrules(5) and shorewall6-tcrules(5) for details.
+
+9)  "Run-time gateway variables" are now supported. These variables
+    have names that are composed of a percent sign ('%') followed by
+    the logical name of an interface defined in
+    /etc/shorewall/interfaces. They are expanded to the IP address of
+    the default gateway out of the corresponding interface.
+
+    Example: 
+
+    %eth0 expands to the IP address of the default gateway out of eth0.
+
+    See
+    http://www.shorewall.net/configuration_file_basics.htm#Variables
+    for details.
+
+10) The 'update' command now omits non-default settings of
+    WIDE_TC_MARKS and HIGH_ROUTE_MARKS from the updated .conf file.
+
+11) The 'isusable' extension script is no longer installed by
+    default. Users wishing to install it may simply copy it from
+    /usr/share/shorewall[6]/configfiles. 
+
+12) Support has been added for seting the "Type of Service" (TOS)
+    header field in shorewall-tcrules(5) and shorewall6-tcrules(5). See
+    the manpages for details. As part of this change, use of the
+    shorewall-tos(5) and shorewall6-tos(5) files is deprecated and a
+    warning is issued on the first rule in each file.
+
+----------------------------------------------------------------------------
+                   V.  M I G R A T I O N   I S S U E S
+----------------------------------------------------------------------------
+
+1)  If you are migrating from Shorewall 4.2.x or earlier, please see
+    http://www.shorewall.net/pub/shorewall/4.4/shorewall-4.4.27/releasenotes.txt
+
+2)  The BLACKLIST section of the rules file has been eliminated. 
+    If you have entries in that file section, you must move them to the
+    blrules file.
+
+3)  This version of Shorewall requires the Digest::SHA1 Perl module.
+
+        Debian: libdigest-sha1-perl
+    	Fedora: perl-Digest-SHA1
+    	OpenSuSE: perl-Digest-SHA1
+
+4)  The generated firewall script now maintains the
+    /var/lib/shorewall[6][-lite]/interface.status files used by SWPING
+    and by LSM.
+
+    If you have optional providers and to not run a link monitor like
+    SWPING  or LSM that updates these files, then you should remove
+    /etc/shorewall[6]/isusable if it is installed.
+
+----------------------------------------------------------------------------
+        V I.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
+----------------------------------------------------------------------------
+             P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 0
 ----------------------------------------------------------------------------
 
 4.5.0.3
@@ -89,14 +327,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     been corrected so that no error occurs.
 
 ----------------------------------------------------------------------------
-           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-1)  On systems running Upstart, shorewall-init cannot reliably secure
-    the firewall before interfaces are brought up.
-
-----------------------------------------------------------------------------
-      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+                    N E W  F E A T U R E S  I N  4 . 5 . 0
 ----------------------------------------------------------------------------
 
 1)  The rules generated by the following interface options are now
@@ -217,23 +448,3 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     manpages under their corresponding product directories. For
     example, trunk/manpage6 was moved to trunk/Shorewall6/manpages.
 
-----------------------------------------------------------------------------
-                   V.  M I G R A T I O N   I S S U E S
-----------------------------------------------------------------------------
-
-1)  If you are migrating from Shorewall 4.2.x or earlier, please see
-    http://www.shorewall.net/pub/shorewall/4.4/shorewall-4.4.27/releasenotes.txt
-
-2)  The BLACKLIST section of the rules file has been eliminated. 
-    If you have entries in that file section, you must move them to the
-    blrules file.
-
-3)  This version of Shorewall requires the Digest::SHA1 Perl module.
-
-        Debian: libdigest-sha1-perl
-    	Fedora: perl-Digest-SHA1
-    	OpenSuSE: perl-Digest-SHA1
-
-4)  The generated firewall script now maintains the
-    /var/lib/shorewall[6][-lite]/interface.status files used by SWPING
-    and by LSM.
