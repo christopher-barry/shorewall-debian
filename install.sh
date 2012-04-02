@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.0.3
+VERSION=4.5.1.1
 
 #
 # Change to the directory containing this script
@@ -92,6 +92,11 @@ install_file() # $1 = source $2 = target $3 = mode
 
 cd "$(dirname $0)"
 
+#
+# Load packager's settings if any
+#
+[ -f ../shorewall-pkg.config ] && . ../shorewall-pkg.config
+
 if [ -f shorewall ]; then
     PRODUCT=shorewall
     Product=Shorewall
@@ -105,26 +110,15 @@ fi
 #
 # Parse the run line
 #
-# DEST is the SysVInit script directory
-# INIT is the name of the script in the $DEST directory
 #
 T="-T"
 
-if [ -z "$DEST" ] ; then
-	DEST="/etc/init.d"
-fi
-
-if [ -z "$INIT" ] ; then
-	INIT="$PRODUCT"
-fi
-
 ANNOTATED=
-CYGWIN=
-MAC=
-MACHOST=
 MANDIR=${MANDIR:-"/usr/share/man"}
 SPARSE=
 INSTALLD='-D'
+INITFILE="$PRODUCT"
+
 [ -n "${LIBEXEC:=/usr/share}" ]
 [ -n "${PERLLIB:=/usr/share/shorewall}" ]
 
@@ -132,7 +126,8 @@ case "$LIBEXEC" in
     /*)
 	;;
     *)
-	LIBEXEC=/usr/${LIBEXEC}
+	echo "The LIBEXEC setting must be an absolute path name" >&2
+	exit 1
 	;;
 esac
 
@@ -140,33 +135,45 @@ case "$PERLLIB" in
     /*)
 	;;
     *)
-	PERLLIB=/usr/${PERLLIB}
+	echo "The PERLLIB setting must be an absolute path name" >&2
+	exit 1
 	;;
 esac
 
-case $(uname) in
-    CYGWIN*)
-	if [ -z "$DESTDIR" ]; then
-	    DEST=
-	    INIT=
-	fi
+if [ -z "$BUILD" ]; then
+    case $(uname) in
+	cygwin*)
+	    BUILD=cygwin
+	    ;;
+	Darwin)
+	    BUILD=apple
+	    ;;
+	*)
+	    if [ -f /etc/debian_version ]; then
+		BUILD=debian
+	    elif [ -f /etc/redhat-release ]; then
+		BUILD=redhat
+	    elif [ -f /etc/slackware-version ] ; then
+		BUILD=slackware
+	    elif [ -f /etc/SuSE-release ]; then
+		BUILD=suse
+	    elif [ -f /etc/arch-release ] ; then
+		BUILD=archlinux
+	    else
+		BUILD=linux
+	    fi
+	    ;;
+    esac
+fi
 
+case $BUILD in
+    cygwin*)
 	OWNER=$(id -un)
 	GROUP=$(id -gn)
-	CYGWIN=Yes
-	SPARSE=Yes
 	;;
-    Darwin)
-	if [ -z "$DESTDIR" ]; then
-	    DEST=
-	    INIT=
-	    SPARSE=Yes
-	fi
-
+    apple)
 	[ -z "$OWNER" ] && OWNER=root
 	[ -z "$GROUP" ] && GROUP=wheel
-	MAC=Yes
-	MACHOST=Yes
 	INSTALLD=
 	T=
 	;;
@@ -229,8 +236,64 @@ PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 # Determine where to install the firewall script
 #
 
+if [ $PRODUCT = shorewall -a -z "${DESTDIR}" ]; then
+    #
+    # Verify that Perl is installed
+    #
+    if ! perl -c Perl/compiler.pl; then
+	echo "ERROR: $Product $VERSION requires Perl which either is not installed or is not able to compile the $Product perl code" >&2
+	echo "       Try perl -c $PWD/Perl/compiler.pl" >&2
+	exit 1
+    fi
+fi
+
+[ -n "$HOST" ] || HOST=$BUILD
+
+case "$HOST" in
+    cygwin)
+	echo "Installing Cygwin-specific configuration..."
+	INITFILE=
+	;;
+    apple)
+	echo "Installing Mac-specific configuration...";
+	INITFILE=
+	;;
+    debian)
+	echo "Installing Debian-specific configuration..."
+	SPARSE=yes
+	;;
+    redhat)
+	echo "Installing Redhat/Fedora-specific configuration..."
+	[ -n "$INITDIR" ]  || INITDIR="/etc/rc.d/init.d"
+	;;
+    suse)
+	echo "Installing SuSE-specific configuration...";
+	;;
+    slackware)
+	echo "Installing Slackware-specific configuration..."
+	[ -n "$INITDIR" ]  || INITDIR="/etc/rc.d"
+	[ -n "$MANDIR" ]   || MANDIR="/usr/man"
+	[ -n "$INITFILE" ] || INITFILE="rc.firewall"
+	;;
+    archlinux)
+	echo "Installing ArchLinux-specific configuration..."
+	[ -n "$INITDIR" ]  || INITDIR="/etc/rc.d"
+	[ -n "$INITFILE" ] || INITFILE="$PRODUCT"
+	;;
+    linux)
+	;;
+    *)
+	echo "ERROR: Unknown HOST \"$HOST\"" >&2
+	exit 1;
+	;;
+esac
+
+if [ -z "$INITDIR" -a -n "$INITFILE" ] ; then
+    INITDIR="/etc/init.d"
+fi
+
 if [ -n "$DESTDIR" ]; then
-    if [ -z "$CYGWIN" ]; then
+    if [ $BUILD != cygwin ]; then
 	if [ `id -u` != 0 ] ; then
 	    echo "Not setting file owner/group permissions, not running as root."
 	    OWNERSHIP=""
@@ -238,58 +301,20 @@ if [ -n "$DESTDIR" ]; then
     fi
 
     install -d $OWNERSHIP -m 755 ${DESTDIR}/sbin
-    install -d $OWNERSHIP -m 755 ${DESTDIR}${DEST}
-
-    CYGWIN=
-    MAC=
-else
-    if [ $PRODUCT = shorewall ]; then
-        #
-        # Verify that Perl is installed
-        #
-	if ! perl -c Perl/compiler.pl; then
-	    echo "ERROR: $Product $VERSION requires Perl which either is not installed or is not able to compile the $Product perl code" >&2
-	    echo "       Try perl -c $PWD/Perl/compiler.pl" >&2
-	    exit 1
-	fi
-    else
-	[ -x /usr/share/shorewall/compiler.pl ] || \
-	    { echo "   ERROR: Shorewall >= 4.3.5 is not installed" >&2; exit 1; }
-    fi
-
-    if [ -n "$CYGWIN" ]; then
-	echo "Installing Cygwin-specific configuration..."
-    elif [ -n "$MAC" ]; then
-	echo "Installing Mac-specific configuration..."
-    else
-	if [ -f /etc/debian_version ]; then
-	    echo "Installing Debian-specific configuration..."
-	    DEBIAN=yes
-	    SPARSE=yes
-	elif [ -f /etc/redhat-release ]; then
-	    echo "Installing Redhat/Fedora-specific configuration..."
-	    FEDORA=yes
-	elif [ -f /etc/slackware-version ] ; then
-	    echo "Installing Slackware-specific configuration..."
-	    DEST="/etc/rc.d"
-	    MANDIR="/usr/man"
-	    SLACKWARE=yes
-	    INIT="rc.firewall"
-	elif [ -f /etc/arch-release ] ; then
-	    echo "Installing ArchLinux-specific configuration..."
-	    DEST="/etc/rc.d"
-	    INIT="$PRODUCT"
-	    ARCHLINUX=yes
-	fi
-    fi
+    install -d $OWNERSHIP -m 755 ${DESTDIR}${INITDIR}
+elif [ $PRODUCT != shorewall ]; then
+    [ -x ${LIBEXEC}/shorewall/compiler.pl ] || \
+	{ echo "   ERROR: Shorewall >= 4.5.0 is not installed" >&2; exit 1; }
 fi
 
 if [ -z "$DESTDIR" ]; then
     if [ -f /lib/systemd/system ]; then
 	SYSTEMD=Yes
+	INITFILE=
     fi
 elif [ -n "$SYSTEMD" ]; then
     mkdir -p ${DESTDIR}/lib/systemd/system
+    INITFILE=
 fi
 
 echo "Installing $Product Version $VERSION"
@@ -308,7 +333,7 @@ if [ -z "${DESTDIR}" -a $PRODUCT = shorewall -a ! -f /usr/share/$PRODUCT/corever
     exit 1
 fi
 
-if [ -z "$CYGWIN" ]; then
+if [ $HOST != cygwin ]; then
    install_file $PRODUCT ${DESTDIR}/sbin/$PRODUCT 0755
    echo "$PRODUCT control program installed in ${DESTDIR}/sbin/$PRODUCT"
 else
@@ -319,20 +344,27 @@ fi
 #
 # Install the Firewall Script
 #
-if [ -n "$DEBIAN" ]; then
-    install_file init.debian.sh ${DESTDIR}/etc/init.d/$PRODUCT 0544
-elif [ -n "$FEDORA" ]; then
-    install_file init.fedora.sh ${DESTDIR}/etc/init.d/$PRODUCT 0544
-elif [ -n "$ARCHLINUX" ]; then
-    install_file init.archlinux.sh ${DESTDIR}${DEST}/$INIT 0544
-elif [ -n "$SLACKWARE" -a $PRODUCT = shorewall ]; then
-	install_file init.slackware.firewall.sh ${DESTDIR}${DEST}/rc.firewall 0644
-	install_file init.slackware.$PRODUCT.sh ${DESTDIR}${DEST}/rc.$PRODUCT 0644
-elif [ -n "$INIT" ]; then
-    install_file init.sh ${DESTDIR}${DEST}/$INIT 0544
-fi
+if [ -n "$INITFILE" ]; then
+    case $HOST in
+	debian)
+	    install_file init.debian.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
+	    ;;
+	redhat)
+	    install_file init.fedora.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
+	    ;;
+	slackware)
+            if [ $PRODUCT = shorewall ]; then
+		install_file init.slackware.firewall.sh ${DESTDIR}${DEST}/rc.firewall 0644
+		install_file init.slackware.$PRODUCT.sh ${DESTDIR}${DEST}/rc.$PRODUCT 0644
+	    fi
+	    ;;
+	*)
+	    install_file init.sh ${DESTDIR}${INITDIR}/$INITFILE 0544
+	    ;;
+    esac
 
-[ -n "$INIT" ] && echo  "$Product script installed in ${DESTDIR}${DEST}/$INIT"
+    echo  "$Product script installed in ${DESTDIR}${INITDIR}/$INITFILE"
+fi
 
 #
 # Create /etc/$PRODUCT and /var/lib/$PRODUCT if needed
@@ -427,7 +459,7 @@ run_install $OWNERSHIP -m 0644 $PRODUCT.conf.annotated ${DESTDIR}/usr/share/$PRO
 if [ ! -f ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf ]; then
    run_install $OWNERSHIP -m 0644 $PRODUCT.conf${suffix} ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf
 
-   if [ -n "$DEBIAN" ] && mywhich perl; then
+   if [ $HOST = debian ] && mywhich perl; then
        #
        # Make a Debian-like $PRODUCT.conf
        #
@@ -438,7 +470,7 @@ if [ ! -f ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf ]; then
 fi
 
 
-if [ -n "$ARCHLINUX" ] ; then
+if [ $HOST = archlinux ] ; then
    sed -e 's!LOGFILE=/var/log/messages!LOGFILE=/var/log/messages.log!' -i ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf
 fi
 
@@ -582,7 +614,7 @@ run_install $OWNERSHIP -m 0644 maclist.annotated ${DESTDIR}/usr/share/$PRODUCT/c
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/$PRODUCT/maclist ]; then
     run_install $OWNERSHIP -m 0600 maclist${suffix} ${DESTDIR}/etc/$PRODUCT/maclist
-    echo "MAC list file installed as ${DESTDIR}/etc/$PRODUCT/maclist"
+    echo "mac list file installed as ${DESTDIR}/etc/$PRODUCT/maclist"
 fi
 
 if [ -f masq ]; then
@@ -888,11 +920,6 @@ fi
 # Install the Isusable file
 #
 run_install $OWNERSHIP -m 0644 isusable ${DESTDIR}/usr/share/$PRODUCT/configfiles/isusable
-
-if [ -z "$SPARSE" -a ! -f ${DESTDIR}/etc/$PRODUCT/isusable ]; then
-    run_install $OWNERSHIP -m 0600 isusable ${DESTDIR}/etc/$PRODUCT/isusable
-    echo "Isusable file installed as ${DESTDIR}/etc/$PRODUCT/isusable"
-fi
 #
 # Install the Refresh file
 #
@@ -1048,7 +1075,7 @@ chmod 644 ${DESTDIR}/usr/share/$PRODUCT/version
 
 if [ -z "$DESTDIR" ]; then
     rm -f /usr/share/$PRODUCT/init
-    ln -s ${DEST}/${INIT} /usr/share/$PRODUCT/init
+    ln -s ${INITDIR}/${INITFILE} /usr/share/$PRODUCT/init
 fi
 
 #
@@ -1080,8 +1107,8 @@ if [ -d ${DESTDIR}/etc/logrotate.d ]; then
     echo "Logrotate file installed as ${DESTDIR}/etc/logrotate.d/$PRODUCT"
 fi
 
-if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${CYGWIN}${MAC}" ]; then
-    if [ -n "$DEBIAN" ]; then
+if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
+    if [ $HOST = debian ]; then
 	run_install $OWNERSHIP -m 0644 default.debian /etc/default/$PRODUCT
 
 	update-rc.d $PRODUCT defaults
@@ -1117,7 +1144,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${CYGWIN}${MAC}" ]; then
 	    else
 		cant_autostart
 	    fi
-	elif [ "$INIT" != rc.firewall ]; then #Slackware starts this automatically
+	elif [ "$INITFILE" != rc.f ]; then #Slackware starts this automatically
 	    cant_autostart
 	fi
     fi

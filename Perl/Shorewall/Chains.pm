@@ -36,6 +36,10 @@ use strict;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
+		    DONT_OPTIMIZE
+		    DONT_DELETE
+		    DONT_MOVE
+
 		    add_rule
 		    add_irule
 		    add_jump
@@ -62,6 +66,11 @@ our @EXPORT = qw(
 		    require_audit
 		    newlogchain
 		    log_rule_limit
+		    allow_optimize
+		    allow_delete
+		    allow_move
+		    set_optflags
+		    reset_optflags
 		    dont_optimize
 		    dont_delete
 		    dont_move
@@ -182,6 +191,7 @@ our %EXPORT_TAGS = (
 				       do_time
 				       do_user
 				       do_length
+				       decode_tos
 				       do_tos
 				       do_connbytes
 				       do_helper
@@ -189,6 +199,7 @@ our %EXPORT_TAGS = (
 				       do_headers
 				       do_probability
 				       do_condition
+				       do_dscp
 				       have_ipset_rules
 				       record_runtime_address
 				       conditional_rule
@@ -228,12 +239,13 @@ our %EXPORT_TAGS = (
 				       create_chainlist_reload
 				       create_stop_load
 				       %targets
+				       %dscpmap
 				     ) ],
 		   );
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_0';
+our $VERSION = '4.5_1';
 
 #
 # Chain Table
@@ -246,9 +258,7 @@ our $VERSION = '4.5_0';
 #                                               builtin      => undef|1 -- If 1, one of Netfilter's built-in chains.
 #                                               manual       => undef|1 -- If 1, a manual chain.
 #                                               accounting   => undef|1 -- If 1, an accounting chain
-#                                               dont_optimize=> undef|1 -- Don't optimize away if this chain is 'short'
-#                                               dont_delete  => undef|1 -- Don't delete if this chain is not referenced
-#                                               dont_move    => undef|1 -- Don't copy the rules of this chain somewhere else
+#                                               optflags     => <optimization flags>
 #                                               log          => <logging rule number for use when LOGRULENUMBERS>
 #                                               policy       => <policy>
 #                                               policychain  => <name of policy chain> -- self-reference if this is a policy chain
@@ -360,6 +370,37 @@ use constant {
 
 use constant { OPTIMIZE_MASK => OPTIMIZE_POLICY_MASK | OPTIMIZE_RULESET_MASK };
 
+use constant { DONT_OPTIMIZE => 1 , DONT_DELETE => 2, DONT_MOVE => 4 };
+
+our %dscpmap = ( CS0  => 0x00,
+		 CS1  => 0x08,
+		 CS2  => 0x10,
+		 CS3  => 0x18,
+		 CS4  => 0x20,
+		 CS5  => 0x28,
+		 CS6  => 0x30,
+		 CS7  => 0x38,
+		 BE   => 0x00,
+		 AF11 => 0x0a,
+		 AF12 => 0x0c,
+		 AF13 => 0x0e,
+		 AF21 => 0x12,
+		 AF22 => 0x14,
+		 AF23 => 0x16,
+		 AF31 => 0x1a,
+		 AF32 => 0x1c,
+		 AF33 => 0x1e,
+		 AF41 => 0x22,
+		 AF42 => 0x24,
+		 AF43 => 0x26,
+		 EF   => 0x2e,
+	       );
+
+our %tosmap = ( 'Minimize-Delay'       => 0x10,
+		'Maximize-Throughput'  => 0x08,
+		'Maximize-Reliability' => 0x04,
+		'Minimize-Cost'        => 0x02,
+		'Normal-Service'       => 0x00 );
 #
 # These hashes hold the shell code to set shell variables. The key is the name of the variable; the value is the code to generate the variable's contents
 #
@@ -1151,7 +1192,7 @@ sub push_matches {
 	}
     }
 
-    $dont_optimize;
+    DONT_OPTIMIZE if $dont_optimize;
 }
 
 sub push_irule( $$$;@ ) {
@@ -1180,7 +1221,7 @@ sub push_irule( $$$;@ ) {
     $chainref->{referenced} = 1;
 
     unless ( $ruleref->{simple} = ! @matches ) {
-	$chainref->{dont_optimize} = 1 if push_matches( $ruleref, @matches );
+	$chainref->{optflags} |= push_matches( $ruleref, @matches );
     }
 
     push @{$chainref->{rules}}, $ruleref;
@@ -1294,7 +1335,7 @@ sub insert_irule( $$$$;@ ) {
     }
 
     unless ( $ruleref->{simple} = ! @matches ) {
-	$chainref->{dont_optimize} = 1 if push_matches( $ruleref, @matches );
+	$chainref->{optflags} |= push_matches( $ruleref, @matches );
     }
 
     if ( $comment ) {
@@ -1867,7 +1908,8 @@ sub new_chain($$)
 		     log            => 1,
 		     cmdlevel       => 0,
 		     references     => {},
-		     filtered       => 0
+		     filtered       => 0,
+		     optflags       => 0,
 		   };
 
     trace( $chainref, 'N', undef, '' ) if $debug;
@@ -1928,7 +1970,7 @@ sub add_jump( $$$;$$$ ) {
 
     my $param = $goto_ok && $toref && have_capability( 'GOTO_TARGET' ) ? 'g' : 'j';
 
-    $fromref->{dont_optimize} = 1 if $predicate =~ /! -[piosd] /;
+    $fromref->{optflags} |= DONT_OPTIMIZE if $predicate =~ /! -[piosd] /;
 
     if ( defined $index ) {
 	assert( ! $expandports );
@@ -2052,15 +2094,24 @@ sub delete_jumps ( $$ ) {
     }
 }
 
-#
-# Set the dont_optimize flag for a chain
-#
-sub dont_optimize( $ ) {
-    my $chain = shift;
+sub reset_optflags( $$ ) {
+    my ( $chain, $flags ) = @_;
 
     my $chainref = reftype $chain ? $chain : $filter_table->{$chain};
 
-    $chainref->{dont_optimize} = 1;
+    $chainref->{optflags} ^= $flags;
+
+    trace( $chainref, '!O', undef, '' ) if $debug;
+
+    $chainref;
+}
+
+sub set_optflags( $$ ) {
+    my ( $chain, $flags ) = @_;
+
+    my $chainref = reftype $chain ? $chain : $filter_table->{$chain};
+
+    $chainref->{optflags} |= $flags;
 
     trace( $chainref, '!O', undef, '' ) if $debug;
 
@@ -2068,33 +2119,45 @@ sub dont_optimize( $ ) {
 }
 
 #
+# Reset the dont_optimize flag for a chain
+#
+sub allow_optimize( $ ) {
+    reset_optflags( shift, DONT_OPTIMIZE );
+}
+
+#
+# Reset the dont_delete flags for a chain
+#
+sub allow_delete( $ ) {
+    reset_optflags( shift, DONT_DELETE );
+}
+
+#
+# Reset the dont_move flag for a chain
+#
+sub allow_move( $ ) {
+    reset_optflags( shift, DONT_MOVE );
+}
+
+#
+# Set the dont_optimize flag for a chain
+#
+sub dont_optimize( $ ) {
+    set_optflags( shift, DONT_OPTIMIZE );
+}
+
+#
 # Set the dont_optimize and dont_delete flags for a chain
 #
 sub dont_delete( $ ) {
-    my $chain = shift;
-
-    my $chainref = reftype $chain ? $chain : $filter_table->{$chain};
-
-    $chainref->{dont_optimize} = $chainref->{dont_delete} = 1;
-
-    trace( $chainref, '!OD', undef, '' ) if $debug;
-
-    $chainref;
+    set_optflags( shift, DONT_OPTIMIZE | DONT_DELETE );
 }
 
 #
 # Set the dont_move flag for a chain
 #
 sub dont_move( $ ) {
-    my $chain = shift;
-
-    my $chainref = reftype $chain ? $chain : $filter_table->{$chain};
-
-    $chainref->{dont_move} = 1;
-
-    trace( $chainref, '!M', undef, '' ) if $debug;
-
-    $chainref;
+    set_optflags( shift, DONT_MOVE );
 }
 
 #
@@ -2136,7 +2199,7 @@ sub ensure_accounting_chain( $$$ )
 	$chainref->{restriction} = $restriction;
 	$chainref->{restricted}  = NO_RESTRICT;
 	$chainref->{ipsec}       = $ipsec;
-	$chainref->{dont_optimize} = 1 unless $config{OPTIMIZE_ACCOUNTING};
+	$chainref->{optflags}   |= DONT_OPTIMIZE unless $config{OPTIMIZE_ACCOUNTING};
 
 	unless ( $chain eq 'accounting' ) {
 	    my $file = find_file $chain;
@@ -2208,7 +2271,7 @@ sub new_builtin_chain($$$)
     $chainref->{referenced}  = 1;
     $chainref->{policy}      = $policy;
     $chainref->{builtin}     = 1;
-    $chainref->{dont_delete} = 1;
+    $chainref->{optflags}    = DONT_DELETE;
     $chainref;
 }
 
@@ -2636,7 +2699,7 @@ sub conditionally_copy_rules( $$ ) {
 
     my $targetref = $chain_table{$chainref->{table}}{$basictarget};
 
-    if ( $targetref && ! $targetref->{dont_move} ) {
+    if ( $targetref && ! ( $targetref->{optflags} & DONT_MOVE ) ) {
 	#
 	# Move is safe -- start with an empty rule list
 	#
@@ -2678,7 +2741,7 @@ sub optimize_level0() {
 	    #
 	    # If the chain isn't branched to, then delete it
 	    #
-	    unless ( $chainref->{dont_delete} || keys %{$chainref->{references}} ) {
+	    unless ( $chainref->{optflags} & DONT_DELETE || keys %{$chainref->{references}} ) {
 		delete_chain $chainref if $chainref->{referenced};
 	    }
 	}
@@ -2696,7 +2759,7 @@ sub optimize_level4( $$ ) {
     # When a chain with a single entry is found, replace it's references by its contents
     #
     # The search continues until no short chains remain
-    # Chains with 'dont_optimize = 1' are exempted from optimization
+    # Chains with 'DONT_OPTIMIZE' are exempted from optimization
     #
     while ( $progress ) {
 	$progress = 0;
@@ -2708,15 +2771,16 @@ sub optimize_level4( $$ ) {
 	progress_message "\n Table $table pass $passes, $chains referenced chains, level 4a...";
 
 	for my $chainref ( @chains ) {
+	    my $optflags = $chainref->{optflags};
 	    #
 	    # If the chain isn't branched to, then delete it
 	    #
-	    unless ( $chainref->{dont_delete} || keys %{$chainref->{references}} ) {
+	    unless ( ( $optflags & DONT_DELETE ) || keys %{$chainref->{references}} ) {
 		delete_chain $chainref if $chainref->{referenced};
 		next;
 	    }
 
-	    unless ( $chainref->{dont_optimize} ) {
+	    unless ( $optflags & DONT_OPTIMIZE ) {
 		my $numrules = @{$chainref->{rules}};
 
 		if ( $numrules == 0 ) {
@@ -2727,7 +2791,7 @@ sub optimize_level4( $$ ) {
 			#
 			# Built-in -- mark it 'dont_optimize' so we ignore it in follow-on passes
 			#
-			$chainref->{dont_optimize} = 1;
+			$chainref->{optflags} |= DONT_OPTIMIZE;
 		    } else {
 			#
 			# Not a built-in -- we can delete it and it's references
@@ -2758,7 +2822,7 @@ sub optimize_level4( $$ ) {
 				#
 				# Target was a built-in. Ignore this chain in follow-on passes
 				#
-				$chainref->{dont_optimize} = 1;
+				$chainref->{optflags} |= DONT_OPTIMIZE;
 			    }
 			} else {
 			    #
@@ -2774,9 +2838,9 @@ sub optimize_level4( $$ ) {
 			if ( $chainref->{builtin} || ! $globals{KLUDGEFREE} ) {
 			    #
 			    # This case requires a new rule merging algorithm. Ignore this chain for
-			    # now.
+			    # now on.
 			    #
-			    $chainref->{dont_optimize} = 1;
+			    $chainref->{optflags} |= DONT_OPTIMIZE;
 			} else {
 			    #
 			    # Replace references to this chain with the target and add the matches
@@ -2866,7 +2930,7 @@ sub optimize_level8( $$$ ) {
 	#
 	for my $chainref1 ( @chains1 ) {
 	    next unless @{$chainref1->{rules}};
-	    next if $chainref1->{dont_delete};
+	    next if $chainref1->{optflags} & DONT_DELETE;
 	    if ( $chainref->{digest} eq $chainref1->{digest} ) {
 		progress_message "  Chain $chainref1->{name} combined with $chainref->{name}";
 		replace_references $chainref1, $chainref->{name}, undef;
@@ -4011,13 +4075,56 @@ sub do_user( $ ) {
     $rule;
 }
 
+
+
 #
 # Create a "-m tos" match for the passed TOS
 #
-sub do_tos( $ ) {
-    my $tos = $_[0];
+# This helper is also used during tos file processing
+#
+sub decode_tos( $$ ) {
+    my ( $tos, $set ) = @_;
 
-    $tos ne '-' ? "-m tos --tos $tos " : '';
+    if ( $tos eq '-' ) {
+	fatal_error [ '',                                            # 0
+		      'A value must be supplied in the TOS column',  # 1
+		      'Invalid TOS() parameter (-)',                 # 2
+		    ]->[$set] if $set;
+	return '';
+    }
+
+    my $mask = 0xff;
+    my $value;
+
+    if ( $tos =~ m"^(.+)/(.+)$" ) {
+	$value = numeric_value $1;
+	$mask  = numeric_value $2;
+    } elsif ( ! defined ( $value = numeric_value( $tos ) ) ) {
+	$value = $tosmap{$tos};
+	$mask  = '';
+    }
+
+    fatal_error( [ 'Invalid TOS column value',
+		   'Invalid TOS column value',
+		   'Invalid TOS() parameter', ]->[$set] . " ($tos)" )
+	unless ( defined $value &&
+		 $value <= 0xff &&
+		 ( $mask eq '' ||
+		   ( defined $mask &&
+		     $mask <= 0xff ) ) );
+
+    unless ( $mask eq '' ) {
+	warning_message "Unmatchable TOS ($tos)" unless $set || $value & $mask;
+    }
+
+    $tos = $mask ? in_hex( $value) . '/' . in_hex( $mask ) . ' ' : in_hex( $value ) . ' ';
+
+    $set ? " --set-tos $tos" : "-m tos --tos $tos ";
+
+}
+
+sub do_tos( $ ) {
+    decode_tos( $_[0], 0 );
 }
 
 my %dir = ( O => 'original' ,
@@ -4098,8 +4205,17 @@ sub do_helper( $ ) {
 sub do_length( $ ) {
     my $length = $_[0];
 
+    return '' if $length eq '-';
+
     require_capability( 'LENGTH_MATCH' , 'A Non-empty LENGTH' , 's' );
-    $length ne '-' ? "-m length --length $length " : '';
+
+    fatal_error "Invalid LENGTH ($length)" unless $length =~/^(\d+)(:(\d+))?$/;
+
+    if ( supplied $2 ) {
+	fatal_error "First length must be < second length" unless $1 < $3;
+    }
+
+    "-m length --length $length ";
 }
 
 #
@@ -4184,6 +4300,26 @@ sub do_condition( $ ) {
     fatal_error "Invalid switch name ($condition)" unless $condition =~ /^[a-zA-Z][-\w]*$/ && length $condition <= 30;
 
     "-m condition ${invert}--condition $condition "
+}
+
+#
+# Generate a -m dscp match
+#
+sub do_dscp( $ ) {
+    my $dscp = shift;
+
+    return '' if $dscp eq '-';
+
+    require_capability 'DSCP_MATCH', 'A non-empty DSCP column', 's';
+
+    my $invert = $dscp =~ s/^!// ? '! ' : '';
+    my $value  = numeric_value( $dscp );
+
+    $value = $dscpmap{$value} unless defined $value;
+
+    fatal_error( "Invalid DSCP ($dscp)" ) unless defined $value && $value < 0x2f && ! ( $value & 1 );
+
+    "-m dscp ${invert}--dscp $value ";
 }
 
 #
@@ -4313,6 +4449,13 @@ sub get_set_flags( $$ ) {
     } elsif ( $setname =~ /^(.*)\[((src|dst)(,(src|dst))*)\]$/ ) {
 	$setname = $1;
 	$options = $2;
+
+	my @options = split /,/, $options;
+	my %typemap = ( src => 'Source', dst => 'Destination' );
+
+	for ( @options ) {
+	    warning_message( "The '$_' ipset flag is used in a $typemap{$option} column" ), last unless $_ eq $option;
+	}
     }
 
     $setname =~ s/^\+//;
@@ -4324,7 +4467,6 @@ sub get_set_flags( $$ ) {
 
 	$ipset_exists{$setname} = 1; # Suppress subsequent checks/warnings
     }
-
     fatal_error "Invalid ipset name ($setname)" unless $setname =~ /^(6_)?[a-zA-Z]\w*/;
 
     have_capability 'OLD_IPSET_MATCH' ? "--set $setname $options " : "--match-set $setname $options ";
@@ -4337,11 +4479,21 @@ sub have_ipset_rules() {
 
 sub get_interface_address( $ );
 
-sub record_runtime_address( $ ) {
-    my $interface = shift;
+sub record_runtime_address( $$;$ ) {
+    my ( $addrtype, $interface, $protect ) = @_;
     fatal_error "Unknown interface address variable (&$interface)" unless known_interface( $interface );
     fatal_error "Invalid interface address variable (&$interface)" if $interface =~ /\+$/;
-    get_interface_address( $interface ) . ' ';
+
+    my $addr;
+
+    if ( $addrtype eq '&' ) {
+	$addr = get_interface_address( $interface );
+    } else {
+	$addr = get_interface_gateway( $interface, $protect );
+    }
+
+    $addr . ' ';
+   
 }
 
 #
@@ -4353,12 +4505,19 @@ sub record_runtime_address( $ ) {
 sub conditional_rule( $$ ) {
     my ( $chainref, $address ) = @_;
 
-    if ( $address =~ /^!?&(.+)$/ ) {
-	my $interface = $1;
+    if ( $address =~ /^!?([&%])(.+)$/ ) {
+	my ($type, $interface) = ($1, $2);
 	if ( my $ref = known_interface $interface ) {
 	    if ( $ref->{options}{optional} ) {
-		my $variable = get_interface_address( $interface );
-		add_commands( $chainref , "if [ $variable != " . NILIP . ' ]; then' );
+		my $variable;
+		if ( $type eq '&' ) {
+		    $variable = get_interface_address( $interface );
+		    add_commands( $chainref , "if [ $variable != " . NILIP . ' ]; then' );
+		} else {
+		    $variable = get_interface_gateway( $interface );
+		    add_commands( $chainref , qq(if [ -n "$variable" ]; then) );
+		}
+
 		incr_cmd_level $chainref;
 		return 1;
 	    }
@@ -4422,16 +4581,16 @@ sub match_source_net( $;$\$ ) {
     }
 
     if ( $net =~ s/^!// ) {
-	if ( $net =~ /^&(.+)/ ) {
-	    return '! -s ' . record_runtime_address $1;
+	if ( $net =~ /^([&%])(.+)/ ) {
+	    return '! -s ' . record_runtime_address $1, $2;
 	}
 
 	validate_net $net, 1;
 	return "! -s $net ";
     }
 
-    if ( $net =~ /^&(.+)/ ) {
-	return '-s ' . record_runtime_address $1;
+    if ( $net =~ /^([&%])(.+)/ ) {
+	return '-s ' . record_runtime_address $1, $2;
     }
 
     validate_net $net, 1;
@@ -4476,16 +4635,16 @@ sub imatch_source_net( $;$\$ ) {
     }
 
     if ( $net =~ s/^!// ) {
-	if ( $net =~ /^&(.+)/ ) {
-	    return  ( s => '! ' . record_runtime_address $1 );
+	if ( $net =~ /^([&%])(.+)/ ) {
+	    return  ( s => '! ' . record_runtime_address( $1, $2, 1 ) );
 	}
 
 	validate_net $net, 1;
 	return ( s => "! $net " );
     }
 
-    if ( $net =~ /^&(.+)/ ) {
-	return ( s =>  record_runtime_address $1 );
+    if ( $net =~ /^([&%])(.+)/ ) {
+	return ( s =>  record_runtime_address( $1, $2, 1 ) );
     }
 
     validate_net $net, 1;
@@ -4525,16 +4684,16 @@ sub match_dest_net( $ ) {
     }
 
     if ( $net =~ s/^!// ) {
-	if ( $net =~ /^&(.+)/ ) {
-	    return '! -d ' . record_runtime_address $1;
+	if ( $net =~ /^([&%])(.+)/ ) {
+	    return '! -d ' . record_runtime_address $1, $2;
 	}
 	
 	validate_net $net, 1;
 	return "! -d $net ";
     }
 
-    if ( $net =~ /^&(.+)/ ) {
-	return '-d ' . record_runtime_address $1;
+    if ( $net =~ /^([&%])(.+)/ ) {
+	return '-d ' . record_runtime_address $1, $2;
     }
 
     validate_net $net, 1;
@@ -4572,16 +4731,16 @@ sub imatch_dest_net( $ ) {
     }
 
     if ( $net =~ s/^!// ) {
-	if ( $net =~ /^&(.+)/ ) {
-	    return ( d => '! ' . record_runtime_address $1 );
+	if ( $net =~ /^([&%])(.+)/ ) {
+	    return ( d => '! ' . record_runtime_address( $1, $2, 1 ) );
 	}
 	
 	validate_net $net, 1;
 	return ( d => "! $net " );
     }
 
-    if ( $net =~ /^&(.+)/ ) {
-	return ( d => record_runtime_address $1 );
+    if ( $net =~ /^([&%])(.+)/ ) {
+	return ( d => record_runtime_address( $1, $2, 1 ) );
     }
 
     validate_net $net, 1;
@@ -4599,7 +4758,7 @@ sub match_orig_dest ( $ ) {
 
     if ( $net =~ s/^!// ) {
 	if ( $net =~ /^&(.+)/ ) {
-	    $net = record_runtime_address $1;
+	    $net = record_runtime_address '&', $1;
 	} else {
 	    validate_net $net, 1;
 	}
@@ -4607,7 +4766,7 @@ sub match_orig_dest ( $ ) {
 	have_capability( 'OLD_CONNTRACK_MATCH' ) ? "-m conntrack --ctorigdst ! $net " : "-m conntrack ! --ctorigdst $net ";
     } else {
 	if ( $net =~ /^&(.+)/ ) {
-	    $net = record_runtime_address $1;
+	    $net = record_runtime_address '&', $1;
 	} else {
 	    validate_net $net, 1;
 	}
@@ -5055,8 +5214,8 @@ sub interface_gateway( $ ) {
 #
 # Record that the ruleset requires the gateway address on the passed interface
 #
-sub get_interface_gateway ( $ ) {
-    my ( $logical ) = $_[0];
+sub get_interface_gateway ( $;$ ) {
+    my ( $logical, $protect ) = @_;
 
     my $interface = get_physical $logical;
     my $variable = interface_gateway( $interface );
@@ -5073,7 +5232,7 @@ sub get_interface_gateway ( $ ) {
 );
     }
 
-    "\$$variable";
+    $protect ? "\${$variable:-" . NILIP . '}' : "\$$variable";
 }
 
 #
@@ -5383,7 +5542,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    } else {
 		$inets = $source;
 	    }
-	} elsif ( $source =~ /(?:\+|&|~|\..*\.)/ ) {
+	} elsif ( $source =~ /(?:\+|&|%|~|\..*\.)/ ) {
 	    $inets = $source;
 	} else {
 	    $iiface = $source;
@@ -5468,7 +5627,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 	    if ( $dest =~ /^(.+?):(.+)$/ ) {
 		$diface = $1;
 		$dnets  = $2;
-	    } elsif ( $dest =~ /\+|&|~|\..*\./ ) {
+	    } elsif ( $dest =~ /\+|&|%|~|\..*\./ ) {
 		$dnets = $dest;
 	    } else {
 		$diface = $dest;

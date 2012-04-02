@@ -56,7 +56,7 @@
 #     comma-separated list of destination host or subnet addresses to indicate
 #     that you only want to change the source IP address for packets being sent
 #     to those particular destinations. Exclusion is allowed (see
-#     shorewall-exclusion(5)).
+#     shorewall-exclusion(5)) as are ipset names preceded by a plus sign '+';
 # 
 #     If you wish to inhibit the action of ADD_SNAT_ALIASES for this entry then
 #     include the ":" but omit the digit:
@@ -101,6 +101,10 @@
 # 
 #     In that example traffic from eth1 would be masqueraded unless it came from
 #     192.168.1.4 or 196.168.32.0/27
+# 
+#     The preferred way to specify the SOURCE is to supply one or more host or
+#     network addresses separated by comma. You may use ipset names preceded by a
+#     plus sign (+) to specify a set of hosts.
 # 
 # ADDRESS (Optional) - [-|NONAT|[address-or-address-range[,
 #     address-or-address-range]...][:lowport-highport][:random][:persistent]|
@@ -274,6 +278,28 @@
 #         The ability to specify a program name was removed from Netfilter in
 #         kernel version 2.6.14.
 # 
+# SWITCH - [!]switch-name
+# 
+#     Added in Shorewall 4.5.1 and allows enabling and disabling the rule without
+#     requiring shorewall restart.
+# 
+#     The rule is enabled if the value stored in /proc/net/nf_condition/
+#     switch-name is 1. The rule is disabled if that file contains 0 (the
+#     default). If '!' is supplied, the test is inverted such that the rule is
+#     enabled if the file contains 0. switch-name must begin with a letter and be
+#     composed of letters, decimal digits, underscores or hyphens. Switch names
+#     must be 30 characters or less in length.
+# 
+#     Switches are normally off. To turn a switch on:
+# 
+#     echo 1 > /proc/net/nf_condition/switch-name
+# 
+#     To turn it off again:
+# 
+#     echo 0 > /proc/net/nf_condition/switch-name
+# 
+#     Switch settings are retained over shorewall restart.
+# 
 # Examples
 # 
 # Example 1:
@@ -327,6 +353,14 @@
 #     Warning
 # 
 #     The order of the above two rules is significant!
+# 
+# Example 6:
+# 
+#     Connections leaving on eth0 and destined to any host defined in the ipset
+#     myset should have the source IP address changed to 206.124.146.177.
+# 
+#             #INTERFACE              SOURCE          ADDRESS
+#             eth0:+myset[dst]        -               206.124.146.177
 # 
 ##############################################################################
 #INTERFACE		SOURCE		ADDRESS		PROTO	PORT(S)	IPSEC	MARK
