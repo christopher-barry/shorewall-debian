@@ -1,6 +1,6 @@
 %define name shorewall-init
-%define version 4.5.0
-%define release 3
+%define version 4.5.1
+%define release 1
 
 Summary: Shorewall-init adds functionality to Shoreline Firewall (Shorewall).
 Name: %{name}
@@ -13,7 +13,7 @@ Source: %{name}-%{version}.tgz
 URL: http://www.shorewall.net/
 BuildArch: noarch
 BuildRoot: %{_tmppath}/%{name}-%{version}-root
-Requires: shoreline_firewall >= 4.4.10
+Requires: shoreline_firewall >= 4.5.0
 
 %description
 
@@ -32,9 +32,10 @@ ifup/ifdown and NetworkManager.
 %build
 
 %install
-export DESTDIR=$RPM_BUILD_ROOT ; \
-export OWNER=`id -n -u` ; \
-export GROUP=`id -n -g` ;\
+DESTDIR=%{buildroot} \
+LIBEXEC=%{_libexecdir} \
+INITDIR=%{_initddir} \
+HOST=%{_vendor} \
 ./install.sh
 
 %clean
@@ -44,19 +45,19 @@ rm -rf $RPM_BUILD_ROOT
 
 if [ $1 -eq 1 ]; then
     if [ -x /sbin/insserv ]; then
-	/sbin/insserv /etc/rc.d/shorewall-init
+	/sbin/insserv %{_initddir}/shorewall-init
     elif [ -x /sbin/chkconfig ]; then
 	/sbin/chkconfig --add shorewall-init;
     fi
 fi
 
 if [ -f /etc/SuSE-release ]; then
-    cp -pf /usr/share/shorewall-init/ifupdown /etc/sysconfig/network/if-up.d/shorewall
-    cp -pf /usr/share/shorewall-init/ifupdown /etc/sysconfig/network/if-down.d/shorewall
+    cp -pf %{_libexecdir}/shorewall-init/ifupdown /etc/sysconfig/network/if-up.d/shorewall
+    cp -pf %{_libexecdir}/shorewall-init/ifupdown /etc/sysconfig/network/if-down.d/shorewall
     if [ -d /etc/ppp ]; then
 	for directory in ip-up.d ip-down.d ipv6-up.d ipv6-down.d; do
 	    mkdir -p /etc/ppp/$directory
-	    cp -pf /usr/share/shorewall-init/ifupdown /etc/ppp/$directory/shorewall
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /etc/ppp/$directory/shorewall
 	done
     fi
 else
@@ -64,12 +65,12 @@ else
 	if ! grep -q Shorewall /sbin/ifup-local || ! grep -q Shorewall /sbin/ifdown-local; then
 	    echo "WARNING: /sbin/ifup-local and/or /sbin/ifdown-local already exist; ifup/ifdown events will not be handled" >&2
 	else
-	    cp -pf /usr/share/shorewall-init/ifupdown /sbin/ifup-local
-	    cp -pf /usr/share/shorewall-init/ifupdown /sbin/ifdown-local
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifup-local
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifdown-local
 	fi
     else
-	cp -pf /usr/share/shorewall-init/ifupdown /sbin/ifup-local
-	cp -pf /usr/share/shorewall-init/ifupdown /sbin/ifdown-local
+	cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifup-local
+	cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifdown-local
     fi
 
     if [ -d /etc/ppp ]; then
@@ -78,13 +79,13 @@ else
 		echo "WARNING: /etc/ppp/ip-up.local and/or /etc/ppp/ip-down.local already exist; ppp devices will not be handled" >&2
 	    fi
 	else
-	    cp -pf /usr/share/shorewall-init/ifupdown /etc/ppp/ip-up.local
-	    cp -pf /usr/share/shorewall-init/ifupdown /etc/ppp/ip-down.local
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /etc/ppp/ip-up.local
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /etc/ppp/ip-down.local
 	fi
     fi
 
     if [ -d /etc/NetworkManager/dispatcher.d/ ]; then
-	cp -pf /usr/share/shorewall-init/ifupdown /etc/NetworkManager/dispatcher.d/01-shorewall
+	cp -pf %{_libexecdir}/shorewall-init/ifupdown /etc/NetworkManager/dispatcher.d/01-shorewall
     fi
 fi
 
@@ -92,7 +93,7 @@ fi
 
 if [ $1 -eq 0 ]; then
     if [ -x /sbin/insserv ]; then
-	/sbin/insserv -r /etc/init.d/shorewall-init
+	/sbin/insserv -r %{_initddir}/shorewall-init
     elif [ -x /sbin/chkconfig ]; then
 	/sbin/chkconfig --del shorewall-init
     fi
@@ -110,25 +111,27 @@ fi
 %defattr(0644,root,root,0755)
 %attr(0644,root,root) %config(noreplace) /etc/sysconfig/shorewall-init
 
-%attr(0544,root,root) /etc/init.d/shorewall-init
-%attr(0755,root,root) %dir /usr/share/shorewall-init
+%attr(0544,root,root) %{_initddir}/shorewall-init
+%attr(0755,root,root) %dir %{_libexecdir}/shorewall-init
 
 %attr(0644,root,root) /usr/share/shorewall-init/version
-%attr(0544,root,root) /usr/share/shorewall-init/ifupdown
+%attr(0544,root,root) %{_libexecdir}/shorewall-init/ifupdown
 
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Wed Feb 29 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-3
-* Mon Feb 27 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-2
-* Mon Feb 13 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-1
-* Mon Feb 06 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-0base
-* Sat Feb 04 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-0RC2
+* Sun Mar 18 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-1
+* Sat Mar 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0base
+* Sat Mar 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0RC1
+* Thu Feb 23 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta3
+* Sun Feb 19 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta2
+* Fri Feb 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta1
 * Wed Jan 18 2012 Tom Eastep tom@shorewall.net
 - Updated to 4.5.0-0RC1
 * Sun Jan 15 2012 Tom Eastep tom@shorewall.net
