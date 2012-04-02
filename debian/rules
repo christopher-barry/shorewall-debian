@@ -1,56 +1,34 @@
 #!/usr/bin/make -f
-#
-# Shorewall firewall (http://www.shorewall.net)
-# debianized version
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
 
 # shorewall version
 export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
 
 SRWL=$(CURDIR)/debian/shorewall-init
 
-build: build-arch build-indep
-build-arch: build-stamp
-build-indep: build-stamp
-build-stamp:
-	dh_testdir
-# 	there's nothing to compile ;-)
-	touch build-stamp
+%:
+	dh $@ 
 
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	rm -f $(CURDIR)/debian/shorewall-init.init
+override_dh_auto_configure:
+	true
+
+override_dh_auto_build:
+	true
+
+override_dh_auto_clean:
 	rm -rf $(SRWL)
-	dh_clean
 
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
-	dh_install
-	cp $(CURDIR)/init.debian.sh $(CURDIR)/debian/shorewall-init.init
-	PREFIX=$(SRWL) DEBIAN=Yes $(CURDIR)/install.sh
-	install -m 644 debian/lintian $(SRWL)/usr/share/lintian/overrides/shorewall-init
+override_dh_install:
+	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+	find $(SRWL) -type d -empty -delete
 	rm -f $(SRWL)/etc/rcS.d/S38shorewall-init
 
-binary-indep: build install
-	dh_testdir
-	dh_testroot
-	dh_installdocs releasenotes.txt
-	dh_installchangelogs changelog.txt
-	dh_installinit --no-start -u"start 38 S ."
-	dh_installdebconf
-	dh_compress
+override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall-init -Xvar/lib/shorewall-init
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb -v
 
-binary-arch: build install
+override_dh_installinit:
+	dh_installinit --onlyscripts --no-start -u"start 38 S ."
 
-binary: binary-indep binary-arch
-
-.PHONY: build clean binary-indep binary-arch binary install
