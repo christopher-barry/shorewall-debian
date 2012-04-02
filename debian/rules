@@ -1,47 +1,20 @@
 #!/usr/bin/make -f
-#
-# Shorewall firewall (http://www.shorewall.net)
-# debianized version
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
 
 SRWLDOC=$(CURDIR)/debian/shorewall-doc/usr/share/doc/shorewall-doc
 
-build: build-arch build-indep
-build-arch: build-stamp
-build-indep: build-stamp
-build-stamp:
-	dh_testdir
-	touch build-stamp
+%:
+	dh $@ 
+
+override_dh_auto_configure:
+	true
+
+override_dh_auto_build:
 	sh debian/build-htmldocs
 
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	rm -rf html/
-	rm -f manpages/*.htm*
-	dh_clean
-
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
+override_dh_install:
 	cp images/* $(SRWLDOC)/html/images/
 
-binary-indep: build install
-	dh_testdir
-	dh_testroot
-	dh_installdocs 
-	dh_link
-	dh_installchangelogs
-	dh_compress 
-	dh_fixperms
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb
-
-binary-arch: build install
-
-binary: binary-indep binary-arch
-.PHONY: build clean binary-indep binary-arch binary install
