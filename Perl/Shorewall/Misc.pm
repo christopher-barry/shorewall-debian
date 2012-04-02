@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_0';
+our $VERSION = '4.5_1';
 
 my $family;
 
@@ -67,18 +67,17 @@ sub process_tos() {
     my $chain    = have_capability( 'MANGLE_FORWARD' ) ? 'fortos'  : 'pretos';
     my $stdchain = have_capability( 'MANGLE_FORWARD' ) ? 'FORWARD' : 'PREROUTING';
 
-    my %tosoptions = ( 'minimize-delay'       => 0x10 ,
-		       'maximize-throughput'  => 0x08 ,
-		       'maximize-reliability' => 0x04 ,
-		       'minimize-cost'        => 0x02 ,
-		       'normal-service'       => 0x00 );
-
-    if ( my $fn = open_file 'tos' ) {
+   if ( my $fn = open_file 'tos' ) {
 	my $first_entry = 1;
 
 	my ( $pretosref, $outtosref );
 
-	first_entry( sub { progress_message2 "$doing $fn..."; $pretosref = ensure_chain 'mangle' , $chain; $outtosref = ensure_chain 'mangle' , 'outtos'; } );
+	first_entry( sub { progress_message2 "$doing $fn..."; 
+			   warning_message "Use of the tos file is deprecated in favor of the TOS target in tcrules";
+			   $pretosref = ensure_chain 'mangle' , $chain; 
+			   $outtosref = ensure_chain 'mangle' , 'outtos';
+		       }
+		   );
 
 	while ( read_a_line ) {
 
@@ -86,14 +85,7 @@ sub process_tos() {
 
 	    $first_entry = 0;
 
-	    fatal_error 'A value must be supplied in the TOS column' if $tos eq '-';
-
-	    if ( defined ( my $tosval = $tosoptions{"\L$tos"} ) ) {
-		$tos = $tosval;
-	    } else {
-		my $val = numeric_value( $tos );
-		fatal_error "Invalid TOS value ($tos)" unless defined( $val ) && $val < 0x1f;
-	    }
+	    $tos = decode_tos( $tos , 1 );
 
 	    my $chainref;
 
@@ -129,7 +121,7 @@ sub process_tos() {
 		$src ,
 		$dst ,
 		'' ,
-		"TOS --set-tos $tos" ,
+		'TOS' . $tos ,
 		'' ,
 		'TOS' ,
 		'';
@@ -216,8 +208,8 @@ sub setup_blacklist() {
     # for 'refresh' to work properly.
     #
     if ( @$zones || @$zones1 ) {
-	$chainref  = dont_delete new_standard_chain 'blacklst' if @$zones;
-	$chainref1 = dont_delete new_standard_chain 'blackout' if @$zones1;
+	$chainref  = set_optflags( new_standard_chain( 'blacklst' ), DONT_OPTIMIZE | DONT_DELETE ) if @$zones;
+	$chainref1 = set_optflags( new_standard_chain( 'blackout' ), DONT_OPTIMIZE | DONT_DELETE ) if @$zones1;
 
 	if ( supplied $level ) {
 	    $target = ensure_blacklog_chain ( $target, $disposition, $level, $audit );
@@ -695,9 +687,9 @@ sub add_common_rules ( $ ) {
     my $rejectref = $filter_table->{reject};
 
     if ( $config{DYNAMIC_BLACKLIST} ) {
-	add_rule_pair dont_delete( new_standard_chain( 'logdrop' ) ),   '' , 'DROP'   , $level ;
-	add_rule_pair dont_delete( new_standard_chain( 'logreject' ) ), '' , 'reject' , $level ;
-	$dynamicref = dont_optimize( new_standard_chain( 'dynamic' ) );
+	add_rule_pair( set_optflags( new_standard_chain( 'logdrop' )  , DONT_OPTIMIZE | DONT_DELETE ), '' , 'DROP'   , $level );
+	add_rule_pair( set_optflags( new_standard_chain( 'logreject' ), DONT_OPTIMIZE | DONT_DELETE ), '' , 'reject' , $level );
+	$dynamicref =  set_optflags( new_standard_chain( 'dynamic' ) ,  DONT_OPTIMIZE );
 	add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
     }
 
@@ -994,7 +986,7 @@ sub add_common_rules ( $ ) {
 	if ( @$list ) {
 	    progress_message2 "$doing UPnP";
 
-	    $chainref = dont_optimize new_nat_chain( 'UPnP' );
+	    $chainref = set_optflags( new_nat_chain( 'UPnP' ), DONT_OPTIMIZE );
 
 	    add_commands( $chainref, '[ -s /${VARDIR}/.UPnP ] && cat ${VARDIR}/.UPnP >&3' );
 
@@ -1013,9 +1005,10 @@ sub add_common_rules ( $ ) {
 	    for $interface ( @$list ) {
 		my $chainref = $filter_table->{input_option_chain $interface};
 		my $base     = uc chain_base get_physical $interface;
-		my $variable = get_interface_gateway $interface;
+		my $optional = interface_is_optional( $interface );
+		my $variable = get_interface_gateway( $interface, ! $optional );
 
-		if ( interface_is_optional $interface ) {
+		if ( $optional ) {
 		    add_commands( $chainref,
 				  qq(if [ -n "SW_\$${base}_IS_USABLE" -a -n "$variable" ]; then) );
 		    incr_cmd_level( $chainref );

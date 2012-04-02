@@ -160,9 +160,7 @@ sub setup_route_marking() {
 
 	    my $chainref2 = new_chain( 'mangle', load_chain( $physical ) );
 
-	    dont_optimize $chainref2;
-	    dont_move     $chainref2;
-	    dont_delete   $chainref2;
+	    set_optflags( $chainref2, DONT_OPTIMIZE | DONT_MOVE | DONT_DELETE );
 	
   	    add_ijump ( $chainref1,
 			j => $chainref2 ,
@@ -918,7 +916,7 @@ sub add_an_rtrule( ) {
     if ( $source eq '-' ) {
 	$source = 'from ' . ALLIP;
     } elsif ( $source =~ s/^&// ) {
-	$source = 'from ' . record_runtime_address $source;
+	$source = 'from ' . record_runtime_address '&', $source;
     } elsif ( $family == F_IPV4 ) {
 	if ( $source =~ /:/ ) {
 	    ( my $interface, $source , my $remainder ) = split( /:/, $source, 3 );

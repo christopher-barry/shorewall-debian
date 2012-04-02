@@ -89,7 +89,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_0';
+our $VERSION = '4.5_1';
 
 #
 # IPSEC Option types
@@ -227,6 +227,25 @@ my %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 );
 
 my %validhostoptions;
 
+my %validzoneoptions = ( mss          => NUMERIC,
+			 nomark       => NOTHING,
+			 blacklist    => NOTHING,
+			 strict       => NOTHING,
+			 next         => NOTHING,
+			 reqid        => NUMERIC,
+			 spi          => NUMERIC,
+			 proto        => IPSECPROTO,
+			 mode         => IPSECMODE,
+			 "tunnel-src" => NETWORK,
+			 "tunnel-dst" => NETWORK,
+		       );
+
+use constant { UNRESTRICTED => 1, NOFW => 2 , COMPLEX => 8, IN_OUT_ONLY => 16 };
+#
+# Hash of options that have their own key in the returned hash.
+#
+my %zonekey = ( mss => UNRESTRICTED | COMPLEX , blacklist => NOFW, nomark => NOFW | IN_OUT_ONLY );
+
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -329,25 +348,6 @@ sub initialize( $$ ) {
 #
 sub parse_zone_option_list($$\$$)
 {
-    my %validoptions = ( mss          => NUMERIC,
-			 nomark       => NOTHING,
-			 blacklist    => NOTHING,
-			 strict       => NOTHING,
-			 next         => NOTHING,
-			 reqid        => NUMERIC,
-			 spi          => NUMERIC,
-			 proto        => IPSECPROTO,
-			 mode         => IPSECMODE,
-			 "tunnel-src" => NETWORK,
-			 "tunnel-dst" => NETWORK,
-		       );
-
-    use constant { UNRESTRICTED => 1, NOFW => 2 , COMPLEX => 8, IN_OUT_ONLY => 16 };
-    #
-    # Hash of options that have their own key in the returned hash.
-    #
-    my %key = ( mss => UNRESTRICTED | COMPLEX , blacklist => NOFW, nomark => NOFW | IN_OUT_ONLY );
-
     my ( $list, $zonetype, $complexref, $column ) = @_;
     my %h;
     my $options = '';
@@ -367,7 +367,7 @@ sub parse_zone_option_list($$\$$)
 		$e   = $1;
 	    }
 
-	    $fmt = $validoptions{$e};
+	    $fmt = $validzoneoptions{$e};
 
 	    fatal_error "Invalid Option ($e)" unless $fmt;
 
@@ -378,7 +378,7 @@ sub parse_zone_option_list($$\$$)
 		fatal_error "Invalid value ($val) for option \"$e\"" unless $val =~ /^($fmt)$/;
 	    }
 
-	    my $key = $key{$e};
+	    my $key = $zonekey{$e};
 
 	    if ( $key ) {
 		fatal_error "Option '$e' not permitted with this zone type " if $key & NOFW && ($zonetype & ( FIREWALL | VSERVER) );
@@ -403,7 +403,7 @@ sub parse_zone_option_list($$\$$)
 #
 # Set the super option on the passed zoneref and propagate to its parents
 #
-sub set_super( $ );
+sub set_super( $ ); #required for recursion
 
 sub set_super( $ ) {
     my $zoneref = shift;
@@ -769,13 +769,13 @@ sub add_group_to_zone($$$$$)
 
     my $gtype = $type & IPSEC ? 'ipsec' : 'ip';
 
-    $hostsref     = ( $zoneref->{hosts}           || ( $zoneref->{hosts} = {} ) );
-    $typeref      = ( $hostsref->{$gtype}         || ( $hostsref->{$gtype} = {} ) );
-    $interfaceref = ( $typeref->{$interface}      || ( $typeref->{$interface} = [] ) );
+    $hostsref     = ( $zoneref->{hosts}      ||= {} );
+    $typeref      = ( $hostsref->{$gtype}    ||= {} );
+    $interfaceref = ( $typeref->{$interface} ||= [] );
 
     fatal_error "Duplicate Host Group ($interface:" . ALLIP . ") in zone $zone" if $allip && @$interfaceref;
 
-    $zoneref->{options}{complex} = 1 if @$interfaceref || ( @newnetworks > 1 ) || ( @exclusions ) || $options->{routeback};
+    $zoneref->{options}{complex} = 1 if @$interfaceref || @newnetworks > 1 || @exclusions || $options->{routeback};
 
     push @{$interfaceref}, { options => $options,
 			     hosts   => \@newnetworks,
@@ -912,10 +912,27 @@ sub process_interface( $$ ) {
     my ( $nextinum, $export ) = @_;
     my $netsref   = '';
     my $filterref = [];
-    my ($zone, $originalinterface, $bcasts, $options ) = split_line 'interfaces file', { zone => 0, interface => 1, broadcast => 2, options => 3 };
+    my ($zone, $originalinterface, $bcasts, $options );
     my $zoneref;
     my $bridge = '';
+    our $format;
 
+    if ( $format == 1 ) {
+	($zone, $originalinterface, $bcasts, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, broadcast => 2, options => 3 }, { COMMENT => 0, FORMAT => 2 };
+    } else {
+	($zone, $originalinterface, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, options => 2 }, { COMMENT => 0, FORMAT => 2 };
+	$bcasts = '-';
+    }
+
+    if ( $zone eq 'FORMAT' ) {
+	if ( $originalinterface =~ /^([12])$/ ) {
+	    $format = $1;
+	    return;
+	}
+
+	fatal_error "Invalid FORMAT ($1)";
+    }
+	
     if ( $zone eq '-' ) {
 	$zone = '';
     } else {
@@ -1185,7 +1202,8 @@ sub process_interface( $$ ) {
 # Parse the interfaces file.
 #
 sub validate_interfaces_file( $ ) {
-    my $export = shift;
+    my  $export = shift;
+    our $format = 1;
     
     my @ifaces;
     my $nextinum = 1;
@@ -1915,7 +1933,6 @@ sub validate_hosts_file()
     $have_ipsec = $ipsec || haveipseczones;
 
     $_->{options}{complex} ||= ( keys %{$_->{interfaces}} > 1 ) for values %zones;
-
 }
 
 #
