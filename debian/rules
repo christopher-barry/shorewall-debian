@@ -22,7 +22,7 @@ override_dh_auto_clean:
 	rm -rf $(SRWL)
 
 override_dh_install:
-	DESTIDR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
 	find $(SRWL) -type d -empty -delete
 
 override_dh_fixperms:
