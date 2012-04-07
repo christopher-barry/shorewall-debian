@@ -1,30 +1,67 @@
-Changes in 4.5.0.3
+Changes in 4.5.1.1.
 
-1)  Add /sbin/shorewall-init
+1)  Don't issue missing SHORWALL_SHELL setting when compiling for
+    export.
 
-2)  Allow DEBUG in params file.
+2)  Fix TOS on RHEL5.
 
-3)  Correct 'shorewall trace stop'.
+3)  Don't generate an error if 'SHOREWALL_INIT_SCRIPT' is present in
+    the environment.
 
-Changes in 4.5.0.2
+Changes in 4.5.1 Final
 
-1)  Fix init scripts.
+1)  Update release documents.
 
-2)  Fix Fedora/Redhat install.
+Changes in 4.5.1 RC 1
 
-Changes in 4.5.0.1
+1)  Update release documents.
 
-1)  Unghost blacklist file.
+2)  Don't automatically install 'isusable'
 
-2)  Fix LIBEXEC/PERLLIB handling.
+3)  Clean up TOS handling
 
-3)  Correct a typo in the blrules files.
+Changes in 4.5.1 Beta 3
 
-4)  Eliminate compiler crash from unknown IPv6 interface.
+1)  Add support for packager's config file
+
+2)  Implement run-time gateway variables.
+
+3)  Add /sbin/shorewall-init
+
+4)  Don't copy non-default mark layout settings during update.
+
+Changes in 4.5.1 Beta 2
+
+1)  Remove some cruft from the Zones module.
+
+2)  Collapse the three 'dont_' members of the chain table into a single
+    'optflags' member.
+
+3)  Add DSCP match and target support.
+
+4)  Rework install.sh scripts and .spec files.
+
+5)  Fix standard init files.
+
+Changes in 4.5.1 Beta 1
+
+1)  Add IMQ support.
+
+2)  Remove requirement to supply a mark value on the default class.
+
+3)  New install script structure.
+
+4)  Give warning when opposite flag is used in an ipset invocation.
+
+5)  Add a SWITCH column to the masq file.
+
+6)  Correct a typo in the blrules files.
+
+7)  Eliminate compiler crash from unknown IPv6 interface.
 
 Changes in 4.5.0 Final
 
-1)  Updated release documents.
+1)  Update release documents.
 
 Changes in 4.5.0 RC 2
 

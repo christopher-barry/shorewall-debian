@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.0.3
+VERSION=4.5.1.1
 
 usage() # $1 = exit status
 {
@@ -90,6 +90,11 @@ install_file() # $1 = source $2 = target $3 = mode
 #
 cd "$(dirname $0)"
 
+#
+# Load packager's settings if any
+#
+[ -f ../shorewall-pkg.config ] && . ../shorewall-pkg.config
+
 if [ -f shorewall-lite ]; then
     PRODUCT=shorewall-lite
     Product="Shorewall Lite"
@@ -103,17 +108,6 @@ fi
 #
 # Parse the run line
 #
-# DEST is the SysVInit script directory
-# INIT is the name of the script in the $DEST directory
-#
-if [ -z "$DEST" ] ; then
-	DEST="/etc/init.d"
-fi
-
-if [ -z "$INIT" ] ; then
-	INIT="$PRODUCT"
-fi
-
 while [ $# -gt 0 ] ; do
     case "$1" in
 	-h|help|?)
@@ -138,31 +132,56 @@ case "$LIBEXEC" in
     /*)
 	;;
     *)
-	LIBEXEC=/usr/${LIBEXEC}
+	echo "The LIBEXEC setting must be an absolute path name" >&2
+	exit 1
 	;;
 esac
 
 #
 # Determine where to install the firewall script
 #
-CYGWIN=
+cygwin=
 INSTALLD='-D'
+INITFILE=$PRODUCT
 T='-T'
 
-case $(uname) in
-    CYGWIN*)
-	if [ -z "$DESTDIR" ]; then
-	    DEST=
-	    INIT=
-	fi
+if [ -z "$BUILD" ]; then
+    case $(uname) in
+	cygwin*)
+	    BUILD=cygwin
+	    ;;
+	Darwin)
+	    BUILD=apple
+	    ;;
+	*)
+	    if [ -f /etc/debian_version ]; then
+		BUILD=debian
+	    elif [ -f /etc/redhat-release ]; then
+		BUILD=redhat
+	    elif [ -f /etc/SuSE-release ]; then
+		BUILD=suse
+	    elif [ -f /etc/slackware-version ] ; then
+		BUILD=slackware
+	    elif [ -f /etc/arch-release ] ; then
+		BUILD=archlinux
+	    else
+		BUILD=linux
+	    fi
+	    ;;
+    esac
+fi
 
+case $BUILD in
+    cygwin*)
 	OWNER=$(id -un)
 	GROUP=$(id -gn)
 	;;
-    Darwin)
+    apple)
+	[ -z "$OWNER" ] && OWNER=root
+	[ -z "$GROUP" ] && GROUP=wheel
 	INSTALLD=
 	T=
-	;;	   
+	;;
     *)
 	[ -z "$OWNER" ] && OWNER=root
 	[ -z "$GROUP" ] && GROUP=root
@@ -171,6 +190,45 @@ esac
 
 OWNERSHIP="-o $OWNER -g $GROUP"
 
+[ -n "$HOST" ] || HOST=$BUILD
+
+case "$HOST" in
+    cygwin)
+	echo "$PRODUCT is not supported on Cygwin" >&2
+	exit 1
+	;;
+    apple)
+	echo "$PRODUCT is not supported on OS X" >&2
+	exit 1
+	;;
+    debian)
+	echo "Installing Debian-specific configuration..."
+	SPARSE=yes
+	;;
+    redhat)
+	echo "Installing Redhat/Fedora-specific configuration..."
+	[ -n "$INITDIR" ]  || INITDIR=/etc/rc.d/init.d
+	;;
+    slackware)
+	echo "Installing Slackware-specific configuration..."
+	[ -n "$INITDIR" ]  || INITDIR="/etc/rc.d"
+	[ -n "$INITFILE" ] || INITFILE="rc.firewall"
+	[ -n "$MANDIR=" ]  || MANDIR=/usr/man
+	;;
+    archlinux)
+	echo "Installing ArchLinux-specific configuration..."
+	[ -n "$INITDIR" ]  || INITDIR="/etc/rc.d"
+	;;
+    linux|suse)
+	;;
+    *)
+	echo "ERROR: Unknown HOST \"$HOST\"" >&2
+	exit 1;
+	;;
+esac
+
+[ -z "$INITDIR" ] && INITDIR="/etc/init.d"
+
 if [ -n "$DESTDIR" ]; then
     if [ `id -u` != 0 ] ; then
 	echo "Not setting file owner/group permissions, not running as root."
@@ -178,21 +236,13 @@ if [ -n "$DESTDIR" ]; then
     fi
     
     install -d $OWNERSHIP -m 755 ${DESTDIR}/sbin
-    install -d $OWNERSHIP -m 755 ${DESTDIR}${DEST}
-elif [ -d /etc/apt -a -e /usr/bin/dpkg ]; then
-    DEBIAN=yes
-elif [ -f /etc/redhat-release ]; then
-    FEDORA=yes
-elif [ -f /etc/slackware-version ] ; then
-    DEST="/etc/rc.d"
-    INIT="rc.firewall"
-elif [ -f /etc/arch-release ] ; then
-      DEST="/etc/rc.d"
-      INIT="$PRODUCT"
-      ARCHLINUX=yes
-fi
+    install -d $OWNERSHIP -m 755 ${DESTDIR}${DESTFILE}
 
-if [ -z "$DESTDIR" ]; then
+    if [ -n "$SYSTEMD" ]; then
+	mkdir -p ${DESTDIR}/lib/systemd/system
+	INITFILE=
+    fi
+else
     if [ ! -f /usr/share/shorewall/coreversion ]; then
 	echo "$PRODUCT $VERSION requires Shorewall Core which does not appear to be installed" >&2
 	exit 1
@@ -200,9 +250,8 @@ if [ -z "$DESTDIR" ]; then
 
     if [ -f /lib/systemd/system ]; then
 	SYSTEMD=Yes
+	INITFILE=
     fi
-elif [ -n "$SYSTEMD" ]; then
-    mkdir -p ${DESTDIR}/lib/systemd/system
 fi
 
 echo "Installing $Product Version $VERSION"
@@ -222,7 +271,7 @@ else
     rm -rf ${DESTDIR}/etc/$PRODUCT
     rm -rf ${DESTDIR}/usr/share/$PRODUCT
     rm -rf ${DESTDIR}/var/lib/$PRODUCT
-    [ "$LIBEXEC" = /usr/share ] || rm -rf /usr/share/$PRODUCT/wait4ifup /usr/share/$PRODUCT/shorecap
+    [ "$LIBEXEC" = /usr/share ] || rm -rf ${DESTDIR}/usr/share/$PRODUCT/wait4ifup ${DESTDIR}/usr/share/$PRODUCT/shorecap
 fi
 
 #
@@ -241,21 +290,6 @@ install_file $PRODUCT ${DESTDIR}/sbin/$PRODUCT 0544
 echo "$Product control program installed in ${DESTDIR}/sbin/$PRODUCT"
 
 #
-# Install the Firewall Script
-#
-if [ -n "$DEBIAN" ]; then
-    install_file init.debian.sh ${DESTDIR}/etc/init.d/$PRODUCT 0544
-elif [ -n "$FEDORA" ]; then
-    install_file init.fedora.sh ${DESTDIR}/etc/init.d/$PRODUCT 0544
-elif [ -n "$ARCHLINUX" ]; then
-    install_file init.archlinux.sh ${DESTDIR}/${DEST}/$INIT 0544
-else
-    install_file init.sh ${DESTDIR}/${DEST}/$INIT 0544
-fi
-
-echo  "$Product script installed in ${DESTDIR}${DEST}/$INIT"
-
-#
 # Create /etc/$PRODUCT, /usr/share/$PRODUCT and /var/lib/$PRODUCT if needed
 #
 mkdir -p ${DESTDIR}/etc/$PRODUCT
@@ -269,8 +303,28 @@ chmod 755 ${DESTDIR}/usr/share/$PRODUCT
 if [ -n "$DESTDIR" ]; then
     mkdir -p ${DESTDIR}/etc/logrotate.d
     chmod 755 ${DESTDIR}/etc/logrotate.d
+    mkdir -p ${DESTDIR}${INITDIR}
+    chmod 755 ${DESTDIR}${INITDIR}
 fi
 
+if [ -n "$INITFILE" ]; then
+    case $TARGET in
+	debian)
+	    install_file init.debian.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
+	    ;;
+	redhat)
+	    install_file init.fedora.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
+	    ;;
+	archlinux)
+	    install_file init.archlinux.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
+	    ;;
+	*)
+	    install_file init.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
+	    ;;
+    esac
+
+    echo  "$Product init script installed in ${DESTDIR}${INITDIR}/${INITFILE}"
+fi
 #
 # Install the .service file
 #
@@ -287,7 +341,7 @@ if [ ! -f ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf ]; then
    echo "Config file installed as ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf"
 fi
 
-if [ -n "$ARCHLINUX" ] ; then
+if [ $HOST = archlinux ] ; then
    sed -e 's!LOGFILE=/var/log/messages!LOGFILE=/var/log/messages.log!' -i ${DESTDIR}/etc/$PRODUCT/$PRODUCT.conf
 fi
 
@@ -387,7 +441,7 @@ chmod 644 ${DESTDIR}/usr/share/$PRODUCT/version
 
 if [ -z "$DESTDIR" ]; then
     rm -f /usr/share/$PRODUCT/init
-    ln -s ${DEST}/${INIT} /usr/share/$PRODUCT/init
+    ln -s ${INITDIR}/${INITFILE} /usr/share/$PRODUCT/init
 fi
 
 delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.common
@@ -398,7 +452,7 @@ if [ -z "$DESTDIR" ]; then
     touch /var/log/$PRODUCT-init.log
 
     if [ -n "$first_install" ]; then
-	if [ -n "$DEBIAN" ]; then
+	if [ $HOST = debian ]; then
 	    run_install $OWNERSHIP -m 0644 default.debian /etc/default/$PRODUCT
 
 	    update-rc.d $PRODUCT defaults
@@ -434,7 +488,7 @@ if [ -z "$DESTDIR" ]; then
 		else
 		    cant_autostart
 		fi
-	    elif [ "$INIT" != rc.firewall ]; then #Slackware starts this automatically
+	    elif [ "$INITFILE" != rc.firewall ]; then #Slackware starts this automatically
 		cant_autostart
 	    fi
 	fi
