@@ -31,9 +31,6 @@ override_dh_install:
 override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall-lite -Xvar/lib/shorewall-lite
 
-override_dh_compress:
-	dh_compress -Xusr/share/doc/shorewall/default-config
-
 override_dh_installinit:
 	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
 
