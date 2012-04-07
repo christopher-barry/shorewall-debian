@@ -1,7 +1,8 @@
 #!/usr/bin/make -f
-#
-# Shorewall firewall (http://www.shorewall.net)
-# debianized version
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
 
 # shorewall version
 export VFULL=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
@@ -13,74 +14,43 @@ NEXTPATCH:=$(shell expr $(VPATCH) + 1 2>/dev/null || expr `echo $(VPATCH) | cut 
 
 SRWL=$(CURDIR)/debian/shorewall6
 
-build: build-arch build-indep debian/po/templates.pot
-build-arch: build-stamp
-build-indep: build-stamp
-build-stamp:
-	dh_testdir
-# 	there's nothing to compile ;-)
-	touch build-stamp
+%:
+	dh $@ 
 
 debian/po/templates.pot: debian/shorewall6.templates
 	@debconf-updatepo
-#	@podebconf-report-po
 
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	debconf-updatepo
-# 	clean the build directory
+override_dh_auto_configure:
+	true
+
+override_dh_auto_build:
+	true
+
+override_dh_auto_clean:
 	rm -rf $(SRWL)
-	dh_clean
 
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
+override_dh_install:
 	echo 'shorewall:current=$(VMAJOR).$(VMINOR).$(VPATCH)~' \
 		>> debian/shorewall6.substvars
 	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
 		>> debian/shorewall6.substvars
-
-	dh_install
-
-	install -m 644 debian/shorewall6.lintian $(SRWL)/usr/share/lintian/overrides/shorewall6
-
-# 	Temporary zones are only available to root
-	chmod 750 $(SRWL)/var/lib/shorewall6
-# 	As well as configuration files
-	chmod 755 $(SRWL)/etc/shorewall6
-	chmod 640 $(SRWL)/etc/shorewall6/*
-	chmod 644 $(SRWL)/etc/shorewall6/shorewall6.conf
-	chmod 644 $(SRWL)/etc/shorewall6/Makefile
+	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+	find $(SRWL) -type d -empty -delete
 # 	set version number
 	echo $(VFULL) > $(SRWL)/usr/share/shorewall6/version
-#  global configuration has to be fully readable
-	chmod 644 $(SRWL)/usr/share/shorewall6/*
-# remove useless license file from /usr/share/doc/shorewall6/examples
-	rm $(SRWL)/usr/share/doc/shorewall6/examples/LICENSE
 
-binary-indep: build install
-	dh_testdir
-	dh_testroot
-	dh_installdocs releasenotes.txt
-# 	examples are installed through shorewall6.install
-	dh_installman manpages/*
-	dh_installchangelogs changelog.txt
-	dh_installlogrotate -pshorewall6 --name=shorewall6
-	dh_installinit -pshorewall6 --name=shorewall6 --no-start -u"start 40 S . stop 89 0 6 ."
-	dh_installdebconf
+override_dh_fixperms:
+	dh_fixperms -Xetc/shorewall6 -Xvar/lib/shorewall6
+
+override_dh_compress:
 	dh_compress -Xusr/share/doc/shorewall6/default-config
-	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall6
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb -v
 
-binary-arch: build install
+override_dh_installinit:
+	dh_installinit -pshorewall6 --name=shorewall6 --no-start -u"start 40 S . stop 89 0 6 ."
 
-binary: binary-indep binary-arch
+override_dh_installman:
+	dh_installman manpages/*
 
-.PHONY: build clean binary-indep binary-arch binary install
+override_dh_installlogrotate:
+	dh_installlogrotate -pshorewall6 --name=shorewall6
+
