@@ -9,7 +9,7 @@
 #
 # See http://shorewall.net/PacketMarking.html for a detailed description of
 # the Netfilter/Shorewall packet marking mechanism.
-##############################################################################################################################################
+###################################################################################################################################################
 # 
 # Entries in this file cause packets to be marked as a means of classifying them
 # for traffic control or policy routing.
@@ -231,6 +231,78 @@
 #         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
 #         the IMQ identified by number. Requires IMQ Target support in your
 #         kernel and ip6tables.
+# 
+#     11. DSCP(dscp)
+# 
+#         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
+#         field in the IP header. The dscp value may be given as an even number
+#         (hex or decimal) or as the name of a DSCP class. Valid class names and
+#         their associated hex numeric values are:
+# 
+#             CS0  => 0x00
+#             CS1  => 0x08
+#             CS2  => 0x10
+#             CS3  => 0x18
+#             CS4  => 0x20
+#             CS5  => 0x28
+#             CS6  => 0x30
+#             CS7  => 0x38
+#             BE   => 0x00
+#             AF11 => 0x0a
+#             AF12 => 0x0c
+#             AF13 => 0x0e
+#             AF21 => 0x12
+#             AF22 => 0x14
+#             AF23 => 0x16
+#             AF31 => 0x1a
+#             AF32 => 0x1c
+#             AF33 => 0x1e
+#             AF41 => 0x22
+#             AF42 => 0x24
+#             AF43 => 0x26
+#             EF   => 0x2e
+# 
+#         May be optionally followed by ':' and a capital letter designating the
+#         chain where classification is to occur.
+# 
+#         F
+# 
+#             FORWARD chain.
+# 
+#         T
+# 
+#             POSTROUTING chain (default).
+# 
+#     12. TOS(tos[/mask])
+# 
+#         Added in Shorewall 4.5.1. Sets the Type of Service field in the IP
+#         header. The tos value may be given as an number (hex or decimal) or as
+#         the name of a TOS type. Valid type names and their associated hex
+#         numeric values are:
+# 
+#         Minimize-Delay       => 0x10,
+#         Maximize-Throughput  => 0x08,
+#         Maximize-Reliability => 0x04,
+#         Minimize-Cost        => 0x02,
+#         Normal-Service       => 0x00
+# 
+#         When tos is given as a number, it may be optionally followed by '/' and
+#         a mask. When no mask is given, the value 0xff is assumed. When tos is
+#         given as a type name, the mask 0x3f is assumed.
+# 
+#         The action performed is to zero out the bits specified by the mask,
+#         then set the bits specified by tos.
+# 
+#         May be optionally followed by ':' and a capital letter designating the
+#         chain where classification is to occur.
+# 
+#         F
+# 
+#             FORWARD chain.
+# 
+#         T
+# 
+#             POSTROUTING chain (default).
 # 
 # SOURCE - {-|{interface|$FW}|[{interface|$FW}:]<address-or-range[,
 #     address-or-range]...}[exclusion]>
@@ -497,6 +569,6 @@
 #     packet is P2P, set the packet mark to 4. If the packet mark has been set,
 #     save it to the connection mark.
 # 
-##############################################################################################################################################
-#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY
+###################################################################################################################################################
+#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY DSCP
 #						PORT(S)	PORT(S)
