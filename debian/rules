@@ -36,8 +36,6 @@ override_dh_install:
 		>> debian/shorewall.substvars
 	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
 	find $(SRWL) -type d -empty -delete
-# 	set version number
-	echo $(VFULL) > $(SRWL)/usr/share/shorewall/version
 
 override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall
