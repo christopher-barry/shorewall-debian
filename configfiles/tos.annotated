@@ -5,7 +5,9 @@
 #
 ###############################################################################
 # 
-# This file defines rules for setting Type Of Service (TOS)
+# This file defines rules for setting Type Of Service (TOS). Its use is
+# deprecated, beginning in Shorewall 4.5.1, in favor of the TOS target in
+# shorewall6-tcrules (5).
 # 
 # The columns in the file are as follows.
 # 
@@ -69,5 +71,5 @@
 #         tested.
 # 
 ###############################################################################
-#SOURCE		DEST		PROTOCOL	SOURCE	DEST	TOS	MARK
+#SOURCE		DEST		PROTOCOL	DEST	SOURCE	TOS	MARK
 #						PORTS	PORTS

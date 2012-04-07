@@ -41,10 +41,8 @@
 # 
 # When sections are enabled:
 # 
-#   ● A jump to a user-defined accounting chain before entries that add rules to
-#     that chain.
-# 
-#   ● This eliminates loops and unreferenced chains.
+#   ● A jump to a user-defined accounting chain must appear before entries that
+#     add rules to that chain. This eliminates loops and unreferenced chains.
 # 
 #   ● An output interface may not be specified in the PREROUTING and INPUT
 #     sections.
