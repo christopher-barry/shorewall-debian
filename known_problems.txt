@@ -22,3 +22,8 @@
     visible to users that set AUTOMAKE=Yes or that run Shorewall-init.
 
     Corrected in 4.5.1.1.
+
+5)  The Shorewall Lite and Shorewall6 Lite installers are 
+    installing the wrong SysV init script on Debian and derivatives.
+
+    Corrected in 4.5.1.2.

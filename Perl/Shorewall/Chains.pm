@@ -724,17 +724,19 @@ sub set_rule_option( $$$ ) {
 	assert( defined( my $value1 = $ruleref->{$option} ) );
 
 	if ( $opttype == MATCH ) {
-	    assert( $globals{KLUDGEFREE} );
+	    if ( $globals{KLUDGEFREE} ) {
+		unless ( reftype $value1 ) {
+		    unless ( reftype $value ) {
+			return if $value1 eq $value;
+		    }
 
-	    unless ( reftype $value1 ) {
-		unless ( reftype $value ) {
-		    return if $value1 eq $value;
+		    $ruleref->{$option} = [ $ruleref->{$option} ];
 		}
 
-		$ruleref->{$option} = [ $ruleref->{$option} ];
+		push @{$ruleref->{$option}}, ( reftype $value ? @$value : $value );
+	    } else {
+		$ruleref->{$option} = join(' ', $value1, $value );
 	    }
-
-	    push @{$ruleref->{$option}}, ( reftype $value ? @$value : $value );
 	} elsif ( $opttype == EXCLUSIVE ) {
 	    $ruleref->{$option} .= ",$value";
 	} elsif ( $opttype == UNIQUE ) {
@@ -4209,10 +4211,26 @@ sub do_length( $ ) {
 
     require_capability( 'LENGTH_MATCH' , 'A Non-empty LENGTH' , 's' );
 
-    fatal_error "Invalid LENGTH ($length)" unless $length =~/^(\d+)(:(\d+))?$/;
+    my ( $max, $min );
 
-    if ( supplied $2 ) {
-	fatal_error "First length must be < second length" unless $1 < $3;
+    if ( $length =~ /^\d+$/ ) {
+	fatal_error "Invalid LENGTH ($length)" unless $length < 65536;
+	$min = $max = $1;
+    } else {
+	if ( $length =~ /^:(\d+)$/ ) {
+	    $min = 0;
+	    $max = $1;
+	} elsif ( $length =~ /^(\d+):$/ ) {
+	    $min = $1;
+	    $max = 65535;
+	} elsif ( $length =~ /^(\d+):(\d+)$/ ) {
+	    $min = $1;
+	    $max = $2;
+	} else {
+	    fatal_error "Invalid LENGTH ($length)";
+	}
+
+	fatal_error "First length must be < second length" unless $min < $max;
     }
 
     "-m length --length $length ";
