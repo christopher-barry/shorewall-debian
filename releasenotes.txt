@@ -1,6 +1,6 @@
 
 ----------------------------------------------------------------------------
-                     S H O R E W A L L  4 . 5 . 1 . 1
+                     S H O R E W A L L  4 . 5 . 1 . 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,35 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.1.2
+
+1)  The Shorewall Lite and Shorewall6 Lite installers have been 
+    installing the wrong SysV init script on Debian and derivatives.
+    The correct script is now installed.
+
+2)  Nested TC classes could result in Perl diagnostics like this one:
+
+    Mar 24 22:42:14 dmz1 shorewall[839]: Use of uninitialized value in
+    numeric eq (==) at /usr/share/perl5/Shorewall/Tc.pm line 1042,
+    <$currentfile> line 13.
+
+    These harmless messages have been eliminated.
+
+3)  It is once again possible to omit the minimum length in the LENGTH
+    column of the tcrules file.
+
+4)  Under the following conditions, a compiler internal error was
+    raised:
+
+    - Extended conntrack match support is available.
+    - Repeat Match is not available.
+    - A DNAT rule specifies a destination port, a server port and
+      an original destination.
+
+5)  Beginning with release 4.4.26, setting both 'nets=' and 'dhcp' on
+    an interface does not work correctly. That issue has been resolved
+    in this release.
 
 4.5.1.1
 
