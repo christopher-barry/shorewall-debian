@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.1.1
+VERSION=4.5.1.2
 
 usage() # $1 = exit status
 {
@@ -308,7 +308,7 @@ if [ -n "$DESTDIR" ]; then
 fi
 
 if [ -n "$INITFILE" ]; then
-    case $TARGET in
+    case $HOST in
 	debian)
 	    install_file init.debian.sh ${DESTDIR}${INITDIR}/${INITFILE} 0544
 	    ;;
