@@ -1,3 +1,15 @@
+Changes in 4.5.1.2.
+
+1)  Correct -lite installer.
+
+2)  Fix nested TC classes.
+
+3)  Fix LENGTH validation.
+
+4)  Fix nets= and dhcp
+
+5)  Concatenate option values when no KLUDGEFREE.
+
 Changes in 4.5.1.1.
 
 1)  Don't issue missing SHORWALL_SHELL setting when compiling for
