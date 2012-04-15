@@ -25,7 +25,9 @@
 #
 ###############################################################################
 # 
-# Assign any shell variables that you need in this file.
+# Assign any shell variables that you need in this file. The file is always
+# processed by /bin/sh or by the shell specified through SHOREWALL_SHELL in
+# shorewall.conf (5) so the full range of shell capabilities may be used.
 # 
 # It is suggested that variable names begin with an upper case letter to
 # distinguish them from variables used internally within the Shorewall programs

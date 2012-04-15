@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.5_1';
+our $VERSION = '4.5_2';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -1039,7 +1039,7 @@ sub validate_tc_class( ) {
 	fatal_error "Unknown Parent class ($parentnum)" unless $parentref && $parentref->{occurs} == 1;
 	fatal_error "The class ($parentnum) specifies UMAX and/or DMAX; it cannot serve as a parent" if $parentref->{dmax};
 	fatal_error "The class ($parentnum) specifies flow; it cannot serve as a parent"             if $parentref->{flow};
-	fatal_error "The default class ($parentnum) may not have sub-classes"                        if defined $devref->{default} && $devref->{default} == $parentclass;
+	fatal_error "The default class ($parentnum) may not have sub-classes"                        if ( $devref->{default} || 0 ) == $parentclass;
 	$parentref->{leaf} = 0;
 	$ratemax  = $parentref->{rate};
 	$ratename = q(the parent class's RATE);

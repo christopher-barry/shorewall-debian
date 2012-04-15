@@ -245,7 +245,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_1';
+our $VERSION = '4.5_2';
 
 #
 # Chain Table
@@ -2201,7 +2201,7 @@ sub ensure_accounting_chain( $$$ )
 	$chainref->{restriction} = $restriction;
 	$chainref->{restricted}  = NO_RESTRICT;
 	$chainref->{ipsec}       = $ipsec;
-	$chainref->{optflags}   |= DONT_OPTIMIZE unless $config{OPTIMIZE_ACCOUNTING};
+	$chainref->{optflags}   |= ( DONT_OPTIMIZE | DONT_MOVE | DONT_DELETE ) unless $config{OPTIMIZE_ACCOUNTING};
 
 	unless ( $chain eq 'accounting' ) {
 	    my $file = find_file $chain;
@@ -2879,7 +2879,9 @@ sub optimize_level4( $$ ) {
 		# Last rule is a simple branch
 		my $targetref = $tableref->{$lastrule->{target}};
 
-		if ( $targetref && ( keys %{$targetref->{references}} < 2 || @{$targetref->{rules}} < 4 ) ) {
+		if ( $targetref && 
+		     ($targetref->{optflags} & DONT_MOVE) == 0 && 
+		     ( keys %{$targetref->{references}} < 2 || @{$targetref->{rules}} < 4 ) ) {
 		    copy_rules( $targetref, $chainref );
 		    $progress = 1;
 		}
@@ -3256,6 +3258,16 @@ sub set_mss( $$$ ) {
 #
 # Interate over all zones with 'mss=' settings adding TCPMSS rules as appropriate.
 #
+sub imatch_source_dev( $;$ );
+sub imatch_dest_dev( $;$ );
+sub imatch_source_net( $;$\$ );
+sub imatch_dest_net( $ );
+
+sub newmsschain( ) {
+    my $seq = $chainseq{filter}++;
+    "~mss${seq}";
+}
+
 sub setup_zone_mss() {
     for my $zone ( all_zones ) {
 	my $zoneref = find_zone( $zone );
@@ -3263,6 +3275,29 @@ sub setup_zone_mss() {
 	set_mss( $zone, $zoneref->{options}{in_out}{mss}, ''     ) if $zoneref->{options}{in_out}{mss};
 	set_mss( $zone, $zoneref->{options}{in}{mss},     '_in'  ) if $zoneref->{options}{in}{mss};
 	set_mss( $zone, $zoneref->{options}{out}{mss},    '_out' ) if $zoneref->{options}{out}{mss};
+
+	my $hosts = find_zone_hosts_by_option( $zone, 'mss' );
+
+	for my $hostref ( @$hosts ) {
+	    my $mss         = $hostref->[4];
+	    my @mssmatch    = have_capability( 'TCPMSS_MATCH' ) ? ( tcpmss => "--mss $mss:" ) : ();
+	    my @sourcedev   = imatch_source_dev $hostref->[0];
+	    my @destdev     = imatch_dest_dev   $hostref->[0];
+	    my @source      = imatch_source_net $hostref->[2];
+	    my @dest        = imatch_dest_net   $hostref->[2];
+	    my @ipsecin     = (have_ipsec ? ( policy => "--pol $hostref->[1] --dir in"  ) : () );
+	    my @ipsecout    = (have_ipsec ? ( policy => "--pol $hostref->[1] --dir out" ) : () );
+
+	    my $chainref = new_chain 'filter', newmsschain;
+	    my $target   = source_exclusion( $hostref->[3], $chainref );
+
+	    add_ijump $chainref, j => 'TCPMSS', targetopts => "--set-mss $mss", p => 'tcp --tcp-flags SYN,RST SYN';
+
+	    for my $zone1 ( all_zones ) {
+		add_ijump ensure_chain( 'filter', rules_chain( $zone, $zone1 ) ),  j => $target , @sourcedev, @source, p => 'tcp --tcp-flags SYN,RST SYN', @mssmatch, @ipsecin ;
+		add_ijump ensure_chain( 'filter', rules_chain( $zone1, $zone ) ),  j => $target , @destdev,   @dest,   p => 'tcp --tcp-flags SYN,RST SYN', @mssmatch, @ipsecout ;	    
+	    }
+	}
     }
 }
 
@@ -4023,7 +4058,7 @@ sub do_time( $ ) {
 	    }
 	} elsif ( $element =~ /^(datestart|datestop)=(\d{4}(-\d{2}(-\d{2}(T\d{1,2}(:\d{1,2}){0,2})?)?)?)$/ ) {
 	    $result .= "--$1 $2 ";
-	} elsif ( $element =~ /^(utc|localtz)$/ ) {
+	} elsif ( $element =~ /^(utc|localtz|kerneltz)$/ ) {
 	    $result .= "--$1 ";
 	} else {
 	    fatal_error "Invalid time element ($element)";
@@ -4033,6 +4068,21 @@ sub do_time( $ ) {
     $result;
 }
 
+sub resolve_id( $$ ) {
+    my ( $id, $type ) = @_;
+
+    if ( $globals{EXPORT} ) {
+	require_capability 'OWNER_NAME_MATCH', "Specifying a $type name", 's';
+    } else {
+	my $num = $type eq 'user' ? getpwnam( $id ) : getgrnam( $id );
+	fatal_error "Unknown $type ($id)" unless supplied $num;
+	$id = $num;
+    }
+
+    $id;
+}
+    
+
 #
 # Create a "-m owner" match for the passed USER/GROUP
 #
@@ -4041,6 +4091,8 @@ sub do_user( $ ) {
     my $rule = '-m owner ';
 
     return '' unless defined $user and $user ne '-';
+
+    require_capability 'OWNER_MATCH', 'A non-empty USER column', 's';
 
     if ( $user =~ /^(!)?(.*)\+(.*)$/ ) {
 	$rule .= "! --cmd-owner $2 " if supplied $2;
@@ -4053,24 +4105,26 @@ sub do_user( $ ) {
     if ( $user =~ /^(!)?(.*):(.*)$/ ) {
 	my $invert = $1 ? '! ' : '';
 	my $group  = defined $3 ? $3 : '';
+
 	if ( supplied $2 ) {
-	    $user = $2;
-	    fatal_error "Unknown user ($user)" unless $user =~ /^\d+$/ || $globals{EXPORT} || defined getpwnam( $user );
+	    $user  = $2;
+	    $user  = resolve_id( $user, 'user' ) unless $user =~ /\d+$/;
 	    $rule .= "${invert}--uid-owner $user ";
 	}
 
 	if ( $group ne '' ) {
-	    fatal_error "Unknown group ($group)" unless $group =~ /\d+$/ || $globals{EXPORT} || defined getgrnam( $group );
+	    $group = resolve_id( $group, 'group' ) unless $group =~ /^\d+$/;
 	    $rule .= "${invert}--gid-owner $group ";
 	}
     } elsif ( $user =~ /^(!)?(.*)$/ ) {
 	my $invert = $1 ? '! ' : '';
 	$user   = $2;
+
 	fatal_error "Invalid USER/GROUP (!)" if $user eq '';
-	fatal_error "Unknown user ($user)" unless $user =~ /^\d+$/ || $globals{EXPORT} || defined getpwnam( $user );
+	$user = resolve_id ($user, 'user' ) unless $user =~ /\d+$/;
 	$rule .= "${invert}--uid-owner $user ";
     } else {
-	fatal_error "Unknown user ($user)" unless $user =~ /^\d+$/ || $globals{EXPORT} || defined getpwnam( $user );
+	$user  = resolve_id( $user, 'user' ) unless $user =~ /\d+$/;
 	$rule .= "--uid-owner $user ";
     }
 
@@ -4471,20 +4525,25 @@ sub get_set_flags( $$ ) {
 	my @options = split /,/, $options;
 	my %typemap = ( src => 'Source', dst => 'Destination' );
 
-	for ( @options ) {
-	    warning_message( "The '$_' ipset flag is used in a $typemap{$option} column" ), last unless $_ eq $option;
+	if ( $config{IPSET_WARNINGS} ) {
+	    for ( @options ) {
+		warning_message( "The '$_' ipset flag is used in a $typemap{$option} column" ), last unless $_ eq $option;
+	    }
 	}
     }
 
     $setname =~ s/^\+//;
 
-    unless ( $export || $> != 0 ) {
-	unless ( $ipset_exists{$setname} ) {
-	    warning_message "Ipset $setname does not exist" unless qt "ipset -L $setname";
-	}
+    if ( $config{IPSET_WARNINGS} ) {
+	unless ( $export || $> != 0 ) {
+	    unless ( $ipset_exists{$setname} ) {
+		warning_message "Ipset $setname does not exist" unless qt "ipset -L $setname";
+	    }
 
-	$ipset_exists{$setname} = 1; # Suppress subsequent checks/warnings
+	    $ipset_exists{$setname} = 1; # Suppress subsequent checks/warnings
+	}
     }
+
     fatal_error "Invalid ipset name ($setname)" unless $setname =~ /^(6_)?[a-zA-Z]\w*/;
 
     have_capability 'OLD_IPSET_MATCH' ? "--set $setname $options " : "--match-set $setname $options ";
@@ -4800,10 +4859,10 @@ sub match_ipsec_in( $$ ) {
     my ( $zone , $hostref ) = @_;
     my @match;
     my $zoneref    = find_zone( $zone );
-    my $optionsref = $zoneref->{options};
 
-    unless ( $optionsref->{super} || $zoneref->{type} == VSERVER ) {
+    unless ( $zoneref->{super} || $zoneref->{type} == VSERVER ) {
 	my $match = '--dir in --pol ';
+	my $optionsref = $zoneref->{options};
 
 	if ( $zoneref->{type} & IPSEC ) {
 	    $match .= "ipsec $optionsref->{in_out}{ipsec}$optionsref->{in}{ipsec}";
@@ -6390,15 +6449,23 @@ sub ensure_ipset( $ ) {
 
     if ( $family == F_IPV4 ) {
 	if ( have_capability 'IPSET_V5' ) {
-	    emit ( "    qt \$IPSET -L $set -n || \$IPSET -N $_ hash:ip family inet" );
+	    emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
+		   qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:ip set") ,
+		   qq(        \$IPSET -N $set hash:ip family inet) ,
+		   qq(    fi) );
 	} else {
-	    emit ( "    qt \$IPSET -L $set -n || \$IPSET -N $_ iphash" );
+	    emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
+		   qq(        error_message "WARNING: ipset $set does not exist; creating it as an iphash set") ,
+		   qq(        \$IPSET -N $set iphash) ,
+		   qq(    fi) );
 	}
     } else {
-	emit ( "    qt \$IPSET -L $set -n || \$IPSET -N $_ hash:ip family inet6" );
+	emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
+	       qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:ip set") ,
+	       qq(        \$IPSET -N $set hash:ip family inet6) ,
+	       qq(    fi) );
     }
 }
-    
 
 sub load_ipsets() {
 
@@ -6458,7 +6525,7 @@ sub load_ipsets() {
 	} else {
 	    ensure_ipset( $_ ) for @ipsets;
 	}
-	
+
 	if ( @ipsets ) {
 	    emit ( 'elif [ "$COMMAND" = restart ]; then' );
 	    ensure_ipset( $_ ) for @ipsets;
@@ -6470,7 +6537,7 @@ sub load_ipsets() {
 	    ensure_ipset( $_ ) for @ipsets;
 	    emit( '' );
 	}
-	
+
 	if ( $family == F_IPV4 ) {
 	    emit ( '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
 		   '        #',

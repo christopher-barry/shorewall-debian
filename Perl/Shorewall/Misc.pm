@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_1';
+our $VERSION = '4.5_2';
 
 my $family;
 
@@ -1481,7 +1481,7 @@ sub generate_matrix() {
     for my $zone ( @zones ) {
 	my $zoneref = find_zone( $zone );
 	
-	next if  @zones <= 2 && ! $zoneref->{options}{complex};
+	next if  @zones <= 2 && ! $zoneref->{complex};
 	#
 	# Complex zone or we have more than one non-firewall zone -- process_rules created a zone forwarding chain
 	#
@@ -1560,13 +1560,12 @@ sub generate_matrix() {
 	my $source_hosts_ref = $zoneref->{hosts};
 	my $chain1           = rules_target firewall_zone , $zone;
 	my $chain2           = rules_target $zone, firewall_zone;
-	my $complex          = $zoneref->{options}{complex} || 0;
 	my $type             = $zoneref->{type};
 	my $frwd_ref         = $filter_table->{zone_forward_chain $zone};
 	my $chain            = 0;
 	my $dnatref          = ensure_chain 'nat' , dnat_chain( $zone );
 	my $notrackref       = ensure_chain 'raw' , notrack_chain( $zone );
-	my $nested           = $zoneref->{options}{nested};
+	my $nested           = @{$zoneref->{parents}};
 	my $parenthasnat     = 0;
 	my $parenthasnotrack = 0;
 

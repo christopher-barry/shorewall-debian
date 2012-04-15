@@ -1,24 +1,96 @@
-Changes in 4.5.1.2.
+Changes in 4.5.2.2
 
-1)  Correct -lite installer.
+1)  Delete trailing whitespace in read_a_line1().
 
-2)  Fix nested TC classes.
+Changes in 4.5.2.1
 
-3)  Fix LENGTH validation.
+1)  Added configure.pl script to allow rpm builds on old systems.
 
-4)  Fix nets= and dhcp
+2)  Correct INCLUDE inside an ?IF ... ?ENDIF
 
-5)  Concatenate option values when no KLUDGEFREE.
+3)  Add comments to shorewallrc files.
 
-Changes in 4.5.1.1.
+4)  Correct a couple of defects in the shorewallrc files.
 
-1)  Don't issue missing SHORWALL_SHELL setting when compiling for
-    export.
+5)  Modify Makefiles if directories non-standard.
 
-2)  Fix TOS on RHEL5.
+6)  configure[.pl] improvements.
 
-3)  Don't generate an error if 'SHOREWALL_INIT_SCRIPT' is present in
-    the environment.
+7)  Correct the output of 'version -a'
+
+Changes in 4.5.2 Final
+
+1)  Update release documents.
+
+2)  Don't strip comments in embedded Perl and Shell because it can
+    lead to an un-terminated string when '#' appears in a string.
+
+3)  Don't suppress whitespace in embedded Perl and Shell.
+
+Changes in 4.5.2 RC 1
+
+1)  Update release documents.
+
+2)  Remove several more absolute pathnames.
+
+3)  Deimplement option '?' in BEGIN and END directives.
+
+4)  Allow ?IF, ?ELSE and ?END in embedded Perl and Shell.
+
+Changes in 4.5.2 RC 1
+
+1)  Update release documents.
+
+2)  Allow remote firewalls with a different directory structure.
+
+3)  Fix a lot of bugs.
+
+4)  Avoid modifying shorewallrc variables (except VARDIR).
+
+Changes in 4.5.2 Beta 5
+
+1)  Eliminate 'local file' error in installers.
+
+2)  Make requested change to the shorewallrc.suse file.
+
+3)  Add aliases to configure.
+
+4)  Fix 'nets=' with 'dhcp'.
+
+Changes in 4.5.2 Beta 4
+
+1)  Add a configure script
+
+2)  Expand the places where .shorewallrc can be found.
+
+Changes in 4.5.2 Beta 3
+
+1)  Fix syntax error in init.sh
+
+2)  Fix shorewall-core.spec
+
+3)  Modify Redhat/Fedora init scripts for shorewallrc.
+
+Changes in 4.5.2 Beta 2
+
+1)  Fix conditional compilation.
+
+2)  Add IPSET_WARNINGS option.
+
+3)  Add configuration files to track where Shorewall components are
+    installed.
+
+Changes in 4.5.2 Beta 1
+
+1)  Implement 'mss=' in the hosts file.
+
+2)  Implement conditional compilation.
+
+3)  Promote a couple of zone options out of the 'options' hash.
+
+4)  Remove the 'nexted' zone option.
+
+5)  Rename the MARK/CLASSIFY column to ACTION
 
 Changes in 4.5.1 Final
 

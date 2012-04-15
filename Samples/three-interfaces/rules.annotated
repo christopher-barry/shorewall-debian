@@ -689,7 +689,13 @@
 # 
 #     localtz
 # 
-#         Times are expressed in Local Civil Time (default).
+#         Deprecated by the Netfilter team in favor of kerneltz. Times are
+#         expressed in Local Civil Time (default).
+# 
+#     kerneltz
+# 
+#         Added in Shorewall 4.5.2. Times are expressed in Local Kernel Time
+#         (requires iptables 1.4.12 or later).
 # 
 #     weekdays=ddd[,ddd]...
 # 
