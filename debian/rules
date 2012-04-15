@@ -16,13 +16,13 @@ debian/po/templates.pot: debian/shorewall.templates
 	@debconf-updatepo
 
 override_dh_auto_configure:
-	true
+	./configure
 
 override_dh_auto_build:
 	true
 
 override_dh_auto_clean:
-	rm -rf $(SRWL)
+	rm -rf $(SRWL) shorewallrc
 
 override_dh_install:
 	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
