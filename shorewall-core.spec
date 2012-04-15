@@ -1,5 +1,5 @@
 %define name shorewall-core
-%define version 4.5.1
+%define version 4.5.2
 %define release 2
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
@@ -28,15 +28,22 @@ a multi-function gateway/ router/server or on a standalone GNU/Linux system.
 %build
 
 %install
-DESTDIR=%{buildroot} \
-LIBEXEC=%{_libexecdir} \
-HOST=%{_vendor} \
-./install.sh
+
+./configure.pl --host=%{_vendor} \
+               --prefix=%{_prefix} \
+               --tmpdir=%{_tmpdir} \
+               --perllibdir=%{perl_vendorlib} \
+               --libexecdir=%{_libexecdir}
+
+DESTDIR=%{buildroot} ./install.sh
 
 %clean
+
 rm -rf $RPM_BUILD_ROOT
 
 %post
+
+[ -f ~/.shorewallrc ] || cp /usr/share/shorewall/shorewallrc ~/.shorewallrc
 
 %preun
 
@@ -49,15 +56,33 @@ rm -rf $RPM_BUILD_ROOT
 %attr(0644,root,root) /usr/share/shorewall/lib.base
 %attr(0644,root,root) /usr/share/shorewall/lib.cli
 %attr(0644,root,root) /usr/share/shorewall/lib.common
-%attr(0755,root,root) %{_libexecdir}/shorewall/wait4ifup
+%attr(0644,root,root) /usr/share/shorewall/shorewallrc
+%attr(0755,root,root) /usr/share/shorewall/wait4ifup
 
 %doc COPYING INSTALL changelog.txt releasenotes.txt
 
 %changelog
-* Sun Mar 25 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.1-2
-* Sun Mar 18 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.1-1
+* Sat Apr 14 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-2
+* Tue Apr 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-1
+* Sat Apr 07 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0base
+* Wed Apr 04 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0RC2
+* Sun Apr 01 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0RC1
+* Thu Mar 29 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta5
+* Mon Mar 26 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta4
+* Tue Mar 20 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta3
+- Added /usr/share/shorewall/shorewallrc
+* Sat Mar 17 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta2
+* Wed Mar 14 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta1
 * Sat Mar 10 2012 Tom Eastep tom@shorewall.net
 - Updated to 4.5.1-0base
 * Sat Mar 03 2012 Tom Eastep tom@shorewall.net
