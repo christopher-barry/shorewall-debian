@@ -1,9 +1,9 @@
-shorewall-init (4.5.1.2-1) unstable; urgency=low
+shorewall-init (4.5.2.2-1) unstable; urgency=low
 
   * New Upstream Version
   * Convert to debhelper compatibility level 8
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 08 Apr 2012 22:27:59 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 14 Apr 2012 21:59:10 -0400
 
 shorewall-init (4.5.0.3-1) unstable; urgency=low
 
