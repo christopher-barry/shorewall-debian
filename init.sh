@@ -1,9 +1,9 @@
 #! /bin/bash
-#     The Shoreline Firewall (Shorewall) Packet Filtering Firewall - V4.4
+#     The Shoreline Firewall (Shorewall) Packet Filtering Firewall - V4.5
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2010,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #       On most distributions, this file should be called /etc/init.d/shorewall.
 #
@@ -53,6 +53,11 @@ else
 	exit 0
 fi
 
+#
+# The installer may alter this
+#
+. /usr/share/shorewall/shorewallrc
+
 # Initialize the firewall
 shorewall_start () {
   local PRODUCT
@@ -60,10 +65,8 @@ shorewall_start () {
 
   echo -n "Initializing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
-      VARDIR=/var/lib/$PRODUCT
-      [ -f /etc/$PRODUCT/vardir ] && . /etc/$PRODUCT/vardir 
       if [ -x ${VARDIR}/firewall ]; then
-	  if ! /sbin/$PRODUCT status > /dev/null 2>&1; then
+	  if ! ${SBIN}/$PRODUCT status > /dev/null 2>&1; then
 	      ${VARDIR}/firewall stop || echo_notdone
 	  fi
       fi
@@ -83,8 +86,6 @@ shorewall_stop () {
 
   echo -n "Clearing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
-      VARDIR=/var/lib/$PRODUCT
-      [ -f /etc/$PRODUCT/vardir ] && . /etc/$PRODUCT/vardir 
       if [ -x ${VARDIR}/firewall ]; then
 	  ${VARDIR}/firewall clear || exit 1
       fi
