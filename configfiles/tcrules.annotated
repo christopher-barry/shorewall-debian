@@ -28,9 +28,9 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# MARK/CLASSIFY - mark
+# ACTION - action
 # 
-#     mark may assume one of the following values.
+#     action may assume one of the following values.
 # 
 #      1. A mark value which is an integer in the range 1-255.
 # 
@@ -170,8 +170,8 @@
 #         used in PREROUTING, it causes matching connections from an individual
 #         local system to all use the same provider. For example:
 # 
-#         #MARK/            SOURCE         DEST         PROTO      DEST
-#         #CLASSIFY                                                PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
 #         SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443
 # 
 #         If a host in 192.168.1.0/24 attempts a connection on TCP port 80 or 443
@@ -182,8 +182,8 @@
 #         When used in the OUTPUT chain, it causes all matching connections to an
 #         individual remote system to all use the same provider. For example:
 # 
-#         #MARK/            SOURCE         DEST         PROTO      DEST
-#         #CLASSIFY                                                PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
 #         SAME              $FW            0.0.0.0/0    tcp        80,443
 # 
 #         If the firewall attempts a connection on TCP port 80 or 443 and it has
@@ -317,8 +317,8 @@
 #     from the firewall itself, needs a different rule.
 # 
 #     Accordingly, use $FW in its own separate rule for packets originating on
-#     the firewall. In such a rule, the MARK column may NOT specify either :P or
-#     :F because marking for firewall-originated packets always occurs in the
+#     the firewall. In such a rule, the ACTION column may NOT specify either :P
+#     or :F because marking for firewall-originated packets always occurs in the
 #     OUTPUT chain.
 # 
 #     MAC addresses must be prefixed with "~" and use "-" as a separator.
@@ -338,7 +338,7 @@
 #     subnets. If your kernel and ip6tables include iprange match support, IP
 #     address ranges are also allowed. List elements may also consist of an
 #     interface name followed by ":" and an address (e.g., eth1:<2002:ce7c:92b4::
-#     /48>). If the MARK column specificies a classification of the form major:
+#     /48>). If the ACTION column specificies a classification of the form major:
 #     minor then this column may also contain an interface name.
 # 
 #     When an interface is not specified, the angled brackets ('<' and '>')
@@ -489,8 +489,8 @@
 # 
 #     Example: Mark all FTP data connections with mark 4:
 # 
-#     #MARK/    SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#     #CLASSIFY                                        PORT(S)
+#     #ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
+#     #                                                PORT(S)
 #     4         ::/0      ::/0      TCP     -          -       -    -    -      -   -         ftp
 # 
 # HEADERS - [!][any:|exactly:]header-list (Optional - Added in Shorewall 4.4.15)
@@ -555,8 +555,8 @@
 # 
 #     We assume packet/connection mark 0 means unclassified.
 # 
-#            #MARK/    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-#            #CLASSIFY                                              PORT(S)
+#            #ACTION   SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
+#            #                                                      PORT(S)
 #            1         ::/0      ::/0         icmp    echo-request
 #            1         ::/0      ::/0         icmp    echo-reply
 #            RESTORE   ::/0      ::/0         all     -             -       -       0
@@ -570,5 +570,5 @@
 #     save it to the connection mark.
 # 
 ###################################################################################################################################################
-#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY DSCP
+#ACTION	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY DSCP
 #						PORT(S)	PORT(S)
