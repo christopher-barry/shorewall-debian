@@ -21,16 +21,16 @@ expected by Debian users.
  
  TC=
  
-@@ -138,7 +138,7 @@
+@@ -140,7 +140,7 @@
  
- IMPLICIT_CONTINUE=No
+ IPSET_WARNINGS=Yes
  
 -IP_FORWARDING=On
 +IP_FORWARDING=Keep
  
  KEEP_RT_TABLES=No
  
-@@ -174,7 +174,7 @@
+@@ -176,7 +176,7 @@
  
  RETAIN_ALIASES=No
  
