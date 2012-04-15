@@ -1,9 +1,9 @@
-shorewall-lite (4.5.1.2-1) unstable; urgency=low
+shorewall-lite (4.5.2.2-1) unstable; urgency=low
 
   * New Upstream Version
   * Convert to debhelper compatibility level 8
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 08 Apr 2012 22:30:55 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 14 Apr 2012 22:00:20 -0400
 
 shorewall-lite (4.5.0.3-1) unstable; urgency=low
 
