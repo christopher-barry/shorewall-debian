@@ -1,29 +1,48 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
 
-2)  When checking or compiling for export (-e option), /sbin/shorewall
-    issues a warning message if the SHOREWALL_SHELL specified in the
-    remote firewall's shorewall.conf did not exist.
+2)  The 'configure' script described below does not work on RHEL5 and
+    derivatives. The version of Bash on those systems does not support
+    features used by the script.
 
-    Corrected in 4.5.1.1
+    Failure message is:
 
-2)  The changes to TOS handling in 4.5.1 are incompatible with older
-    releases such as RHEL5 and derivatives.
+	./configure: line 28: declare: -A: invalid option
 
-    Corrected in 4.5.1.1.
+    Corrected in Shorewall 4.5.2.1. See the release notes for details.
 
-3)  The rules compiler does not verify that the protocol is TCP, UDP,
-    SCTP or DCCP when checking a port range (low:high or low-high).
+3)  If an INCLUDE directive appeares inside a ?IF ... ?ENDIF sequence,
+    then the following error is generated after the included file had
+    been read:
 
-    Corrected in 4.5.1.1.
+    	  ERROR: Missing ?ENDIF to match the ?IF at line ...
 
-4)  Start or restart using the init script fails with an error message
-    referencing 'SHOREWALL_INIT_SCRIPT'. This defect is generally not
-    visible to users that set AUTOMAKE=Yes or that run Shorewall-init.
+    Corrected in Shorewall 4.5.2.1
 
-    Corrected in 4.5.1.1.
+4)  There is an invalid entry in the shorewallrc.apple file.
 
-5)  The Shorewall Lite and Shorewall6 Lite installers are 
-    installing the wrong SysV init script on Debian and derivatives.
+    Corrected in Shorewall 4.5.2.1
 
-    Corrected in 4.5.1.2.
+5)  The Makefile must be modified manually if either SBINDIR or
+    SHAREDIR have a non-standard setting.
+
+    Corrected in Shorewall 4.5.2.1
+
+6)  The 'version -a' command prints the wrong version for some
+    products.
+
+    Corrected in Shorewall 4.5.2.1
+
+7)  If a shorewallrc file is passed to the the Shorewall 4.4.2.1
+    Shorewall-core install script, subsequent compilations
+    fail with errors as follows:
+
+    	 Compiling /etc/shorewall/policy...
+   	 ERROR: Unable to open /usr                             /share                /shorewall//lib.core: No such file or directory
+
+    Workaround:
+
+	edit /usr/share/shorewall/shorewallrc and delete trailing
+    	whitespace in all lines.
+
+    Corrected in Shorewall 4.5.2.2.
