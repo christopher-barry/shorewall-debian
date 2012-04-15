@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-lite-vardir
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 04/07/2012
+.\"      Date: 04/14/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-LITE\-VA" "5" "04/07/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-LITE\-VA" "5" "04/14/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -47,6 +47,36 @@ is the name of a directory\&. If you add this file, you should copy the files fr
 /var/lib/shorewall6\-lite
 to the new directory before performing a
 \fBshorewall6\-lite restart\fR\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+.PP
+Beginning with Shorewall 4\&.5\&.2, use of this file is deprecated in favor of specifying VARDIR in the
+shorewallrc
+file used during installation of Shorewall Core\&. While the name of the variable remains VARDIR, the meaning is slightly different\&. When set in shorewallrc, Shorewall6 Lite will create a directory under the specified path name to hold state information\&.
+.PP
+Example:
+.PP
+VARDIR=/opt/var/lib/
+.PP
+The state directory for Shorewall Lite will be
+/opt/var/lib/shorewall6\-lite\&.
+.PP
+When VARDIR is set in
+/etc/shorewall6\-lite/vardir, Shorewall Lite will save its state in the
+\fIdirectory\fR
+specified\&.
+.sp .5v
+.RE
 .SH "EXAMPLE"
 .PP
 VARDIR=/root/shorewall6
