@@ -70,7 +70,10 @@
 
         <listitem>
           <para><filename>/etc/shorewall/params</filename> - use this file to
-          set shell variables that you will expand in other files.</para>
+          set shell variables that you will expand in other files. It is
+          always processed by /bin/sh or by the shell specified through
+          SHOREWALL_SHELL in
+          <filename>/etc/shorewall/shorewall.conf.</filename></para>
         </listitem>
 
         <listitem>
@@ -1044,6 +1047,16 @@ SHELL cat /etc/shorewall/rules.d/*.rules</programlisting></para>
 
       <programlisting>SECTION NEW
 SHELL cat /etc/shorewall/rules.d/*.rules 2&gt; /dev/null || true</programlisting>
+
+      <para>Beginning with Shorewall 4.5.2, in files other than
+      <filename>/etc/shorewall/params</filename> and
+      <filename>/etc/shorewall/conf</filename>, INCLUDE may be immediately
+      preceeded with '?' to signal that the line is a compiler directive and
+      not configuration data.</para>
+
+      <para>Example:</para>
+
+      <programlisting>?INCLUDE common.rules</programlisting>
     </example>
   </section>
 
@@ -1239,11 +1252,15 @@ SHELL cat /etc/shorewall/rules.d/*.rules 2&gt; /dev/null || true</programlisting
       </listitem>
     </orderedlist>
 
-    <para id="Rvariables">Given that shell variables are expanded at compile
-    time, there is no way to cause such variables to be expended at run time.
-    Prior to Shorewall 4.4.17, this made it difficult (to impossible) to
-    include dynamic IP addresses in a <ulink
-    url="Shorewall-Lite.html">Shorewall-lite</ulink> configuration.</para>
+    <para id="Rvariables">Beginning with Shorewall 4.5.2, configuration files
+    can access variables defined in the <ulink
+    url="Install.htm#shorewallrc">shorewallrc file</ulink>.</para>
+
+    <para>Given that shell variables are expanded at compile time, there is no
+    way to cause such variables to be expended at run time. Prior to Shorewall
+    4.4.17, this made it difficult (to impossible) to include dynamic IP
+    addresses in a <ulink url="Shorewall-Lite.html">Shorewall-lite</ulink>
+    configuration.</para>
 
     <para>Version 4.4.17 implemented <firstterm>Run-time address
     variables</firstterm>. In configuration files, these variables are
@@ -1427,6 +1444,140 @@ SHELL cat /etc/shorewall/rules.d/*.rules 2&gt; /dev/null || true</programlisting
     </note>
   </section>
 
+  <section id="Conditional">
+    <title>Conditional Entries</title>
+
+    <para>Beginning with Shorewall 4.5.2, lines in configuration files may be
+    conditionally included or omitted based on the setting of <link
+    linkend="Variables">Shell variables</link>.</para>
+
+    <para>The general form is:</para>
+
+    <programlisting>?IF <replaceable>$variable
+
+</replaceable>&lt;lines to be included if $variable is non-empty and non-zero&gt;
+
+?ELSE
+
+&lt;lines to be omitted if $variable is non-empty and non-zero&gt;
+
+?ENDIF</programlisting>
+
+    <para>The compiler predefines two special
+    <replaceable>variable</replaceable>s that may only be used in ?IF
+    lines:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>__IPV4</term>
+
+        <listitem>
+          <para>True if this is an IPv4 compilation</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>__IPV6</term>
+
+        <listitem>
+          <para>True if this is an IPv6 compilation.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>Unless <replaceable>variable</replaceable> is one of these
+    pre-defined ones, it is searched for in the following places in the order
+    listed:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>the compiler's environmental variables.</para>
+      </listitem>
+
+      <listitem>
+        <para>variables set in
+        <filename>/etc/shorewall/params</filename>.</para>
+      </listitem>
+
+      <listitem>
+        <para>options set in
+        <filename>/etc/shorewall/shorewall.conf</filename>.</para>
+      </listitem>
+
+      <listitem>
+        <para>options set in the <filename>shorewallrc</filename> file when
+        Shorewall Core was installed.</para>
+      </listitem>
+    </itemizedlist>
+
+    <para>If the <replaceable>variable</replaceable> is still not found and it
+    begins with '__', then those leading characters are stripped off and the
+    result is searched for in the defined <firstterm>capabilities</firstterm>.
+    The current set of capabilities may be obtained by the command
+    <command>shorewall show capabilities</command> (the capability names are
+    in parentheses).</para>
+
+    <para>If it is not found in any of those places, the
+    <replaceable>variable</replaceable> is assumed to have a value of 0
+    (false).</para>
+
+    <para>The setting in <filename>/etc/shorewall/params</filename> by be
+    overridden at runtime, provided the setting in
+    <filename>/etc/shorewall/params</filename> is done like this:</para>
+
+    <programlisting>[ -n "${<replaceable>variable</replaceable>:=0}" ]</programlisting>
+
+    <para>or like this:</para>
+
+    <programlisting>[ -n "${<replaceable>variable</replaceable>}" ] || <replaceable>variable</replaceable>=0</programlisting>
+
+    <para>Either of those will set variable to 0 if it is not set to a
+    non-empty value in the environment. The setting can be overridden at
+    runtime:</para>
+
+    <programlisting><replaceable>variable</replaceable>=1 shorewall restart -c # use -c to force recompilation if AUTOMAKE=Yes in /etc/shorewall/shorewall.conf</programlisting>
+
+    <para>The ?ELSE may be omitted if there are no lines to be omitted.</para>
+
+    <para>The test may also be inverted using '!':</para>
+
+    <programlisting>?IF ! <replaceable>$variable
+
+</replaceable>&lt;lines to be omitted if $variable is non-empty and non-zero&gt;
+
+?ELSE
+
+&lt;lines to be included if $variable is non-empty and non-zero&gt;
+
+?ENDIF</programlisting>
+
+    <para>Conditional entries may be nested but the number of ?IFs must match
+    the number of ?ENDs in any give file. <link linkend="INCLUDE">INCLUDE
+    directives</link> are ignored in omitted lines.</para>
+
+    <programlisting>?IF <replaceable>$variable1
+
+</replaceable>&lt;lines to be included if $variable1 is non-empty and non-zero&gt;
+
+   ?IF $variable2
+
+&lt;lines to be included if $variable1 and $variable2 are non-empty and non-zero&gt;
+
+   ?ELSE
+
+&lt;lines to be omitted if $variable1 is non-empty and non-zero and if $variable2 is empty or zero&gt;
+
+   ?ENDIF
+<replaceable>
+</replaceable>&lt;lines to be included if $variable1 is non-empty and non-zero&gt;
+
+?ELSE
+
+&lt;lines to be omitted if $variable is non-empty and non-zero&gt;
+
+?ENDIF</programlisting>
+  </section>
+
   <section id="Embedded">
     <title>Embedded Shell and Perl</title>
 
@@ -1442,8 +1593,11 @@ SHELL cat /etc/shorewall/rules.d/*.rules 2&gt; /dev/null || true</programlisting
     configuration files except <filename>/etc/shorewall/params</filename> and
     <filename>/etc/shorewall/shorewall.conf</filename>.</para>
 
-    <para>Embedded scripts can be either single-line or multi-line. Single
-    line scripts take one of the following forms:</para>
+    <para><emphasis role="bold">Note:</emphasis>In this section, '[' and ']'
+    are meta-characters which indicate that what they enclose is optional and
+    may be omitted.</para>
+
+    <para>Single line scripts take one of the following forms:</para>
 
     <itemizedlist>
       <listitem>
@@ -1508,11 +1662,6 @@ use Shorewall::Config ( qw/shorewall/ );</programlisting>
 &lt;<emphasis>perl script</emphasis>&gt;
 <emphasis role="bold">END</emphasis> [ <emphasis role="bold">PERL</emphasis> ] [<emphasis
           role="bold">;</emphasis>]</programlisting></para>
-
-    <para><emphasis role="bold">Note: </emphasis>The '[' and ']' above are
-    meta-characters which indicate that what they enclose is optional and may
-    be omitted. So you may follow PERL with a semicolon ( ';') or you may omit
-    the semicolon.</para>
   </section>
 
   <section id="dnsnames">
@@ -1851,7 +2000,7 @@ redirect                      =&gt; 137</programlisting>
     192.168.1.3, the entry in /etc/shorewall/rules is:</para>
 
     <programlisting>#ACTION    SOURCE     DESTINATION     PROTO     DEST PORTS(S)
-DNAT       net        loc:192.168.1.3 tcp       4000:4100</programlisting>
+DNAT       net        loc:192.168.1.3 tcp       <emphasis role="bold">4000:4100</emphasis></programlisting>
 
     <para>If you omit the low port number, a value of zero is assumed; if you
     omit the high port number, a value of 65535 is assumed.</para>
@@ -1987,9 +2136,9 @@ DNAT       net        loc:192.168.1.3 tcp       4000:4100</programlisting>
     Support requires that you install xtables-addons.</para>
 
     <para>The SWITCH column contains the name of a
-    <firstterm>switch.</firstterm> Each switch that is initially in the
-    <emphasis role="bold">off</emphasis> position. You can turn on the switch
-    named <emphasis>switch1</emphasis> by:</para>
+    <firstterm>switch.</firstterm> Each switch is initially in the <emphasis
+    role="bold">off</emphasis> position. You can turn on the switch named
+    <emphasis>switch1</emphasis> by:</para>
 
     <simplelist>
       <member><command>echo 1 &gt;
@@ -2033,7 +2182,8 @@ DNAT       net        loc:192.168.1.3 tcp       4000:4100</programlisting>
 
       <programlisting>#ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
 #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
-DNAT        net             dmz:$BACKUP tcp         80           -         -          -         -         -       -             -        -          primary_down  </programlisting>
+DNAT        net             dmz:$BACKUP tcp         80           -         -          -         -         -       -             -        -          <emphasis
+          role="bold">primary_down</emphasis>  </programlisting>
     </blockquote>
   </section>
 
@@ -2063,11 +2213,16 @@ DNAT        net             dmz:$BACKUP tcp         80           -         -    
     <para>Here is an example:</para>
 
     <programlisting>#ZONE  INTERFACE  BROADCAST OPTIONS
-net    COM_IF     detect    dhcp,blacklist,tcpflags,optional,upnp,routefilter=0,nosmurfs,logmartians=0,physical=eth0
-net    EXT_IF     detect    dhcp,blacklist,tcpflags,optional,routefilter=0,nosmurfs,logmartians=0,proxyarp=1,physical=eth2
-loc    INT_IF     detect    dhcp,logmartians=1,routefilter=1,tcpflags,nets=172.20.1.0/24,physical=eth1
-dmz    VPS_IF     detect    logmartians=1,routefilter=0,routeback,physical=venet0
-loc    TUN_IF     detect    physical=tun+</programlisting>
+net    <emphasis role="bold">COM_IF </emphasis>    detect    dhcp,blacklist,tcpflags,optional,upnp,routefilter=0,nosmurfs,logmartians=0,<emphasis
+        role="bold">physical=eth0</emphasis>
+net    <emphasis role="bold">EXT_IF</emphasis>     detect    dhcp,blacklist,tcpflags,optional,routefilter=0,nosmurfs,logmartians=0,proxyarp=1,<emphasis
+        role="bold">physical=eth2</emphasis>
+loc    <emphasis role="bold">INT_IF </emphasis>    detect    dhcp,logmartians=1,routefilter=1,tcpflags,nets=172.20.1.0/24,<emphasis
+        role="bold">physical=eth1</emphasis>
+dmz    <emphasis role="bold">VPS_IF </emphasis>    detect    logmartians=1,routefilter=0,routeback,<emphasis
+        role="bold">physical=venet0</emphasis>
+loc    <emphasis role="bold">TUN_IF</emphasis>     detect    <emphasis
+        role="bold">physical=tun+</emphasis></programlisting>
 
     <para>In this example, COM_IF is a logical interface name that refers to
     Ethernet interface <filename class="devicefile">eth0</filename>, EXT_IF is
@@ -2082,16 +2237,18 @@ loc    TUN_IF     detect    physical=tun+</programlisting>
     <programlisting>#INTERFACE SOURCE                    ADDRESS
 
 COMMENT Masquerade Local Network
-COM_IF     0.0.0.0/0
-EXT_IF     !206.124.146.0/24         206.124.146.179:persistent</programlisting>
+<emphasis role="bold">COM_IF</emphasis>     0.0.0.0/0
+<emphasis role="bold">EXT_IF </emphasis>    !206.124.146.0/24         206.124.146.179:persistent</programlisting>
 
     <para><ulink
     url="manpages/shorewall-providers.html">shorewall-providers</ulink>
     (5)</para>
 
     <programlisting>#NAME   NUMBER   MARK    DUPLICATE  INTERFACE  GATEWAY         OPTIONS               COPY
-Avvanta 1        0x10000 main       EXT_IF     206.124.146.254 loose,fallback        INT_IF,VPS_IF,TUN_IF
-Comcast 2        0x20000 main       COM_IF     detect          balance               INT_IF,VPS_IF,TUN_IF</programlisting>
+Avvanta 1        0x10000 main       <emphasis role="bold">EXT_IF </emphasis>    206.124.146.254 loose,fallback        <emphasis
+        role="bold">INT_IF,VPS_IF,TUN_IF</emphasis>
+Comcast 2        0x20000 main       <emphasis role="bold">COM_IF</emphasis>     detect          balance               <emphasis
+        role="bold">INT_IF,VPS_IF,TUN_IF</emphasis></programlisting>
 
     <para>Note in particular that Shorewall translates TUN_IF to <filename
     class="devicefile">tun*</filename> in the COPY column.</para>
