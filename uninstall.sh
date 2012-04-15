@@ -26,18 +26,39 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.5.1.2
+VERSION=4.5.2.2
 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
-    echo "usage: $ME"
+    echo "usage: $ME [ <shorewallrc file> ]"
     exit $1
 }
 
 qt()
 {
     "$@" >/dev/null 2>&1
+}
+
+split() {
+    local ifs
+    ifs=$IFS
+    IFS=:
+    set -- $1
+    echo $*
+    IFS=$ifs
+}
+
+mywhich() {
+    local dir
+
+    for dir in $(split $PATH); do
+	if [ -x $dir/$1 ]; then
+	    return 0
+	fi
+    done
+
+    return 2
 }
 
 remove_file() # $1 = file to restore
@@ -48,8 +69,37 @@ remove_file() # $1 = file to restore
     fi
 }
 
-if [ -f /usr/share/shorewall6-lite/version ]; then
-    INSTALLED_VERSION="$(cat /usr/share/shorewall6-lite/version)"
+#
+# Read the RC file
+#
+if [ $# -eq 0 ]; then
+    if [ -f ./shorewallrc ]; then
+	. ./shorewallrc
+    elif [ -f ~/.shorewallrc ]; then
+	. ~/.shorewallrc || exit 1
+	file=./.shorewallrc
+    elif [ -f /usr/share/shorewall/shorewallrc ]; then
+	. /usr/share/shorewall/shorewallrc
+    else
+	fatal_error "No configuration file specified and /usr/share/shorewall/shorewallrc not found"
+    fi
+elif [ $# -eq 1 ]; then
+    file=$1
+    case $file in
+	/*|.*)
+	    ;;
+	*)
+	    file=./$file
+	    ;;
+    esac
+
+    . $file
+else
+    usage 1
+fi
+
+if [ -f ${SHAREDIR}/shorewall6-lite/version ]; then
+    INSTALLED_VERSION="$(cat ${SHAREDIR}/shorewall6-lite/version)"
     if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
 	echo "WARNING: Shorewall Lite Version $INSTALLED_VERSION is installed"
 	echo "         and this is the $VERSION uninstaller."
@@ -60,49 +110,39 @@ else
     VERSION=""
 fi
 
-[ -n "${LIBEXEC:=/usr/share}" ]
-
 echo "Uninstalling Shorewall Lite $VERSION"
 
-if qt ip6tables -L shorewall -n && [ ! -f /sbin/shorewall6 ]; then
-   /sbin/shorewall6-lite clear
+if qt ip6tables -L shorewall -n && [ ! -f ${SBINDIR)/shorewall6 ]; then
+   ${SBINDIR}/shorewall6-lite clear
 fi
 
-if [ -L /usr/share/shorewall6-lite/init ]; then
-    FIREWALL=$(readlink -m -q /usr/share/shorewall6-lite/init)
-else
-    FIREWALL=/etc/init.d/shorewall6-lite
+if [ -l ${SHAREDIR}/shorewall6-lite/init ]; then
+    FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall6-lite/init)
+elif [ -n "$INITFILE" ]; then
+    FIREWALL=${INITDIR}/${INITFILE}
 fi
 
-if [ -n "$FIREWALL" ]; then
-    if [ -x /usr/sbin/updaterc.d ]; then
+if [ -f "$FIREWALL" ]; then
+    if mywhich updaterc.d ; then
 	updaterc.d shorewall6-lite remove
-    elif [ -x /sbin/insserv -o -x /usr/sbin/insserv ]; then
+    elif mywhich insserv ; then
         insserv -r $FIREWALL
-    elif [ -x /sbin/chkconfig -o -x /usr/sbin/chkconfig ]; then
+    elif mywhich chkconfig ; then
 	chkconfig --del $(basename $FIREWALL)
-    elif [ -x /sbin/systemctl ]; then
+    elif mywhich systemctl ; then
 	systemctl disable shorewall6-lite
-    else
-	rm -f /etc/rc*.d/*$(basename $FIREWALL)
     fi
 
     remove_file $FIREWALL
-    rm -f ${FIREWALL}-*.bkout
 fi
 
-rm -f /sbin/shorewall6-lite
-rm -f /sbin/shorewall6-lite-*.bkout
-
-rm -rf /etc/shorewall6-lite
-rm -rf /etc/shorewall6-lite-*.bkout
-rm -rf /var/lib/shorewall6-lite
-rm -rf /var/lib/shorewall6-lite-*.bkout
-rm -rf /usr/share/shorewall6-lite
+rm -f ${SBINDIR}/shorewall6-lite
+rm -rf ${CONFDIR}/shorewall6-lite
+rm -rf ${VARDIR}/shorewall6-lite
+rm -rf ${SHAREDIR}/shorewall6-lite
 rm -rf ${LIBEXEC}/shorewall6-lite
-rm -rf /usr/share/shorewall6-lite-*.bkout
-rm -f  /etc/logrotate.d/shorewall6-lite
-rm -f  /lib/systemd/system/shorewall6-lite.service
+rm -f  ${CONFDIR}/logrotate.d/shorewall6-lite
+[ -n "$SYSTEMD" ] && rm -f  ${SYSTEMD}/shorewall6-lite.service
 
 echo "Shorewall6 Lite Uninstalled"
 
