@@ -1,10 +1,10 @@
-shorewall-doc (4.5.1-1) unstable; urgency=low
+shorewall-doc (4.5.2-1) unstable; urgency=low
 
   * New Upstream Version
   * Update to Standards-Version 3.9.3 (no changes)
   * Convert to debhelper compatibility level 8
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 01 Apr 2012 21:42:35 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 14 Apr 2012 21:56:15 -0400
 
 shorewall-doc (4.5.0-1) unstable; urgency=low
 
