@@ -1,6 +1,8 @@
 
 ----------------------------------------------------------------------------
-                     S H O R E W A L L  4 . 5 . 1 . 2
+                      S H O R E W A L L  4 . 5 . 2 . 2
+                          ------------------------
+                          A p r i l  1 4 , 2 0 1 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +14,323 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+4.5.2.2
+
+1)  If a shorewallrc file is passed to the Shorewall-core 4.5.2.1
+    installer, subsequent compilations will fail. The error message
+    indicates that the compiler is looking for the lib.core file
+    but the pathname has embedded whitespace.
+
+    This has been corrected.
+
+4.5.2.1
+
+1)  The 4.5.2 configure script does not work on systems with Bash 3.x.
+    To allow RPMs to be built on those systems, a Perl-based script
+    (configure.pl) has been added. The sample .spec files included in
+    the various packages have been changed to use the new script.
+
+    Both configure and configure.pl now detect the distribution if
+    neither 'host' nor 'vendor' (--host or --vendor) is specified on
+    the command line.
+
+    The 'configure' script now detects that it is running on a version
+    of Bash that won't support the features used in the script and 
+    issues an appropriate error message.
+
+2)  In release 4.5.2, if an INCLUDE directive appeared inside a ?IF
+    ... ?ENDIF sequence, then the following error would be generated
+    after the included file had been read:
+
+    	  ERROR: Missing ?ENDIF to match the ?IF at line ...
+
+3)  An error in the shorewallrc.apple file has been corrected.
+
+4)  The shorewallrc.redhat file has been change to conform to Fedora
+    packaging guidelines.
+
+5)  The installers now modify the Makefile if non-standard settings are
+    used for either SBINDIR or SHAREDIR.
+
+6)  The output of the 'version -a' command reflected incorrect versions
+    when Shorewall-core 4.5.2 was installed. That has been corrected.
+
+4.5.2
+
+1)  This release includes the defect repairs from Shorewall 4.5.1.1 and
+    4.5.1.2 (see below).
+
+2)  The generated firewall script includes code to automatically create
+    ipsets that are referenced but that don't exist. That code was
+    broken in releases 4.4.22 and later. This defect has been
+    corrected. As part of the fix, the generated script will now
+    issue a warning message when it creates an ipset.
+
+----------------------------------------------------------------------------
+           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+1)  On systems running Upstart, shorewall-init cannot reliably secure
+    the firewall before interfaces are brought up.
+
+----------------------------------------------------------------------------
+      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  The 'mss' option is now supported in the /etc/shorewall[6]/hosts
+    files. See the manpages for details.
+
+2)  It is now possible to conditionally include or omit configuration
+    entries based on the settings of shell variables. See
+    http://www.shorewall.net/configuration_file_basics.htm#Conditional
+    for details.
+
+3)  The MARK/CLASSIFY column in /etc/shorewall[6]/tcrules has been
+    renamed ACTION to reflect the expanded set of actions that can be
+    specified in the column.
+
+4)  Some users are finding these ipset warnings objectionable:
+
+    - Warning when a referenced ipset does not exist.
+    - Warning when using [src] in a destination column or [dst] in a
+      source column.
+
+    These warnings may now be suppressed by setting IPSET_WARNINGS=No
+    in shorewall.conf and/or shorewall6.conf.
+
+5)  The evolution of the Shorewall installation process
+    continues. Testers are invited to provide comments and suggestions
+    about the following.
+
+    Beginning with this release, the installers accept a configuration
+    file as a parameter. Options set in the configuration file are as
+    follows:
+
+    BUILD (optional)   -- Platform on which the installation is being
+    	  	     	  performed. Possible values are:
+
+			  apple - OS X
+			  archlinux - ArchLinux
+			  cygwin - Cygwin running under Windows
+			  debian - Debian and derivatives
+			  linux - Generic Linux system
+			  redhat - Fedora, RHEL and derivatives
+			  suse - SLES and OpenSuSE
+			
+			  If no value is assigned, then the installer
+			  will detect the platform.
+
+    HOST (Optional)    -- Allowed values are same as for BUILD. If not
+    	 	          specified, the BUILD setting is used.
+
+    CONFDIR (Req'd)    -- Directory where product configuration
+    	    	       	  directory is installed. Normally /etc.
+
+    SHAREDIR (Req'd)   -- Directory where architecture-independent
+    	     	     	  product files are installed. Normally
+    	     	     	  /usr/share.
+
+    LIBEXECDIR (Req'd) -- Directory where product executables are
+    	       	          installed. Normally /usr/share or
+    	       	          /usr/libexec.
+
+    PERLLIBDIR (Req'd) -- Directory where Shorewall Perl modules are
+    	       	       	  to be installed. Traditionally
+    	       	       	  /usr/share/shorewall.
+ 
+    SBINDIR (Req'd)    -- Directory where product CLI programs are
+    	    	          installed. Normally /sbin
+
+    MANDIR (Req.d)     -- Directory where manpages are
+    	   	          installed. Mornally /usr/share/man.
+
+    INITFILE (Optional)
+                       -- Optional. If given, specifies the installed
+		       	  filename of the initscript. Normally 
+			  set to $PRODUCT which the installers expand
+			  to the name of the product being installed.
+			  If not specified, no init script will be
+			  installed.
+
+    INITSOURCE (Optional)
+                       -- Must be specified if INITFILE is specified. 
+		          Gives the name of the file to be installed
+			  as the INITFILE. 
+
+    INITDIR (Optional) -- Directory where SysV init scripts are
+    	    	          installed. Must be specified if INITFILE is
+    	    	          specified.
+
+    ANNOTATED (Optional) 
+                       -- If non-empty, indicates that the
+    		       	  configuration files are to be annotated with
+			  manpage information. Normally empty.
+
+    SYSTEMD (Optional) -- Name of the directory where .service files
+    	    	       	  are to be installed. Should only be specified
+    	    	       	  on systems running systemd.
+
+    SYSCONFDIR (Optional)
+                       -- Name of the directory where subsystem
+    		          init configuration information is stored. 
+			  On Debian and derivates, this is
+    			  /etc/default.  On other systems, it is
+			  /etc/sysconfig.
+
+    SYSCONFFILE (Optional) 
+                       -- Name of the file to be installed in the
+		          SYSCONFIGDIR. The installed name of the file
+			  will always be the product name (shorewall,
+    			  shorewall-lite, etc.)
+
+    SPARSE (Optional)  -- If non-empty, causes only the .conf file to
+    	   	          be installed in
+    	   	          ${CONFDIR}/${PRODUCT}/. Otherwise, all of 
+			  the product's skeleton configuration files
+			  will be installed.
+
+    TEMPDIR (Optional) -- If non-empty, the generated firewall script
+    	    	       	  will export the variable TMPDIR with 
+			  value $TEMPDIR.
+
+    VARDIR (Required)  -- Directory where product state information
+    	   	          is stored. Normally /var/lib.
+
+			  This setting was previously stored in the
+			  optional vardir file in the product's 
+			  configuration directory.
+
+    Each of the product tarballs contains a set of configuration files
+    for the various HOSTS: 
+
+    	shorewallrc.apple
+    	shorewallrc.archlinux
+	shorewallrc.cygwin
+    	shorewallrc.debian
+    	shorewallrc.default (for HOST 'linux')
+	shorewallrc.redhat
+	shorewallrc.suse
+
+    To aid distribution packagers, a configure script has been added.
+    The arguments to the script are the usual list of <option>=<value>
+    assignments. The supported options are the same as those above,
+    although they may be in lower case and may be optionally preceded
+    by '--'.
+
+    The configure script uses the setting of --host to select the
+    appropriate rc file. It reads that file to establish default
+    settings and then applies the values specified in the argument
+    list. To allow use with the %configure RPM macro, only the last
+    occurrence of a particular option setting is applied. The resulting
+    settings are written to a file named 'shorewallrc' in the current
+    working directory and are also written to standard out.
+
+    When Shorewall-core is installed on a system (with no DESTDIR), it
+    copies the specified configuration file into root's
+    ~/.shorewallrc. The ~/.shorewallrc file is then used, by default,
+    when installing the other packages.
+
+    To further aid use with %configure, several aliases are supported:
+
+       alias   	       option
+       -----           ------
+       sharedstatedir  vardir
+       datadir	       sharedir
+       sysconfdir      confdir
+
+    The configuration file is also copied to
+    ${SHAREDIR}/shorewall/shorewallrc where the CLI programs and init
+    scripts can find it. Those programs are modified by the installer
+    when ${SHAREDIR} is not /usr/share.
+
+    When using Shorewall-lite or Shorewall6-lite, if the remote
+    firewall's shorewallrc file differs from that on the firewall, then
+    a copy of the remote file should be placed in the firewall's
+    configuration directory on the administrative system.
+
+    Beginning with this release, using /etc/shorewall-lite/vardir
+    and /etc/shorewall6-lite/vardir to specify VARDIR is deprecated in
+    favor of the VARDIR setting in shorewallrc.
+
+        NOTE: While the name of the variable remains VARDIR, the
+              meaning is slightly different. When set in shorewallrc,
+              each product (shorewall-lite, and shorewall6-lite) will
+              create a directory under the specified path name to
+	      hold state information.
+
+	      Example:
+
+		  VARDIR=/opt/var/lib/
+
+		  The state directory for shorewall-lite will be
+		  /opt/var/lib/shorewall-lite/ and the directory for
+		  shorewall6-lite will be /opt/var/lib/shorewall6-lite.
+
+	      When VARDIR is set in /etc/shorewall[6]-lite/vardir, the
+	      product will save its state in the specified directory.
+
+----------------------------------------------------------------------------
+                   V.  M I G R A T I O N   I S S U E S
+----------------------------------------------------------------------------
+
+1)  If you are migrating from Shorewall 4.2.x or earlier, please see
+    http://www.shorewall.net/pub/shorewall/4.4/shorewall-4.4.27/releasenotes.txt
+
+2)  The BLACKLIST section of the rules file has been eliminated. 
+    If you have entries in that file section, you must move them to the
+    blrules file.
+
+3)  This version of Shorewall requires the Digest::SHA1 Perl module.
+
+        Debian: libdigest-sha1-perl
+    	Fedora: perl-Digest-SHA1
+    	OpenSuSE: perl-Digest-SHA1
+
+4)  The generated firewall script now maintains the
+    /var/lib/shorewall[6][-lite]/interface.status files used by SWPING
+    and by LSM.
+
+    If you have optional providers and to not run a link monitor like
+    SWPING  or LSM that updates these files, then you should remove
+    /etc/shorewall[6]/isusable if it is installed.
+
+5)  The /etc/shorewall[6]/tos file is now deprecated in favor of the
+    TOS() action in /etc/shorewall[6]/tcrules.
+
+6)  The MARK/CLASSIFY column in /etc/shorewall[6]/tcrules has been
+    renamed ACTION to reflect the expanded set of actions that can be
+    specified in the column. There is no change to existing
+    functionality.
+
+7)  Beginning with Shorewall 4.5.2, using /etc/shorewall-lite/vardir
+    and /etc/shorewall6-lite/vardir to specify VARDIR is deprecated in
+    favor of the VARDIR setting in shorewallrc.
+
+        NOTE: While the name of the variable remains VARDIR, the
+              meaning is slightly different. When set in shorewallrc,
+              each product (shorewall-lite, and shorewall6-lite) will
+              create a directory under the specified path name to
+	      hold state information.
+
+	      Example:
+
+		  VARDIR=/opt/var/
+
+		  The state directory for shorewall-lite will be
+		  /opt/var/shorewall-lite/ and the directory for
+		  shorewall6-lite will be /opt/var/shorewall6-lite.
+
+
+	      When VARDIR is set in /etc/shorewall[6]/vardir, the
+	      product will save its state directly in the specified
+	      directory.
+
+----------------------------------------------------------------------------
+        V I.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
+----------------------------------------------------------------------------
+             P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1
 ----------------------------------------------------------------------------
 
 4.5.1.2
@@ -103,14 +422,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     reversed.
 
 ----------------------------------------------------------------------------
-           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-1)  On systems running Upstart, shorewall-init cannot reliably secure
-    the firewall before interfaces are brought up.
-
-----------------------------------------------------------------------------
-      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+                    N E W  F E A T U R E S  I N  4 . 5 . 0
 ----------------------------------------------------------------------------
 
 1)  Support is now included for IMQ. This takes the form of of
@@ -250,33 +562,6 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     shorewall-tos(5) and shorewall6-tos(5) files is deprecated and a
     warning is issued on the first rule in each file.
 
-----------------------------------------------------------------------------
-                   V.  M I G R A T I O N   I S S U E S
-----------------------------------------------------------------------------
-
-1)  If you are migrating from Shorewall 4.2.x or earlier, please see
-    http://www.shorewall.net/pub/shorewall/4.4/shorewall-4.4.27/releasenotes.txt
-
-2)  The BLACKLIST section of the rules file has been eliminated. 
-    If you have entries in that file section, you must move them to the
-    blrules file.
-
-3)  This version of Shorewall requires the Digest::SHA1 Perl module.
-
-        Debian: libdigest-sha1-perl
-    	Fedora: perl-Digest-SHA1
-    	OpenSuSE: perl-Digest-SHA1
-
-4)  The generated firewall script now maintains the
-    /var/lib/shorewall[6][-lite]/interface.status files used by SWPING
-    and by LSM.
-
-    If you have optional providers and to not run a link monitor like
-    SWPING  or LSM that updates these files, then you should remove
-    /etc/shorewall[6]/isusable if it is installed.
-
-----------------------------------------------------------------------------
-        V I.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
 ----------------------------------------------------------------------------
              P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 0
 ----------------------------------------------------------------------------

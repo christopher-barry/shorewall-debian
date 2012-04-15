@@ -243,7 +243,7 @@ TCP_FLAGS_LOG_LEVEL=info
 ###############################################################################
 #	L O C A T I O N	  O F	F I L E S   A N D   D I R E C T O R I E S
 ###############################################################################
-CONFIG_PATH=/etc/shorewall6:/usr/share/shorewall6:/usr/share/shorewall
+CONFIG_PATH=${CONFDIR}/shorewall6:${SHAREDIR}/shorewall6:${SHAREDIR}/shorewall
 #
 # CONFIG_PATH=[directory[:directory]...]
 # 
@@ -674,6 +674,20 @@ IMPLICIT_CONTINUE=No
 #     are not subject to this special treatment. With IMPLICIT_CONTINUE=Yes, an
 #     implicit CONTINUE policy may be overridden by including an explicit policy
 #     (one that does not specify "all" in either the SOURCE or the DEST columns).
+# 
+IPSET_WARNINGS=Yes
+#
+# IPSET_WARNINGS={Yes|No}
+# 
+#     Added in Shorewall 4.5.2. Default is Yes. When set, causes the rules
+#     compiler to issue a warning when:
+# 
+#       ● The compiler is being run by root and an ipset specified in the
+#         configuration does not exists. Only one warning is issued for each
+#         missing ipset.
+# 
+#       ● When [src] is specified in a destination column and when [dst] is
+#         specified in a source column.
 # 
 IP_FORWARDING=Off
 #

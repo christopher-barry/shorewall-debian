@@ -1,0 +1,189 @@
+#!/bin/bash
+#
+#     Shorewall Packet Filtering Firewall RPM configuration program - V4.5
+#
+#     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
+#
+#     (c) 2012 - Tom Eastep (teastep@shorewall.net)
+#
+#	Shorewall documentation is available at http://www.shorewall.net
+#
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of Version 2 of the GNU General Public License
+#	as published by the Free Software Foundation.
+#
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, write to the Free Software
+#	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#
+#       Usage: ./configure [ <option>=<setting> ] ...
+#
+#
+################################################################################################
+#
+# Build updates this
+#
+VERSION=4.5.2.1
+
+case "$BASH_VERSION" in
+    [4-9].*)
+	;;
+    *)
+	echo "ERROR: This program requires Bash 4.0 or later" >&2
+	exit 1
+	;;
+esac
+
+declare -A params
+declare -A options
+
+getfileparams() {
+    while read option; do
+	case $option in
+	    \#*)
+		;;
+	    *)
+		on=${option%=*}
+		ov=${option#*=}
+		ov=${ov%#*}
+		[ -n "$on" ] && options[${on}]="${ov}"
+		;;
+	esac
+
+    done
+    
+    return 0
+}
+
+for p in $@; do
+
+    if [ -n "${p}" ]; then
+	declare -u pn
+
+	pn=${p%=*}
+	pn=${pn#--}
+	pv=${p#*=}
+
+	if [ -n "${pn}" ]; then
+	    
+	    case ${pn} in
+		VENDOR)
+		    pn=HOST
+		    ;;
+		SHAREDSTATEDIR)
+		    pn=VARDIR
+		    ;;
+		DATADIR)
+		    pn=SHAREDIR
+		    ;;
+		SYSCONFDIR)
+		    pn=CONFDIR
+		    ;;
+	    esac
+    
+	    params[${pn}]="${pv}"
+	else
+	    echo "ERROR: Invalid option ($p)" >&2
+	    exit 1
+	fi
+    fi
+done
+
+vendor=${params[HOST]}
+
+if [ -z "$vendor" ]; then
+    case `uname` in
+	Darwin)
+	    $params[HOST]=apple
+	    rcfile=shorewallrc.apple
+	    ;;
+	
+	cygwin*)
+	    $params[HOST]=cygwin
+	    rcfile=shorewallrc.cygwin
+	    ;;
+	*)
+	    if [ -f /etc/debian_version ]; then
+		params[HOST]=debian
+		rcfile=shorewallrc.debian
+	    elif [ -f /etc/redhat-release ]; then
+		params[HOST]=redhat
+		rcfile=shorewallrc.redhat
+	    elif [ -f /etc/slackware-version ] ; then
+		params[HOST]=slackware
+		rcfile=shorewallrc.slackware
+	    elif [ -f /etc/SuSE-release ]; then
+		params[HOST]=suse
+		rcfile=shorewallrc.suse
+	    elif [ -f /etc/arch-release ] ; then
+		params[HOST]=archlinux
+		rcfile=shorewallrc.archlinux
+	    else
+		params[HOST]=linux
+		rcfile=shorewallrc.default
+	    fi
+	    ;;
+    esac
+
+    vendor=${params[HOST]}
+elif [ $vendor = linux ]; then
+    rcfile=$shorewallrc.default;
+else
+    rcfile=shorewallrc.$vendor
+    if [ ! -f $rcfile ]; then
+	echo "ERROR: $vendor is not a recognized host type" >&2
+	exit 1
+    fi
+fi
+
+if [ $vendor = linux ]; then
+    echo "INFO: Creating a generic Linux installation - " `date`;
+else
+    echo "INFO: Creating a ${vendor}-specific installation - " `date`;
+fi
+
+echo
+
+getfileparams < $rcfile || exit 1
+
+for p in ${!params[@]}; do
+    options[${p}]="${params[${p}]}"
+done
+
+echo '#'                                                                 > shorewallrc
+echo "# Created by Shorewall Core version $VERSION configure - " `date` >> shorewallrc
+echo '#'                                                                >> shorewallrc
+
+if [ -n "$@" ]; then
+    echo "# Input: $@" >> shorewallrc
+    echo '#'           >> shorewallrc
+fi
+
+for on in \
+    HOST \
+    PREFIX \
+    SHAREDIR \
+    LIBEXECDIR \
+    PERLLIBDIR \
+    CONFDIR \
+    SBINDIR \
+    MANDIR \
+    INITDIR \
+    INITSOURCE \
+    INITFILE \
+    AUXINITSOURCE \
+    AUXINITFILE \
+    SYSTEMD \
+    SYSCONFFILE \
+    SYSCONFDIR \
+    ANNOTATED \
+    VARDIR
+do
+    echo "$on=${options[${on}]}"
+    echo "$on=${options[${on}]}" >> shorewallrc
+done
