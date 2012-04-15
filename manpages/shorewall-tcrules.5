@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 04/07/2012
+.\"      Date: 04/14/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "04/07/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "04/14/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -58,7 +58,7 @@ If you use multiple internet providers with the \*(Aqtrack\*(Aq option, in /etc/
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBMARK/CLASSIFY\fR (mark) \- \fImark\fR
+\fBACTION\fR (mark) \- \fImark\fR
 .RS 4
 Where
 \fImark\fR
@@ -270,8 +270,8 @@ Some websites run applications that require multiple connections from a client b
 .RS 4
 .\}
 .nf
-#MARK/            SOURCE         DEST         PROTO      DEST
-#CLASSIFY                                                PORT(S)
+#ACTION           SOURCE         DEST         PROTO      DEST
+#                                                        PORT(S)
 SAME:P            192\&.168\&.1\&.0/24 0\&.0\&.0\&.0/0    tcp        80,443
 .fi
 .if n \{\
@@ -286,8 +286,8 @@ When used in the OUTPUT chain, it causes all matching connections to an individu
 .RS 4
 .\}
 .nf
-#MARK/            SOURCE         DEST         PROTO      DEST
-#CLASSIFY                                                PORT(S)
+#ACTION           SOURCE         DEST         PROTO      DEST
+#                                                        PORT(S)
 SAME              $FW            0\&.0\&.0\&.0/0    tcp        80,443
 .fi
 .if n \{\
@@ -642,7 +642,7 @@ An interface name \- matches traffic entering the firewall on the specified inte
 .IP "  2." 4.2
 .\}
 A comma\-separated list of host or network IP addresses or MAC addresses\&.
-\fBThis form will not match traffic that originates on the firewall itself unless either <major><minor> or the :T chain qualifier is used in the MARK column\&.\fR
+\fBThis form will not match traffic that originates on the firewall itself unless either <major><minor> or the :T chain qualifier is used in the ACTION column\&.\fR
 .sp
 Examples:.RS 4
 0\&.0\&.0\&.0/0
@@ -672,7 +672,7 @@ An interface name followed by a colon (":") followed by a comma\-separated list 
 .sp -1
 .IP "  4." 4.2
 .\}
-$FW optionally followed by a colon (":") and a comma\-separated list of host or network IP addresses\&. Matches packets originating on the firewall\&. May not be used with a chain qualifier (:P, :F, etc\&.) in the MARK column\&.
+$FW optionally followed by a colon (":") and a comma\-separated list of host or network IP addresses\&. Matches packets originating on the firewall\&. May not be used with a chain qualifier (:P, :F, etc\&.) in the ACTION column\&.
 .RE
 .sp
 MAC addresses must be prefixed with "~" and use "\-" as a separator\&.
@@ -912,8 +912,8 @@ Example: Mark all FTP data connections with mark 4:
 .RS 4
 .\}
 .nf
-#MARK/    SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#CLASSIFY                                        PORT(S)
+#ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
+#                                                PORT(S)
 4:T       0\&.0\&.0\&.0/0 0\&.0\&.0\&.0/0 TCP     \-          \-       \-    \-    \-      \-   \-         ftp
 .fi
 .if n \{\
@@ -986,8 +986,8 @@ We assume packet/connection mark 0 means unclassified\&.
 .RS 4
 .\}
 .nf
-       #MARK/     SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-       #CLASSIFY                                               PORT(S)
+       #ACTION    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
+       #                                                       PORT(S)
        1:T        0\&.0\&.0\&.0/0 0\&.0\&.0\&.0/0    icmp    echo\-request
        1:T        0\&.0\&.0\&.0/0 0\&.0\&.0\&.0/0    icmp    echo\-reply
        RESTORE:T  0\&.0\&.0\&.0/0 0\&.0\&.0\&.0/0    all     \-             \-       \-       0

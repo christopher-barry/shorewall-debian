@@ -28,7 +28,7 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# MARK/CLASSIFY (mark) - mark
+# ACTION (mark) - mark
 # 
 #     Where mark may assume one of the following values.
 # 
@@ -170,8 +170,8 @@
 #         matching connections from an individual local system to all use the
 #         same provider. For example:
 # 
-#         #MARK/            SOURCE         DEST         PROTO      DEST
-#         #CLASSIFY                                                PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
 #         SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443
 # 
 #         If a host in 192.168.1.0/24 attempts a connection on TCP port 80 or 443
@@ -182,8 +182,8 @@
 #         When used in the OUTPUT chain, it causes all matching connections to an
 #         individual remote system to all use the same provider. For example:
 # 
-#         #MARK/            SOURCE         DEST         PROTO      DEST
-#         #CLASSIFY                                                PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
 #         SAME              $FW            0.0.0.0/0    tcp        80,443
 # 
 #         If the firewall attempts a connection on TCP port 80 or 443 and it has
@@ -385,7 +385,7 @@
 #      2. A comma-separated list of host or network IP addresses or MAC
 #         addresses. This form will not match traffic that originates on the
 #         firewall itself unless either <major><minor> or the :T chain qualifier
-#         is used in the MARK column.
+#         is used in the ACTION column.
 # 
 #         Examples:
 # 
@@ -401,7 +401,7 @@
 #      4. $FW optionally followed by a colon (":") and a comma-separated list of
 #         host or network IP addresses. Matches packets originating on the
 #         firewall. May not be used with a chain qualifier (:P, :F, etc.) in the
-#         MARK column.
+#         ACTION column.
 # 
 #     MAC addresses must be prefixed with "~" and use "-" as a separator.
 # 
@@ -578,8 +578,8 @@
 # 
 #     Example: Mark all FTP data connections with mark 4:
 # 
-#     #MARK/    SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#     #CLASSIFY                                        PORT(S)
+#     #ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
+#     #                                                PORT(S)
 #     4:T       0.0.0.0/0 0.0.0.0/0 TCP     -          -       -    -    -      -   -         ftp
 # 
 # PROBABILITY - [probability]
@@ -636,8 +636,8 @@
 # 
 #     We assume packet/connection mark 0 means unclassified.
 # 
-#            #MARK/     SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-#            #CLASSIFY                                               PORT(S)
+#            #ACTION    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
+#            #                                                       PORT(S)
 #            1:T        0.0.0.0/0 0.0.0.0/0    icmp    echo-request
 #            1:T        0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
 #            RESTORE:T  0.0.0.0/0 0.0.0.0/0    all     -             -       -       0
@@ -651,5 +651,5 @@
 #     save it to the connection mark.
 # 
 ##########################################################################################################################################
-#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER    PROBABILITY DSCP
+#ACTION	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER    PROBABILITY DSCP
 #						PORT(S)	PORT(S)

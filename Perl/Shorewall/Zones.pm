@@ -83,13 +83,14 @@ our @EXPORT = qw( NOTHING
 		  compile_updown
 		  validate_hosts_file
 		  find_hosts_by_option
+		  find_zone_hosts_by_option
 		  find_zones_by_option
 		  all_ipsets
 		  have_ipsec
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_1';
+our $VERSION = '4.5_2';
 
 #
 # IPSEC Option types
@@ -113,11 +114,10 @@ use constant { IN_OUT     => 1,
 #
 #     @zones contains the ordered list of zones with sub-zones appearing before their parents.
 #
-#     %zones{<zone1> => {type = >      <zone type>       FIREWALL, IP, IPSEC, BPORT;
-#                        options =>    { complex => 0|1
-#                                        nested  => 0|1
-#                                        super   => 0|1
-#                                        in_out  => < policy match string >
+#     %zones{<zone1> => {type =>       <zone type>       FIREWALL, IP, IPSEC, BPORT;
+#                        complex =>    0|1
+#                        super   =>    0|1
+#                        options =>    { in_out  => < policy match string >
 #                                        in      => < policy match string >
 #                                        out     => < policy match string >
 #                                      }
@@ -309,6 +309,7 @@ sub initialize( $$ ) {
 			     broadcast => 1,
 			     destonly => 1,
 			     sourceonly => 1,
+			     mss => 1,
 			    );
 	%zonetypes = ( 1 => 'firewall', 2 => 'ipv4', 4 => 'bport4', 8 => 'ipsec4', 16 => 'vserver' );
     } else {
@@ -335,6 +336,7 @@ sub initialize( $$ ) {
 			     maclist => 1,
 			     routeback => 1,
 			     tcpflags => 1,
+			     mss => 1,
 			    );
 	%zonetypes = ( 1 => 'firewall', 2 => 'ipv6', 4 => 'bport6', 8 => 'ipsec4', 16 => 'vserver' );
     }
@@ -408,8 +410,8 @@ sub set_super( $ ); #required for recursion
 sub set_super( $ ) {
     my $zoneref = shift;
 
-    unless ( $zoneref->{options}{super} ) {
-	$zoneref->{options}{super} = 1;
+    unless ( $zoneref->{super} ) {
+	$zoneref->{super} = 1;
 	set_super( $zones{$_} ) for @{$zoneref->{parents}};
     }
 }
@@ -487,10 +489,9 @@ sub process_zone( \$ ) {
 				    options    => { in_out  => parse_zone_option_list( $options , $type, $complex , IN_OUT ) ,
 						    in      => parse_zone_option_list( $in_options , $type , $complex , IN ) ,
 						    out     => parse_zone_option_list( $out_options , $type , $complex , OUT ) ,
-						    complex => ( $type & IPSEC || $complex ) ,
-						    nested  => @parents > 0 ,
-						    super   => 0 ,
 						  } ,
+				    super      => 0 ,
+				    complex    => ( $type & IPSEC || $complex ) ,
 				    interfaces => {} ,
 				    children   => [] ,
 				    hosts      => {}
@@ -506,7 +507,7 @@ sub process_zone( \$ ) {
 		fatal_error "Zone mark overflow - please increase the setting of ZONE_BITS" if $zonemark >= $zonemarklimit;
 		$mark      = $zonemark;
 		$zonemark += $zonemarkincr;
-		$zoneref->{options}{complex} = 1;
+		$zoneref->{complex} = 1;
 	    }
 	}
 
@@ -516,7 +517,6 @@ sub process_zone( \$ ) {
 	    progress_message_nocompress "   Zone $zone:\tmark value " . in_hex( $zoneref->{mark} = $mark );
 	}
     }
-	
 
     if ( $zoneref->{options}{in_out}{blacklist} ) {
 	for ( qw/in out/ ) {
@@ -775,7 +775,7 @@ sub add_group_to_zone($$$$$)
 
     fatal_error "Duplicate Host Group ($interface:" . ALLIP . ") in zone $zone" if $allip && @$interfaceref;
 
-    $zoneref->{options}{complex} = 1 if @$interfaceref || @newnetworks > 1 || @exclusions || $options->{routeback};
+    $zoneref->{complex} = 1 if @$interfaceref || @newnetworks > 1 || @exclusions || $options->{routeback};
 
     push @{$interfaceref}, { options => $options,
 			     hosts   => \@newnetworks,
@@ -842,7 +842,7 @@ sub all_parent_zones() {
 }
 
 sub complex_zones() {
-    grep( $zones{$_}{options}{complex} , @zones );
+    grep( $zones{$_}{complex} , @zones );
 }
 
 sub vserver_zones() {
@@ -1842,7 +1842,7 @@ sub process_host( ) {
     }
 
     if ( $hosts =~ /^!?\+/ ) {
-	$zoneref->{options}{complex} = 1;
+	$zoneref->{complex} = 1;
 	fatal_error "ipset name qualification is disallowed in this file" if $hosts =~ /[\[\]]/;
 	fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^!?\+[a-zA-Z][-\w]*$/;
     }
@@ -1866,12 +1866,16 @@ sub process_host( ) {
 	    if ( $option eq 'ipsec' ) {
 		require_capability 'POLICY_MATCH' , q(The 'ipsec' option), 's';
 		$type = IPSEC;
-		$zoneref->{options}{complex} = 1;
+		$zoneref->{complex} = 1;
 		$ipsec = $interfaceref->{ipsec} = 1;
 	    } elsif ( $option eq 'norfc1918' ) {
 		warning_message "The 'norfc1918' host option is no longer supported"
 	    } elsif ( $option eq 'blacklist' ) {
 		$zoneref->{options}{in}{blacklist} = 1;
+	    } elsif ( $option =~ /^mss=(\d+)$/ ) {
+		fatal_error "Invalid mss ($1)" unless $1 >= 500;
+		$options{mss} = $1;
+		$zoneref->{options}{complex} = 1;
 	    } elsif ( $validhostoptions{$option}) {
 		fatal_error qq(The "$option" option is not allowed with Vserver zones) if $type & VSERVER && ! ( $validhostoptions{$option} & IF_OPTION_VSERVER );
 		$options{$option} = 1;
@@ -1936,7 +1940,7 @@ sub validate_hosts_file()
 
     $have_ipsec = $ipsec || haveipseczones;
 
-    $_->{options}{complex} ||= ( keys %{$_->{interfaces}} > 1 ) for values %zones;
+    $_->{complex} ||= ( keys %{$_->{interfaces}} > 1 ) for values %zones;
 }
 
 #
@@ -1948,7 +1952,7 @@ sub have_ipsec() {
 
 #
 # Returns a reference to a array of host entries. Each entry is a
-# reference to an array containing ( interface , polciy match type {ipsec|none} , network , exclusions );
+# reference to an array containing ( interface , polciy match type {ipsec|none} , network , exclusions, value );
 #
 sub find_hosts_by_option( $ ) {
     my $option = $_[0];
@@ -1958,9 +1962,9 @@ sub find_hosts_by_option( $ ) {
 	while ( my ($type, $interfaceref) = each %{$zones{$zone}{hosts}} ) {
 	    while ( my ( $interface, $arrayref) = ( each %{$interfaceref} ) ) {
 		for my $host ( @{$arrayref} ) {
-		    if ( $host->{options}{$option} ) {
+		    if ( my $value = $host->{options}{$option} ) {
 			for my $net ( @{$host->{hosts}} ) {
-			    push @hosts, [ $interface, $host->{ipsec} , $net , $host->{exclusions}];
+			    push @hosts, [ $interface, $host->{ipsec} , $net , $host->{exclusions}, $value ];
 			}
 		    }
 		}
@@ -1971,6 +1975,30 @@ sub find_hosts_by_option( $ ) {
     for my $interface ( @interfaces ) {
 	if ( ! $interfaces{$interface}{zone} && $interfaces{$interface}{options}{$option} ) {
 	    push @hosts, [ $interface, 'none', ALLIP , [] ];
+	}
+    }
+
+    \@hosts;
+}
+
+#
+# As above but for a single zone
+#
+sub find_zone_hosts_by_option( $$ ) {
+    my ($zone, $option ) = @_;
+    my @hosts;
+
+    unless ( $zones{$zone}{type} & FIREWALL ) {
+	while ( my ($type, $interfaceref) = each %{$zones{$zone}{hosts}} ) {
+	    while ( my ( $interface, $arrayref) = ( each %{$interfaceref} ) ) {
+		for my $host ( @{$arrayref} ) {
+		    if ( my $value = $host->{options}{$option} ) {
+			for my $net ( @{$host->{hosts}} ) {
+			    push @hosts, [ $interface, $host->{ipsec} , $net , $host->{exclusions}, $value ];
+			}
+		    }
+		}
+	    }
 	}
     }
 
