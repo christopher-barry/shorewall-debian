@@ -39,8 +39,7 @@ override_dh_install:
 override_dh_fixperms:
 	# Temporary zones are only available to root
 	chmod 750 $(SRWL)/var/lib/shorewall6
-	# As well as configuration files
-	chmod 640 $(SRWL)/etc/shorewall6/*
+	# These should not be executable
 	chmod 644 $(SRWL)/etc/shorewall6/shorewall6.conf
 	chmod 644 $(SRWL)/etc/shorewall6/Makefile
 	dh_fixperms -Xetc/shorewall6 -Xvar/lib/shorewall6
