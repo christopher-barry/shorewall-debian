@@ -28,8 +28,17 @@ override_dh_install:
 	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
 	find $(SRWL) -type d -empty -delete
 
-#override_dh_fixperms:
-#	dh_fixperms -Xetc/shorewall-lite -Xvar/lib/shorewall-lite
+override_dh_fixperms:
+	# Temporary zones are only available to root
+	chmod 750 $(SRWL)/var/lib/shorewall-lite
+	# These should not be executable
+	chmod 644 $(SRWL)/etc/shorewall-lite/shorewall-lite.conf
+	chmod 644 $(SRWL)/etc/shorewall-lite/Makefile
+	# Global configuration has to be fully readable
+	chmod 644 $(SRWL)/usr/share/shorewall-lite/*
+	# Must be executable
+	chmod 755 $(SRWL)/usr/share/shorewall-lite/shorecap
+	dh_fixperms -Xetc/shorewall-lite -Xvar/lib/shorewall-lite
 
 override_dh_installinit:
 	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
