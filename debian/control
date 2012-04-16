@@ -15,4 +15,6 @@ Breaks: shorewall (<< 4.5.0~)
 Description: Shorewall core components
  This package provides the core Shorewall components, which are required
  for the rest of the Shorewall packages to work.
-
+ .
+ There is not an especially good reason to have this package installed all
+ by itself.
