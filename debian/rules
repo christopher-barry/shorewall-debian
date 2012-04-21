@@ -46,6 +46,7 @@ override_dh_fixperms:
 	chmod 644 $(SRWL)/etc/shorewall6/Makefile
 	# Global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall6/*
+	chmod 755 $(SRWL)/usr/share/shorewall6/configfiles/
 	dh_fixperms -Xetc/shorewall6 -Xvar/lib/shorewall6
 
 override_dh_compress:
