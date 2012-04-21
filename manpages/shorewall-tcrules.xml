@@ -44,7 +44,7 @@
 
     <variablelist>
       <varlistentry>
-        <term><emphasis role="bold">MARK/CLASSIFY</emphasis> (mark) -
+        <term><emphasis role="bold">ACTION</emphasis> (mark) -
         <replaceable>mark</replaceable></term>
 
         <listitem>
@@ -271,8 +271,8 @@
               target allows you to work around that problem. SAME may be used
               in the PREROUTING and OUTPUT chains. When used in PREROUTING, it
               causes matching connections from an individual local system to
-              all use the same provider. For example: <programlisting>#MARK/            SOURCE         DEST         PROTO      DEST
-#CLASSIFY                                                PORT(S)
+              all use the same provider. For example: <programlisting>#ACTION           SOURCE         DEST         PROTO      DEST
+#                                                        PORT(S)
 SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443</programlisting>
               If a host in 192.168.1.0/24 attempts a connection on TCP port 80
               or 443 and it has sent a packet on either of those ports in the
@@ -282,8 +282,8 @@ SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443</programlisting>
 
               <para>When used in the OUTPUT chain, it causes all matching
               connections to an individual remote system to all use the same
-              provider. For example:<programlisting>#MARK/            SOURCE         DEST         PROTO      DEST
-#CLASSIFY                                                PORT(S)
+              provider. For example:<programlisting>#ACTION           SOURCE         DEST         PROTO      DEST
+#                                                        PORT(S)
 SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
               If the firewall attempts a connection on TCP port 80 or 443 and
               it has sent a packet on either of those ports in the last five
@@ -468,6 +468,112 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
               <replaceable>number</replaceable>. Requires IMQ Target support
               in your kernel and iptables.</para>
             </listitem>
+
+            <listitem>
+              <para><emphasis
+              role="bold">DSCP</emphasis>(<replaceable>dscp</replaceable>)</para>
+
+              <para>Added in Shorewall 4.5.1. Sets the
+              <firstterm>Differentiated Services Code Point</firstterm> field
+              in the IP header. The <replaceable>dscp</replaceable> value may
+              be given as an even number (hex or decimal) or as the name of a
+              DSCP class. Valid class names and their associated hex numeric
+              values are:</para>
+
+              <programlisting>    CS0  =&gt; 0x00
+    CS1  =&gt; 0x08
+    CS2  =&gt; 0x10
+    CS3  =&gt; 0x18
+    CS4  =&gt; 0x20
+    CS5  =&gt; 0x28
+    CS6  =&gt; 0x30
+    CS7  =&gt; 0x38
+    BE   =&gt; 0x00
+    AF11 =&gt; 0x0a
+    AF12 =&gt; 0x0c
+    AF13 =&gt; 0x0e
+    AF21 =&gt; 0x12
+    AF22 =&gt; 0x14
+    AF23 =&gt; 0x16
+    AF31 =&gt; 0x1a
+    AF32 =&gt; 0x1c
+    AF33 =&gt; 0x1e
+    AF41 =&gt; 0x22
+    AF42 =&gt; 0x24
+    AF43 =&gt; 0x26
+    EF   =&gt; 0x2e</programlisting>
+
+              <para>May be optionally followed by ':' and a capital letter
+              designating the chain where classification is to occur.</para>
+
+              <variablelist>
+                <varlistentry>
+                  <term>F</term>
+
+                  <listitem>
+                    <para>FORWARD chain.</para>
+                  </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                  <term>T</term>
+
+                  <listitem>
+                    <para>POSTROUTING chain (default).</para>
+                  </listitem>
+                </varlistentry>
+              </variablelist>
+            </listitem>
+
+            <listitem>
+              <para><emphasis
+              role="bold">TOS</emphasis>(<replaceable>tos</replaceable>[/<replaceable>mask</replaceable>])</para>
+
+              <para>Added in Shorewall 4.5.1. Sets the <firstterm>Type of
+              Service</firstterm> field in the IP header. The
+              <replaceable>tos</replaceable> value may be given as an number
+              (hex or decimal) or as the name of a TOS type. Valid type names
+              and their associated hex numeric values are:</para>
+
+              <programlisting>Minimize-Delay       =&gt; 0x10,
+Maximize-Throughput  =&gt; 0x08,
+Maximize-Reliability =&gt; 0x04,
+Minimize-Cost        =&gt; 0x02,
+Normal-Service       =&gt; 0x00</programlisting>
+
+              <para>When <replaceable>tos</replaceable> is given as a number,
+              it may be optionally followed by '/' and a
+              <replaceable>mask</replaceable>. When no
+              <replaceable>mask</replaceable> is given, the value 0xff is
+              assumed. When <replaceable>tos</replaceable> is given as a type
+              name, the <replaceable>mask</replaceable> 0x3f is
+              assumed.</para>
+
+              <para>The action performed is to zero out the bits specified by
+              the <replaceable>mask</replaceable>, then set the bits specified
+              by <replaceable>tos</replaceable>.</para>
+
+              <para>May be optionally followed by ':' and a capital letter
+              designating the chain where classification is to occur.</para>
+
+              <variablelist>
+                <varlistentry>
+                  <term>F</term>
+
+                  <listitem>
+                    <para>FORWARD chain.</para>
+                  </listitem>
+                </varlistentry>
+
+                <varlistentry>
+                  <term>T</term>
+
+                  <listitem>
+                    <para>POSTROUTING chain (default).</para>
+                  </listitem>
+                </varlistentry>
+              </variablelist>
+            </listitem>
           </orderedlist>
         </listitem>
       </varlistentry>
@@ -494,7 +600,7 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
               MAC addresses. <emphasis role="bold">This form will not match
               traffic that originates on the firewall itself unless either
               &lt;major&gt;&lt;minor&gt; or the :T chain qualifier is used in
-              the MARK column.</emphasis></para>
+              the ACTION column.</emphasis></para>
 
               <para>Examples:<simplelist>
                   <member>0.0.0.0/0</member>
@@ -516,7 +622,7 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
               <para>$FW optionally followed by a colon (":") and a
               comma-separated list of host or network IP addresses. Matches
               packets originating on the firewall. May not be used with a
-              chain qualifier (:P, :F, etc.) in the MARK column.</para>
+              chain qualifier (:P, :F, etc.) in the ACTION column.</para>
             </listitem>
           </orderedlist>
 
@@ -832,15 +938,15 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
           original connection was made on.</para>
 
           <para>Example: Mark all FTP data connections with mark
-          4:<programlisting>#MARK/    SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#CLASSIFY                                        PORT(S)
+          4:<programlisting>#ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
+#                                                PORT(S)
 4:T       0.0.0.0/0 0.0.0.0/0 TCP     -          -       -    -    -      -   -         ftp</programlisting></para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis role="bold">PROBABILITY</emphasis> -
-        [probability]</term>
+        [<replaceable>probability</replaceable>]</term>
 
         <listitem>
           <para>Added in Shorewall 4.5.0. When non-empty, requires the
@@ -850,6 +956,44 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
           <replaceable>probability</replaceable> is a number 0 &lt;
           <replaceable>probability</replaceable> &lt;= 1 and may be expressed
           at up to 8 decimal points of precision.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">DSCP -</emphasis>
+        [[!]<replaceable>dscp</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.1. When non-empty, match packets whose
+          <firstterm>Differentiated Service Code Point</firstterm> field
+          matches the supplied value (when '!' is given, the rule matches
+          packets whose DSCP field does not match the supplied value). The
+          <replaceable>dscp</replaceable> value may be given as an even number
+          (hex or decimal) or as the name of a DSCP class. Valid class names
+          and their associated hex numeric values are:</para>
+
+          <programlisting>    CS0  =&gt; 0x00
+    CS1  =&gt; 0x08
+    CS2  =&gt; 0x10
+    CS3  =&gt; 0x18
+    CS4  =&gt; 0x20
+    CS5  =&gt; 0x28
+    CS6  =&gt; 0x30
+    CS7  =&gt; 0x38
+    BE   =&gt; 0x00
+    AF11 =&gt; 0x0a
+    AF12 =&gt; 0x0c
+    AF13 =&gt; 0x0e
+    AF21 =&gt; 0x12
+    AF22 =&gt; 0x14
+    AF23 =&gt; 0x16
+    AF31 =&gt; 0x1a
+    AF32 =&gt; 0x1c
+    AF33 =&gt; 0x1e
+    AF41 =&gt; 0x22
+    AF42 =&gt; 0x24
+    AF43 =&gt; 0x26
+    EF   =&gt; 0x2e</programlisting>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -873,8 +1017,8 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
 
           <para>We assume packet/connection mark 0 means unclassified.</para>
 
-          <programlisting>       #MARK/     SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-       #CLASSIFY                                               PORT(S)
+          <programlisting>       #ACTION    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
+       #                                                       PORT(S)
        1:T        0.0.0.0/0 0.0.0.0/0    icmp    echo-request
        1:T        0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
        RESTORE:T  0.0.0.0/0 0.0.0.0/0    all     -             -       -       0
