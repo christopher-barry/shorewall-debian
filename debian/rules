@@ -35,7 +35,7 @@ override_dh_install:
 	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
 		>> debian/shorewall6.substvars
 	DESTDIR=$(SRWL) MANDIR=man BUILD=debian HOST=debian $(CURDIR)/install.sh
-	rmdir $(SWRL)/usr/share/shorewall/Shorewall
+	rmdir $(SRWL)/usr/share/shorewall/Shorewall
 
 override_dh_fixperms:
 	# Temporary zones are only available to root
