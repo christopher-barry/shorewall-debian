@@ -1,1 +1,3 @@
 01_debian_configuration.patch
+03_man_page_compression.patch
+04_man_page_directory.patch

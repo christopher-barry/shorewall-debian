@@ -64,6 +64,24 @@
 #     order in which you list the options is not significant but the list must
 #     have no embedded white space.
 # 
+#     blacklist
+# 
+#         Check packets arriving on this port against the shorewall6-blacklist(5)
+#         file.
+# 
+#     ipsec
+# 
+#         The zone is accessed via a kernel 2.6 ipsec SA. Note that if the zone
+#         named in the ZONE column is specified as an IPSEC zone in the
+#         shorewall6-zones(5) file then you do NOT need to specify the 'ipsec'
+#         option here.
+# 
+#     mss=mss
+# 
+#         Added in Shorewall 4.5.2. When present, causes the TCP mss for new
+#         connections to/from the hosts given in the HOST(S) column to be clamped
+#         at the specified mss.
+# 
 #     routeback
 # 
 #         shorewall6 should set up the infrastructure to pass packets from this/
@@ -72,11 +90,6 @@
 #         the group or if DNAT is used to send requests originating from this
 #         group to a server in the group.
 # 
-#     blacklist
-# 
-#         Check packets arriving on this port against the shorewall6-blacklist(5)
-#         file.
-# 
 #     tcpflags
 # 
 #         Packets arriving from these hosts are checked for certain illegal
@@ -84,13 +97,6 @@
 #         flags are handled according to the setting of TCP_FLAGS_DISPOSITION
 #         after having been logged according to the setting of
 #         TCP_FLAGS_LOG_LEVEL.
-# 
-#     ipsec
-# 
-#         The zone is accessed via a kernel 2.6 ipsec SA. Note that if the zone
-#         named in the ZONE column is specified as an IPSEC zone in the
-#         shorewall6-zones(5) file then you do NOT need to specify the 'ipsec'
-#         option here.
 # 
 ###############################################################################
 #ZONE	HOST(S)					OPTIONS

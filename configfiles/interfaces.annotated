@@ -257,4 +257,7 @@
 #     -       br0       -                routeback
 # 
 ###############################################################################
+FORMAT 1
 #ZONE	INTERFACE	ANYCAST		OPTIONS
+FORMAT 2
+#ZONE		INTERFACE		OPTIONS

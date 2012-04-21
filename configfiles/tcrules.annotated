@@ -9,7 +9,7 @@
 #
 # See http://shorewall.net/PacketMarking.html for a detailed description of
 # the Netfilter/Shorewall packet marking mechanism.
-##############################################################################################################################################
+###################################################################################################################################################
 # 
 # Entries in this file cause packets to be marked as a means of classifying them
 # for traffic control or policy routing.
@@ -28,9 +28,9 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# MARK/CLASSIFY - mark
+# ACTION - action
 # 
-#     mark may assume one of the following values.
+#     action may assume one of the following values.
 # 
 #      1. A mark value which is an integer in the range 1-255.
 # 
@@ -170,8 +170,8 @@
 #         used in PREROUTING, it causes matching connections from an individual
 #         local system to all use the same provider. For example:
 # 
-#         #MARK/            SOURCE         DEST         PROTO      DEST
-#         #CLASSIFY                                                PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
 #         SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443
 # 
 #         If a host in 192.168.1.0/24 attempts a connection on TCP port 80 or 443
@@ -182,8 +182,8 @@
 #         When used in the OUTPUT chain, it causes all matching connections to an
 #         individual remote system to all use the same provider. For example:
 # 
-#         #MARK/            SOURCE         DEST         PROTO      DEST
-#         #CLASSIFY                                                PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
 #         SAME              $FW            0.0.0.0/0    tcp        80,443
 # 
 #         If the firewall attempts a connection on TCP port 80 or 443 and it has
@@ -232,6 +232,78 @@
 #         the IMQ identified by number. Requires IMQ Target support in your
 #         kernel and ip6tables.
 # 
+#     11. DSCP(dscp)
+# 
+#         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
+#         field in the IP header. The dscp value may be given as an even number
+#         (hex or decimal) or as the name of a DSCP class. Valid class names and
+#         their associated hex numeric values are:
+# 
+#             CS0  => 0x00
+#             CS1  => 0x08
+#             CS2  => 0x10
+#             CS3  => 0x18
+#             CS4  => 0x20
+#             CS5  => 0x28
+#             CS6  => 0x30
+#             CS7  => 0x38
+#             BE   => 0x00
+#             AF11 => 0x0a
+#             AF12 => 0x0c
+#             AF13 => 0x0e
+#             AF21 => 0x12
+#             AF22 => 0x14
+#             AF23 => 0x16
+#             AF31 => 0x1a
+#             AF32 => 0x1c
+#             AF33 => 0x1e
+#             AF41 => 0x22
+#             AF42 => 0x24
+#             AF43 => 0x26
+#             EF   => 0x2e
+# 
+#         May be optionally followed by ':' and a capital letter designating the
+#         chain where classification is to occur.
+# 
+#         F
+# 
+#             FORWARD chain.
+# 
+#         T
+# 
+#             POSTROUTING chain (default).
+# 
+#     12. TOS(tos[/mask])
+# 
+#         Added in Shorewall 4.5.1. Sets the Type of Service field in the IP
+#         header. The tos value may be given as an number (hex or decimal) or as
+#         the name of a TOS type. Valid type names and their associated hex
+#         numeric values are:
+# 
+#         Minimize-Delay       => 0x10,
+#         Maximize-Throughput  => 0x08,
+#         Maximize-Reliability => 0x04,
+#         Minimize-Cost        => 0x02,
+#         Normal-Service       => 0x00
+# 
+#         When tos is given as a number, it may be optionally followed by '/' and
+#         a mask. When no mask is given, the value 0xff is assumed. When tos is
+#         given as a type name, the mask 0x3f is assumed.
+# 
+#         The action performed is to zero out the bits specified by the mask,
+#         then set the bits specified by tos.
+# 
+#         May be optionally followed by ':' and a capital letter designating the
+#         chain where classification is to occur.
+# 
+#         F
+# 
+#             FORWARD chain.
+# 
+#         T
+# 
+#             POSTROUTING chain (default).
+# 
 # SOURCE - {-|{interface|$FW}|[{interface|$FW}:]<address-or-range[,
 #     address-or-range]...}[exclusion]>
 # 
@@ -245,8 +317,8 @@
 #     from the firewall itself, needs a different rule.
 # 
 #     Accordingly, use $FW in its own separate rule for packets originating on
-#     the firewall. In such a rule, the MARK column may NOT specify either :P or
-#     :F because marking for firewall-originated packets always occurs in the
+#     the firewall. In such a rule, the ACTION column may NOT specify either :P
+#     or :F because marking for firewall-originated packets always occurs in the
 #     OUTPUT chain.
 # 
 #     MAC addresses must be prefixed with "~" and use "-" as a separator.
@@ -266,7 +338,7 @@
 #     subnets. If your kernel and ip6tables include iprange match support, IP
 #     address ranges are also allowed. List elements may also consist of an
 #     interface name followed by ":" and an address (e.g., eth1:<2002:ce7c:92b4::
-#     /48>). If the MARK column specificies a classification of the form major:
+#     /48>). If the ACTION column specificies a classification of the form major:
 #     minor then this column may also contain an interface name.
 # 
 #     When an interface is not specified, the angled brackets ('<' and '>')
@@ -417,8 +489,8 @@
 # 
 #     Example: Mark all FTP data connections with mark 4:
 # 
-#     #MARK/    SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#     #CLASSIFY                                        PORT(S)
+#     #ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
+#     #                                                PORT(S)
 #     4         ::/0      ::/0      TCP     -          -       -    -    -      -   -         ftp
 # 
 # HEADERS - [!][any:|exactly:]header-list (Optional - Added in Shorewall 4.4.15)
@@ -483,8 +555,8 @@
 # 
 #     We assume packet/connection mark 0 means unclassified.
 # 
-#            #MARK/    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-#            #CLASSIFY                                              PORT(S)
+#            #ACTION   SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
+#            #                                                      PORT(S)
 #            1         ::/0      ::/0         icmp    echo-request
 #            1         ::/0      ::/0         icmp    echo-reply
 #            RESTORE   ::/0      ::/0         all     -             -       -       0
@@ -497,6 +569,6 @@
 #     packet is P2P, set the packet mark to 4. If the packet mark has been set,
 #     save it to the connection mark.
 # 
-##############################################################################################################################################
-#MARK	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY
+###################################################################################################################################################
+#ACTION	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY DSCP
 #						PORT(S)	PORT(S)
