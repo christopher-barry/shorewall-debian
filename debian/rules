@@ -34,7 +34,7 @@ override_dh_install:
 		>> debian/shorewall.substvars
 	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
 		>> debian/shorewall.substvars
-	DESTDIR=$(SRWL) MANDIR=man BUILD=debian HOST=debian $(CURDIR)/install.sh
+	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
 	find $(SRWL) -type d -empty -delete
 
 override_dh_fixperms:
