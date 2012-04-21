@@ -38,6 +38,16 @@ override_dh_install:
 	find $(SRWL) -type d -empty -delete
 
 override_dh_fixperms:
+	# Temporary zones are only available to root
+	chmod 750 $(SRWL)/var/lib/shorewall
+	# By default, configuration is not world-readable
+	chmod 640 $(SRWL)/etc/shorewall/*
+	# These should not be executable
+	chmod 644 $(SRWL)/etc/shorewall/shorewall6.conf
+	chmod 644 $(SRWL)/etc/shorewall/Makefile
+	# Global configuration has to be fully readable
+	chmod 644 $(SRWL)/usr/share/shorewall/*
+	chmod 755 $(SRWL)/usr/share/shorewall/configfiles/
 	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall
 
 override_dh_compress:
