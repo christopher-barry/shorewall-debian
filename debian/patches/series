@@ -1,2 +1,4 @@
 01_debian_configuration.patch
 02_digest_sha.patch
+03_man_page_compression.patch
+04_man_page_directory.patch

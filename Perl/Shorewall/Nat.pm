@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
 our @EXPORT_OK = ();
-our $VERSION = '4.4_25';
+our $VERSION = '4.5_2';
 
 my @addresses_to_add;
 my %addresses_to_add;
@@ -54,8 +54,8 @@ sub initialize() {
 #
 sub process_one_masq( )
 {
-    my ($interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user ) = 
-	split_line1 'masq file', { interface => 0, source => 1, address => 2, proto => 3, port => 4, ipsec => 5, mark => 6, user => 7 };
+    my ($interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user, $condition ) = 
+	split_line1 'masq file', { interface => 0, source => 1, address => 2, proto => 3, port => 4, ipsec => 5, mark => 6, user => 7, switch => 8 };
 
     if ( $interfacelist eq 'COMMENT' ) {
 	process_comment;
@@ -88,7 +88,7 @@ sub process_one_masq( )
 	$interfacelist = $1;
     } elsif ( $interfacelist =~ /^([^:]+):([^:]*)$/ ) {
 	my ( $one, $two ) = ( $1, $2 );
-	if ( $2 =~ /\./ ) {
+	if ( $2 =~ /\./ || $2 =~ /^%/ ) {
 	    $interfacelist = $one;
 	    $destnets = $two;
 	}
@@ -117,9 +117,9 @@ sub process_one_masq( )
     }
 
     #
-    # Handle Protocol and Ports
+    # Handle Protocol, Ports and Condition
     #
-    $baserule .= do_proto $proto, $ports, '';
+    $baserule .= do_proto( $proto, $ports, '' ) . do_condition( $condition );
     #
     # Handle Mark
     #
@@ -195,7 +195,7 @@ sub process_one_masq( )
 			    if ( $conditional = conditional_rule( $chainref, $addr ) ) {
 				$addrlist .= '--to-source ' . get_interface_address $1;
 			    } else {
-				$addrlist .= '--to-source ' . record_runtime_address $1;
+				$addrlist .= '--to-source ' . record_runtime_address( '&', $1 );
 			    }
 			} elsif ( $addr =~ /^.*\..*\..*\./ ) {
 			    $target = 'SNAT ';
@@ -210,9 +210,7 @@ sub process_one_masq( )
 			} else {
 			    my $ports = $addr; 
 			    $ports =~ s/^://;
-			    my $portrange = $ports;
-			    $portrange =~ s/-/:/;
-			    validate_portpair( $proto, $portrange );
+			    validate_portpair1( $proto, $ports );
 			    $addrlist .= "--to-ports $ports ";
 			    $exceptionrule = do_proto( $proto, '', '' );
 			}

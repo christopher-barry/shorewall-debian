@@ -1,8 +1,9 @@
-shorewall (4.5.0.3-1~bpo60+1) squeeze; urgency=low
+shorewall (4.5.2.2-1) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * New Upstream Version
+  * Convert to debhelper compatibility level 8
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 08 Mar 2012 23:16:07 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 14 Apr 2012 21:57:42 -0400
 
 shorewall (4.5.0.3-1) unstable; urgency=low
 

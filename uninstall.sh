@@ -26,12 +26,12 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.5.0.3
+VERSION=4.5.2.2
 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
-    echo "usage: $ME"
+    echo "usage: $ME [ <shorewallrc file> ]"
     exit $1
 }
 
@@ -40,16 +40,25 @@ qt()
     "$@" >/dev/null 2>&1
 }
 
-restore_file() # $1 = file to restore
-{
-    if [ -f ${1}-shorewall.bkout ]; then
-	if (mv -f ${1}-shorewall.bkout $1); then
-	    echo
-	    echo "$1 restored"
-        else
-	    exit 1
-        fi
-    fi
+split() {
+    local ifs
+    ifs=$IFS
+    IFS=:
+    set -- $1
+    echo $*
+    IFS=$ifs
+}
+
+mywhich() {
+    local dir
+
+    for dir in $(split $PATH); do
+	if [ -x $dir/$1 ]; then
+	    return 0
+	fi
+    done
+
+    return 2
 }
 
 remove_file() # $1 = file to restore
@@ -60,8 +69,34 @@ remove_file() # $1 = file to restore
     fi
 }
 
-if [ -f /usr/share/shorewall/version ]; then
-    INSTALLED_VERSION="$(cat /usr/share/shorewall/version)"
+if [ $# -eq 0 ]; then
+    if [ -f ./shorewallrc ]; then
+	. ./shorewallrc
+    elif [ -f ~/.shorewallrc ]; then
+	. ~/.shorewallrc || exit 1
+	file=./.shorewallrc
+    elif [ -f /usr/share/shorewall/shorewallrc ]; then
+	. /usr/share/shorewall/shorewallrc
+    else
+	fatal_error "No configuration file specified and /usr/share/shorewall/shorewallrc not found"
+    fi
+elif [ $# -eq 1 ]; then
+    file=$1
+    case $file in
+	/*|.*)
+	    ;;
+	*)
+	    file=./$file
+	    ;;
+    esac
+
+    . $file
+else
+    usage 1
+fi
+
+if [ -f ${SHAREDIR}/shorewall/version ]; then
+    INSTALLED_VERSION="$(cat ${SHAREDIR}/shorewall/version)"
     if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
 	echo "WARNING: Shorewall Version $INSTALLED_VERSION is installed"
 	echo "         and this is the $VERSION uninstaller."
@@ -72,62 +107,33 @@ else
     VERSION=""
 fi
 
-[ -n "${LIBEXEC:=/usr/share}" ]
-[ -n "${PERLLIB:=/usr/share/shorewall}" ]
 
 echo "Uninstalling shorewall $VERSION"
 
-if qt iptables -L shorewall -n && [ ! -f /sbin/shorewall-lite ]; then
-   /sbin/shorewall clear
+if qt iptables -L shorewall -n && [ ! -f ${SBINDIR}/shorewall-lite ]; then
+   shorewall clear
 fi
 
-if [ -L /usr/share/shorewall/init ]; then
-    FIREWALL=$(readlink -m -q /usr/share/shorewall/init)
-else
-    FIREWALL=/etc/init.d/shorewall
-fi
+rm -f ${SBINDIR}/shorewall
 
-if [ -n "$FIREWALL" ]; then
-    if [ -x /usr/sbin/updaterc.d ]; then
-	updaterc.d shorewall remove
-    elif [ -x /sbin/insserv -o -x /usr/sbin/insserv ]; then
-        insserv -r $FIREWALL
-    elif [ -x /sbin/systemctl ]; then
-	systemctl disable shorewall
-    elif [ -x /sbin/chkconfig -o -x /usr/sbin/chkconfig ]; then
-	chkconfig --del $(basename $FIREWALL)
-    else
-	rm -f /etc/rc*.d/*$(basename $FIREWALL)
-    fi
-
-    remove_file $FIREWALL
-    rm -f ${FIREWALL}-*.bkout
-fi
-
-rm -f /sbin/shorewall
-rm -f /sbin/shorewall-*.bkout
-
-rm -rf /usr/share/shorewall/version
-rm -rf /etc/shorewall
-rm -rf /etc/shorewall-*.bkout
-rm -rf /var/lib/shorewall
-rm -rf /var/lib/shorewall-*.bkout
-rm -rf $PERLLIB}/Shorewall/*
+rm -rf ${SHAREDIR}/shorewall/version
+rm -rf ${CONFDIR}/shorewall
+rm -rf ${VARDIR}/shorewall
+rm -rf ${PERLLIB}/Shorewall/*
 rm -rf ${LIBEXEC}/shorewall
-rm -rf /usr/share/shorewall/configfiles/
-rm -rf /usr/share/shorewall/Samples/
-rm -rf /usr/share/shorewall/Shorewall/
-rm -f  /usr/share/shorewall/lib.cli-std
-rm -f  /usr/share/shorewall/lib.core
-rm -f  /usr/share/shorewall/compiler.pl
-rm -f  /usr/share/shorewall/prog.*
-rm -f  /usr/share/shorewall/module*
-rm -f  /usr/share/shorewall/helpers
-rm -f  /usr/share/shorewall/action*
-rm -f  /usr/share/shorewall/init
-rm -rf /usr/share/shorewall-*.bkout
+rm -rf ${SHAREDIR}/shorewall/configfiles/
+rm -rf ${SHAREDIR}/shorewall/Samples/
+rm -rf ${SHAREDIR}/shorewall/Shorewall/
+rm -f  ${SHAREDIR}/shorewall/lib.cli-std
+rm -f  ${SHAREDIR}/shorewall/lib.core
+rm -f  ${SHAREDIR}/shorewall/compiler.pl
+rm -f  ${SHAREDIR}/shorewall/prog.*
+rm -f  ${SHAREDIR}/shorewall/module*
+rm -f  ${SHAREDIR}/shorewall/helpers
+rm -f  ${SHAREDIR}/shorewall/action*
+rm -f  ${SHAREDIR}/shorewall/init
 
-for f in /usr/share/man/man5/shorewall* /usr/share/man/man8/shorewall*; do
+for f in ${MANDIR}/man5/shorewall* ${MANDIR}/man8/shorewall*; do
     case $f in
 	shorewall6*|shorewall-lite*)
 	    ;;
@@ -137,8 +143,10 @@ for f in /usr/share/man/man5/shorewall* /usr/share/man/man8/shorewall*; do
     esac
 done
 
-rm -f  /etc/logrotate.d/shorewall
-rm -f  /lib/systemd/system/shorewall.service
+rm -f  ${CONFDIR}/logrotate.d/shorewall
+
+if [ -n "$SYSTEMD" ]; THEN
+rm -f  ${SYSTEMD}/shorewall.service
 
 echo "Shorewall Uninstalled"
 

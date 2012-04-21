@@ -52,7 +52,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_0';
+our $VERSION = '4.5_2';
 #
 # Globals are documented in the initialize() function
 #
@@ -963,7 +963,7 @@ sub createlogactionchain( $$$$$ ) {
 
     unless ( $targets{$action} & BUILTIN ) {
 
-	dont_optimize $chainref;
+	set_optflags( $chainref, DONT_OPTIMIZE );
 
 	my $file = find_file $chain;
 
@@ -997,7 +997,7 @@ sub createsimpleactionchain( $ ) {
 
     unless ( $targets{$action} & BUILTIN ) {
 
-	dont_optimize $chainref;
+	set_optflags( $chainref, DONT_OPTIMIZE );
 
 	my $file = find_file $action;
 
@@ -1306,7 +1306,7 @@ sub allowInvalid ( $$$$ ) {
 }
 
 sub forwardUPnP ( $$$$ ) {
-    my $chainref = dont_optimize 'forwardUPnP';
+    my $chainref = set_optflags( 'forwardUPnP', DONT_OPTIMIZE );
 
     add_commands( $chainref , '[ -f ${VARDIR}/.forwardUPnP ] && cat ${VARDIR}/.forwardUPnP >&3' );
 }
@@ -2238,7 +2238,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 	    }
 	}
 
-	dont_move( dont_optimize( $nonat_chain ) ) if $tgt eq 'RETURN';
+	set_optflags( $nonat_chain, DONT_MOVE | DONT_OPTIMIZE ) if $tgt eq 'RETURN';
 
 	expand_rule( $nonat_chain ,
 		     PREROUTE_RESTRICT ,
@@ -2262,7 +2262,7 @@ sub process_rule1 ( $$$$$$$$$$$$$$$$ $) {
 	    $action = $usedactions{$normalized_target}{name};
 	    $loglevel = '';
 	} else {
-	    dont_move( dont_optimize ( $chainref ) ) if $action eq 'RETURN';
+	    set_optflags( $chainref , DONT_MOVE | DONT_OPTIMIZE ) if $action eq 'RETURN';
 	}
 
 	if ( $origdest ) {
@@ -2458,6 +2458,12 @@ sub process_rule ( ) {
     progress_message qq(   Rule "$thisline" $done);
 }
 
+sub intrazone_allowed( $$ ) {
+    my ( $zone, $zoneref ) = @_;
+
+    $zoneref->{complex} && $filter_table->{rules_chain( $zone, $zone )}{policy} ne 'NONE';
+}
+
 #
 # Add jumps to the blacklst and blackout chains
 #
@@ -2470,7 +2476,7 @@ sub classic_blacklist() {
     
     for my $zone ( @zones ) {
 	my $zoneref = find_zone( $zone );
-	my $simple  =  @zones <= 2 && ! $zoneref->{options}{complex};
+	my $simple  =  @zones <= 2 && ! $zoneref->{complex};
 	
 	if ( $zoneref->{options}{in}{blacklist} ) {
 	    my $blackref = $filter_table->{blacklst};
@@ -2484,7 +2490,7 @@ sub classic_blacklist() {
 		    my $ruleschain    = rules_chain( $zone, $zone1 );
 		    my $ruleschainref = $filter_table->{$ruleschain};
 
-		    if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
+		    if ( $zone ne $zone1 || intrazone_allowed( $zone, $zoneref ) ) {
 			add_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, @state );
 		    }
 		}
@@ -2501,7 +2507,7 @@ sub classic_blacklist() {
 		my $ruleschain    = rules_chain( $zone1, $zone );
 		my $ruleschainref = $filter_table->{$ruleschain};
 
-		if ( ( $zone ne $zone1 || $ruleschainref->{referenced} ) && $ruleschainref->{policy} ne 'NONE' ) {
+		if ( ( $zone ne $zone1 || intrazone_allowed( $zone, $zoneref ) ) ) {
 		    add_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, @state );
 		}
 	    }
@@ -2567,6 +2573,11 @@ sub process_rules( $ ) {
     $section = '';
 
     add_interface_options( $blrules );
+
+    #
+    # Handle MSS settings in the zones file
+    #
+    setup_zone_mss;
 
     $fn = open_file 'rules';
 

@@ -1,30 +1,151 @@
-Changes in 4.5.0.3
+Changes in 4.5.2.2
 
-1)  Add /sbin/shorewall-init
+1)  Delete trailing whitespace in read_a_line1().
 
-2)  Allow DEBUG in params file.
+Changes in 4.5.2.1
 
-3)  Correct 'shorewall trace stop'.
+1)  Added configure.pl script to allow rpm builds on old systems.
 
-Changes in 4.5.0.2
+2)  Correct INCLUDE inside an ?IF ... ?ENDIF
 
-1)  Fix init scripts.
+3)  Add comments to shorewallrc files.
 
-2)  Fix Fedora/Redhat install.
+4)  Correct a couple of defects in the shorewallrc files.
 
-Changes in 4.5.0.1
+5)  Modify Makefiles if directories non-standard.
 
-1)  Unghost blacklist file.
+6)  configure[.pl] improvements.
 
-2)  Fix LIBEXEC/PERLLIB handling.
+7)  Correct the output of 'version -a'
 
-3)  Correct a typo in the blrules files.
+Changes in 4.5.2 Final
 
-4)  Eliminate compiler crash from unknown IPv6 interface.
+1)  Update release documents.
+
+2)  Don't strip comments in embedded Perl and Shell because it can
+    lead to an un-terminated string when '#' appears in a string.
+
+3)  Don't suppress whitespace in embedded Perl and Shell.
+
+Changes in 4.5.2 RC 1
+
+1)  Update release documents.
+
+2)  Remove several more absolute pathnames.
+
+3)  Deimplement option '?' in BEGIN and END directives.
+
+4)  Allow ?IF, ?ELSE and ?END in embedded Perl and Shell.
+
+Changes in 4.5.2 RC 1
+
+1)  Update release documents.
+
+2)  Allow remote firewalls with a different directory structure.
+
+3)  Fix a lot of bugs.
+
+4)  Avoid modifying shorewallrc variables (except VARDIR).
+
+Changes in 4.5.2 Beta 5
+
+1)  Eliminate 'local file' error in installers.
+
+2)  Make requested change to the shorewallrc.suse file.
+
+3)  Add aliases to configure.
+
+4)  Fix 'nets=' with 'dhcp'.
+
+Changes in 4.5.2 Beta 4
+
+1)  Add a configure script
+
+2)  Expand the places where .shorewallrc can be found.
+
+Changes in 4.5.2 Beta 3
+
+1)  Fix syntax error in init.sh
+
+2)  Fix shorewall-core.spec
+
+3)  Modify Redhat/Fedora init scripts for shorewallrc.
+
+Changes in 4.5.2 Beta 2
+
+1)  Fix conditional compilation.
+
+2)  Add IPSET_WARNINGS option.
+
+3)  Add configuration files to track where Shorewall components are
+    installed.
+
+Changes in 4.5.2 Beta 1
+
+1)  Implement 'mss=' in the hosts file.
+
+2)  Implement conditional compilation.
+
+3)  Promote a couple of zone options out of the 'options' hash.
+
+4)  Remove the 'nexted' zone option.
+
+5)  Rename the MARK/CLASSIFY column to ACTION
+
+Changes in 4.5.1 Final
+
+1)  Update release documents.
+
+Changes in 4.5.1 RC 1
+
+1)  Update release documents.
+
+2)  Don't automatically install 'isusable'
+
+3)  Clean up TOS handling
+
+Changes in 4.5.1 Beta 3
+
+1)  Add support for packager's config file
+
+2)  Implement run-time gateway variables.
+
+3)  Add /sbin/shorewall-init
+
+4)  Don't copy non-default mark layout settings during update.
+
+Changes in 4.5.1 Beta 2
+
+1)  Remove some cruft from the Zones module.
+
+2)  Collapse the three 'dont_' members of the chain table into a single
+    'optflags' member.
+
+3)  Add DSCP match and target support.
+
+4)  Rework install.sh scripts and .spec files.
+
+5)  Fix standard init files.
+
+Changes in 4.5.1 Beta 1
+
+1)  Add IMQ support.
+
+2)  Remove requirement to supply a mark value on the default class.
+
+3)  New install script structure.
+
+4)  Give warning when opposite flag is used in an ipset invocation.
+
+5)  Add a SWITCH column to the masq file.
+
+6)  Correct a typo in the blrules files.
+
+7)  Eliminate compiler crash from unknown IPv6 interface.
 
 Changes in 4.5.0 Final
 
-1)  Updated release documents.
+1)  Update release documents.
 
 Changes in 4.5.0 RC 2
 

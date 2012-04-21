@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 4.5.0
-%define release 3
+%define version 4.5.2
+%define release 2
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -29,19 +29,23 @@ a multi-function gateway/ router/server or on a standalone GNU/Linux system.
 %build
 
 %install
-export DESTDIR=$RPM_BUILD_ROOT ; \
-export OWNER=`id -n -u` ; \
-export GROUP=`id -n -g` ;\
-./install.sh
+
+./configure.pl --host=%{_vendor} \
+               --prefix=%{_prefix} \
+               --tmpdir=%{_tmpdir} \
+               --perllibdir=%{perl_vendorlib} \
+               --libexecdir=%{_libexecdir}
+
+DESTDIR=%{buildroot} ./install.sh
 
 %clean
-rm -rf $RPM_BUILD_ROOT
+rm -rf %{buildroot}
 
 %post
 
 if [ $1 -eq 1 ]; then
 	if [ -x /sbin/insserv ]; then
-		/sbin/insserv /etc/rc.d/shorewall
+		/sbin/insserv %{_initddir}/shorewall
 	elif [ -x /sbin/chkconfig ]; then
 		/sbin/chkconfig --add shorewall;
 	fi
@@ -51,7 +55,7 @@ fi
 
 if [ $1 = 0 ]; then
 	if [ -x /sbin/insserv ]; then
-		/sbin/insserv -r /etc/init.d/shorewall
+		/sbin/insserv -r %{_initddir}/shorewall
 	elif [ -x /sbin/chkconfig ]; then
 		/sbin/chkconfig --del shorewall
 	fi
@@ -70,8 +74,9 @@ fi
 
 %files
 %defattr(0644,root,root,0755)
-%attr(0544,root,root) /etc/init.d/shorewall
+%attr(0544,root,root) %{_initddir}/shorewall
 %attr(0755,root,root) %dir /etc/shorewall
+%ghost /etc/shorewall/isusable
 %attr(0755,root,root) %dir /usr/share/shorewall/configfiles
 %attr(0700,root,root) %dir /var/lib/shorewall
 %attr(0644,root,root) %config(noreplace) /etc/shorewall/*
@@ -102,7 +107,7 @@ fi
 %attr(755,root,root) /usr/share/shorewall/compiler.pl
 %attr(755,root,root) /usr/share/shorewall/getparams
 %attr(0644,root,root) /usr/share/shorewall/prog.*
-%attr(0644,root,root) /usr/share/shorewall/Shorewall/*.pm
+%attr(0644,root,root) %{perl_vendorlib}/Shorewall/*.pm
 
 %attr(0644,root,root) /usr/share/shorewall/configfiles/*
 
@@ -112,18 +117,36 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
-* Wed Feb 29 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-3
-* Mon Feb 27 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-2
-* Mon Feb 13 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-1
-* Sun Feb 12 2012 Tom Eastep tom@shorewall.net
-- Unghost /etc/shorewall/blacklist
-* Mon Feb 06 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-0base
-* Sat Feb 04 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-0RC2
+* Sat Apr 14 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-2
+* Tue Apr 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-1
+* Sat Apr 07 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0base
+* Wed Apr 04 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0RC2
+* Sun Apr 01 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0RC1
+* Thu Mar 29 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta5
+* Mon Mar 26 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta4
+* Tue Mar 20 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta3
+* Sat Mar 17 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta2
+* Wed Mar 14 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta1
+* Sat Mar 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0base
+* Sat Mar 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0RC1
+* Thu Feb 23 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta3
+* Sun Feb 19 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta2
+* Fri Feb 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta1
 * Wed Jan 18 2012 Tom Eastep tom@shorewall.net
 - Updated to 4.5.0-0RC1
 * Sun Jan 15 2012 Tom Eastep tom@shorewall.net

@@ -2,12 +2,12 @@
 .\"     Title: shorewall-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 03/06/2012
+.\"      Date: 04/14/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-RULES" "5" "03/06/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-RULES" "5" "04/14/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -963,7 +963,13 @@ Times are expressed in Greenwich Mean Time\&.
 .PP
 localtz
 .RS 4
-Times are expressed in Local Civil Time (default)\&.
+Deprecated by the Netfilter team in favor of
+\fBkerneltz\fR\&. Times are expressed in Local Civil Time (default)\&.
+.RE
+.PP
+kerneltz
+.RS 4
+Added in Shorewall 4\&.5\&.2\&. Times are expressed in Local Kernel Time (requires iptables 1\&.4\&.12 or later)\&.
 .RE
 .PP
 weekdays=ddd[,ddd]\&.\&.\&.

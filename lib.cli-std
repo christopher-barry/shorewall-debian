@@ -34,6 +34,8 @@ get_config() {
 
     ensure_config_path
 
+    
+
     if [ "$1" = Yes ]; then
 	params=$(find_file params)
 
@@ -239,7 +241,7 @@ get_config() {
 	LOG_VERBOSITY=-1
     fi
 
-    if [ -n "$SHOREWALL_SHELL" ]; then
+    if [ -n "$SHOREWALL_SHELL" -a -z "$g_export" ]; then
 	if [ ! -x "$SHOREWALL_SHELL" ]; then
 	    echo "   WARNING: The program specified in SHOREWALL_SHELL does not exist or is not executable; falling back to /bin/sh" >&2
 	    SHOREWALL_SHELL=/bin/sh
@@ -360,6 +362,8 @@ uptodate() {
 #
 compiler() {
     local pc
+    local shorewallrc
+
     pc=$g_libexec/shorewall/compiler.pl
 
     if [ $(id -u) -ne 0 ]; then
@@ -374,7 +378,7 @@ compiler() {
     #
     # Get the config from $g_shorewalldir
     #
-    [ -n "$g_shorewalldir" -a "$g_shorewalldir" != /etc/$g_program ] && get_config
+    [ -n "$g_shorewalldir" -a "$g_shorewalldir" != ${g_confdir} ] && get_config
 
     case $COMMAND in
 	*start|try|refresh)
@@ -395,7 +399,14 @@ compiler() {
     [ "$1" = nolock ] && shift;
     shift
 
-    options="--verbose=$VERBOSITY --family=$g_family --config_path=$CONFIG_PATH"
+    if [ -n "$g_export" ]; then
+	shorewallrc=$(find_file shorewallrc)
+	[ -f "$shorewallrc" ] || fatal_error "Compiling for export requires a shorewallrc file"
+    else
+	shorewallrc="${g_basedir}/shorewallrc"
+    fi
+
+    options="--verbose=$VERBOSITY --family=$g_family --config_path=$CONFIG_PATH --shorewallrc=${shorewallrc}"
     [ -n "$STARTUP_LOG" ] && options="$options --log=$STARTUP_LOG"
     [ -n "$LOG_VERBOSITY" ] && options="$options --log_verbosity=$LOG_VERBOSITY";
     [ -n "$g_export" ] && options="$options --export"
@@ -1297,6 +1308,10 @@ reload_command() # $* = original arguments less the command.
     root=root
     local libexec
     libexec=/usr/share
+    local confdir
+    confdir=/etc
+    local sbindir
+    sbindir=/sbin
 
     litedir=/var/lib/${g_program}-lite
 
@@ -1353,11 +1368,11 @@ reload_command() # $* = original arguments less the command.
 	    ;;
     esac
 
-    temp=$(rsh_command /sbin/${g_program}-lite show config 2> /dev/null | grep ^LITEDIR | sed 's/LITEDIR is //')
+    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^LITEDIR | sed 's/LITEDIR is //')
 
     [ -n "$temp" ] && litedir="$temp"
 
-    temp=$(rsh_command /sbin/${g_program}-lite show config 2> /dev/null | grep ^LIBEXEC | sed 's/LIBEXEC is //')
+    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^LIBEXEC | sed 's/LIBEXEC is //')
 
     if [ -n "$temp" ]; then
 	case $temp in
@@ -1369,6 +1384,14 @@ reload_command() # $* = original arguments less the command.
 		;;
 	esac
     fi
+
+    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^SBINDIR | sed 's/SBINDIR is //')
+
+    [ -n "$temp" ] && sbindir="$temp"
+
+    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^CONFDIR | sed 's/CONFDIR is //')
+
+    [ -n "$temp" ] && confdir="$temp"
 
     if [ -z "$getcaps" ]; then
 	g_shorewalldir=$(resolve_file $directory)
@@ -1410,19 +1433,20 @@ reload_command() # $* = original arguments less the command.
     then
 	save=$(find_file save);
 
-	[ -f $save ] && progress_message3 "Copying $save to ${system}:/etc/${g_program}-lite/" && rcp_command $save /etc/shorewall-lite/
+	[ -f $save ] && progress_message3 "Copying $save to ${system}:${confdir}/${g_program}-lite/" && rcp_command $save ${confdir}/shorewall-lite/
 
 	progress_message3 "Copy complete"
+
 	if [ $COMMAND = reload ]; then
-	    rsh_command "/sbin/${g_program}-lite $g_debugging $verbose $timestamp restart" && \
+	    rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp restart" && \
 	    progress_message3 "System $system reloaded" || saveit=
 	else
-	    rsh_command "/sbin/${g_program}-lite $g_debugging $verbose $timestamp start" && \
+	    rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp start" && \
 	    progress_message3 "System $system loaded" || saveit=
 	fi
 
 	if [ -n "$saveit" ]; then
-	    rsh_command "/sbin/${g_program}-lite $g_debugging $verbose $timestamp save" && \
+	    rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp save" && \
 	    progress_message3 "Configuration on system $system saved"
 	fi
     fi
