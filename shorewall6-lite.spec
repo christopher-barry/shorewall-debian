@@ -1,6 +1,6 @@
 %define name shorewall6-lite
-%define version 4.5.0
-%define release 3
+%define version 4.5.2
+%define release 2
 
 Summary: Shoreline Firewall 6 Lite is an ip6tables-based firewall for Linux systems.
 Name: %{name}
@@ -32,10 +32,14 @@ administrators to centralize the configuration of Shorewall6-based firewalls.
 %build
 
 %install
-export DESTDIR=$RPM_BUILD_ROOT ; \
-export OWNER=`id -n -u` ; \
-export GROUP=`id -n -g` ;\
-./install.sh
+
+./configure.pl --host=%{_vendor} \
+               --prefix=%{_prefix} \
+               --tmpdir=%{_tmpdir} \
+               --perllibdir=%{perl_vendorlib} \
+               --libexecdir=%{_libexecdir}
+
+DESTDIR=%{buildroot} ./install.sh
 
 %clean
 rm -rf $RPM_BUILD_ROOT
@@ -56,7 +60,7 @@ fi
 
 if [ $1 -eq 0 ]; then
     if [ -x /sbin/insserv ]; then
-	/sbin/insserv -r /etc/init.d/shorewall6-lite
+	/sbin/insserv -r %{_initddir}/shorewall6-lite
     elif [ -x /sbin/chkconfig ]; then
 	/sbin/chkconfig --del shorewall6-lite
     fi
@@ -67,7 +71,7 @@ fi
 %attr(0755,root,root) %dir /etc/shorewall6-lite
 %attr(0644,root,root) %config(noreplace) /etc/shorewall6-lite/shorewall6-lite.conf
 %attr(0644,root,root) /etc/shorewall6-lite/Makefile
-%attr(0544,root,root) /etc/init.d/shorewall6-lite
+%attr(0544,root,root) %{_initddir}/shorewall6-lite
 %attr(0755,root,root) %dir /usr/share/shorewall6-lite
 %attr(0700,root,root) %dir /var/lib/shorewall6-lite
 
@@ -81,7 +85,7 @@ fi
 %attr(0644,root,root) /usr/share/shorewall6-lite/lib.base
 %attr(0644,root,root) /usr/share/shorewall6-lite/modules*
 %attr(0644,root,root) /usr/share/shorewall6-lite/helpers
-%attr(0544,root,root) /usr/share/shorewall6-lite/shorecap
+%attr(0544,root,root) %{_libexecdir}/shorewall6-lite/shorecap
 
 %attr(0644,root,root) %{_mandir}/man5/shorewall6-lite.conf.5.gz
 %attr(0644,root,root) %{_mandir}/man5/shorewall6-lite-vardir.5.gz
@@ -91,16 +95,36 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Wed Feb 29 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-3
-* Mon Feb 27 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-2
-* Mon Feb 13 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-1
-* Mon Feb 06 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-0base
-* Sat Feb 04 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.0-0RC2
+* Sat Apr 14 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-2
+* Tue Apr 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-1
+* Sat Apr 07 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0base
+* Wed Apr 04 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0RC2
+* Sun Apr 01 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0RC1
+* Thu Mar 29 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta5
+* Mon Mar 26 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta4
+* Tue Mar 20 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta3
+* Sat Mar 17 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta2
+* Wed Mar 14 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.2-0Beta1
+* Sat Mar 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0base
+* Sat Mar 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0RC1
+* Thu Feb 23 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta3
+* Sun Feb 19 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta2
+* Fri Feb 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.1-0Beta1
 * Wed Jan 18 2012 Tom Eastep tom@shorewall.net
 - Updated to 4.5.0-0RC1
 * Sun Jan 15 2012 Tom Eastep tom@shorewall.net

@@ -1,11 +1,11 @@
 #!/bin/sh
 RCDLINKS="2,S41 3,S41 6,K41"
 #
-#     The Shoreline Firewall (Shorewall) Packet Filtering Firewall - V4.1
+#     The Shoreline Firewall (Shorewall) Packet Filtering Firewall - V4.5
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 1999,2000,2001,2002,2003,2004,2005,2006,2007 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999,2000,2001,2002,2003,2004,2005,2006,2007,2012 - Tom Eastep (teastep@shorewall.net)
 #
 #	On most distributions, this file should be called /etc/init.d/shorewall.
 #
@@ -61,11 +61,11 @@ usage() {
 # Get startup options (override default)
 ################################################################################
 OPTIONS=
-if [ -f /etc/sysconfig/shorewall6-lite ]; then
-    . /etc/sysconfig/shorewall6-lite
-elif [ -f /etc/default/shorewall6-lite ] ; then
-    . /etc/default/shorewall6-lite
-fi
+
+#
+# The installer may alter this
+#
+. /usr/share/shorewall/shorewallrc
 
 export SHOREWALL_INIT_SCRIPT=1
 
@@ -76,13 +76,13 @@ command="$1"
 
 case "$command" in
     start)
-	exec /sbin/shorewall6-lite $OPTIONS start $STARTOPTIONS
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS start $STARTOPTIONS
 	;;
     restart|reload)
-	exec /sbin/shorewall6-lite $OPTIONS restart $RESTARTOPTIONS
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS restart $RESTARTOPTIONS
 	;;
     status|stop)
-	exec /sbin/shorewall6-lite $OPTIONS $command $@
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command $@
 	;;
     *)
 	usage
