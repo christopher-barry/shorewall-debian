@@ -23,15 +23,14 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 #########################################################################################
-if [ "$(id -u)" != "0" ]
-then
-  echo "You must be root to start, stop or restart \"Shorewall \"."
-  exit 1
-fi
+#
+# This is modified by the installer when ${SHAREDIR} <> /usr/share
+#
+. /usr/share/shorewall/shorewallrc
 
 # check if shorewall-init is configured or not
-if [ -f "/etc/sysconfig/shorewall-init" ]; then
-    . /etc/sysconfig/shorewall-init
+if [ -f "$SYSCONFDIR/shorewall-init" ]; then
+    . $SYSCONFDIR/shorewall-init
     if [ -z "$PRODUCTS" ]; then
         echo "ERROR: No products configured" >&2
 	exit 1
@@ -48,14 +47,16 @@ shorewall_start () {
 
   echo -n "Initializing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
-      VARDIR=/var/lib/$PRODUCT
-      [ -f /etc/$PRODUCT/vardir ] && . /etc/$PRODUCT/vardir 
       if [ -x ${VARDIR}/firewall ]; then
 	  if ! /sbin/$PRODUCT status > /dev/null 2>&1; then
 	      ${VARDIR}/firewall stop || exit 1
 	  fi
       fi
   done
+
+  if [ -n "$SAVE_IPSETS" -a -f "$SAVE_IPSETS" ]; then
+      ipset -R < "$SAVE_IPSETS"
+  fi
 
   return 0
 }
@@ -73,6 +74,13 @@ shorewall_stop () {
 	  ${VARDIR}/firewall clear || exit 1
       fi
   done
+
+  if [ -n "$SAVE_IPSETS" ]; then
+      mkdir -p $(dirname "$SAVE_IPSETS")
+      if ipset -S > "${SAVE_IPSETS}.tmp"; then
+	  grep -qE -- '^(-N|create )' "${SAVE_IPSETS}.tmp" && mv -f "${SAVE_IPSETS}.tmp" "$SAVE_IPSETS"
+      fi
+  fi
 
   return 0
 }
