@@ -54,7 +54,7 @@ override_dh_compress:
 	dh_compress -Xusr/share/doc/shorewall6/default-config
 
 override_dh_installinit:
-	dh_installinit -pshorewall6 --name=shorewall6 --no-start -u"start 40 S . stop 89 0 6 ."
+	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
 
 override_dh_installman:
 	dh_installman manpages/*
