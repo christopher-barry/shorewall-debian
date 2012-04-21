@@ -52,7 +52,7 @@ override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall6 -Xvar/lib/shorewall6
 
 override_dh_compress:
-	dh_compress -Xusr/share/doc/shorewall6/default-config
+	dh_compress
 
 override_dh_installinit:
 	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
