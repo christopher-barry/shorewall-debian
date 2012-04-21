@@ -35,7 +35,6 @@ override_dh_install:
 	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
 		>> debian/shorewall.substvars
 	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
-	find $(SRWL) -type d -empty -delete
 
 override_dh_fixperms:
 	# Temporary zones are only available to root
@@ -51,7 +50,7 @@ override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall -Xvar/lib/shorewall
 
 override_dh_compress:
-	dh_compress -Xusr/share/doc/shorewall/default-config
+	dh_compress
 
 override_dh_installinit:
 	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
