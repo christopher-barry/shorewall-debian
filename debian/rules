@@ -1,70 +1,47 @@
 #!/usr/bin/make -f
-#
-# Shorewall firewall (http://www.shorewall.net)
-# debianized version
+# -*- makefile -*-
+
+# Uncomment this to turn on verbose mode.
+#export DH_VERBOSE=1
 
 # shorewall version
 export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
 
 SRWL=$(CURDIR)/debian/shorewall-lite
 
-build: build-arch build-indep
-build-arch: build-stamp
-build-indep: build-stamp
-build-stamp:
-	dh_testdir
-# 	there's nothing to compile ;-)
-	touch build-stamp
+%:
+	dh $@ 
 
-clean:
-	dh_testdir
-	dh_testroot
-	rm -f build-stamp
-	rm -rf $(SRWL)
-	dh_clean
+debian/po/templates.pot: debian/shorewall.templates
+	@debconf-updatepo
 
-install: build
-	dh_testdir
-	dh_testroot
-	dh_clean -k
-	dh_installdirs
+override_dh_auto_configure:
+	./configure
 
-	dh_install
+override_dh_auto_build:
+	true
 
-	install -m 644 debian/shorewall-lite.lintian $(SRWL)/usr/share/lintian/overrides/shorewall-lite
+override_dh_auto_clean:
+	rm -rf $(SRWL) shorewallrc
 
-# 	Temporary zones are only available to root
+override_dh_install:
+	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+
+override_dh_fixperms:
+	# Temporary zones are only available to root
 	chmod 750 $(SRWL)/var/lib/shorewall-lite
-# 	As well as configuration files
-	chmod 755 $(SRWL)/etc/shorewall-lite
+	# These should not be executable
 	chmod 644 $(SRWL)/etc/shorewall-lite/shorewall-lite.conf
 	chmod 644 $(SRWL)/etc/shorewall-lite/Makefile
-# 	set version number
-	echo $V > $(SRWL)/usr/share/shorewall-lite/version
-#  global configuration has to be fully readable
+	# Global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall-lite/*
-#  must be executable
+	# Must be executable
 	chmod 755 $(SRWL)/usr/share/shorewall-lite/shorecap
-	chmod 755 $(SRWL)/sbin/shorewall-lite
-
-binary-indep: build install
-	dh_testdir
-	dh_testroot
-	dh_installman manpages/*.5 manpages/*.8
-	dh_installdocs releasenotes.txt
-	dh_installchangelogs changelog.txt
-	dh_installlogrotate
-	dh_installinit --no-start -u"start 40 S . stop 89 0 6 ."
-	dh_installdebconf
-	dh_compress
 	dh_fixperms -Xetc/shorewall-lite -Xvar/lib/shorewall-lite
-	dh_installdeb
-	dh_gencontrol
-	dh_md5sums
-	dh_builddeb -v
 
-binary-arch: build install
+override_dh_installinit:
+	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
 
-binary: binary-indep binary-arch
+override_dh_installman:
+	dh_installman manpages/*.5 manpages/*.8
 
-.PHONY: build clean binary-indep binary-arch binary install
