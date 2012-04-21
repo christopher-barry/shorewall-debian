@@ -2,7 +2,7 @@ Author: Lorenzo Martignoni <martignlo@debian.org>
 Description: Move lockfile to /var/lock/shorewall
 --- shorewall.git.orig/lib.base
 +++ shorewall.git/lib.base
-@@ -137,7 +137,8 @@
+@@ -143,7 +143,8 @@
      local try
      try=0
      local lockf
@@ -12,7 +12,7 @@ Description: Move lockfile to /var/lock/shorewall
      local lockpid
  
      MUTEX_TIMEOUT=${MUTEX_TIMEOUT:-60}
-@@ -183,7 +184,8 @@
+@@ -189,7 +190,8 @@
  #
  mutex_off()
  {
@@ -21,4 +21,4 @@ Description: Move lockfile to /var/lock/shorewall
 +    rm -f /var/lock/shorewall
  }
  
- [ -z "$LEFTSHIFT" ] && . /usr/share/shorewall/lib.common
+ [ -z "$LEFTSHIFT" ] && . ${g_basedir}/lib.common

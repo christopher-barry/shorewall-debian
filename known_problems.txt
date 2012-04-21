@@ -1,69 +1,48 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
 
-2)  Handling of the LIBEXEC and PERLLIB environmental variables is
-    broken in the installers.
+2)  The 'configure' script described below does not work on RHEL5 and
+    derivatives. The version of Bash on those systems does not support
+    features used by the script.
 
-    Workaround: Before running the Shorewall-core installer, edit the
-    lib.cli file and modify these two lines as needed:
+    Failure message is:
 
-    	    g_libexec=/usr/share/
-	    g_perllib=/usr/share/shorewall/
+	./configure: line 28: declare: -A: invalid option
 
-    Corrected in Shorewall 4.5.0.1
+    Corrected in Shorewall 4.5.2.1. See the release notes for details.
 
-3)  If the interface appearing in the HOSTS column of
-    /etc/shorewall6/hosts was not defined in
-    /etc/shorewall6/interfaces, then the compiler will terminate with
-    a Perl diagnostic:
+3)  If an INCLUDE directive appeares inside a ?IF ... ?ENDIF sequence,
+    then the following error is generated after the included file had
+    been read:
 
-      	   Can't use an undefined value as a HASH reference at
-      	   /usr/share/shorewall/Shorewall/Zones.pm line 1817,
-      	   <$currentfile> line ...
+    	  ERROR: Missing ?ENDIF to match the ?IF at line ...
 
-    Corrected in Shorewall 4.5.0.1.
+    Corrected in Shorewall 4.5.2.1
 
-4)  The Shorewall-init installer installs an incorrect init script
-    on Fedora and Redhat systems.
+4)  There is an invalid entry in the shorewallrc.apple file.
 
-    Corrected in Shorewall 4.5.0.1.
+    Corrected in Shorewall 4.5.2.1
 
-5)  The init scripts from shorewall.net that are installed on systems
-    other than Redhat-based and Debian-based systems are broken.
-    
-    '/etc/init.d/shorewall start' and /etc/init.d/shorewall restart'
-    fail with:
+5)  The Makefile must be modified manually if either SBINDIR or
+    SHAREDIR have a non-standard setting.
 
-    	 "ERROR: No directory 'start'"
+    Corrected in Shorewall 4.5.2.1
 
-    or
+6)  The 'version -a' command prints the wrong version for some
+    products.
 
-	"ERROR: No directory 'restart'"
+    Corrected in Shorewall 4.5.2.1
 
-    Corrected in Shorewall 4.5.0.2
+7)  If a shorewallrc file is passed to the the Shorewall 4.4.2.1
+    Shorewall-core install script, subsequent compilations
+    fail with errors as follows:
 
-6)  The Shorewall-init installer fails to install ifupdown support for
-    PPP devices on Redhat-based systems.
+    	 Compiling /etc/shorewall/policy...
+   	 ERROR: Unable to open /usr                             /share                /shorewall//lib.core: No such file or directory
 
-    Corrected in Shorewall 4.5.0.2
+    Workaround:
 
-7)  The .service file with Shorewall Init specifies that
-    /sbin/shorewall-init should be run for start and stop, but there
-    was no such file.
+	edit /usr/share/shorewall/shorewallrc and delete trailing
+    	whitespace in all lines.
 
-    Workaround: Copy /etc/rc.d/init.d/shorewall-init to
-    		/sbin/shorewall-init.
-
-    Corrected in Shorewall 4.5.0.3
-
-8)  If the variable DEBUG is set to a non-empty value in the environment
-    or in /etc/shorewall/params, then 'shorewall stop' and 'shorewall
-    clear' do not totally remove the old ruleset and a subsequent
-    'shorewall start' will fail.
-
-    Workaround: Do not set the DEBUG variable to a non-empty value.
-
-    Corrected in Shorewall 4.5.0.3
-
-
-
+    Corrected in Shorewall 4.5.2.2.

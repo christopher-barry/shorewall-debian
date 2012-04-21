@@ -3,7 +3,7 @@ Section: net
 Priority: optional
 Maintainer: Roberto C. Sanchez <roberto@connexer.com>
 Homepage: http://www.shorewall.net
-Build-Depends: debhelper (>= 5)
+Build-Depends: debhelper (>= 8.0.0)
 Standards-Version: 3.9.3
 Vcs-Browser: http://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/debian;a=tree
 Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
@@ -15,4 +15,6 @@ Breaks: shorewall (<< 4.5.0~)
 Description: Shorewall core components
  This package provides the core Shorewall components, which are required
  for the rest of the Shorewall packages to work.
-
+ .
+ There is not an especially good reason to have this package installed all
+ by itself.

@@ -26,12 +26,12 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.5.0.3
+VERSION=4.5.2.2
 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
-    echo "usage: $ME"
+    echo "usage: $ME [ <shorewallrc file> ]"
     exit $1
 }
 
@@ -60,8 +60,37 @@ remove_file() # $1 = file to restore
     fi
 }
 
-if [ -f /usr/share/shorewall/coreversion ]; then
-    INSTALLED_VERSION="$(cat /usr/share/shorewall/coreversion)"
+#
+# Read the RC file
+#
+if [ $# -eq 0 ]; then
+    if [ -f ./shorewallrc ]; then
+	. ./shorewallrc
+    elif [ -f ~/.shorewallrc ]; then
+	. ~/.shorewallrc || exit 1
+	file=./.shorewallrc
+    elif [ -f /usr/share/shorewall/shorewallrc ]; then
+	. /usr/share/shorewall/shorewallrc
+    else
+	fatal_error "No configuration file specified and /usr/share/shorewall/shorewallrc not found"
+    fi
+elif [ $# -eq 1 ]; then
+    file=$1
+    case $file in
+	/*|.*)
+	    ;;
+	*)
+	    file=./$file
+	    ;;
+    esac
+
+    . $file
+else
+    usage 1
+fi
+
+if [ -f ${SHAREDIR}/shorewall/coreversion ]; then
+    INSTALLED_VERSION="$(cat ${SHAREDIR}/shorewall/coreversion)"
     if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
 	echo "WARNING: Shorewall Core Version $INSTALLED_VERSION is installed"
 	echo "         and this is the $VERSION uninstaller."
@@ -72,12 +101,9 @@ else
     VERSION=""
 fi
 
-[ -n "${LIBEXEC:=/usr/share}" ]
-[ -n "${PERLLIB:=/usr/share/shorewall}" ]
-
 echo "Uninstalling Shorewall Core $VERSION"
 
-rm -rf /usr/share/shorewall
+rm -rf ${SHAREDIR}/shorewall
 
 echo "Shorewall Core Uninstalled"
 
