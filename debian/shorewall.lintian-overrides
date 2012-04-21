@@ -25,7 +25,6 @@ shorewall: non-standard-file-perm etc/shorewall/params 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/policy 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/providers 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/proxyarp 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/proxyndp 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/refresh 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/refreshed 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/restored 0640 != 0644
