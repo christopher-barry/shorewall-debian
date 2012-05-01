@@ -1,3 +1,9 @@
+shorewall6 (4.5.2.4-1) unstable; urgency=low
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 01 May 2012 19:25:10 -0400
+
 shorewall6 (4.5.2.2-1) unstable; urgency=low
 
   * New Upstream Version
