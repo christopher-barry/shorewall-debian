@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.2.2
+VERSION=4.5.2.4
 
 #
 # Change to the directory containing this script
@@ -248,12 +248,18 @@ OWNERSHIP="-o $OWNER -g $GROUP"
 # Determine where to install the firewall script
 #
 
-if [ $PRODUCT = shorewall -a -z "${DESTDIR}" ]; then
+if [ $PRODUCT = shorewall -a "$BUILD" = "$HOST" ]; then
+    #
+    # Fix up 'use Digest::' if SHA is installed
+    #
+    if perl -e 'use Digest::SHA;' 2> /dev/null ; then
+	sed -i 's/Digest::SHA1/Digest::SHA/' Perl/Shorewall/Chains.pm
+    fi
     #
     # Verify that Perl is installed
     #
     if ! perl -c Perl/compiler.pl; then
-	echo "ERROR: $Product $VERSION requires Perl which either is not installed or is not able to compile the $Product Perl code" >&2
+	echo "ERROR: $Product $VERSION requires Perl which either is not installed or is not able to compile the Shorewall Perl code" >&2
 	echo "       Try perl -c $PWD/Perl/compiler.pl" >&2
 	exit 1
     fi
@@ -327,14 +333,18 @@ echo "$PRODUCT control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 # Install the Firewall Script
 #
 if [ -n "$INITFILE" ]; then
-    install_file $INITSOURCE ${DESTDIR}${INITDIR}/$INITFILE 0544
-    [ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$INITFILE
-  
-    if [ -n "${AUXINITSOURCE}" ]; then
+    if [ -f "$INITSOURCE" ]; then
 	install_file $INITSOURCE ${DESTDIR}${INITDIR}/$INITFILE 0544
+	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$INITFILE
+	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$INITFILE"
     fi
 
-    echo  "$Product script installed in ${DESTDIR}${INITDIR}/$INITFILE"
+    if [ -n "$AUXINITSOURCE" -a -f "$AUXINITSOURCE" ]; then
+	install_file $AUXINITSOURCE ${DESTDIR}${INITDIR}/$AUXINITFILE 0544
+	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$AUXINITFILE
+	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$AUXINITFILE"
+    fi
+
 fi
 
 #
@@ -1066,13 +1076,13 @@ cd manpages
 [ -n "$INSTALLD" ] || mkdir -p ${DESTDIR}${MANDIR}/man5/ ${DESTDIR}${MANDIR}/man8/
 
 for f in *.5; do
-    gzip -c $f > $f.gz
+    gzip -9c $f > $f.gz
     run_install $INSTALLD  -m 0644 $f.gz ${DESTDIR}${MANDIR}/man5/$f.gz
     echo "Man page $f.gz installed to ${DESTDIR}${MANDIR}/man5/$f.gz"
 done
 
 for f in *.8; do
-    gzip -c $f > $f.gz
+    gzip -9c $f > $f.gz
     run_install $INSTALLD  -m 0644 $f.gz ${DESTDIR}${MANDIR}/man8/$f.gz
     echo "Man page $f.gz installed to ${DESTDIR}${MANDIR}/man8/$f.gz"
 done
@@ -1102,6 +1112,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
 	echo "Set startup=1 in ${CONFDIR}/default/$PRODUCT to enable"
 	touch /var/log/$PRODUCT-init.log
 	perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/$PRODUCT/$PRODUCT.conf
+	update-rc.d $PRODUCT enable defaults
     elif [ -n "$SYSTEMD" ]; then
 	if systemctl enable $PRODUCT; then
 	    echo "$Product will start automatically at boot"

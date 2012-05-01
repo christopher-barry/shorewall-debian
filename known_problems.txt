@@ -23,17 +23,12 @@
 
     Corrected in Shorewall 4.5.2.1
 
-5)  The Makefile must be modified manually if either SBINDIR or
-    SHAREDIR have a non-standard setting.
-
-    Corrected in Shorewall 4.5.2.1
-
-6)  The 'version -a' command prints the wrong version for some
+5)  The 'version -a' command prints the wrong version for some
     products.
 
     Corrected in Shorewall 4.5.2.1
 
-7)  If a shorewallrc file is passed to the the Shorewall 4.4.2.1
+6)  If a shorewallrc file is passed to the the Shorewall 4.4.2.1
     Shorewall-core install script, subsequent compilations
     fail with errors as follows:
 
@@ -46,3 +41,63 @@
     	whitespace in all lines.
 
     Corrected in Shorewall 4.5.2.2.
+
+7)  If Digest::SHA has replaced Digest::SHA1 in the installed Perl
+    version then compilations fail. A symptom is that the Shorewall
+    installer claims that Perl is not installed.
+
+    Workaround: Edit Shorewall/Chains.pm and replace
+
+        use Digest::SHA1
+
+    with
+
+        use Digest::SHA
+
+    Corrected in Shorewall 4.5.2.3.
+
+8)  The 'show routing' command is broken when dash 0.5.7-2ubuntu2 is
+    installed.
+
+    Corrected in Shorewall 4.5.2.3.
+
+9)  The 'configure' script handles --host=linux incorrectly. The result
+    is that it attempts to open .default rather than
+    shorewallrc.default.
+
+    Corrected in Shorewall 4.5.2.3.
+
+10) Setting TC_EXPERT=Yes does not allow SAVE/RESTORE to operate on all
+    parts of the packet/connection mask.
+
+    Corrected in Shorewall 4.5.2.3.
+
+11) With fresh installs on Debian and derivatives, the firewall does
+    not start at boot, even though the installer indicated that it
+    would.
+
+    This defect was introduced in Shorewall 4.5.2.
+
+    Workaround - As root run:
+
+        update-rc.d shorewall enable defaults
+
+    A similar workaround can be used for shorewall6, shorewall-lite
+    and shorewall6-lite; just replace 'shorewall' with the appropriate
+    product name.
+
+    Corrected in Shorewall 4.5.2.4.
+
+12) The Shorewall installer fails on Slackware.
+
+    Corrected in Shorewall 4.5.2.4.
+
+13) The 'shorewall reset' command incorrectly resets the IPv6 packet
+    and byte counts rather than the IPv4 counts.
+
+    Corrected in Shorewall 4.5.2.4.
+
+14) The Makefile must be modified manually if any of the referenced
+    directories are in a non-standard place.
+
+
