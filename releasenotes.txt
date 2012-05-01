@@ -1,8 +1,8 @@
 
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 5 . 2 . 2
+                      S H O R E W A L L  4 . 5 . 2 . 4
                           ------------------------
-                          A p r i l  1 4 , 2 0 1 2
+                          A p r i l  3 0 , 2 0 1 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -16,6 +16,42 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
+4.5.2.4
+
+1)  Installation on Slackware has been corrected.
+
+2)  The 'shorewall reset' command now correctly resets the IPv4 packet
+    and byte counters; previously, it was resetting the IPv6 counters.
+
+3)  The Shorewall installer now modifies the Chains.pm file for
+    Digest::SHA depencency when $DESTDIR is set, provided that $BUILD =
+    $HOST. This allows rpm to automatically generate the correct module
+    dependency.
+
+4)  With fresh installs on Debian and derivatives, the firewall did
+    nnot start at boot, even though the installer indicated that it
+    would. This defect, introduced in Shorewall 4.5.2, has been
+    corrected.
+
+4.5.2.3
+
+1)  The 'show routing' command was broken with dash 0.5.7-2ubuntu2
+    installed. It now works correctly.
+
+2)  Recent distributions have dropped Digest::SHA1 in favor of
+    Digest::SHA. The Shorewall installer now replaces the former
+    with the latter when appropriate.
+
+3)  A couple of issues with Debian release compliance have been
+    corrected.
+
+4)  The 'configure' script failed to handle --host=linux correctly; the
+    result was that it tried to open .default rather than
+    shorewallrc.default.
+
+5)  Previously, setting TC_EXPERT=Yes did not allow SAVE/RESTORE of all
+    parts of the packet/connection mark. That has been corrected.
+
 4.5.2.2
 
 1)  If a shorewallrc file is passed to the Shorewall-core 4.5.2.1
@@ -24,6 +60,9 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     but the pathname has embedded whitespace.
 
     This has been corrected.
+
+2)  The Shorewall 4.5.2.1 installer was installing the wrong Makefile
+    for Shorewall and Shorewall6.
 
 4.5.2.1
 
@@ -51,10 +90,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 4)  The shorewallrc.redhat file has been change to conform to Fedora
     packaging guidelines.
 
-5)  The installers now modify the Makefile if non-standard settings are
-    used for either SBINDIR or SHAREDIR.
-
-6)  The output of the 'version -a' command reflected incorrect versions
+5)  The output of the 'version -a' command reflected incorrect versions
     when Shorewall-core 4.5.2 was installed. That has been corrected.
 
 4.5.2

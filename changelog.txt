@@ -1,6 +1,28 @@
+Changes in 4.5.2.4
+
+1)  Correct IPv4 'reset'.
+
+2)  Correct Slackware Install
+
+3)  Handle Digest::SHA dependency when $HOST = $BUILD.
+
+Changes in 4.5.2.3
+
+1)  Synchronize globals settings.
+
+2)  Accommodate Digest::SHA.
+
+3)  Make 'show routing' work with recent versions of Dash.
+
+4)  Apply patches from Roberto Sanchez.
+
+5)  Apply patches from Ed Wildgooses.
+
 Changes in 4.5.2.2
 
 1)  Delete trailing whitespace in read_a_line1().
+
+2)  Install correct Makefile
 
 Changes in 4.5.2.1
 
