@@ -271,7 +271,7 @@
 # 
 #         T
 # 
-#             POSTROUTING chain (default).
+#             POSTROUTING chain.
 # 
 #     12. TOS(tos[/mask])
 # 
