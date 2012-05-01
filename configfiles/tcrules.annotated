@@ -371,7 +371,7 @@
 # 
 #         T
 # 
-#             POSTROUTING chain (default).
+#             POSTROUTING chain.
 # 
 # SOURCE - {-|{interface|$FW}|[{interface|$FW}:]address-or-range[,
 #     address-or-range]...}[exclusion]

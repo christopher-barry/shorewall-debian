@@ -489,7 +489,7 @@ sub initialize( $;$ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.5.2.2",
+		    VERSION    => "4.5.2.4",
 		    CAPVERSION => 40502 ,
 		  );
     #
