@@ -31,9 +31,11 @@ if [ -z "$g_readrc" ]; then
     . /usr/share/shorewall/shorewallrc
 
     g_libexec="$LIBEXECDIR"
-    g_sbindir="$SBINDIR"
-    g_confdir="$CONFDIR"/$g_program
     g_sharedir="$SHAREDIR"/$g_program
+    g_sbindir="$SBINDIR"
+    g_perllib="$PERLLIBDIR"
+    g_vardir="$VARDIR"
+    g_confdir="$CONFDIR"/$g_program
     g_readrc=1
 fi
 
@@ -455,15 +457,27 @@ sort_routes() {
 }
 
 #
+# Isolate the table in the routing rules being read from stdin.
+# Piping through sed to remove trailing whitespace works around
+# recent 'features' in dash and ip.
+#
+find_tables() {
+    sed -r 's/[[:space:]]+$//' | while read rule; do
+	echo ${rule##* }
+    done
+}
+
+#
 # Show routing configuration
 #
 show_routing() {
+    local rule
+    local table 
+
     if [ -n "$(ip -$g_family rule list)" ]; then
 	heading "Routing Rules"
 	ip -$g_family rule list
-	ip -$g_family rule list | while read rule; do
-	    echo ${rule##* }
-	done | sort -u | while read table; do
+	ip -$g_family rule list | find_tables | sort -u | while read table; do
 	    heading "Table $table:"
 	    if [ $g_family -eq 6 ]; then
 		ip -$g_family -o route list table $table | fgrep -v cache
