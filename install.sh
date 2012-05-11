@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.2.4
+VERSION=4.5.3
 
 #
 # Change to the directory containing this script
@@ -38,7 +38,7 @@ usage() # $1 = exit status
     exit $1
 }
 
-fatal_error() 
+fatal_error()
 {
     echo "   ERROR: $@" >&2
     exit 1
@@ -95,7 +95,7 @@ install_file() # $1 = source $2 = target $3 = mode
     run_install $T $OWNERSHIP -m $3 $1 ${2}
 }
 
-require() 
+require()
 {
     eval [ -n "\$$1" ] || fatal_error "Required option $1 not set"
 }
@@ -333,18 +333,11 @@ echo "$PRODUCT control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 # Install the Firewall Script
 #
 if [ -n "$INITFILE" ]; then
-    if [ -f "$INITSOURCE" ]; then
+    if [ -f "${INITSOURCE}" ]; then
 	install_file $INITSOURCE ${DESTDIR}${INITDIR}/$INITFILE 0544
 	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$INITFILE
 	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$INITFILE"
     fi
-
-    if [ -n "$AUXINITSOURCE" -a -f "$AUXINITSOURCE" ]; then
-	install_file $AUXINITSOURCE ${DESTDIR}${INITDIR}/$AUXINITFILE 0544
-	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$AUXINITFILE
-	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$AUXINITFILE"
-    fi
-
 fi
 
 #
@@ -443,7 +436,7 @@ run_install $OWNERSHIP -m 0644 $PRODUCT.conf.annotated ${DESTDIR}${SHAREDIR}/$PR
 
 if [ ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf ]; then
     run_install $OWNERSHIP -m 0644 ${PRODUCT}.conf${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf
-    
+
     if [ "$SHAREDIR" != /usr/share -o "$CONFDIR" != /etc ]; then
 	if [ $PRODUCT = shorewall ]; then
 	    perl -p -w -i -e "s|^CONFIG_PATH=.*|CONFIG_PATH=${CONFDIR}/shorewall:${SHAREDIR}/shorewall|;" ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf
@@ -1112,7 +1105,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
 	echo "Set startup=1 in ${CONFDIR}/default/$PRODUCT to enable"
 	touch /var/log/$PRODUCT-init.log
 	perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/$PRODUCT/$PRODUCT.conf
-	update-rc.d $PRODUCT enable defaults
+	update-rc.d $PRODUCT enable
     elif [ -n "$SYSTEMD" ]; then
 	if systemctl enable $PRODUCT; then
 	    echo "$Product will start automatically at boot"

@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 04/30/2012
+.\"      Date: 05/10/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "04/30/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -57,7 +57,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBiptrace\fR \fIiptables\ match\ expression\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fIdirectory\fR] \fIsystem\fR
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogdrop\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -67,15 +67,15 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBnoiptrace\fR \fIiptables\ match\ expression\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrefresh\fR\ [\fIchain\fR...] 
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrefresh\fR\ [\fB\-n\fR]\ [\fB\-d\fR]\ [\fB\-T\fR]\ [\-\fBD\fR\ \fIdirectory\fR\ ]\ [\fIchain\fR...] 
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreject\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBreload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBreload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fIdirectory\fR] \fIsystem\fR
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreset\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
 .HP \w'\fBshorewall6\fR\ 'u
@@ -95,7 +95,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-m\fR] \fBlog\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR\ [\fB\-c\fR]] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -416,6 +416,10 @@ is included, it specifies that the root user on
 is named
 \fIroot\-user\-name\fR
 rather than "root"\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
 .RE
 .PP
 \fBlogdrop\fR
@@ -475,6 +479,22 @@ command, the mangle table is refreshed along with the blacklist chain (if any)\&
 \fBrefresh\fR\&.
 .sp
 The listed chains are assumed to be in the filter table\&. You can refresh chains in other tables by prefixing the chain name with the table name followed by ":" (e\&.g\&., nat:net_dnat)\&. Chain names which follow are assumed to be in that table until the end of the list or until an entry in the list names another table\&. Built\-in chains such as FORWARD may not be refreshed\&.
+.sp
+The
+\fB\-n\fR
+option was added in Shorewall 4\&.5\&.3 causes Shorewall to avoid updating the routing table(s)\&.
+.sp
+The
+\fB\-d \fRoption was added in Shorewall 4\&.5\&.3 causes the compiler to run under the Perl debugger\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-\fBD\fR
+option was added in Shorewall 4\&.5\&.3 and causes Shorewall to look in the given
+\fIdirectory\fR
+first for configuration files\&.
 .sp
 Example:
 .sp
@@ -536,6 +556,10 @@ is included, it specifies that the root user on
 is named
 \fIroot\-user\-name\fR
 rather than "root"\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
 .RE
 .PP
 \fBreset [\fR\fB\fIchain\fR\fR\fB, \&.\&.\&.]\fR
@@ -580,6 +604,10 @@ option was added in Shorewall 4\&.4\&.20 and performs the compilation step uncon
 \fB\-f\fR
 and
 \fB\-c \fRare present, the result is determined by the option that appears last\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
 .RE
 .PP
 \fBrestore\fR
@@ -789,6 +817,10 @@ option was added in Shorewall 4\&.4\&.20 and performs the compilation step uncon
 \fB\-f\fR
 and
 \fB\-c \fRare present, the result is determined by the option that appears last\&.
+.sp
+The
+\fB\-T\fR
+option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
 .RE
 .PP
 \fBstop\fR
