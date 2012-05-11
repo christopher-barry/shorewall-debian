@@ -222,6 +222,8 @@
 
       <arg><option>-r</option> <replaceable>root-user-name</replaceable></arg>
 
+      <arg><option>-T</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
 
       <arg choice="plain"><replaceable>system</replaceable></arg>
@@ -288,7 +290,9 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>refresh</option><arg
+      <arg
+      choice="plain"><option>refresh</option><arg><option>-n</option></arg><arg><option>-d</option></arg><arg><option>-T</option></arg><arg>-<option>D</option>
+      <replaceable>directory</replaceable> </arg><arg
       rep="repeat"><replaceable>chain</replaceable></arg></arg>
     </cmdsynopsis>
 
@@ -319,6 +323,8 @@
       <arg><option>-c</option></arg>
 
       <arg><option>-r</option> <replaceable>root-user-name</replaceable></arg>
+
+      <arg><option>-T</option></arg>
 
       <arg><replaceable>directory</replaceable></arg>
 
@@ -351,6 +357,8 @@
       <arg><option>-f</option></arg>
 
       <arg><option>-c</option></arg>
+
+      <arg><option>-T</option></arg>
 
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
@@ -499,7 +507,11 @@
 
       <arg><option>-n</option></arg>
 
-      <arg><option>-f</option><arg><option>-c</option></arg></arg>
+      <arg><option>-f</option></arg>
+
+      <arg><option>-c</option></arg>
+
+      <arg><option>-T</option></arg>
 
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
@@ -906,6 +918,10 @@
           <para>If <option>-r</option> is included, it specifies that the root
           user on <replaceable>system</replaceable> is named
           <replaceable>root-user-name</replaceable> rather than "root".</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.5.3
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
         </listitem>
       </varlistentry>
 
@@ -983,6 +999,20 @@
           list or until an entry in the list names another table. Built-in
           chains such as FORWARD may not be refreshed.</para>
 
+          <para>The <option>-n</option> option was added in Shorewall 4.5.3
+          causes Shorewall to avoid updating the routing table(s).</para>
+
+          <para>The <option>-d </option>option was added in Shorewall 4.5.3
+          causes the compiler to run under the Perl debugger.</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.5.3
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
+
+          <para>The -<option>D</option> option was added in Shorewall 4.5.3
+          and causes Shorewall to look in the given
+          <emphasis>directory</emphasis> first for configuration files.</para>
+
           <para>Example:<programlisting><command>shorewall6 refresh net2fw nat:net_dnat</command> #Refresh the 'net2loc' chain in the filter table and the 'net_dnat' chain in the nat table</programlisting></para>
         </listitem>
       </varlistentry>
@@ -1028,12 +1058,16 @@
           <para>If <option>-r</option> is included, it specifies that the root
           user on <replaceable>system</replaceable> is named
           <replaceable>root-user-name</replaceable> rather than "root".</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.5.3
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis role="bold">reset [<replaceable>chain</replaceable>,
-        ...]</emphasis><acronym></acronym></term>
+        ...]</emphasis><acronym/></term>
 
         <listitem>
           <para>Resets the packet and byte counters in the specified
@@ -1075,6 +1109,10 @@
           url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When both
           <option>-f</option> and <option>-c </option>are present, the result
           is determined by the option that appears last.</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.5.3
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
         </listitem>
       </varlistentry>
 
@@ -1369,6 +1407,10 @@
           url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When both
           <option>-f</option> and <option>-c </option>are present, the result
           is determined by the option that appears last.</para>
+
+          <para>The <option>-T</option> option was added in Shorewall 4.5.3
+          and causes a Perl stack trace to be included with each
+          compiler-generated error and warning message.</para>
         </listitem>
       </varlistentry>
 
