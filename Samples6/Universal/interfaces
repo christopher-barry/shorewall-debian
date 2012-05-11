@@ -7,7 +7,9 @@
 # http://www.shorewall.net/manpages/shorewall-interfaces.html
 #
 ###############################################################################
-#ZONE	INTERFACE	BROADCAST	OPTIONS
--	lo		-		ignore
-net	all		-		dhcp,physical=+,routeback
+FORMAT 2
+###############################################################################
+#ZONE	INTERFACE	OPTIONS
+-	lo		ignore
+net	all		dhcp,physical=+,routeback
 
