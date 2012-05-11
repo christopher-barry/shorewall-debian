@@ -203,7 +203,7 @@ get_routed_networks() # $1 = interface name, $2-n = Fatal error message
     local mask
 
     [ $g_family -eq 4 ] && mask=32 || mask=128
-    
+
 
     $IP -$g_family route show dev $1 2> /dev/null |
 	while read address rest; do
@@ -385,7 +385,7 @@ restore_default_route() # $1 = USE_DEFAULT_RT
 	done < ${VARDIR}/default_route
 
 	replace_default_route $1
-	
+
 	if [ $result = 1 ]; then
 	    #
 	    # We didn't restore a default route with metric 0
@@ -594,6 +594,7 @@ distribute_load() {
     local interface
     local totalload
     local load
+    local mark
     local maxload
 
     maxload=$1
@@ -605,6 +606,8 @@ distribute_load() {
 	if interface_up $interface; then
 	    load=$(cat ${VARDIR}/${interface}_load)
 	    eval ${interface}_load=$load
+	    mark=$(cat ${VARDIR}/${interface}_mark)
+	    eval ${interface}_mark=$mark
 	    totalload=$( bc <<EOF
 scale=8
 $totalload + $load
@@ -617,7 +620,8 @@ EOF
 	for interface in $@; do
 	    qt $g_tool -t mangle -F ~$interface
 	    eval load=\$${interface}_load
-	
+	    eval mark=\$${interface}_mark
+
 	    if [ -n "$load" ]; then
 		load=$(bc <<EOF
 scale=8
@@ -629,7 +633,7 @@ scale=8
 $totalload - $load
 EOF
 )
-		run_iptables -t mangle -A ~$interface -m statistic --mode random --probability $load
+		run_iptables -t mangle -A ~$interface -m statistic --mode random --probability $load -j MARK --set-mark $mark
 	    fi
 	done
     fi
@@ -888,7 +892,7 @@ add_gateway() # $1 = Delta $2 = Table Number
     local weight
     local delta
     local dev
-    
+
     route=`$IP -4 -o route ls table $2 | grep ^default | sed 's/default //; s/[\]//g'`
 
     if [ -z "$route" ]; then
@@ -920,7 +924,7 @@ delete_gateway() # $! = Description of the Gateway $2 = table number $3 = device
 
     route=`$IP -4 -o route ls table $2 | grep ^default | sed 's/[\]//g'`
     gateway=$1
-  
+
     if [ -n "$route" ]; then
 	if echo $route | fgrep -q ' nexthop '; then
 	    gateway="nexthop $gateway"
@@ -1214,7 +1218,7 @@ add_gateway() # $1 = Delta $2 = Table Number
     local weight
     local delta
     local dev
-    
+
     run_ip route add default scope global table $2 $1
 }
 
@@ -1229,7 +1233,7 @@ delete_gateway() # $! = Description of the Gateway $2 = table number $3 = device
 
     route=`$IP -6 -o route ls table $2 | grep ^default | sed 's/[\]//g'`
     gateway=$1
-  
+
     dev=$(find_device $route)
     [ "$dev" = "$3" ] && run_ip route delete default table $2
 }

@@ -47,18 +47,18 @@ our @EXPORT = qw(
 		 warning_message
 		 fatal_error
 		 assert
-		 
+
 		 progress_message
 		 progress_message_nocompress
 		 progress_message2
 		 progress_message3
-		 
+
 		 supplied
-		 
+
 		 get_action_params
 		 get_action_chain
 		 set_action_param
-		 
+
 		 have_capability
 		 require_capability
                 );
@@ -150,11 +150,20 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 				       MIN_VERBOSITY
 				       MAX_VERBOSITY
+
+				       PLAIN_READ
+				       EMBEDDED_ENABLED
+				       EXPAND_VARIABLES
+				       STRIP_COMMENTS
+				       SUPPRESS_WHITESPACE
+				       CONFIG_CONTINUATION
+				       DO_INCLUDE
+				       NORMAL_READ
 				     ) ] );
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_2';
+our $VERSION = '4.5_3';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -292,7 +301,7 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 IPTABLES_S      => 'iptables -S',
 		 BASIC_FILTER    => 'Basic Filter',
 		 CT_TARGET       => 'CT Target',
-		 STATISTIC_MATCH => 
+		 STATISTIC_MATCH =>
 		                    'Statistics Match',
 		 IMQ_TARGET      => 'IMQ Target',
 		 DSCP_MATCH      => 'DSCP Match',
@@ -386,7 +395,7 @@ my  $first_entry;            # Message to output or function to call on first no
 my $shorewall_dir;           # Shorewall Directory; if non-empty, search here first for files.
 
 our $debug;                  # Global debugging flag
-my  $confess;                # If true, use Carp to report errors with stack trace.   
+my  $confess;                # If true, use Carp to report errors with stack trace.
 
 our $family;                 # Protocol family (4 or 6)
 our $toolname;               # Name of the tool to use (iptables or iptables6)
@@ -438,6 +447,20 @@ my $ifstack;
 # From .shorewallrc
 #
 our %shorewallrc;
+#
+# read_a_line options
+#
+use constant { PLAIN_READ          => 0,     # No read_a_line options
+               EMBEDDED_ENABLED    => 1,     # Look for embedded Shell and Perl
+	       EXPAND_VARIABLES    => 2,     # Expand Shell variables
+	       STRIP_COMMENTS      => 4,     # Remove comments
+	       SUPPRESS_WHITESPACE => 8,     # Ignore blank lines
+	       CHECK_GUNK          => 16,    # Look for unprintable characters
+	       CONFIG_CONTINUATION => 32,    # Suppress leading whitespace if
+                                             # continued line ends in ',' or ':'
+	       DO_INCLUDE          => 64,    # Look for INCLUDE <filename>
+               NORMAL_READ         => -1     # All options
+	   };
 
 sub process_shorewallrc($);
 #
@@ -471,7 +494,7 @@ sub initialize( $;$ ) {
     $indent         = '';      # Current total indentation
     ( $dir, $file ) = ('',''); # Script's Directory and Filename
     $tempfile       = '';      # Temporary File Name
-    $sillyname      = 
+    $sillyname      =
     $sillyname1     = '';      # Temporary ipchains
     $omitting       = 0;
     $ifstack        = 0;
@@ -489,7 +512,7 @@ sub initialize( $;$ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.5.2.4",
+		    VERSION    => "4.5.3",
 		    CAPVERSION => 40502 ,
 		  );
     #
@@ -747,7 +770,7 @@ sub initialize( $;$ ) {
 
     $debug = 0;
     $confess = 0;
-    
+
     %params = ();
 
     %compiler_params = ();
@@ -759,35 +782,73 @@ sub initialize( $;$ ) {
 		    CONFDIR  => '/etc/',
 		    );
 
-    if ( $shorewallrc ) {
-	process_shorewallrc( $shorewallrc );
+    process_shorewallrc( $shorewallrc ) if $shorewallrc;
 
-	$globals{SHAREDIRPL} = "$shorewallrc{SHAREDIR}/shorewall/";
+    $globals{SHAREDIRPL} = "$shorewallrc{SHAREDIR}/shorewall/";
 
-	if ( $family == F_IPV4 ) {
-	    $globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall";
-	    $globals{CONFDIR}       = "$shorewallrc{CONFDIR}/shorewall";
-	    $globals{PRODUCT}       = 'shorewall';
-	    $config{IPTABLES}       = undef;
-	    $validlevels{ULOG}      = 'ULOG';
-	} else {
-	    $globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall6";
-	    $globals{CONFDIR}       = "$shorewallrc{CONFDIR}/shorewall6";
-	    $globals{PRODUCT}       = 'shorewall6';
-	    $config{IP6TABLES}      = undef;
-	}
+    if ( $family == F_IPV4 ) {
+	$globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall";
+	$globals{CONFDIR}       = "$shorewallrc{CONFDIR}/shorewall";
+	$globals{PRODUCT}       = 'shorewall';
+	$config{IPTABLES}       = undef;
+	$validlevels{ULOG}      = 'ULOG';
+    } else {
+	$globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall6";
+	$globals{CONFDIR}       = "$shorewallrc{CONFDIR}/shorewall6";
+	$globals{PRODUCT}       = 'shorewall6';
+	$config{IP6TABLES}      = undef;
     }
 }
 
 my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
 #
+# Create 'currentlineinfo'
+#
+sub currentlineinfo() {
+    my $linenumber = $currentlinenumber || 1;
+
+    if ( $currentfile ) {
+	my $lineinfo = " $currentfilename ";
+	
+	if ( $linenumber eq 'EOF' ) {
+	    $lineinfo .= '(EOF)'
+	} else {
+	    $lineinfo .= "(line $linenumber)";
+	}
+	#
+	# Unwind the current include stack
+	#
+	for ( my $i = @includestack - 1; $i >= 0; $i-- ) {
+	    my $info = $includestack[$i];
+	    $linenumber = $info->[2] || 1;
+	    $lineinfo .= "\n      from $info->[1] (line $linenumber)";
+	}
+	#
+	# Now unwind the open stack; each element is an include stack
+	#
+	for ( my $i = @openstack - 1; $i >= 0; $i-- ) {
+	    my $istack = $openstack[$i];
+	    for ( my $j = ( @$istack - 1 ); $j >= 0; $j-- ) {
+		my $info = $istack->[$j];
+		$linenumber = $info->[2] || 1;
+		$lineinfo .= "\n      from $info->[1] (line $linenumber)";
+	    }
+	}
+
+	$lineinfo;
+
+    } else {
+	'';
+    }
+}
+
+#
 # Issue a Warning Message
 #
 sub warning_message
 {
-    my $linenumber = $currentlinenumber || 1;
-    my $currentlineinfo = $currentfile ?  " : $currentfilename " . ( $linenumber eq 'EOF' ? '(EOF)' : "(line $linenumber)" ) : '';
+    my $currentlineinfo = currentlineinfo;
     our @localtime;
 
     $| = 1; #Reset output buffering (flush any partially filled buffers).
@@ -815,6 +876,30 @@ sub cleanup() {
     close  $script, $script = undef         if $script;
     close  $perlscript, $perlscript = undef if $perlscript;
     close  $log, $log = undef               if $log;
+
+    if ( $currentfile ) {
+	#
+	# We have a current input file; close it
+	#
+	close $currentfile;
+	#
+	# Unwind the current include stack
+	#
+	for ( my $i = @includestack - 1; $i >= 0; $i-- ) {
+	    my $info = $includestack[$i];
+	    close $info->[0];
+	}
+	#
+	# Now unwind the open stack; each element is an include stack
+	#
+	for ( my $i = @openstack - 1; $i >= 0; $i-- ) {
+	    my $istack = $openstack[$i];
+	    for ( my $j = ( @$istack - 1 ); $j >= 0; $j-- ) {
+		my $info = $istack->[$j];
+		close $info->[0];
+	    }
+	}
+    }
     #
     # Unlink temporary files
     #
@@ -842,8 +927,7 @@ sub cleanup() {
 # Issue fatal error message and die
 #
 sub fatal_error	{
-    my $linenumber = $currentlinenumber || 1;
-    my $currentlineinfo = $currentfile ?  " : $currentfilename " . ( $linenumber eq 'EOF' ? '(EOF)' : "(line $linenumber)" ) : '';
+    my $currentlineinfo = currentlineinfo;
 
     $| = 1; #Reset output buffering (flush any partially filled buffers).
 
@@ -889,12 +973,15 @@ sub fatal_error1 {
 }
 
 #
-# C/C++-like assertion checker
+# C/C++-like assertion checker -- the optional arguments are not used but will
+#                                 appear in the stack trace
 #
-sub assert( $;$ ) {
+sub assert( $;@ ) {
     unless ( $_[0] ) {
 	my @caller0 = caller 0; # Where assert() was called
 	my @caller1 = caller 1; # Who called assert()
+
+	$confess = 1;
 
 	fatal_error "Internal error in $caller1[3] at $caller0[1] line $caller0[2]";
     }
@@ -943,7 +1030,9 @@ sub normalize_hex( $ ) {
 # Return the argument expressed in Hex
 #
 sub in_hex( $ ) {
-    sprintf '0x%x', $_[0];
+    my $value = $_[0];
+
+    $value =~ /^0x/ ? $value : sprintf '0x%x', $_[0];
 }
 
 sub in_hex2( $ ) {
@@ -1334,9 +1423,7 @@ sub find_file($)
 
     return $filename if $filename =~ '/';
 
-    my $directory;
-
-    for $directory ( @config_path ) {
+    for my $directory ( @config_path ) {
 	my $file = "$directory$filename";
 	return $file if -f $file;
     }
@@ -1405,11 +1492,13 @@ sub supplied( $ ) {
 #    supply '-' in omitted trailing columns.
 #    Handles all of the supported forms of column/pair specification
 #
-sub split_line1( $$;$ ) {
-    my ( $description, $columnsref, $nopad) = @_;
+sub split_line1( $$;$$ ) {
+    my ( $description, $columnsref, $nopad, $maxcolumns ) = @_;
 
-    my @maxcolumns = ( keys %$columnsref );
-    my $maxcolumns = @maxcolumns;
+    unless ( defined $maxcolumns ) {
+	my @maxcolumns = ( keys %$columnsref );
+	$maxcolumns = @maxcolumns;
+    }
     #
     # First see if there is a semicolon on the line; what follows will be column/value paris
     #
@@ -1472,7 +1561,7 @@ sub split_line1( $$;$ ) {
 	    fatal_error "Non-ASCII gunk in the value of the $column column" if $columns =~ /[^\s[:print:]]/;
 	    $line[$column] = $value;
 	}
-    }   
+    }
 
     @line;
 }
@@ -1585,8 +1674,8 @@ sub process_conditional( $$$ ) {
 
 	    $cap =~ s/^__//;
 
-	    $omitting = ! ( exists $ENV{$rest}    ? $ENV{$rest}    : 
-			    exists $params{$rest} ? $params{$rest} : 
+	    $omitting = ! ( exists $ENV{$rest}    ? $ENV{$rest}    :
+			    exists $params{$rest} ? $params{$rest} :
 			    exists $config{$rest} ? $config{$rest} :
 			    exists $capdesc{$cap} ? have_capability( $cap ) : 0 );
 	}
@@ -1607,7 +1696,7 @@ sub process_conditional( $$$ ) {
     }
 
     $omitting;
-}   
+}
 
 #
 # Functions for copying a file into the script
@@ -1676,7 +1765,7 @@ sub copy1( $ ) {
 	my ( $do_indent, $here_documents ) = ( 1, '');
 
 	open_file( $_[0] );
-	
+
 	while ( $currentfile ) {
 	    while ( <$currentfile> ) {
 		$currentlinenumber++;
@@ -1748,7 +1837,7 @@ sub copy1( $ ) {
 
 			next;
 		    }
-			
+
 		    if ( $indent ) {
 			s/^(\s*)/$indent1$1$indent2/;
 			s/        /\t/ if $indent2;
@@ -1877,7 +1966,7 @@ EOF
 #
 sub push_open( $ ) {
 
-    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber, $ifstack ];
+    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber, $ifstack ] if $currentfile;
     my @a = @includestack;
     push @openstack, \@a;
     @includestack = ();
@@ -1930,12 +2019,10 @@ sub shorewall {
 sub first_entry( $ ) {
     $first_entry = $_[0];
     my $reftype = reftype $first_entry;
-    if ( $reftype ) {
-	fatal_error "Invalid argument to first_entry()" unless $reftype eq 'CODE';
-    }
+    assert( $reftype eq 'CODE' ) if $reftype;
 }
 
-sub read_a_line(;$$$$);
+sub read_a_line($);
 
 sub embedded_shell( $ ) {
     my $multiline = shift;
@@ -1952,7 +2039,7 @@ sub embedded_shell( $ ) {
 
 	my $last = 0;
 
-	while ( read_a_line( 0, 0, 0, 0 ) ) {
+	while ( read_a_line( PLAIN_READ ) ) {
 	    last if $last = $currentline =~ s/^\s*END(\s+SHELL)?\s*;?//;
 	    $command .= "$currentline\n";
 	}
@@ -1986,7 +2073,7 @@ sub embedded_perl( $ ) {
 
 	my $last = 0;
 
-	while ( read_a_line( 0, 0, 0, 0 ) ) {
+	while ( read_a_line( PLAIN_READ ) ) {
 	    last if $last = $currentline =~ s/^\s*END(\s+PERL)?\s*;?//;
 	    $command .= "$currentline\n";
 	}
@@ -2100,11 +2187,11 @@ sub set_action_param( $$ ) {
 }
 
 #
-# Expand Shell Variables in the passed buffer using %params and @actparms
+# Expand Shell Variables in the passed buffer using @actparms, %params, %shorewallrc and %config, 
 #
 sub expand_variables( \$ ) {
     my ( $lineref, $count ) = ( $_[0], 0 );
-    #                    $1      $2   $3      -     $4
+    #                         $1      $2   $3      -     $4
     while ( $$lineref =~ m( ^(.*?) \$({)? (\w+) (?(2)}) (.*)$ )x ) {
 
 	my ( $first, $var, $rest ) = ( $1, $3, $4);
@@ -2142,7 +2229,7 @@ sub handle_first_entry() {
 }
 
 #
-# Read a line from the current include stack.
+# Read a line from the current include stack. Based on the passed options, it will conditionally:
 #
 #   - Ignore blank or comment-only lines.
 #   - Remove trailing comments.
@@ -2153,11 +2240,8 @@ sub handle_first_entry() {
 #   - Handle ?IF, ?ELSE, ?ENDIF
 #
 
-sub read_a_line(;$$$$) {
-    my $embedded_enabled    = defined $_[0] ? shift : 1;
-    my $expand_variables    = defined $_[0] ? shift : 1;
-    my $strip_comments      = defined $_[0] ? shift : 1;
-    my $suppress_whitespace = defined $_[0] ? shift : 1;
+sub read_a_line($) {
+    my $options = $_[0];
 
     while ( $currentfile ) {
 
@@ -2172,12 +2256,12 @@ sub read_a_line(;$$$$) {
 	    #
 	    # Suppress leading whitespace in certain continuation lines
 	    #
-	    s/^\s*// if $currentline =~ /[,:]$/ && $suppress_whitespace;
+	    s/^\s*// if $currentline =~ /[,:]$/ && $options & CONFIG_CONTINUATION;
 	    #
 	    # If this is a continued line with a trailing comment, remove comment. Note that
 	    # the result will now end in '\'.
 	    #
-	    s/\s*#.*$// if $strip_comments && /[\\]\s*#.*$/;
+	    s/\s*#.*$// if ($options & STRIP_COMMENTS) && /[\\]\s*#.*$/;
 	    #
 	    # Continuation
 	    #
@@ -2189,8 +2273,8 @@ sub read_a_line(;$$$$) {
 		$omitting = process_conditional( $omitting, $currentline, $currentlinenumber );
 		$currentline='';
 		next;
-	    }		
-		    
+	    }
+
 	    if ( $omitting ) {
 		print "OMIT=> $currentline\n" if $debug;
 		$currentline='';
@@ -2200,7 +2284,7 @@ sub read_a_line(;$$$$) {
 	    #
 	    # Must check for shell/perl before doing variable expansion
 	    #
-	    if ( $embedded_enabled ) {
+	    if ( $options & EMBEDDED_ENABLED ) {
 		if ( $currentline =~ s/^\s*(BEGIN\s+)?SHELL\s*;?// ) {
 		    handle_first_entry if $first_entry;
 		    embedded_shell( $1 );
@@ -2214,13 +2298,20 @@ sub read_a_line(;$$$$) {
 		}
 	    }
 	    #
-	    # Now remove concatinated comments
+	    # Now remove concatinated comments if asked
 	    #
-	    $currentline =~ s/\s*#.*$// if $strip_comments;
-	    #
-	    # Ignore ( concatenated ) Blank Lines after comments are removed.
-	    #
-	    $currentline = '', $currentlinenumber = 0, next if $currentline =~ /^\s*$/ && $suppress_whitespace;
+	    $currentline =~ s/\s*#.*$// if $options & STRIP_COMMENTS;
+
+	    if ( $options & SUPPRESS_WHITESPACE ) {
+		#
+		# Ignore (concatinated) blank lines
+		#
+		$currentline = '', $currentlinenumber = 0, next if $currentline =~ /^\s*$/;
+		#
+		# Eliminate trailing whitespace
+		#
+		$currentline =~ s/\s*$//;
+	    }
 	    #
 	    # Line not blank -- Handle any first-entry message/capabilities check
 	    #
@@ -2228,9 +2319,9 @@ sub read_a_line(;$$$$) {
 	    #
 	    # Expand Shell Variables using %params and @actparms
 	    #
-	    expand_variables( $currentline ) if $expand_variables;
+	    expand_variables( $currentline ) if $options & EXPAND_VARIABLES;
 
-	    if ( $currentline =~ /^\s*\??INCLUDE\s/ ) {
+	    if ( ( $options & DO_INCLUDE ) && $currentline =~ /^\s*\??INCLUDE\s/ ) {
 
 		my @line = split ' ', $currentline;
 
@@ -2252,30 +2343,10 @@ sub read_a_line(;$$$$) {
 
 		$currentline = '';
 	    } else {
+		fatal_error "Non-ASCII gunk in file" if ( $options && CHECK_GUNK ) && $currentline =~ /[^\s[:print:]]/;
 		print "IN===> $currentline\n" if $debug;
 		return 1;
 	    }
-	}
-
-	close_file;
-    }
-}
-
-#
-# Simple version of the above. Doesn't do line concatenation, shell variable expansion or INCLUDE processing
-#
-sub read_a_line1() {
-    while ( $currentfile ) {
-	while ( $currentline = <$currentfile> ) {
-	    next if $currentline =~ /^\s*#/;
-	    chomp $currentline;
-	    $currentline =~ s/#.*$//;       # Remove Trailing Comments
-	    $currentline =~ s/\s*$//;       # Remove Trailing Whitespace
-	    next if $currentline =~ /^\s*$/;
-	    fatal_error "Non-ASCII gunk in file" if $currentline =~ /[^\s[:print:]]/;
-	    $currentlinenumber = $.;
-	    print "IN===> $currentline\n" if $debug;
-	    return 1;
 	}
 
 	close_file;
@@ -2288,7 +2359,7 @@ sub process_shorewallrc( $ ) {
     $shorewallrc{PRODUCT} = $family == F_IPV4 ? 'shorewall' : 'shorewall6';
 
     if ( open_file $shorewallrc ) {
-	while ( read_a_line1 ) {
+	while ( read_a_line( STRIP_COMMENTS | SUPPRESS_WHITESPACE | CHECK_GUNK ) ) {
 	    if ( $currentline =~ /^([a-zA-Z]\w*)=(.*)$/ ) {
 		my ($var, $val) = ($1, $2);
 		$val = $1 if $val =~ /^\"([^\"]*)\"$/;
@@ -2543,7 +2614,7 @@ sub load_kernel_modules( ) {
 	$modulesdir = "/lib/modules/$uname/kernel/net/ipv4/netfilter:/lib/modules/$uname/kernel/net/ipv6/netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset";
     }
 
-    my @moduledirectories; 
+    my @moduledirectories;
 
     for ( split /:/, $modulesdir ) {
 	push @moduledirectories, $_ if -d $_;
@@ -2569,7 +2640,7 @@ sub load_kernel_modules( ) {
 
 	my @suffixes = split /\s+/ , $config{MODULE_SUFFIX};
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 	    fatal_error "Invalid modules file entry" unless ( $currentline =~ /^loadmodule\s+([a-zA-Z]\w*)\s*(.*)$/ );
 	    my ( $module, $arguments ) = ( $1, $2 );
 	    unless ( $loadedmodules{ $module } ) {
@@ -2582,7 +2653,7 @@ sub load_kernel_modules( ) {
 			    } else {
 				system( "modprobe $module $arguments" );
 			    }
-				    
+
 			    $loadedmodules{ $module } = 1;
 			}
 		    }
@@ -3246,7 +3317,7 @@ sub ensure_config_path() {
 
 	add_param( CONFDIR => $globals{CONFDIR} );
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 	    if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
 		my ($var, $val) = ($1, $2);
 		$config{$var} = ( $val =~ /\"([^\"]*)\"$/ ? $1 : $val ) if exists $config{$var};
@@ -3325,7 +3396,7 @@ sub update_config_file( $ ) {
 	#
 	# Debian or derivative
 	#
-	$fn = $annotate ? "/usr/share/doc/${product}/default-config/${product}.conf.annotated" : "/usr/share/doc/${product}/default-config/${product}.conf";
+	$fn = $annotate ? "$shorewallrc{SHAREDIR}/doc/${product}/default-config/${product}.conf.annotated" : "$shorewallrc{SHAREDIR}/doc/${product}/default-config/${product}.conf";
     } else {
 	#
 	# The rest of the World
@@ -3337,7 +3408,7 @@ sub update_config_file( $ ) {
 
 	open $template, '<' , $fn or fatal_error "Unable to open $fn: $!";
 
-	unless ( open $output, '>', "$configfile.updated" ) { 
+	unless ( open $output, '>', "$configfile.updated" ) {
 	    close $template;
 	    fatal_error "Unable to open $configfile.updated for output: $!";
 	}
@@ -3408,7 +3479,7 @@ EOF
 
 	fatal_error "Can't rename $configfile to $configfile.bak: $!"     unless rename $configfile, "$configfile.bak";
 	fatal_error "Can't rename $configfile.updated to $configfile: $!" unless rename "$configfile.updated", $configfile;
-	
+
 	if ( system( "diff -q $configfile $configfile.bak > /dev/null" ) ) {
 	    progress_message3 "Configuration file $configfile updated - old file renamed $configfile.bak";
 	} else {
@@ -3444,14 +3515,14 @@ sub process_shorewall_conf( $$ ) {
 	    #
 	    # Don't expand shell variables or allow embedded scripting
 	    #
-	    while ( read_a_line1 ) {
+	    while ( read_a_line( STRIP_COMMENTS | SUPPRESS_WHITESPACE  | CHECK_GUNK ) ) {
 		if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
 		    my ($var, $val) = ($1, $2);
 
 		    warning_message "Unknown configuration option ($var) ignored", next unless exists $config{$var};
 
 		    $config{$var} = ( $val =~ /\"([^\"]*)\"$/ ? $1 : $val );
-		    
+
 		    warning_message "Option $var=$val is deprecated"
 			if $deprecated{$var} && supplied $val && lc $config{$var} ne $deprecated{$var};
 		} else {
@@ -3484,7 +3555,7 @@ sub process_shorewall_conf( $$ ) {
 # Process the records in the capabilities file
 #
 sub read_capabilities() {
-    while ( read_a_line1 ) {
+    while ( read_a_line( STRIP_COMMENTS | SUPPRESS_WHITESPACE  | CHECK_GUNK ) ) {
 	if ( $currentline =~ /^([a-zA-Z]\w*)=(.*)$/ ) {
 	    my ($var, $val) = ($1, $2);
 	    unless ( exists $capabilities{$var} ) {
@@ -3607,7 +3678,7 @@ sub get_params() {
 	    print "Params:\n";
 	    print $_ for @params;
 	}
-	
+
 	my ( $variable , $bug );
 
 	if ( $params[0] =~ /^declare/ ) {
@@ -3636,7 +3707,7 @@ sub get_params() {
 		    } else {
 			warning_message "Param line ($_) ignored" unless $bug++;
 		    }
-		}	
+		}
 	    }
 	} elsif ( $params[0] =~ /^export .*?="/ || $params[0] =~ /^export [^\s=]+\s*$/ ) {
 	    #
@@ -3664,7 +3735,7 @@ sub get_params() {
 		    } else {
 			warning_message "Param line ($_) ignored" unless $bug++;
 		    }
-		}	
+		}
 	    }
 	} else {
 	    #
@@ -3678,7 +3749,7 @@ sub get_params() {
 
 	    for ( @params ) {
 		if ( /^export (.*?)='(.*'"'"')$/ ) {
-		    $params{$variable=$1}="${2}\n";		    
+		    $params{$variable=$1}="${2}\n";
 		} elsif ( /^export (.*?)='(.*)'$/ ) {
 		    $params{$1} = $2 unless $1 eq '_';
 		} elsif ( /^export (.*?)='(.*)$/ ) {
@@ -3690,7 +3761,7 @@ sub get_params() {
 			$params{$variable} .= $_;
 		    } else {
 			warning_message "Param line ($_) ignored" unless $bug++;
-		    }				
+		    }
 		}
 	    }
 	}
@@ -3987,7 +4058,7 @@ sub get_configuration( $$$ ) {
 
     default_yes_no 'ACCOUNTING'                 , 'Yes';
     default_yes_no 'OPTIMIZE_ACCOUNTING'        , '';
-    
+
     if ( supplied $config{ACCOUNTING_TABLE} ) {
 	my $value = $config{ACCOUNTING_TABLE};
 	fatal_error "Invalid ACCOUNTING_TABLE setting ($value)" unless $value eq 'filter' || $value eq 'mangle';
@@ -4024,7 +4095,7 @@ sub get_configuration( $$$ ) {
     }
 
     fatal_error 'Invalid Packet Mark layout' if $config{ZONE_BITS} + $globals{ZONE_OFFSET} > 31;
-    
+
     $globals{EXCLUSION_MASK} = 1 << ( $globals{ZONE_OFFSET} + $config{ZONE_BITS} );
     $globals{PROVIDER_MIN}   = 1 << $config{PROVIDER_OFFSET};
 
@@ -4039,7 +4110,7 @@ sub get_configuration( $$$ ) {
     }
 
     if ( ( my $userbits = $config{PROVIDER_OFFSET} - $config{TC_BITS} ) > 0 ) {
-	
+
 	$globals{USER_MASK} = make_mask( $userbits ) << $config{TC_BITS};
     } else {
 	$globals{USER_MASK} = 0;
@@ -4079,7 +4150,7 @@ sub get_configuration( $$$ ) {
     default_log_level 'LOGALLNEW',           '';
 
     default_log_level 'SFILTER_LOG_LEVEL', 'info';
-    
+
     if ( $val = $config{SFILTER_DISPOSITION} ) {
 	fatal_error "Invalid SFILTER_DISPOSITION setting ($val)" unless $val =~ /^(A_)?(DROP|REJECT)$/;
 	require_capability 'AUDIT_TARGET' , "SFILTER_DISPOSITION=$val", 's' if $1;
@@ -4266,10 +4337,10 @@ sub append_file( $;$$ ) {
     my $user_exit = find_file $file;
     my $result = 0;
     my $save_indent = $indent;
-    
+
     $indent = '' if $unindented;
 
-    unless ( $user_exit =~ m(^/usr/share/shorewall6?/) ) {
+    unless ( $user_exit =~ m(^$shorewallrc{SHAREDIR}/shorewall6?/) ) {
 	if ( -f $user_exit ) {
 	    if ( $nomsg ) {
 		#
@@ -4328,8 +4399,9 @@ sub run_user_exit1( $ ) {
 	#
 	push_open $file;
 
-	if ( read_a_line1 ) {
+	if ( read_a_line( STRIP_COMMENTS | SUPPRESS_WHITESPACE  | CHECK_GUNK ) ) {
 	    close_file;
+	    pop_open;
 
 	    my $command = qq(package Shorewall::User;\n# line 1 "$file"\n) . `cat $file`;
 
@@ -4359,8 +4431,9 @@ sub run_user_exit2( $$ ) {
 	#
 	push_open $file;
 
-	if ( read_a_line1 ) {
+	if ( read_a_line( STRIP_COMMENTS | SUPPRESS_WHITESPACE  | CHECK_GUNK ) ) {
 	    close_file;
+	    pop_open;
 
 	    unless (my $return = eval `cat $file` ) {
 		fatal_error "Couldn't parse $file: $@" if $@;
@@ -4462,7 +4535,7 @@ sub dump_mark_layout() {
 	     $globals{TC_MAX} + 1,
 	     $globals{USER_MASK},
 	     $globals{USER_MASK} );
-    
+
     dumpout( "Provider",
 	     $config{PROVIDER_BITS},
 	     $globals{PROVIDER_MIN},
@@ -4480,7 +4553,7 @@ sub dump_mark_layout() {
 	     $globals{EXCLUSION_MASK},
 	     $globals{EXCLUSION_MASK},
 	     $globals{EXCLUSION_MASK} );
-}	
+}
 
 END {
     cleanup;
