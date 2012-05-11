@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_2';
+our $VERSION = '4.5_3';
 
 my $family;
 
@@ -72,14 +72,14 @@ sub process_tos() {
 
 	my ( $pretosref, $outtosref );
 
-	first_entry( sub { progress_message2 "$doing $fn..."; 
+	first_entry( sub { progress_message2 "$doing $fn...";
 			   warning_message "Use of the tos file is deprecated in favor of the TOS target in tcrules";
-			   $pretosref = ensure_chain 'mangle' , $chain; 
+			   $pretosref = ensure_chain 'mangle' , $chain;
 			   $outtosref = ensure_chain 'mangle' , 'outtos';
 		       }
 		   );
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 
 	    my ($src, $dst, $proto, $ports, $sports , $tos, $mark ) = split_line 'tos file entry', { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, tos => 5, mark => 6 } ;
 
@@ -149,7 +149,7 @@ sub setup_ecn()
 			   warning_message 'ECN will not be applied to forwarded packets' unless have_capability 'MANGLE_FORWARD';
 		       } );
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 
 	    my ($interface, $hosts ) = split_line 'ecn file entry', { interface => 0, hosts => 1 };
 
@@ -202,7 +202,7 @@ sub setup_blacklist() {
     my $audit       = $disposition =~ /^A_/;
     my $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
     my $orig_target = $target;
-    
+
     #
     # We go ahead and generate the blacklist chains and jump to them, even if they turn out to be empty. That is necessary
     # for 'refresh' to work properly.
@@ -216,7 +216,7 @@ sub setup_blacklist() {
 	} elsif ( $audit ) {
 	    require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$disposition", 's';
 	    $target = verify_audit( $disposition );
-	}	    
+	}
     }
 
   BLACKLIST:
@@ -227,7 +227,7 @@ sub setup_blacklist() {
 
 	    first_entry "$doing $fn...";
 
-	    while ( read_a_line ) {
+	    while ( read_a_line ( NORMAL_READ ) ) {
 
 		if ( $first_entry ) {
 		    unless  ( @$zones || @$zones1 ) {
@@ -253,7 +253,7 @@ sub setup_blacklist() {
 
 		for ( @options ) {
 		    $whitelist++ if $_ eq 'whitelist';
-		    $auditone++  if $_ eq 'audit'; 
+		    $auditone++  if $_ eq 'audit';
 		}
 
 		warning_message "Duplicate 'whitelist' option ignored" if $whitelist > 1;
@@ -268,7 +268,7 @@ sub setup_blacklist() {
 		    } else {
 			warning_message "Duplicate 'audit' option ignored" if $auditone > 1;
 
-			
+
 
 			$tgt = verify_audit( 'A_' . $target, $orig_target, $target );
 		    }
@@ -331,7 +331,7 @@ sub setup_blacklist() {
 }
 
 #
-# Remove instances of 'blacklist' from the passed file. 
+# Remove instances of 'blacklist' from the passed file.
 #
 sub remove_blacklist( $ ) {
     my $file = shift;
@@ -343,10 +343,10 @@ sub remove_blacklist( $ ) {
     my $oldfile = open_file $fn;
     my $newfile;
     my $changed;
-	
+
     open $newfile, '>', "$fn.new" or fatal_error "Unable to open $fn.new for output: $!";
 
-    while ( read_a_line(1,1,0) ) {
+    while ( read_a_line( EMBEDDED_ENABLED | EXPAND_VARIABLES ) ) {
 	my ( $rule, $comment ) = split '#', $currentline, 2;
 
 	if ( $rule =~ /blacklist/ ) {
@@ -358,12 +358,12 @@ sub remove_blacklist( $ ) {
 		$currentline = join( '#', $rule, $comment );
 	    } else {
 		$currentline =~ s/blacklist/         /g;
-	    }	    
+	    }
 	}
-   
+
 	print $newfile "$currentline\n";
     }
-	
+
     close $newfile;
 
     if ( $changed ) {
@@ -384,7 +384,7 @@ sub convert_blacklist() {
     my $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
     my $orig_target = $target;
     my @rules;
-    
+
     if ( @$zones || @$zones1 ) {
 	if ( supplied $level ) {
 	    $target = 'blacklog';
@@ -396,7 +396,7 @@ sub convert_blacklist() {
 
 	first_entry "Converting $fn...";
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 	    my ( $networks, $protocol, $ports, $options ) = split_line 'blacklist file', { networks => 0, proto => 1, port => 2, options => 3 };
 
 	    if ( $options eq '-' ) {
@@ -411,7 +411,7 @@ sub convert_blacklist() {
 
 	    for ( @options ) {
 		$whitelist++ if $_ eq 'whitelist';
-		$auditone++  if $_ eq 'audit'; 
+		$auditone++  if $_ eq 'audit';
 	    }
 
 	    warning_message "Duplicate 'whitelist' option ignored" if $whitelist > 1;
@@ -468,7 +468,7 @@ sub convert_blacklist() {
 		open $blrules, '>',  $fn1 or fatal_error "Unable to open $fn1: $!";
 		print $blrules <<'EOF';
 #
-# Shorewall version 5 - Blacklist Rules File
+# Shorewall version 4.5 - Blacklist Rules File
 #
 # For information about entries in this file, type "man shorewall-blrules"
 #
@@ -481,7 +481,7 @@ sub convert_blacklist() {
 EOF
 	    }
 
-	    print( $blrules 
+	    print( $blrules
 		   "#\n" ,
 		   "# Rules generated from blacklist file $fn by Shorewall $globals{VERSION} - $date\n" ,
 		   "#\n" );
@@ -509,10 +509,10 @@ EOF
 			    $rule .= "all\t\t\t$zone\t\t\t";
 			}
 		    }
-		
+
 		    $rule .= "\t$protocols" if $protocols ne '-';
 		    $rule .= "\t$ports"     if $ports     ne '-';
-		
+
 		    print $blrules "$rule\n";
 		}
 	    }
@@ -521,19 +521,19 @@ EOF
 	} else {
 	    warning_message q(There are interfaces or zones with the 'blacklist' option but the 'blacklist' file is empty or does not exist) unless @rules;
 	}
-	
+
 	if ( -f $fn ) {
 	    rename $fn, "$fn.bak";
 	    progress_message2 "Blacklist file $fn saved in $fn.bak";
 	}
-	
+
 	for my $file ( qw(zones interfaces hosts) ) {
 	    remove_blacklist $file;
 	}
 
 	progress_message2 "Blacklist successfully converted";
 
-	return 1;	    
+	return 1;
     } else {
 	my $fn = find_file 'blacklist';
 	if ( -f $fn ) {
@@ -554,7 +554,7 @@ sub process_routestopped() {
 
 	first_entry "$doing $fn...";
 
-	while ( read_a_line ) {
+	while ( read_a_line ( NORMAL_READ ) ) {
 
 	    my ($interface, $hosts, $options , $proto, $ports, $sports ) =
 		split_line 'routestopped file', { interface => 0, hosts => 1, options => 2, proto => 3, dport => 4, sport => 5 };
@@ -697,7 +697,7 @@ sub add_common_rules ( $ ) {
 
     if ( $config{FASTACCEPT} ) {
 	add_ijump( $filter_table->{OUTPUT} , j => 'ACCEPT', state_imatch $faststate )
-    } 
+    }
 
     my $policy   = $config{SFILTER_DISPOSITION};
     $level       = $config{SFILTER_LOG_LEVEL};
@@ -711,11 +711,11 @@ sub add_common_rules ( $ ) {
 	$chainref = new_standard_chain 'sfilter';
 
 	log_rule $level , $chainref , $policy , '' if $level ne '';
-	
+
 	add_ijump( $chainref, j => 'AUDIT', targetopts => '--type ' . lc $policy ) if $audit;
-	
+
 	add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
-	
+
 	$target = 'sfilter';
     } else {
 	$target = $policy eq 'REJECT' ? 'reject' : $policy;
@@ -731,11 +731,11 @@ sub add_common_rules ( $ ) {
 
 	add_ijump ( $chainref, j => 'RETURN', policy => '--pol ipsec --dir out' );
 	log_rule $level , $chainref , $policy , '' if $level ne '';
-	
+
 	add_ijump( $chainref, j => 'AUDIT', targetopts => '--type ' . lc $policy ) if $audit;
-	
+
 	add_ijump $chainref, g => $policy eq 'REJECT' ? 'reject' : $policy;
-	
+
 	$target1 = 'sfilter1';
     } else {
 	#
@@ -752,9 +752,9 @@ sub add_common_rules ( $ ) {
 	unless ( $interfaceref->{options}{ignore} ) {
 
 	    my @filters = @{$interfaceref->{filter}};
-	
+
 	    $chainref = $filter_table->{forward_option_chain $interface};
-	
+
 	    if ( @filters ) {
 		add_ijump( $chainref , @ipsec ? 'j' : 'g' => $target1, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
 	    } elsif ( $interfaceref->{bridge} eq $interface ) {
@@ -765,12 +765,12 @@ sub add_common_rules ( $ ) {
 			    $interfaceref->{physical} eq '+' );
 	    }
 
-	
+
 	    if ( @filters ) {
 		$chainref = $filter_table->{input_option_chain $interface};
 		add_ijump( $chainref , g => $target, imatch_source_net( $_ ), @ipsec ), $chainref->{filtered}++ for @filters;
 	    }
-	
+
 	    for ( option_chains( $interface ) ) {
 		add_ijump( $filter_table->{$_}, j => $dynamicref, @state ) if $dynamicref;
 		add_ijump( $filter_table->{$_}, j => 'ACCEPT', state_imatch $faststate ) if $config{FASTACCEPT};
@@ -915,13 +915,13 @@ sub add_common_rules ( $ ) {
 			     1 ) for input_option_chain( $interface ), output_option_chain( $interface );
 
 	    add_ijump( $filter_table->{forward_option_chain $interface} ,
-		       j => 'ACCEPT', 
+		       j => 'ACCEPT',
 		       p =>  "udp --dport $ports" ,
 		       imatch_dest_dev( $interface ) )
 		if get_interface_option( $interface, 'bridge' );
 
 	    unless ( $family == F_IPV6 || get_interface_option( $interface, 'allip' ) ) {
-		add_ijump( $filter_table->{input_chain( $interface ) } , 
+		add_ijump( $filter_table->{input_chain( $interface ) } ,
 			   j => 'ACCEPT' ,
 			   p => "udp --dport $ports" ,
 			   s => NILIPv4 . '/32' );
@@ -948,7 +948,7 @@ sub add_common_rules ( $ ) {
 	    $globals{LOGPARMS} = "$globals{LOGPARMS}--log-ip-options ";
 
 	    log_rule $level , $logflagsref , $config{TCP_FLAGS_DISPOSITION}, '';
-	    
+
 	    $globals{LOGPARMS} = $savelogparms;
 
 	    if ( $audit ) {
@@ -1097,7 +1097,7 @@ sub setup_mac_lists( $ ) {
 
 	    first_entry "$doing $fn...";
 
-	    while ( read_a_line ) {
+	    while ( read_a_line( NORMAL_READ ) ) {
 
 		my ( $original_disposition, $interface, $mac, $addresses  ) = split_line1 'maclist file', { disposition => 0, interface => 1, mac => 2, addresses => 3 };
 
@@ -1128,7 +1128,7 @@ sub setup_mac_lists( $ ) {
 			    my $source = match_source_net $address;
 			    log_rule_limit $level, $chainref , mac_chain( $interface) , $disposition, '', '', 'add' , "${mac}${source}"
 				if supplied $level;
-			    
+
 			    add_ijump( $chainref , j => 'AUDIT', targetopts => '--type ' . lc $disposition ) if $audit && $disposition ne 'ACCEPT';
 			    add_jump( $chainref , $targetref->{target}, 0, "${mac}${source}" );
 			}
@@ -1348,7 +1348,7 @@ sub handle_loopback_traffic() {
 		    my $exclusion   = source_exclusion( $hostref->{exclusions}, $natref);
 
 		    for my $net ( @{$hostref->{hosts}} ) {
-			insert_ijump( $natout, 
+			insert_ijump( $natout,
 				      j => $exclusion,
 				      $rulenum++,
 				      imatch_source_net( $net , 0, ) );
@@ -1383,7 +1383,7 @@ sub add_interface_jumps {
 	addnatjump 'PREROUTING'  , input_chain( $interface )  , imatch_source_dev( $interface );
 	addnatjump 'POSTROUTING' , output_chain( $interface ) , imatch_dest_dev( $interface );
 	addnatjump 'POSTROUTING' , masq_chain( $interface ) , imatch_dest_dev( $interface );
-	
+
 	if ( have_capability 'RAWPOST_TABLE' ) {
 	    insert_ijump ( $rawpost_table->{POSTROUTING}, j => postrouting_chain( $interface ), 0, imatch_dest_dev( $interface) )   if $rawpost_table->{postrouting_chain $interface};
 	    insert_ijump ( $raw_table->{PREROUTING},      j => prerouting_chain( $interface ),  0, imatch_source_dev( $interface) ) if $raw_table->{prerouting_chain $interface};
@@ -1403,14 +1403,15 @@ sub add_interface_jumps {
 
 	if ( $interfaceref->{options}{port} ) {
 	    my $bridge = $interfaceref->{bridge};
+
 	    add_ijump ( $filter_table->{forward_chain $bridge},
 			j => 'ACCEPT',
 			imatch_source_dev( $interface, 1),
 			imatch_dest_dev( $interface, 1)
-		     ) unless $interfaceref->{nets} || ! $interfaceref->{options}{bridge};
+		     ) unless $interfaceref->{nets};
 
 	    add_ijump( $filter_table->{forward_chain $bridge} ,
-		       j => $forwardref , 
+		       j => $forwardref ,
 		       imatch_source_dev( $interface, 1 )
 		     ) unless $forward_jump_added{$interface} || ! use_forward_chain $interface, $forwardref;
 
@@ -1449,7 +1450,7 @@ sub add_interface_jumps {
 # The biggest disadvantage of the zone-policy-rule model used by Shorewall is that it doesn't scale well as the number of zones increases (Order N**2 where N = number of zones).
 # A major goal of the rewrite of the compiler in Perl was to restrict those scaling effects to this function and the rules that it generates.
 #
-# The function traverses the full "source-zone by destination-zone" matrix and generates the rules necessary to direct traffic through the right set of filter-table and 
+# The function traverses the full "source-zone by destination-zone" matrix and generates the rules necessary to direct traffic through the right set of filter-table and
 # nat-table rules.
 #
 sub generate_matrix() {
@@ -1462,7 +1463,7 @@ sub generate_matrix() {
     my $fw       = firewall_zone;
     my @zones    = off_firewall_zones;
     my @vservers = vserver_zones;
-    
+
     my $notrackref = $raw_table->{notrack_chain $fw};
     my @state = $config{BLACKLISTNEWONLY} ? $globals{UNTRACKED} ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID' : ();
     my $interface_jumps_added = 0;
@@ -1476,22 +1477,26 @@ sub generate_matrix() {
     progress_message  '  Handling complex zones...';
 
     #
-    # Special processing for complex configurations
+    # Special processing for configurations with more than 2 off-firewall zones or with other special considerations like IPSEC.
     #
     for my $zone ( @zones ) {
 	my $zoneref = find_zone( $zone );
-	
+
 	next if  @zones <= 2 && ! $zoneref->{complex};
 	#
-	# Complex zone or we have more than one non-firewall zone -- process_rules created a zone forwarding chain
+	# Complex zone or we have more than two off-firewall zones -- Shorewall::Rules::classic_blacklist created a zone forwarding chain
 	#
 	my $frwd_ref = $filter_table->{zone_forward_chain( $zone )};
 
+	assert( $frwd_ref, $zone );
+	#
+	# Add Zone mark if any
+	#
 	add_ijump( $frwd_ref , j => 'MARK --set-mark ' . in_hex( $zoneref->{mark} ) . '/' . in_hex( $globals{ZONE_MASK} ) ) if $zoneref->{mark};
 
 	if ( have_ipsec ) {
 	    #
-	    # Because policy match only matches an 'in' or an 'out' policy (but not both), we have to place the
+	    # Prior to KLUDGEFREE, policy match could only match an 'in' or an 'out' policy (but not both), so we place the
 	    # '--pol ipsec --dir in' rules at the front of the (interface) forwarding chains. Otherwise, decrypted packets
 	    # can match '--pol none --dir out' rules and send the packets down the wrong rules chain.
 	    #
@@ -1509,6 +1514,9 @@ sub generate_matrix() {
 			copy_rules( $sourcechainref, $frwd_ref, 1 ) unless $ipsec_jump_added{$zone}++;
 			$sourcechainref = $filter_table->{FORWARD};
 		    } elsif ( $interfaceref->{options}{port} ) {
+			#
+			# The forwarding chain for a bridge with ports is always used
+			#
 			add_ijump( $filter_table->{ forward_chain $interfaceref->{bridge} } ,
 				   j => $sourcechainref ,
 				   imatch_source_dev( $interface , 1 ) )
@@ -1518,6 +1526,9 @@ sub generate_matrix() {
 		    }
 		} else {
 		    if ( $interfaceref->{options}{port} ) {
+			#
+			# The forwarding chain for a bridge with ports is always used
+			#
 			$sourcechainref = $filter_table->{ forward_chain $interfaceref->{bridge} };
 			@interfacematch = imatch_source_dev $interface, 1;
 		    } else {
@@ -1689,14 +1700,14 @@ sub generate_matrix() {
 				       imatch_source_dev( $interface),
 				       @source,
 				       @ipsec_in_match );
-				      
+
 			    if ( get_physical( $interface ) eq '+' ) {
 				#
 				# The jump from the PREROUTING chain to dnat may not have been added above
-				# 
+				#
 				addnatjump 'PREROUTING', 'dnat' unless $preroutingref->{references}{PREROUTING};
 			    }
-				
+
 			    check_optimization( $dnatref ) if @source;
 			}
 
@@ -1725,7 +1736,7 @@ sub generate_matrix() {
 
 			if ( @vservers || use_input_chain( $interface, $interfacechainref ) || ! $chain2 || ( @{$interfacechainref->{rules}} && ! $chain2ref ) ) {
 			    $inputchainref = $interfacechainref;
-			    
+
 			    if ( $isport ) {
 				add_ijump( $filter_table->{ input_chain $bridge },
 					   j => $inputchainref ,
@@ -1762,7 +1773,7 @@ sub generate_matrix() {
 
 			    if ( use_forward_chain $interface, $forwardref ) {
 				add_ijump $forwardref , j => $ref, @source, @ipsec_in_match;
-				
+
 				if ( $isport ) {
 				    add_ijump( $filter_table->{ forward_chain $bridge } ,
 					       j => $forwardref ,
@@ -1903,7 +1914,7 @@ sub generate_matrix() {
 			    # Either we must use the interface's forwarding chain or that chain has rules and we have nowhere to move them
 			    #
 			    $chain3ref = $forwardchainref;
-			    
+
 			    if ( $interfaceref->{options}{port} ) {
 				add_ijump( $filter_table->{ forward_chain $interfaceref->{bridge} } ,
 					   j => $chain3ref,

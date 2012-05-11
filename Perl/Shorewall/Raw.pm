@@ -34,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_notrack );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.4_27';
+our $VERSION = '4.5_3';
 
 my %valid_ctevent = ( new => 1, related => 1, destroy => 1, reply => 1, assured => 1, protoinfo => 1, helper => 1, mark => 1, natseqinfo => 1, secmark => 1 );
 
@@ -105,7 +105,7 @@ sub process_notrack_rule( $$$$$$$ ) {
 		 '' ,
 		 $target ,
 		 $exception_rule );
-    
+
     progress_message "  Notrack rule \"$currentline\" $done";
 
     $globals{UNTRACKED} = 1;
@@ -130,36 +130,36 @@ sub setup_notrack() {
 
 	my $nonEmpty = 0;
 
-	while ( read_a_line ) {	    
+	while ( read_a_line( NORMAL_READ ) ) {
 	    my ( $source, $dest, $proto, $ports, $sports, $user );
 
 	    if ( $format == 1 ) {
 		( $source, $dest, $proto, $ports, $sports, $user ) = split_line1 'Notrack File', { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, user => 5 };
-		
+
 		if ( $source eq 'FORMAT' ) {
 		    $format = process_format( $dest );
 		    next;
 		}
-		
+
 		if ( $source eq 'COMMENT' ) {
 		    process_comment;
 		    next;
-		}	    
+		}
 	    } else {
 		( $action, $source, $dest, $proto, $ports, $sports, $user ) = split_line1 'Notrack File', { action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6 }, { COMMENT => 0, FORMAT => 2 };
-		
+
 		if ( $action eq 'FORMAT' ) {
 		    $format = process_format( $source );
 		    $action = 'NOTRACK';
 		    next;
 		}
-		
+
 		if ( $action eq 'COMMENT' ) {
 		    process_comment;
 		    next;
-		}	    
+		}
 	    }
-	    
+
 	    process_notrack_rule $action, $source, $dest, $proto, $ports, $sports, $user;
 	}
 

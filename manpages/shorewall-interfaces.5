@@ -2,12 +2,12 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 04/30/2012
+.\"      Date: 05/10/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "04/30/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-INTERFACE" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -35,6 +35,22 @@ interfaces \- Shorewall interfaces file
 .SH "DESCRIPTION"
 .PP
 The interfaces file serves to define the firewall\*(Aqs network interfaces to Shorewall\&. The order of entries in this file is not significant in determining zone composition\&.
+.PP
+Beginning with Shorewall 4\&.5\&.3, the interfaces file supports two different formats:
+.PP
+FORMAT 1 (default \- deprecated)
+.RS 4
+There is a BROADCAST column which can be used to specify the broadcast address associated with the interface\&.
+.RE
+.PP
+FORMAT 2
+.RS 4
+The BROADCAST column is omitted\&.
+.RE
+.PP
+The format is specified by a line as follows:
+.PP
+\fBFORMAT {1|2}\fR
 .PP
 The columns in the file are as follows\&.
 .PP
@@ -128,6 +144,8 @@ wait
 .PP
 \fBBROADCAST\fR (Optional) \- {\fB\-\fR|\fBdetect\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.}
 .RS 4
+Only available if FORMAT 1\&.
+.sp
 If you use the special value
 \fBdetect\fR, Shorewall will detect the broadcast address(es) for you if your iptables and kernel include Address Type Match support\&.
 .sp
@@ -670,7 +688,7 @@ options\&.
 .PP
 Example 1:
 .RS 4
-Suppose you have eth0 connected to a DSL modem and eth1 connected to your local network and that your local subnet is 192\&.168\&.1\&.0/24\&. The interface gets its IP address via DHCP from subnet 206\&.191\&.149\&.192/27\&. You have a DMZ with subnet 192\&.168\&.2\&.0/24 using eth2\&.
+Suppose you have eth0 connected to a DSL modem and eth1 connected to your local network and that your local subnet is 192\&.168\&.1\&.0/24\&. The interface gets its IP address via DHCP from subnet 206\&.191\&.149\&.192/27\&. You have a DMZ with subnet 192\&.168\&.2\&.0/24 using eth2\&. Your iptables and/or kernel do not support "Address Type Match" and you prefer to specify broadcast addresses explicitly rather than having Shorewall detect them\&.
 .sp
 Your entries for this setup would look like:
 .sp
@@ -678,6 +696,7 @@ Your entries for this setup would look like:
 .RS 4
 .\}
 .nf
+FORMAT 1
 #ZONE   INTERFACE BROADCAST        OPTIONS
 net     eth0      206\&.191\&.149\&.223  dhcp
 loc     eth1      192\&.168\&.1\&.255
@@ -696,10 +715,11 @@ The same configuration without specifying broadcast addresses is:
 .RS 4
 .\}
 .nf
-#ZONE   INTERFACE BROADCAST        OPTIONS
-net     eth0      detect           dhcp
-loc     eth1      detect
-dmz     eth2      detect
+FORMAT 2
+#ZONE   INTERFACE OPTIONS
+net     eth0      dhcp
+loc     eth1      
+dmz     eth2
 .fi
 .if n \{\
 .RE
@@ -714,7 +734,8 @@ You have a simple dial\-in system with no ethernet connections\&.
 .RS 4
 .\}
 .nf
-#ZONE   INTERFACE BROADCAST        OPTIONS
+FORMAT 2
+#ZONE   INTERFACE OPTIONS
 net     ppp0      \-
 .fi
 .if n \{\
@@ -730,8 +751,9 @@ You have a bridge with no IP address and you want to allow traffic through the b
 .RS 4
 .\}
 .nf
-#ZONE   INTERFACE BROADCAST        OPTIONS
-\-       br0       \-                routeback
+FORMAT 2
+#ZONE   INTERFACE OPTIONS
+\-       br0       routeback
 .fi
 .if n \{\
 .RE

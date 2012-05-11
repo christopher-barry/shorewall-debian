@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 4.5.2
-%define release 4
+%define version 4.5.3
+%define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -93,6 +93,7 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/action.A_Drop
 %attr(0644,root,root) /usr/share/shorewall/action.Invalid
 %attr(0644,root,root) /usr/share/shorewall/action.NotSyn
+%attr(0644,root,root) /usr/share/shorewall/action.RST
 %attr(0644,root,root) /usr/share/shorewall/action.Reject
 %attr(0644,root,root) /usr/share/shorewall/action.A_Reject
 %attr(0644,root,root) /usr/share/shorewall/action.TCPFlags
@@ -104,8 +105,8 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/helpers
 %attr(0644,root,root) /usr/share/shorewall/configpath
 
-%attr(755,root,root) /usr/share/shorewall/compiler.pl
-%attr(755,root,root) /usr/share/shorewall/getparams
+%attr(755,root,root) %{_libexecdir}/shorewall/compiler.pl
+%attr(755,root,root) %{_libexecdir}/shorewall/getparams
 %attr(0644,root,root) /usr/share/shorewall/prog.*
 %attr(0644,root,root) %{perl_vendorlib}/Shorewall/*.pm
 
@@ -117,12 +118,12 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
-* Mon Apr 30 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.2-4
-* Sun Apr 15 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.2-3
-* Sat Apr 14 2012 Tom Eastep tom@shorewall.net
-- Updated to 4.5.2-2
+* Sun May 06 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.3-0base
+* Thu May 03 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.3-0RC1
+* Fri Apr 27 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.3-0Beta2
 * Tue Apr 10 2012 Tom Eastep tom@shorewall.net
 - Updated to 4.5.2-1
 * Sat Apr 07 2012 Tom Eastep tom@shorewall.net

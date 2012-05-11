@@ -267,25 +267,7 @@
 #         as in the example above so that all of your minor classes will have a
 #         value > 256.
 # 
-#      9. TPROXY(mark[/mask][,[port][,[address]]])
-# 
-#         Transparently redirects a packet without altering the IP header.
-#         Requires a local provider to be defined in shorewall-providers(5).
-# 
-#         There are three parameters to TPROXY - only the first (mark) is
-#         required:
-# 
-#           ● mark - the MARK value corresponding to the local provider in
-#             shorewall-providers(5).
-# 
-#           ● port - the port on which the proxy server is listening. If omitted,
-#             the original destination port.
-# 
-#           ● address - a local (to the firewall) IP address on which the proxy
-#             server is listening. If omitted, the IP address of the interface on
-#             which the request arrives.
-# 
-#     10. TTL([-|+]number)
+#      9. TTL([-|+]number)
 # 
 #         Added in Shorewall 4.4.24. May be option followed by :F but the
 #         resulting rule is always added to the FORWARD chain. If + is included,
@@ -295,13 +277,13 @@
 #         packets is set to number. The valid range of values for number is
 #         1-255.
 # 
-#     11. IMQ(number)
+#     10. IMQ(number)
 # 
 #         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
 #         the IMQ identified by number. Requires IMQ Target support in your
 #         kernel and iptables.
 # 
-#     12. DSCP(dscp)
+#     11. DSCP(dscp)
 # 
 #         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
 #         field in the IP header. The dscp value may be given as an even number
@@ -342,7 +324,7 @@
 # 
 #             POSTROUTING chain (default).
 # 
-#     13. TOS(tos[/mask])
+#     12. TOS(tos[/mask])
 # 
 #         Added in Shorewall 4.5.1. Sets the Type of Service field in the IP
 #         header. The tos value may be given as an number (hex or decimal) or as

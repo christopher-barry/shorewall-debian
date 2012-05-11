@@ -11,5 +11,7 @@
 #------------------------------------------------------------------------------
 # For information about entries in this file, type "man shorewall-interfaces"
 ###############################################################################
-#ZONE	INTERFACE	BROADCAST	OPTIONS
-net     eth0            detect          dhcp,tcpflags,logmartians,nosmurfs
+FORMAT 2
+###############################################################################
+#ZONE	INTERFACE	OPTIONS
+net     eth0            dhcp,tcpflags,logmartians,nosmurfs

@@ -34,7 +34,7 @@ get_config() {
 
     ensure_config_path
 
-    
+
 
     if [ "$1" = Yes ]; then
 	params=$(find_file params)
@@ -90,7 +90,7 @@ get_config() {
 		    exit 2
 		fi
 	    fi
-	    
+
 	    g_tool=$IPTABLES
 	else
 	    if [ -n "$IP6TABLES" ]; then
@@ -507,7 +507,11 @@ start_command() {
 			c*)
 			    AUTOMAKE=
 			    option=${option#c}
-			    ;;			    
+			    ;;
+			T*)
+			    g_confess=Yes
+			    option=${option#T}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -870,7 +874,7 @@ restart_command() {
 			c*)
 			    AUTOMAKE=
 			    option=${option#c}
-			    ;;			    
+			    ;;
 			n*)
 			    g_noroutes=Yes
 			    option=${option#n}
@@ -879,6 +883,10 @@ restart_command() {
 			    [ -n "$(which conntrack)" ] || fatal_error "The '-p' option requires the conntrack utility which does not appear to be installed on this system"
 			    g_purge=Yes
 			    option=${option%p}
+			    ;;
+			T*)
+			    g_confess=Yes
+			    option=${option#T}
 			    ;;
 			*)
 			    usage 1
@@ -963,6 +971,27 @@ refresh_command() {
 			-)
 			    finished=1
 			    option=
+			    ;;
+			d*)
+			    g_debug=Yes
+			    option=${option#d}
+			    ;;
+			n*)
+			    g_noroutes=Yes
+			    option=${option#n}
+			    ;;
+			T*)
+			    g_confess=Yes
+			    option=${option#T}
+			    ;;
+			D)
+			    if [ $# -gt 1 ]; then
+				g_shorewalldir="$2"
+				option=
+				shift
+			    else
+				fatal_error "ERROR: the -D option requires a directory name"
+			    fi
 			    ;;
 			*)
 			    usage 1
@@ -1341,6 +1370,10 @@ reload_command() # $* = original arguments less the command.
 			    option=
 			    shift
 			    ;;
+			T*)
+			    g_confess=Yes
+			    option=${option#T}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -1406,7 +1439,7 @@ reload_command() # $* = original arguments less the command.
 	fi
 
 	. $directory/$g_program.conf
-	
+
 	ensure_config_path
     fi
 
@@ -1556,7 +1589,7 @@ usage() # $1 = exit status
     fi
 
     echo "   iptrace <iptables match expression>"
-    echo "   load [ -s ] [ -c ] [ -r <root user> ] [ <directory> ] <system>"
+    echo "   load [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ <directory> ] <system>"
     echo "   logdrop <address> ..."
     echo "   logreject <address> ..."
     echo "   logwatch [<refresh interval>]"
@@ -1567,11 +1600,11 @@ usage() # $1 = exit status
 	echo "   noiptrace <ip6tables match expression>"
     fi
 
-    echo "   refresh [ <chain>... ]"
+    echo "   refresh [ -d ] [ -n ] [ -T ] [ -D <directory> ] [ <chain>... ]"
     echo "   reject <address> ..."
-    echo "   reload [ -s ] [ -c ] [ -r <root user> ] [ <directory> ] <system>"
+    echo "   reload [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ <directory> ] <system>"
     echo "   reset [ <chain> ... ]"
-    echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ][ <directory> ]"
+    echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ] [ -T ] [ <directory> ]"
     echo "   restore [ -n ] [ <file name> ]"
     echo "   safe-restart [ -t <timeout> ] [ <directory> ]"
     echo "   safe-start [ -t <timeout> ] [ <directory> ]"
@@ -1585,7 +1618,7 @@ usage() # $1 = exit status
     echo "   show dynamic <zone>"
     echo "   show filters"
     echo "   show ip"
-    
+
     if [ $g_family -eq 4 ]; then
 	echo "   show ipa"
     fi
@@ -1599,7 +1632,7 @@ usage() # $1 = exit status
     echo "   show tc [ device ]"
     echo "   show vardir"
     echo "   show zones"
-    echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ <directory> ]"
+    echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ -T ] [ <directory> ]"
     echo "   status"
     echo "   stop"
     echo "   try <directory> [ <timeout> ]"

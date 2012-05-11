@@ -26,6 +26,17 @@
 #     Specifies the action to be taken if the packet matches the rule. Must be
 #     one of the following.
 # 
+#     BLACKLIST
+# 
+#         Added in Shorewall 4.5.3. This is actually a macro that expands as
+#         follows:
+# 
+#           ● If BLACKLIST_LOGLEVEL is specified in shorewall.conf(5), then the
+#             macro expands to blacklog.
+# 
+#           ● Otherwise it expands to the action specified for
+#             BLACKLIST_DISPOSITION in shorewall.conf(5).
+# 
 #     blacklog
 # 
 #         May only be used if BLACKLIST_LOGLEVEL is specified in shorewall.conf 

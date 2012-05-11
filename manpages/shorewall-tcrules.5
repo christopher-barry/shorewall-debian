@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 04/30/2012
+.\"      Date: 05/10/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "04/30/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -412,59 +412,6 @@ classes will have a value > 256\&.
 .sp -1
 .IP "  9." 4.2
 .\}
-\fBTPROXY\fR(\fImark\fR[/\fImask\fR][,[\fIport\fR][,[\fIaddress\fR]]])
-.sp
-Transparently redirects a packet without altering the IP header\&. Requires a local provider to be defined in
-\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[5]\d\s+2(5)\&.
-.sp
-There are three parameters to TPROXY \- only the first (mark) is required:
-.sp
-.RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-\fImark\fR
-\- the MARK value corresponding to the local provider in
-\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[5]\d\s+2(5)\&.
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-\fIport\fR
-\- the port on which the proxy server is listening\&. If omitted, the original destination port\&.
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04'\(bu\h'+03'\c
-.\}
-.el \{\
-.sp -1
-.IP \(bu 2.3
-.\}
-\fIaddress\fR
-\- a local (to the firewall) IP address on which the proxy server is listening\&. If omitted, the IP address of the interface on which the request arrives\&.
-.RE
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04'10.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "10." 4.2
-.\}
 \fBTTL\fR([\fB\-\fR|\fB+\fR]\fInumber\fR)
 .sp
 Added in Shorewall 4\&.4\&.24\&. May be option followed by
@@ -487,11 +434,11 @@ is 1\-255\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04'11.\h'+01'\c
+\h'-04'10.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "11." 4.2
+.IP "10." 4.2
 .\}
 \fBIMQ\fR(\fInumber\fR)
 .sp
@@ -501,11 +448,11 @@ Added in Shorewall 4\&.5\&.1\&. Specifies that the packet should be passed to th
 .sp
 .RS 4
 .ie n \{\
-\h'-04'12.\h'+01'\c
+\h'-04'11.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "12." 4.2
+.IP "11." 4.2
 .\}
 \fBDSCP\fR(\fIdscp\fR)
 .sp
@@ -561,11 +508,11 @@ POSTROUTING chain (default)\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04'13.\h'+01'\c
+\h'-04'12.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "13." 4.2
+.IP "12." 4.2
 .\}
 \fBTOS\fR(\fItos\fR[/\fImask\fR])
 .sp
@@ -682,7 +629,7 @@ Example: ~00\-A0\-C9\-15\-39\-78
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5))\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[5]\d\s+2(5))\&.
 .RE
 .PP
 \fBDEST\fR \- {\fB\-\fR|{\fIinterface\fR|$FW}|[\fI{interface\fR|$FW}:]\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.}[\fIexclusion\fR]
@@ -698,7 +645,7 @@ May be:
 .IP "  1." 4.2
 .\}
 An interface name\&. May not be used in the PREROUTING chain (:P in the mark column or no chain qualifier and MARK_IN_FORWARD_CHAIN=No in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[6]\d\s+2
 (5))\&. The interface name may be optionally followed by a colon (":") and an IP address list\&.
 .RE
 .sp
@@ -727,7 +674,7 @@ Beginning with Shorewall 4\&.4\&.13, $FW may be specified by itself or qualified
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[6]\d\s+2(5))\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[5]\d\s+2(5))\&.
 .RE
 .PP
 \fBPROTO\fR \- {\fB\-\fR|\fBtcp:syn\fR|\fBipp2p\fR|\fBipp2p:udp\fR|\fBipp2p:all\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
@@ -1037,16 +984,11 @@ shorewall-tcclasses
 \%http://www.shorewall.net/manpages/shorewall-tcclasses.html
 .RE
 .IP " 5." 4
-shorewall-providers
-.RS 4
-\%http://www.shorewall.net/manpages/shorewall-providers.html
-.RE
-.IP " 6." 4
 shorewall-exclusion
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-exclusion.html
 .RE
-.IP " 7." 4
+.IP " 6." 4
 shorewall.conf
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall.conf

@@ -30,8 +30,8 @@ use strict;
 #
 # Build updates this
 #
-use constant { 
-    VERSION => '4.5.2.4'
+use constant {
+    VERSION => '4.5.3'
 };
 
 my %params;
@@ -131,7 +131,7 @@ for ( qw/ HOST
 	  PERLLIBDIR
 	  CONFDIR
 	  SBINDIR
-	  MANDIR 
+	  MANDIR
 	  INITDIR
 	  INITSOURCE
 	  INITFILE

@@ -35,7 +35,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.4_26';
+our $VERSION = '4.5_3';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -234,7 +234,7 @@ sub setup_tunnels() {
     }
 
     sub setup_one_tunnel($$$$) {
-	my ( $kind , $zone, $gateway, $gatewayzones ) = @_;
+	my ( $kind , $zone, $gateways, $gatewayzones ) = @_;
 
 	my $zonetype = zone_type( $zone );
 
@@ -243,35 +243,42 @@ sub setup_tunnels() {
 	my $inchainref  = ensure_rules_chain( rules_chain( ${zone}, ${fw} ) );
 	my $outchainref = ensure_rules_chain( rules_chain( ${fw}, ${zone} ) );
 
-	$gateway = ALLIP if $gateway eq '-';
+	$gateways = ALLIP if $gateways eq '-';
 
-	my @source = imatch_source_net $gateway;
-	my @dest   = imatch_dest_net   $gateway;
+	my ( $net, $excl ) = handle_network_list( $gateways , 'src' );
+	( $net, $excl )    = handle_network_list( $gateways , 'dst' );
 
-	my %tunneltypes = ( 'ipsec'         => { function => \&setup_one_ipsec ,         params   => [ $kind, \@source, \@dest , $gatewayzones ] } ,
-			    'ipsecnat'      => { function => \&setup_one_ipsec ,         params   => [ $kind, \@source, \@dest , $gatewayzones ] } ,
-			    'ipip'          => { function => \&setup_one_other,          params   => [ \@source, \@dest , 4 ] } ,
-			    'gre'           => { function => \&setup_one_other,          params   => [ \@source, \@dest , 47 ] } ,
-			    '6to4'          => { function => \&setup_one_other,          params   => [ \@source, \@dest , 41 ] } ,
-			    '6in4'          => { function => \&setup_one_other,          params   => [ \@source, \@dest , 41 ] } ,
-			    'pptpclient'    => { function => \&setup_pptp_client,        params   => [ $kind, \@source, \@dest ] } ,
-			    'pptpserver'    => { function => \&setup_pptp_server,        params   => [ $kind, \@source, \@dest ] } ,
-			    'openvpn'       => { function => \&setup_one_openvpn,        params   => [ $kind, \@source, \@dest ] } ,
-			    'openvpnclient' => { function => \&setup_one_openvpn_client, params   => [ $kind, \@source, \@dest ] } ,
-			    'openvpnserver' => { function => \&setup_one_openvpn_server, params   => [ $kind, \@source, \@dest ] } ,
-			    'l2tp'          => { function => \&setup_one_l2tp ,          params   => [ $kind, \@source, \@dest ] } ,
-			    'generic'       => { function => \&setup_one_generic ,       params   => [ $kind, \@source, \@dest ] } ,
-			  );
+	fatal_error "Exclusion is not allowed in the GATEWAYS column" if $excl;
 
-	$kind = "\L$kind";
+	for my $gateway ( split_list $gateways, 'GATEWAYS' ) {
+	    my @source = imatch_source_net $gateway;
+	    my @dest   = imatch_dest_net   $gateway;
 
-	(my $type) = split /:/, $kind;
+	    my %tunneltypes = ( 'ipsec'         => { function => \&setup_one_ipsec ,         params   => [ $kind, \@source, \@dest , $gatewayzones ] } ,
+				'ipsecnat'      => { function => \&setup_one_ipsec ,         params   => [ $kind, \@source, \@dest , $gatewayzones ] } ,
+				'ipip'          => { function => \&setup_one_other,          params   => [ \@source, \@dest , 4 ] } ,
+				'gre'           => { function => \&setup_one_other,          params   => [ \@source, \@dest , 47 ] } ,
+				'6to4'          => { function => \&setup_one_other,          params   => [ \@source, \@dest , 41 ] } ,
+				'6in4'          => { function => \&setup_one_other,          params   => [ \@source, \@dest , 41 ] } ,
+				'pptpclient'    => { function => \&setup_pptp_client,        params   => [ $kind, \@source, \@dest ] } ,
+				'pptpserver'    => { function => \&setup_pptp_server,        params   => [ $kind, \@source, \@dest ] } ,
+				'openvpn'       => { function => \&setup_one_openvpn,        params   => [ $kind, \@source, \@dest ] } ,
+				'openvpnclient' => { function => \&setup_one_openvpn_client, params   => [ $kind, \@source, \@dest ] } ,
+				'openvpnserver' => { function => \&setup_one_openvpn_server, params   => [ $kind, \@source, \@dest ] } ,
+				'l2tp'          => { function => \&setup_one_l2tp ,          params   => [ $kind, \@source, \@dest ] } ,
+				'generic'       => { function => \&setup_one_generic ,       params   => [ $kind, \@source, \@dest ] } ,
+			      );
 
-	my $tunnelref = $tunneltypes{ $type };
+	    $kind = "\L$kind";
 
-	fatal_error "Tunnels of type $type are not supported" unless $tunnelref;
+	    (my $type) = split /:/, $kind;
 
-	$tunnelref->{function}->( $inchainref, $outchainref, @{$tunnelref->{params}} );
+	    my $tunnelref = $tunneltypes{ $type };
+
+	    fatal_error "Tunnels of type $type are not supported" unless $tunnelref;
+
+	    $tunnelref->{function}->( $inchainref, $outchainref, @{$tunnelref->{params}} );
+	}
 
 	progress_message "   Tunnel \"$currentline\" $done";
     }
@@ -283,16 +290,16 @@ sub setup_tunnels() {
 
 	first_entry "$doing $fn...";
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateway_zone => 3 };
+	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 }, undef, 4;
 
 	    fatal_error 'TYPE must be specified' if $kind eq '-';
-	    fatal_error 'ZONE must be specified' if $zone eq '-';
 
 	    if ( $kind eq 'COMMENT' ) {
 		process_comment;
 	    } else {
+		fatal_error 'ZONE must be specified' if $zone eq '-';
 		setup_one_tunnel $kind, $zone, $gateway, $gatewayzones;
 	    }
 	}

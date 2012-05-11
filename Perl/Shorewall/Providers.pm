@@ -161,7 +161,7 @@ sub setup_route_marking() {
 	    my $chainref2 = new_chain( 'mangle', load_chain( $physical ) );
 
 	    set_optflags( $chainref2, DONT_OPTIMIZE | DONT_MOVE | DONT_DELETE );
-	
+
   	    add_ijump ( $chainref1,
 			j => $chainref2 ,
 		        mark => "--mark 0/$mask" );
@@ -171,7 +171,7 @@ sub setup_route_marking() {
 
 sub copy_table( $$$ ) {
     my ( $duplicate, $number, $realm ) = @_;
-    
+
     my $filter = $family == F_IPV6 ? q(fgrep -v ' cache ' | sed 's/ via :: / /' | ) : '';
 
     emit '';
@@ -186,7 +186,7 @@ sub copy_table( $$$ ) {
 	   '        default)',
 	   '            ;;',
 	   '        *)' );
-	   
+
     if ( $family == F_IPV4 ) {
 	emit ( '            case $net in',
 	       '                255.255.255.255*)',
@@ -218,7 +218,7 @@ sub copy_and_edit_table( $$$$ ) {
     # Shell and iptables use a different wildcard character
     #
     $copy =~ s/\+/*/g;
-    
+
     emit '';
 
     if ( $realm ) {
@@ -244,7 +244,7 @@ sub copy_and_edit_table( $$$$ ) {
 	     );
     } else {
 	emit (  "                    run_ip route add table $number \$net \$route $realm" );
-    } 
+    }
 
     emit (  '                    ;;',
 	    '            esac',
@@ -557,9 +557,9 @@ sub process_a_provider() {
 # Generate the start_provider_...() function for the passed provider
 #
 sub add_a_provider( $$ ) {
-  
+
     my ( $providerref, $tcdevices ) = @_;
-    
+
     my $table       = $providerref->{provider};
     my $number      = $providerref->{number};
     my $mark        = $providerref->{rawmark};
@@ -608,16 +608,18 @@ sub add_a_provider( $$ ) {
 	}
     }
 
-    emit( qq(echo $load > \${VARDIR}/${physical}_load) ) if $load;
+    emit( "echo $load > \${VARDIR}/${physical}_load",
+	  'echo ' . in_hex( $mark ) . '/' . in_hex( $globals{PROVIDER_MASK} ) . " > \${VARDIR}/${physical}_mark" ) if $load;
 
-    emit( '', 
+    emit( '',
 	  "cat <<EOF >> \${VARDIR}/undo_${table}_routing" );
-    
+
     emit_unindented 'case \$COMMAND in';
     emit_unindented '    enable|disable)';
     emit_unindented '        ;;';
     emit_unindented '    *)';
     emit_unindented "        rm -f \${VARDIR}/${physical}_load" if $load;
+    emit_unindented "        rm -f \${VARDIR}/${physical}_mark" if $load;
     emit_unindented <<"CEOF", 1;
         rm -f \${VARDIR}/${physical}.status
         ;;
@@ -630,12 +632,13 @@ CEOF
     setup_interface_proc( $interface );
 
     if ( $mark ne '-' ) {
+	my $hexmark = in_hex( $mark );
 	my $mask = have_capability 'FWMARK_RT_MASK' ? '/' . in_hex $globals{PROVIDER_MASK} : '';
 
-	emit ( "qt \$IP -$family rule del fwmark ${mark}${mask}" ) if $config{DELETE_THEN_ADD};
+	emit ( "qt \$IP -$family rule del fwmark ${hexmark}${mask}" ) if $config{DELETE_THEN_ADD};
 
-	emit ( "run_ip rule add fwmark ${mark}${mask} pref $pref table $number",
-	       "echo \"qt \$IP -$family rule del fwmark ${mark}${mask}\" >> \${VARDIR}/undo_${table}_routing"
+	emit ( "run_ip rule add fwmark ${hexmark}${mask} pref $pref table $number",
+	       "echo \"qt \$IP -$family rule del fwmark ${hexmark}${mask}\" >> \${VARDIR}/undo_${table}_routing"
 	     );
     }
 
@@ -686,7 +689,7 @@ CEOF
 	    emit qq(run_ip route add default table ) . DEFAULT_TABLE . qq( dev $physical metric $number);
 	    emit qq(echo "qt \$IP -$family route del default dev $physical table ) . DEFAULT_TABLE . qq(" >> \${VARDIR}/undo_${table}_routing);
 	}
-	
+
 	$fallback = 1;
     }
 
@@ -724,19 +727,19 @@ CEOF
 	emit '';
 	emit $_ for @{$providers{$table}->{rules}};
     }
-    
+
     if ( @{$providerref->{routes}} ) {
 	emit '';
 	emit $_ for @{$providers{$table}->{routes}};
     }
 
     emit( '' );
-    
+
     my ( $tbl, $weight );
 
     emit( qq(echo 0 > \${VARDIR}/${physical}.status) );
 
-    if ( $optional ) {	
+    if ( $optional ) {
 	emit( '',
 	      'if [ $COMMAND = enable ]; then' );
 
@@ -775,7 +778,7 @@ CEOF
 	emit ( qq(progress_message2 "   Provider $table ($number) Started") );
 
 	pop_indent;
- 
+
 	emit( 'else' );
 	emit( qq(    echo $weight > \${VARDIR}/${physical}_weight) ,
 	      qq(    progress_message "   Provider $table ($number) Started"),
@@ -785,18 +788,18 @@ CEOF
 	emit( qq(echo 0 > \${VARDIR}/${physical}.status) );
 	emit( qq(progress_message "Provider $table ($number) Started") );
     }
-    
+
     pop_indent;
 
     emit 'else';
 
     push_indent;
-    
+
     emit( qq(echo 1 > \${VARDIR}/${physical}.status) );
 
     if ( $optional ) {
 	if ( $shared ) {
-	    emit ( "error_message \"WARNING: Gateway $gateway is not reachable -- Provider $table ($number) not Started\"" );	    
+	    emit ( "error_message \"WARNING: Gateway $gateway is not reachable -- Provider $table ($number) not Started\"" );
 	} else {
 	    emit ( "error_message \"WARNING: Interface $physical is not usable -- Provider $table ($number) not Started\"" );
 	}
@@ -839,7 +842,7 @@ CEOF
 
 	    if ( $gateway ) {
 		$via = "via $gateway dev $physical";
-	    } else {    
+	    } else {
 		$via = "dev $physical";
 	    }
 
@@ -856,7 +859,7 @@ CEOF
 	       "distribute_load $maxload @load_interfaces" ) if $load;
 
 	unless ( $shared ) {
-	    emit( '', 
+	    emit( '',
 		  "qt \$TC qdisc del dev $physical root",
 		  "qt \$TC qdisc del dev $physical ingress\n" ) if $tcdevices->{$interface};
 	}
@@ -928,7 +931,7 @@ sub add_an_rtrule( ) {
 	    validate_net ( $source, 0 );
 	    $source = "from $source";
 	} else {
-	    $source = "iif $source";
+	    $source = 'iif ' . physical_name $source;
 	}
     } elsif ( $source =~  /^(.+?):<(.+)>\s*$/ ||  $source =~  /^(.+?):\[(.+)\]\s*$/ ) {
 	my ($interface, $source ) = ($1, $2);
@@ -939,7 +942,7 @@ sub add_an_rtrule( ) {
 	validate_net ( $source, 0 );
 	$source = "from $source";
     } else {
-	$source = "iif $source";
+	$source = 'iif ' . physical_name $source;
     }
 
     my $mark = '';
@@ -1001,14 +1004,14 @@ sub add_a_route( ) {
     my $routes = $providerref->{routes};
 
     fatal_error "You may not add routes to the $provider table" if $number == LOCAL_TABLE || $number == UNSPEC_TABLE;
-    
+
     if ( $gateway ne '-' ) {
 	if ( $device ne '-' ) {
 	    push @$routes, qq(run_ip route add $dest via $gateway dev $physical table $number);
 	    emit qq(echo "qt \$IP -$family route del $dest via $gateway dev $physical table $number" >> \${VARDIR}/undo_${provider}_routing) if $number >= DEFAULT_TABLE;
 	} else {
 	    push @$routes, qq(run_ip route add $dest via $gateway table $number);
-	    emit qq(echo "\$IP -$family route del $dest via $gateway table $number" >> \${VARDIR}/undo_${provider}_routing) if $number >= DEFAULT_TABLE; 
+	    emit qq(echo "\$IP -$family route del $dest via $gateway table $number" >> \${VARDIR}/undo_${provider}_routing) if $number >= DEFAULT_TABLE;
 	}
     } else {
 	fatal_error "You must specify a device for this route" unless $physical;
@@ -1055,7 +1058,7 @@ sub start_providers() {
     emit 'DEFAULT_ROUTE=';
     emit 'FALLBACK_ROUTE=';
     emit '';
-    
+
     for my $provider ( qw/main default/ ) {
 	emit '';
 	emit qq(> \${VARDIR}/undo_${provider}_routing );
@@ -1068,7 +1071,7 @@ sub start_providers() {
 
 sub finish_providers() {
     my $table = MAIN_TABLE;
-    
+
     if ( $config{USE_DEFAULT_RT} ) {
 	emit ( 'run_ip rule add from ' . ALLIP . ' table ' . MAIN_TABLE .    ' pref 999',
 	       'run_ip rule add from ' . ALLIP . ' table ' . BALANCE_TABLE . ' pref 32765',
@@ -1096,7 +1099,7 @@ sub finish_providers() {
 		    ''
 		  );
 	}
- 
+
 	emit  ( "    progress_message \"Default route '\$(echo \$DEFAULT_ROUTE | sed 's/\$\\s*//')' Added\"",
 		'else',
 		'    error_message "WARNING: No Default route added (all \'balance\' providers are down)"' );
@@ -1163,8 +1166,8 @@ sub process_providers( $ ) {
     $lastmark = 0;
 
     if ( my $fn = open_file 'providers' ) {
-	first_entry "$doing $fn..."; 
-	process_a_provider, $providers++ while read_a_line;
+	first_entry "$doing $fn...";
+	process_a_provider, $providers++ while read_a_line( NORMAL_READ );
     }
 
     if ( $providers ) {
@@ -1180,10 +1183,10 @@ sub process_providers( $ ) {
 
 	if ( $fn ) {
 	    first_entry "$doing $fn...";
-	    
+
 	    emit '';
 
-	    add_an_rtrule while read_a_line;
+	    add_an_rtrule while read_a_line( NORMAL_READ );
 	}
 
 	$fn = open_file 'routes';
@@ -1191,12 +1194,12 @@ sub process_providers( $ ) {
 	if ( $fn ) {
 	    first_entry "$doing $fn...";
 	    emit '';
-	    add_a_route while read_a_line;
+	    add_a_route while read_a_line( NORMAL_READ );
 	}
     }
 
     add_a_provider( $providers{$_}, $tcdevices ) for @providers;
-    
+
     emit << 'EOF';;
 
 #
@@ -1221,7 +1224,7 @@ EOF
 		emit( "$providerref->{physical}|$provider)" );
 	    }
 
-	    emit ( "    if [ -z \"`\$IP -$family route ls table $providerref->{number}`\" ]; then", 
+	    emit ( "    if [ -z \"`\$IP -$family route ls table $providerref->{number}`\" ]; then",
 		   "        start_provider_$provider",
 		   '    else',
 		   "        startup_error \"Interface $providerref->{physical} is already enabled\"",
@@ -1257,7 +1260,7 @@ EOF
 	my $providerref = $providers{$provider};
 
 	emit( "$providerref->{physical}|$provider)",
-	      "    if [ -n \"`\$IP -$family route ls table $providerref->{number}`\" ]; then", 
+	      "    if [ -n \"`\$IP -$family route ls table $providerref->{number}`\" ]; then",
 	      "        stop_provider_$provider",
 	      '    else',
 	      "        startup_error \"Interface $providerref->{physical} is already disabled\"",
@@ -1284,11 +1287,11 @@ sub setup_providers() {
 
     if ( $providers ) {
 	emit "\nif [ -z \"\$g_noroutes\" ]; then";
-	
+
 	push_indent;
 
 	start_providers;
-	
+
 	emit '';
 
 	emit "start_provider_$_" for @providers;
@@ -1515,7 +1518,7 @@ sub handle_stickiness( $ ) {
 			$rule1 = clone_rule( $_ );
 
 			clear_rule_target( $rule1 );
-			set_rule_option( $rule1, 'mark', "--mark $mark\/$mask -m recent --name $list --set" ); 
+			set_rule_option( $rule1, 'mark', "--mark $mark\/$mask -m recent --name $list --set" );
 
 			$rule2 = '';
 		    }
@@ -1549,7 +1552,7 @@ sub handle_stickiness( $ ) {
 			while ( my ( $key, $value ) = each %$_ ) {
 			    $rule2->{$key} = $value;
 			}
-			
+
 			clear_rule_target( $rule2 );
 			set_rule_option  ( $rule2, 'mark', "--mark 0\/$mask -m recent --name $list --rdest --remove" );
 		    } else {
@@ -1584,7 +1587,7 @@ sub handle_stickiness( $ ) {
 sub setup_load_distribution() {
     emit ( '',
 	   "        distribute_load $maxload @load_interfaces" ,
-	   '' 
+	   ''
 	 ) if @load_interfaces;
 }
 

@@ -13,7 +13,7 @@
 #
 # For information about the settings in this file, type "man shorewall.conf"
 #
-# The manpage is also online at 
+# The manpage is also online at
 # http://shorewall.net/manpages/shorewall.conf.html
 #
 ###############################################################################
@@ -332,6 +332,15 @@ IPSET=
 #     If specified, gives the pathname of the 'ipset' executable. If not
 #     specified, 'ipset' is assumed and the utility will be located using the
 #     current PATH setting.
+# 
+LOCKFILE=
+#
+# LOCKFILE=[pathname]
+# 
+#     Specifies the name of the Shorewall lock file, used to prevent simultaneous
+#     state-changing commands. If not specified, ${VARDIR}/shorewall/lock is
+#     assumed (${VARDIR} is normally /var/lib but can be changed when
+#     Shorewall-core is installed -- see the output of shorewall show vardir).
 # 
 MODULESDIR=
 #
