@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.2.4
+VERSION=4.5.3
 
 usage() # $1 = exit status
 {
@@ -33,7 +33,7 @@ usage() # $1 = exit status
     exit $1
 }
 
-fatal_error() 
+fatal_error()
 {
     echo "   ERROR: $@" >&2
     exit 1
@@ -91,7 +91,7 @@ install_file() # $1 = source $2 = target $3 = mode
     run_install $T $OWNERSHIP -m $3 $1 ${2}
 }
 
-require() 
+require()
 {
     eval [ -n "\$$1" ] || fatal_error "Required option $1 not set"
 }
@@ -118,7 +118,7 @@ while [ $finished -eq 0 ] ; do
     case "$1" in
 	-*)
 	    option=${option#-}
-	    
+
 	    while [ -n "$option" ]; do
 		case $option in
 		    h)
@@ -268,7 +268,7 @@ if [ -n "$DESTDIR" ]; then
 	echo "Not setting file owner/group permissions, not running as root."
 	OWNERSHIP=""
     fi
-    
+
     install -d $OWNERSHIP -m 755 ${DESTDIR}/${SBINDIR}
     install -d $OWNERSHIP -m 755 ${DESTDIR}${INITDIR}
 
