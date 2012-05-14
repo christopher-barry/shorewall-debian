@@ -1,28 +1,47 @@
-Changes in 4.5.2.4
+Changes in 4.5.3 Final
 
-1)  Correct IPv4 'reset'.
+1)  Update release documents.
 
-2)  Correct Slackware Install
+2)  Add RST Action.
 
-3)  Handle Digest::SHA dependency when $HOST = $BUILD.
+3)  Remove a couple of hard-coded '/usr/share' instances.
 
-Changes in 4.5.2.3
+4)  Allow synonyms for column names in the alternate specification
+    formats.
 
-1)  Synchronize globals settings.
+5)  Allow COMMENT by itself in the tunnels file.
 
-2)  Accommodate Digest::SHA.
+6)  Fix balance using statistic match.
 
-3)  Make 'show routing' work with recent versions of Dash.
+7)  Fix logical names in rtrules file.
 
-4)  Apply patches from Roberto Sanchez.
+8)  Deprecate TPROXY.
 
-5)  Apply patches from Ed Wildgooses.
+Changes in 4.5.3 RC 1
 
-Changes in 4.5.2.2
+1)  Print out include/openstack in warning and error messages.
 
-1)  Delete trailing whitespace in read_a_line1().
+2)  Fix manual chain invocation in macro.
 
-2)  Install correct Makefile
+3)  Make BLACKLIST use blacklog
+
+Changes in 4.5.3 Beta 2
+
+1)  Use format 2 for all interfaces files.
+
+2)  Fix the installers WRT Debian startup on boot.
+
+3)  Enhance 'refresh' command.
+
+Changes in 4.5.3 Beta 1
+
+1)  Eliminate read_a_line1().
+
+2)  Add the -T option to the load, reload, restart and start commands.
+
+3)  Improve debuggability of assertion failures.
+
+4)  Allow multiple tunnel gateways.
 
 Changes in 4.5.2.1
 
@@ -37,8 +56,6 @@ Changes in 4.5.2.1
 5)  Modify Makefiles if directories non-standard.
 
 6)  configure[.pl] improvements.
-
-7)  Correct the output of 'version -a'
 
 Changes in 4.5.2 Final
 

@@ -35,7 +35,7 @@ our @EXPORT = qw(
 		  );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_0';
+our $VERSION = '4.5_3';
 
 our @proxyarp;
 
@@ -120,7 +120,7 @@ sub setup_proxy_arp() {
 
 	my ( %set, %reset );
 
-	while ( read_a_line ) {
+	while ( read_a_line( NORMAL_READ ) ) {
 
 	    my ( $address, $interface, $external, $haveroute, $persistent ) =
 		split_line $file_opt . 'file ', { address => 0, interface => 1, external => 2, haveroute => 3, persistent => 4 };

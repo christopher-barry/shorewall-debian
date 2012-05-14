@@ -1,7 +1,7 @@
 #
-# Shorewall 4 - NotSyn Action
+# Shorewall 4 - RST Action
 #
-#    /usr/share/shorewall/action.NotSyn
+#    /usr/share/shorewall/action.RST
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
@@ -22,7 +22,7 @@
 #       along with this program; if not, write to the Free Software
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-#   NotSyn[([<action>|-[,{audit|-}])]
+#   RST[([<action>|-[,{audit|-}])]
 #
 #       Default action is DROP
 #
@@ -46,8 +46,8 @@ my $chainref         = get_action_chain;
 my ( $level, $tag )  = get_action_logging;
 my $target           = require_audit ( $action , $audit );
 
-log_rule_limit $level, $chainref, 'NotSyn' , $action, '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
-add_jump $chainref , $target, 0, '-p 6 ! --syn ';
+log_rule_limit $level, $chainref, 'RST' , $action, '', $tag, 'add', '-p 6 --tcp-flags RST RST ' if $level ne '';
+add_jump $chainref , $target, 0, '-p 6 --tcp-flags RST RST, ';
 
 allow_optimize( $chainref );
 
