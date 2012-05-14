@@ -297,6 +297,16 @@ IPSET=
 #     specified, 'ipset' is assumed and the utility will be located using the
 #     current PATH setting.
 # 
+LOCKFILE=
+#
+# LOCKFILE=[pathname]
+# 
+#     Specifies the name of the Shorewall6 lock file, used to prevent
+#     simultaneous state-changing commands. If not specified, ${VARDIR}/
+#     shorewall6/lock is assumed (${VARDIR} is normally /var/lib but can be
+#     changed when Shorewall-core is installed -- see the output of shorewall6
+#     show vardir).
+# 
 MODULESDIR=
 #
 # MODULESDIR=[pathname[:pathname]...]

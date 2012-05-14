@@ -57,12 +57,15 @@
 #     The zone of the physical interface through which tunnel traffic passes.
 #     This is normally your internet zone.
 # 
-# GATEWAY - address-or-range
+# GATEWAYS - address-or-range [ , ... ]
 # 
 #     The IP address of the remote tunnel gateway. If the remote gateway has no
 #     fixed address (Road Warrior) then specify the gateway as ::/0. May be
 #     specified as a network address and if your kernel and ip6tables include
 #     iprange match support then IP address ranges are also allowed.
+# 
+#     Beginning with Shorewall 4.5.3, a list of addresses or ranges may be given.
+#     Exclusion (shorewall6-exclusion (5) ) is not supported.
 # 
 # GATEWAY ZONES (gateway_zone) - [zone[,zone]...]
 # 
@@ -70,7 +73,7 @@
 #     standalone host then this column should contain a comma-separated list of
 #     the names of the zones that the host might be in. This column only applies
 #     to IPSEC tunnels where it enables ISAKMP traffic to flow through the tunnel
-#     to the remote gateway.
+#     to the remote gateway(s).
 # 
 # Example
 # 
@@ -117,5 +120,5 @@
 #             generic:udp:4444 net     2001:cec792b4:1::44
 # 
 ###############################################################################
-#TYPE			ZONE	GATEWAY		GATEWAY
-#						ZONE
+#TYPE			ZONE	GATEWAYS			GATEWAY
+#								ZONES

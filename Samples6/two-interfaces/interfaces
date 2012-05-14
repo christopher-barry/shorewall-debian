@@ -11,6 +11,8 @@
 #------------------------------------------------------------------------------
 # For information about entries in this file, type "man shorewall6-interfaces"
 ###############################################################################
-#ZONE	INTERFACE	BROADCAST	OPTIONS
-net     eth0            detect          tcpflags,forward=1
-loc     eth1            detect          tcpflags,forward=1
+FORMAT 2
+###############################################################################
+#ZONE	INTERFACE	OPTIONS
+net     eth0            tcpflags,forward=1
+loc     eth1            tcpflags,forward=1

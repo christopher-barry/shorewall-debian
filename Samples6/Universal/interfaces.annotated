@@ -12,6 +12,22 @@
 # shorewall6. The order of entries in this file is not significant in determining
 # zone composition.
 # 
+# Beginning with Shorewall 4.5.3, the interfaces file supports two different
+# formats:
+# 
+# FORMAT 1 (default - deprecated)
+# 
+#     There is a ANYCAST column which provides compatibility with older versions
+#     of Shorewall..
+# 
+# FORMAT 2
+# 
+#     The BROADCAST column is omitted.
+# 
+# The format is specified by a line as follows:
+# 
+#     FORMAT {1|2}
+# 
 # The columns in the file are as follows.
 # 
 # ZONE - zone-name
@@ -60,7 +76,7 @@
 # ANYCAST - -
 # 
 #     Enter '-' in this column. It is here for compatibility between Shorewall6
-#     and Shorewall.
+#     and Shorewall and is omitted if FORMAT is 2.
 # 
 # OPTIONS (Optional) - [option[,option]...]
 # 
@@ -243,7 +259,8 @@
 # 
 #     Your entries for this setup would look like:
 # 
-#     #ZONE   INTERFACE UNICAST        OPTIONS
+#     FORMAT 2
+#     #ZONE   INTERFACE OPTIONS
 #     net     eth0      -
 #     loc     eth1      -
 #     dmz     eth2      -
@@ -253,10 +270,10 @@
 #     You have a bridge with no IP address and you want to allow traffic through
 #     the bridge.
 # 
-#     #ZONE   INTERFACE BROADCAST        OPTIONS
-#     -       br0       -                routeback
+#     FORMAT 2
+#     #ZONE   INTERFACE        OPTIONS
+#     -       br0              routeback
 # 
 ###############################################################################
-#ZONE	INTERFACE	BROADCAST	OPTIONS
--	lo		-		ignore
-net	all		-		dhcp,physical=+,routeback
+FORMAT 2
+###############################################################################
