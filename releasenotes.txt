@@ -1,8 +1,8 @@
 
 ----------------------------------------------------------------------------
-                      S H O R E W A L L  4 . 5 . 2 . 4
-                          ------------------------
-                          A p r i l  3 0 , 2 0 1 2
+                       S H O R E W A L L  4 . 5 . 3
+                   ------------------------------------
+                           M a y  1 1 ,  2 0 1 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,6 +14,235 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  This version includes all defect repairs from Shorewall 4.5.2.1 -
+    4.5.2.4.
+
+2)  The LOCKFILE setting in shorewall.conf and shorewall6.conf had
+    inadvertently become undocumented. It is now documented again.
+
+3)  In an initial installation of Shorewall, Shorewall6, Shorewall Lite
+    or Shorewall6 Lite was done under Shorewall 4.5.2, then the
+    firewall would not start up at boot even though the installer
+    indicated that it would. That defect has been corrected.
+
+4)  Previously, when per-IP rate limiting was invoked, the compiler
+    would use the deprecated '--ratelimit' option, even if the
+    preferred '--ratelimit-upto' option was available. Now, the
+    compiler uses the preferred option if it is supported by the
+    installed version of iptables.
+
+5)  Prior to this release, using a manual chain in the ACTION column of
+    a macro body generated an error:
+
+    ERROR: Invalid Action (mychain) in macro, macro.FOO (line ...)
+
+    This now works correctly and generates a jump to the specified
+    manual chain.
+
+6)  If SHAREDIR was other than /usr/share and $CONFDIR/shorewall/init
+    did not exist, then an error message similar to this is emited:
+
+      Processing /usr/local/share/shorewall/init ...
+      Usage: /etc/init.d/shorewall
+                 {start|stop|refresh|restart|force-reload|status}
+
+7)  Prevously, a line with the single word COMMENT in the tunnels file
+    would generate the following error: 
+
+        ERROR: Zone must be specified
+
+    Now, such a line correctly resets the current rule comment.
+
+8)  In Shorewall 4.5.2, the MARK column in the tcrules file was renamed
+    to ACTION but only 'mark' was accepted in the alternate
+    specification format. Now both 'mark' and 'action' are accepted.
+
+9)  The alternative method of provider balancing using the statistic
+    match feature of iptables/Netfilter was missing some logic, with
+    the result that it was ineffective.
+
+10) If a logical interface name was used by itself in the SOURCE column
+    of the rtrules file, the generated routing rule would contain the
+    logical name rather than the physical name.
+
+----------------------------------------------------------------------------
+           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+1)  On systems running Upstart, shorewall-init cannot reliably secure
+    the firewall before interfaces are brought up.
+
+2)  Shorewall's TPROXY support is incomplete. A new and slightly
+    different implementation of TPROXY will be available in Shorewall
+    4.5.4.
+
+----------------------------------------------------------------------------
+      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  The '-T' option is now supported in the Shorewall and Shorewall6
+    'load', 'reload', 'restart' and 'start' commands. As with the
+    'check' command, it causes a Perl stack trace to be printed along
+    with compiler WARNING and ERROR messages.
+
+2)  The debuggability of assertion failures has been improved.
+
+    - A Perl stack trace is now generated unconditionally on an
+      assertion failure.
+
+    - Relevant data is passed as additional arguments to assertion
+      checks so that setting a breakpoint in
+      Shorewall::Config::assert() can now allows examination of the
+      data structures surrounding the failure.
+
+3)  The GATEWAY column of the tunnels file has been renamed 'GATEWAYS'
+    and now accepts a list of host and network addresses as well as IP
+    ranges.
+
+    Exclusion is not permitted.
+
+    In the alternate specification format, both 'gateway' and
+    'gateways' are accepted as the column name.
+
+4)  The 'refresh' command now allows additional options:
+
+    -d - Run the rules compiler under the Perl debugger.
+
+    -n - Don't modify routing.
+
+    -T - Produce a Perl Stack trace on errors and warnings.
+
+    -D <directory> - Look in <directory> first for configuration files.
+
+5)  The interfaces file now supports two formats:
+
+    FORMAT 1 - (default, deprecated)
+
+        Includes the BROADCAST column (UNICAST in Shorewall6).
+
+    FORMAT 2
+
+        Does not include the BROADCAST (UNICAST) column.
+
+    The format is specified by a line line this:
+
+    	FORMAT {1|2}
+
+    The Sample configurations have been updated to use FORMAT 2.
+
+6)  A change has been made in the packaging for Slackware. On
+    Slackware, there is an /etc/rc.d/firewall.rc script that looks for
+    /etc/rc.d/shorewall.rc and /etc/rc.d/shorewall6.rc and runs them,
+    passing it's own arguments.
+
+    The file installed as firewall.rc is named
+    init.slackware.firewall.sh and has traditionally been included in
+    the Shorewall package. Beginning with this release, it is moved to
+    the Shorewall-core package. This opens the door for releasing
+    Slackware versions of the -lite products in the future.
+
+    The init scripts for Slackware are now described in slackware.rc
+    as:
+
+	AUXINITSOURCE=init.slackware.firewall.sh
+    	AUXINITFILE=rc.firewall
+    	INITSOURCE=init.slackware.$PRODUCT.sh
+    	INITFILE=rc.$PRODUCT
+
+7)  Previously, errors reported in macros were hard to analyze.
+
+    Example: 
+
+       ERROR: Unknown destination zone (bar)
+       	      /usr/share/shorewall/macro.SSH (line 11),
+
+    In this case, we don't know where the SSH macro was invoked
+    incorrectly. Beginning with this release, the stack of
+    includes/opens will be included in ERROR and WARNING messages. 
+
+    Example:
+
+       ERROR: Unknown destination zone (bar) 
+          /usr/share/shorewall/macro.SSH (line 11)
+	  from /etc/shorewall/rules (line 42)
+
+    This shows that the SSH macro was invoked on line 42 of the rules
+    file.
+
+8)  There is now a BLACKLIST macro that works as follows:
+
+    - If BLACKLIST_LOGLEVEL is set, then the macro invokes the
+      'blacklog' action.
+    - Otherwise, the macro invokes the BLACKLIST_DISPOSITION action.
+
+9)  An RST action has been added which matches tcp packets with the RST
+    flag set. The action accepts two optional parameters:
+
+    - Action (DEFAULT, ACCEPT or DROP). Default is DROP.
+    - Audit  ('audit' or omitted). Default is omitted.
+
+----------------------------------------------------------------------------
+                   V.  M I G R A T I O N   I S S U E S
+----------------------------------------------------------------------------
+
+1)  If you are migrating from Shorewall 4.2.x or earlier, please see
+    http://www.shorewall.net/pub/shorewall/4.4/shorewall-4.4.27/releasenotes.txt
+
+2)  The BLACKLIST section of the rules file has been eliminated. 
+    If you have entries in that file section, you must move them to the
+    blrules file.
+
+3)  This version of Shorewall requires either the Digest::SHA1 or
+    Digest::SHA Perl module.
+
+        Debian: libdigest-sha1-perl or libdigest-sha-perl
+	Fedora: perl-Digest-SHA1 or perl-Digest-SHA
+	OpenSuSE: perl-Digest-SHA1 or perl-Digest-SHA
+
+4)  The generated firewall script now maintains the
+    /var/lib/shorewall[6][-lite]/interface.status files used by SWPING
+    and by LSM.
+
+    If you have optional providers and to not run a link monitor like
+    SWPING  or LSM that updates these files, then you should remove
+    /etc/shorewall[6]/isusable if it is installed.
+
+5)  The /etc/shorewall[6]/tos file is now deprecated in favor of the
+    TOS() action in /etc/shorewall[6]/tcrules.
+
+6)  The MARK/CLASSIFY column in /etc/shorewall[6]/tcrules has been
+    renamed ACTION to reflect the expanded set of actions that can be
+    specified in the column. There is no change to existing
+    functionality.
+
+7)  Beginning with Shorewall 4.5.2, using /etc/shorewall-lite/vardir
+    and /etc/shorewall6-lite/vardir to specify VARDIR is deprecated in
+    favor of the VARDIR setting in shorewallrc.
+
+        NOTE: While the name of the variable remains VARDIR, the
+              meaning is slightly different. When set in shorewallrc,
+              each product (shorewall-lite, and shorewall6-lite) will
+              create a directory under the specified path name to
+	      hold state information.
+
+	      Example:
+
+		  VARDIR=/opt/var/
+
+		  The state directory for shorewall-lite will be
+		  /opt/var/shorewall-lite/ and the directory for
+		  shorewall6-lite will be /opt/var/shorewall6-lite.
+
+	      When VARDIR is set in /etc/shorewall[6]/vardir, the
+	      product will save its state directly in the specified
+	      directory.
+
+----------------------------------------------------------------------------
+        V I.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
+----------------------------------------------------------------------------
+             P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 2
 ----------------------------------------------------------------------------
 
 4.5.2.4
@@ -29,7 +258,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     dependency.
 
 4)  With fresh installs on Debian and derivatives, the firewall did
-    nnot start at boot, even though the installer indicated that it
+    not start at boot, even though the installer indicated that it
     would. This defect, introduced in Shorewall 4.5.2, has been
     corrected.
 
@@ -66,18 +295,11 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 4.5.2.1
 
-1)  The 4.5.2 configure script does not work on systems with Bash 3.x.
-    To allow RPMs to be built on those systems, a Perl-based script
-    (configure.pl) has been added. The sample .spec files included in
-    the various packages have been changed to use the new script.
-
-    Both configure and configure.pl now detect the distribution if
-    neither 'host' nor 'vendor' (--host or --vendor) is specified on
-    the command line.
-
-    The 'configure' script now detects that it is running on a version
-    of Bash that won't support the features used in the script and 
-    issues an appropriate error message.
+1)  The 4.5.2 configure script does not work on RHEL5 systems and
+    derivatives. To allow RPMs to be built on those systems, a
+    Perl-based script (configure.pl) has been added. The sample .spec
+    files included in the various packages have been changed to use the
+    new script.
 
 2)  In release 4.5.2, if an INCLUDE directive appeared inside a ?IF
     ... ?ENDIF sequence, then the following error would be generated
@@ -85,13 +307,20 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
     	  ERROR: Missing ?ENDIF to match the ?IF at line ...
 
-3)  An error in the shorewallrc.apple file has been corrected.
+3)  An error in the shorewallrc.file has been corrected.
 
 4)  The shorewallrc.redhat file has been change to conform to Fedora
     packaging guidelines.
 
-5)  The output of the 'version -a' command reflected incorrect versions
-    when Shorewall-core 4.5.2 was installed. That has been corrected.
+5)  The installers now modify the Makefile if non-standard settings are
+    used for SBINDIR or SHAREDIR.
+
+6)  The configure script now detects that it is running on a version
+    of Bash that won't support the features used in the script.
+
+7)  Both configure and configure.pl now detect the distribution if
+    'host' or 'vendor' (--host or --vendor) are not specified on the
+    command line.
 
 4.5.2
 
@@ -104,15 +333,37 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     corrected. As part of the fix, the generated script will now
     issue a warning message when it creates an ipset.
 
-----------------------------------------------------------------------------
-           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
+4.5.1.2
 
-1)  On systems running Upstart, shorewall-init cannot reliably secure
-    the firewall before interfaces are brought up.
+1)  The Shorewall Lite and Shorewall6 Lite installers have been 
+    installing the wrong SysV init script on Debian and derivatives.
+    The correct script is now installed.
+
+2)  Nested TC classes could result in Perl diagnostics like this one:
+
+    Mar 24 22:42:14 dmz1 shorewall[839]: Use of uninitialized value in
+    numeric eq (==) at /usr/share/perl5/Shorewall/Tc.pm line 1042,
+    <$currentfile> line 13.
+
+    These harmless messages have been eliminated.
+
+3)  It is once again possible to omit the minimum length in the LENGTH
+    column of the tcrules file.
+
+4)  Under the following conditions, a compiler internal error was
+    raised:
+
+    - Extended conntrack match support is available.
+    - Repeat Match is not available.
+    - A DNAT rule specifies a destination port, a server port and
+      an original destination.
+
+5)  Beginning with release 4.4.26, setting both 'nets=' and 'dhcp' on
+    an interface does not work correctly. That issue has been resolved
+    in this release.
 
 ----------------------------------------------------------------------------
-      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+                    N E W  F E A T U R E S  I N  4 . 5 . 2
 ----------------------------------------------------------------------------
 
 1)  The 'mss' option is now supported in the /etc/shorewall[6]/hosts
@@ -308,95 +559,8 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 	      product will save its state in the specified directory.
 
 ----------------------------------------------------------------------------
-                   V.  M I G R A T I O N   I S S U E S
-----------------------------------------------------------------------------
-
-1)  If you are migrating from Shorewall 4.2.x or earlier, please see
-    http://www.shorewall.net/pub/shorewall/4.4/shorewall-4.4.27/releasenotes.txt
-
-2)  The BLACKLIST section of the rules file has been eliminated. 
-    If you have entries in that file section, you must move them to the
-    blrules file.
-
-3)  This version of Shorewall requires the Digest::SHA1 Perl module.
-
-        Debian: libdigest-sha1-perl
-    	Fedora: perl-Digest-SHA1
-    	OpenSuSE: perl-Digest-SHA1
-
-4)  The generated firewall script now maintains the
-    /var/lib/shorewall[6][-lite]/interface.status files used by SWPING
-    and by LSM.
-
-    If you have optional providers and to not run a link monitor like
-    SWPING  or LSM that updates these files, then you should remove
-    /etc/shorewall[6]/isusable if it is installed.
-
-5)  The /etc/shorewall[6]/tos file is now deprecated in favor of the
-    TOS() action in /etc/shorewall[6]/tcrules.
-
-6)  The MARK/CLASSIFY column in /etc/shorewall[6]/tcrules has been
-    renamed ACTION to reflect the expanded set of actions that can be
-    specified in the column. There is no change to existing
-    functionality.
-
-7)  Beginning with Shorewall 4.5.2, using /etc/shorewall-lite/vardir
-    and /etc/shorewall6-lite/vardir to specify VARDIR is deprecated in
-    favor of the VARDIR setting in shorewallrc.
-
-        NOTE: While the name of the variable remains VARDIR, the
-              meaning is slightly different. When set in shorewallrc,
-              each product (shorewall-lite, and shorewall6-lite) will
-              create a directory under the specified path name to
-	      hold state information.
-
-	      Example:
-
-		  VARDIR=/opt/var/
-
-		  The state directory for shorewall-lite will be
-		  /opt/var/shorewall-lite/ and the directory for
-		  shorewall6-lite will be /opt/var/shorewall6-lite.
-
-
-	      When VARDIR is set in /etc/shorewall[6]/vardir, the
-	      product will save its state directly in the specified
-	      directory.
-
-----------------------------------------------------------------------------
-        V I.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
-----------------------------------------------------------------------------
              P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1
 ----------------------------------------------------------------------------
-
-4.5.1.2
-
-1)  The Shorewall Lite and Shorewall6 Lite installers have been 
-    installing the wrong SysV init script on Debian and derivatives.
-    The correct script is now installed.
-
-2)  Nested TC classes could result in Perl diagnostics like this one:
-
-    Mar 24 22:42:14 dmz1 shorewall[839]: Use of uninitialized value in
-    numeric eq (==) at /usr/share/perl5/Shorewall/Tc.pm line 1042,
-    <$currentfile> line 13.
-
-    These harmless messages have been eliminated.
-
-3)  It is once again possible to omit the minimum length in the LENGTH
-    column of the tcrules file.
-
-4)  Under the following conditions, a compiler internal error was
-    raised:
-
-    - Extended conntrack match support is available.
-    - Repeat Match is not available.
-    - A DNAT rule specifies a destination port, a server port and
-      an original destination.
-
-5)  Beginning with release 4.4.26, setting both 'nets=' and 'dhcp' on
-    an interface does not work correctly. That issue has been resolved
-    in this release.
 
 4.5.1.1
 
@@ -458,7 +622,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     reversed.
 
 ----------------------------------------------------------------------------
-                    N E W  F E A T U R E S  I N  4 . 5 . 0
+                    N E W  F E A T U R E S  I N  4 . 5 . 1
 ----------------------------------------------------------------------------
 
 1)  Support is now included for IMQ. This takes the form of of
