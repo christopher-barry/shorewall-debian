@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.2.4
+VERSION=4.5.3
 
 usage() # $1 = exit status
 {
@@ -33,7 +33,7 @@ usage() # $1 = exit status
     exit $1
 }
 
-fatal_error() 
+fatal_error()
 {
     echo "   ERROR: $@" >&2
     exit 1
@@ -91,7 +91,7 @@ install_file() # $1 = source $2 = target $3 = mode
     run_install $T $OWNERSHIP -m $3 $1 ${2}
 }
 
-require() 
+require()
 {
     eval [ -n "\$$1" ] || fatal_error "Required option $1 not set"
 }
@@ -307,6 +307,16 @@ chmod 755 ${DESTDIR}${SBINDIR}
 mkdir -p ${DESTDIR}${MANDIR}
 chmod 755 ${DESTDIR}${MANDIR}
 
+if [ -n "${INITFILE}" ]; then
+    mkdir -p ${DESTDIR}${INITDIR}
+    chmod 755 ${DESTDIR}${INITDIR}
+
+    if [ -n "$AUXINITSOURCE" -a -f "$AUXINITSOURCE" ]; then
+	install_file $AUXINITSOURCE ${DESTDIR}${INITDIR}/$AUXINITFILE 0544
+	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$AUXINITFILE
+	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$AUXINITFILE"
+    fi
+fi
 #
 # Note: ${VARDIR} is created at run-time since it has always been
 #       a relocatable directory on a per-product basis
