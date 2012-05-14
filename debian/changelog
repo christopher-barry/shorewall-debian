@@ -1,8 +1,8 @@
-shorewall-init (4.5.2.4-1~bpo60+1) squeeze; urgency=low
+shorewall-init (4.5.3-1) unstable; urgency=low
 
-  * Rebuilt for squeeze.
+  * New Upstream Version
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 01 May 2012 20:06:19 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 10 May 2012 22:45:32 -0400
 
 shorewall-init (4.5.2.4-1) unstable; urgency=low
 
