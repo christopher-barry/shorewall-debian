@@ -45,7 +45,7 @@ override_dh_fixperms:
 	chmod 640 $(SRWL)/etc/shorewall6/*
 	# These should not be executable
 	chmod 644 $(SRWL)/etc/shorewall6/shorewall6.conf
-	chmod 644 $(SRWL)/etc/shorewall6/Makefile
+	if [ -f $(SRWL)/etc/shorewall6/Makefile ] ; then chmod 644 $(SRWL)/etc/shorewall6/Makefile ; fi
 	# Global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall6/*
 	chmod 755 $(SRWL)/usr/share/shorewall6/configfiles/

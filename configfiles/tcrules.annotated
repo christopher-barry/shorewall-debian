@@ -24,6 +24,21 @@
 # shorewall6/providers be sure to read the restrictions at http://shorewall.net/
 # MultiISP.html.
 # 
+# Beginning with Shorewall 4.5.4, the tcrules file supports two different
+# formats:
+# 
+# FORMAT 1 (default - deprecated)
+# 
+#     The older limited-function version of TPROXY is supported.
+# 
+# FORMAT 2
+# 
+#     The newer version of TPROXY is supported.
+# 
+# The format is specified by a line as follows:
+# 
+#     FORMAT {1|2}
+# 
 # The columns in the file are as follows (where the column name is followed by a
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
@@ -198,7 +213,49 @@
 #         To stop the comment from being attached to further rules, simply
 #         include COMMENT on a line by itself.
 # 
-#      8. HL([-|+]number)
+#      8. DIVERT
+# 
+#         Added in Shorewall 4.5.3. Two DIVERT rule should preceed the TPROXY
+#         rule and should select DEST PORT tcp 80 and SOURCE PORT tcp 80
+#         respectively (assuming that tcp port 80 is being proxied). DIVERT
+#         avoids sending packets to the TPROXY target once a socket connection to
+#         Squid3 has been established by TPROXY. DIVERT marks the packet with a
+#         unique mark and exempts it from any rules that follow.
+# 
+#      9. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
+# 
+#         Transparently redirects a packet without altering the IP header.
+#         Requires a local provider to be defined in shorewall6-providers(5).
+# 
+#         There are three parameters to TPROXY - only the first (mark) is
+#         required:
+# 
+#           ● mark - the MARK value corresponding to the local provider in
+#             shorewall6-providers(5).
+# 
+#           ● port - the port on which the proxy server is listening. If omitted,
+#             the original destination port.
+# 
+#           ● address - a local (to the firewall) IP address on which the proxy
+#             server is listening. If omitted, the IP address of the interface on
+#             which the request arrives.
+# 
+#     10. TPROXY([port][,[address]]]) -- FORMAT 2
+# 
+#         Transparently redirects a packet without altering the IP header.
+#         Requires a local provider to be defined in shorewall6-providers(5).
+# 
+#         There are three parameters to TPROXY - only the first (mark) is
+#         required:
+# 
+#           ● port - the port on which the proxy server is listening. If omitted,
+#             the original destination port.
+# 
+#           ● address - a local (to the firewall) IP address on which the proxy
+#             server is listening. If omitted, the IP address of the interface on
+#             which the request arrives.
+# 
+#     11. HL([-|+]number)
 # 
 #         Added in Shorewall 4.4.24. May be option followed by :F but the
 #         resulting rule is always added to the FORWARD chain. If + is included,
@@ -208,13 +265,13 @@
 #         packets is set to number. The valid range of values for number is
 #         1-255.
 # 
-#      9. IMQ(number)
+#     12. IMQ(number)
 # 
 #         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
 #         the IMQ identified by number. Requires IMQ Target support in your
 #         kernel and ip6tables.
 # 
-#     10. DSCP(dscp)
+#     13. DSCP(dscp)
 # 
 #         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
 #         field in the IP header. The dscp value may be given as an even number
@@ -255,7 +312,7 @@
 # 
 #             POSTROUTING chain.
 # 
-#     11. TOS(tos[/mask])
+#     14. TOS(tos[/mask])
 # 
 #         Added in Shorewall 4.5.1. Sets the Type of Service field in the IP
 #         header. The tos value may be given as an number (hex or decimal) or as
@@ -552,5 +609,5 @@
 #     save it to the connection mark.
 # 
 ###################################################################################################################################################
-#ACTION	SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS   CONNBYTES		HELPER	HEADERS    PROBABILITY DSCP
-#						PORT(S)	PORT(S)
+FORMAT 2
+###################################################################################################################################################

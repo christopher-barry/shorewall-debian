@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/10/2012
+.\"      Date: 06/09/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ACCOUNTI" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-ACCOUNTI" "5" "06/09/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -521,9 +521,9 @@ Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is teste
 .RE
 .RE
 .PP
-\fBIPSEC \- \fR\fB\fIoption\-list\fR\fR\fB (Optional \- Added in Shorewall 4\&.4\&.13 )\fR
+\fBIPSEC \- \fR\fB\fIoption\-list\fR\fR\fB (Optional \- Added in Shorewall 4\&.4\&.13 but broken until 4\&.5\&.4\&.1 )\fR
 .RS 4
-The option\-list consists of a comma\-separated list of options from the following list\&. Only packets that will be encrypted or have been de\-crypted via an SA that matches these options will have their source address changed\&.
+The option\-list consists of a comma\-separated list of options from the following list\&. Only packets that will be encrypted or have been de\-crypted via an SA that matches these options will have their source address changed\&. May only be specified when sections are used\&.
 .PP
 \fBreqid=\fR\fInumber\fR
 .RS 4
@@ -584,8 +584,18 @@ When used by itself, causes all traffic that will be encrypted/encapsulated or h
 .RS 4
 When used by itself, causes all traffic that will not be encrypted/encapsulated or has been decrypted/un\-encapsulted to match the rule\&.
 .RE
+.PP
+\fBin\fR
+.RS 4
+May only be used in the FORWARD section and must be the first or the only item the list\&. Indicates that matching packets have been decrypted in input\&.
+.RE
+.PP
+\fBout\fR
+.RS 4
+May only be used in the FORWARD section and must be the first or the only item in the list\&. Indicates that matching packets will be encrypted on output\&.
+.RE
 .sp
-If this column is non\-empty, then:
+If this column is non\-empty and sections are not used, then:
 .sp
 .RS 4
 .ie n \{\
@@ -595,10 +605,10 @@ If this column is non\-empty, then:
 .sp -1
 .IP \(bu 2.3
 .\}
-A chain NAME may appearing in the ACTION column must be a chain branched either directly or indirectly from the
-\fBaccountin\fR
+A chain NAME appearing in the ACTION column must be a chain branched either directly or indirectly from the
+\fBaccipsecin\fR
 or
-\fBaccountout\fR
+\fBaccipsecout\fR
 chain\&.
 .RE
 .sp
@@ -611,15 +621,24 @@ chain\&.
 .IP \(bu 2.3
 .\}
 The CHAIN column must contain either
-\fBaccountin\fR
+\fBaccipsecin\fR
 or
-\fBaccountout\fR
+\fBaccipsecout\fR
 or a chain branched either directly or indirectly from those chains\&.
 .RE
 .sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
 These rules will NOT appear in the
 \fBaccounting\fR
 chain\&.
+.RE
 .RE
 .PP
 \fBHEADERS \- [!][any:|exactly:]\fR\fIheader\-list \fR(Optional \- Added in Shorewall 4\&.4\&.15)

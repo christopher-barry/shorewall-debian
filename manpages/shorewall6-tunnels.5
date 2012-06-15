@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tunnels
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/10/2012
+.\"      Date: 06/09/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TUNNELS" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TUNNELS" "5" "06/09/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -111,7 +111,7 @@ The
 of the physical interface through which tunnel traffic passes\&. This is normally your internet zone\&.
 .RE
 .PP
-\fBGATEWAY\fRS \- \fIaddress\-or\-range\fR \fB[ , \&.\&.\&. ]\fR
+\fBGATEWAY\fR(S) (gateway or gateways) \- \fIaddress\-or\-range\fR \fB[ , \&.\&.\&. ]\fR
 .RS 4
 The IP address of the remote tunnel gateway\&. If the remote gateway has no fixed address (Road Warrior) then specify the gateway as
 \fB::/0\fR\&. May be specified as a network address and if your kernel and ip6tables include iprange match support then IP address ranges are also allowed\&.
@@ -120,7 +120,7 @@ Beginning with Shorewall 4\&.5\&.3, a list of addresses or ranges may be given\&
 (5) ) is not supported\&.
 .RE
 .PP
-\fBGATEWAY ZONES\fR (gateway_zone) \- [\fIzone\fR[\fB,\fR\fIzone\fR]\&.\&.\&.]
+\fBGATEWAY ZONE(S)\fR (gateway_zone or gateway_zones) \- [\fIzone\fR[\fB,\fR\fIzone\fR]\&.\&.\&.]
 .RS 4
 Optional\&. If the gateway system specified in the third column is a standalone host then this column should contain a comma\-separated list of the names of the zones that the host might be in\&. This column only applies to IPSEC tunnels where it enables ISAKMP traffic to flow through the tunnel to the remote gateway(s)\&.
 .RE

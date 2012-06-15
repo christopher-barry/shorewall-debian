@@ -130,6 +130,14 @@
 #         Specifies the MTU when forwarding through this provider. If not given,
 #         the MTU of the interface named in the INTERFACE column is assumed.
 # 
+#     tproxy
+# 
+#         Added in Shorewall 4.5.4. Used for supporting the TPROXY action in
+#         shorewall-tcrules(5). See http://www.shorewall.net/
+#         Shorewall_Squid_Usage.html. When specified, the MARK, DUPLICATE and
+#         GATEWAY columns should be empty, INTERFACE should be set to 'lo' and
+#         tproxy should be the only OPTION.
+# 
 # COPY - [{none|interface[,interface]...}]
 # 
 #     A comma-separated list of other interfaces on your firewall. Wildcards

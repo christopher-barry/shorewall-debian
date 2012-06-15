@@ -4,44 +4,7 @@ shorewall6: manpage-has-errors-from-man
 shorewall6: postinst-uses-db-input
 # we want to protect sensitive files
 shorewall6: non-standard-dir-perm var/lib/shorewall6/ 0750 != 0755
-shorewall6: non-standard-file-perm etc/shorewall6/accounting 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/actions 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/blacklist 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/blrules 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/clear 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/hosts 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/init 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/interfaces 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/lib.private 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/maclist 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/netmap 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/notrack 0640 != 0644
 shorewall6: non-standard-file-perm etc/shorewall6/params 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/policy 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/providers 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/proxyndp 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/refresh 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/refreshed 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/restored 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/routestopped 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/rtrules 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/rules 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/scfilter 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/secmarks 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/start 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/started 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/stop 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/stopped 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcclasses 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcclear 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcdevices 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcfilters 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcinterfaces 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcpri 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tcrules 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tos 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/tunnels 0640 != 0644
-shorewall6: non-standard-file-perm etc/shorewall6/zones 0640 != 0644
 # Shorewall needs to continue in runlevel 1 because networking may still be up
 shorewall6: init.d-script-possible-missing-stop
 # The administrator will not replace /sbin/shorewall with a local copy
