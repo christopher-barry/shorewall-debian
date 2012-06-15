@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.3
+VERSION=4.5.5
 
 usage() # $1 = exit status
 {
@@ -260,6 +260,11 @@ else
     first_install="Yes"
 fi
 
+if [ -n "$DESTDIR" ]; then
+    mkdir -p ${DESTDIR}${CONFDIR}/logrotate.d
+    chmod 755 ${DESTDIR}${CONFDIR}/logrotate.d
+fi
+
 #
 # Install the Firewall Script
 #
@@ -296,6 +301,14 @@ mkdir -p ${DESTDIR}/usr/share/shorewall-init
 chmod 755 ${DESTDIR}/usr/share/shorewall-init
 
 #
+# Install logrotate file
+#
+if [ -d ${DESTDIR}${CONFDIR}/logrotate.d ]; then
+    run_install $OWNERSHIP -m 0644 logrotate ${DESTDIR}${CONFDIR}/logrotate.d/$PRODUCT
+    echo "Logrotate file installed as ${DESTDIR}${CONFDIR}/logrotate.d/$PRODUCT"
+fi
+
+#
 # Create the version file
 #
 echo "$VERSION" > ${DESTDIR}/usr/share/shorewall-init/version
@@ -312,7 +325,7 @@ fi
 if [ $HOST = debian ]; then
     if [ -n "${DESTDIR}" ]; then
 	mkdir -p ${DESTDIR}/etc/network/if-up.d/
-	mkdir -p ${DESTDIR}/etc/network/if-post-down.d/
+	mkdir -p ${DESTDIR}/etc/network/if-down.d/
     fi
 
     if [ ! -f ${DESTDIR}/etc/default/shorewall-init ]; then
@@ -347,7 +360,7 @@ fi
 
 cp ifupdown.sh ifupdown
 
-d[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ifupdown
+[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ifupdown
 
 mkdir -p ${DESTDIR}${LIBEXECDIR}/shorewall-init
 
@@ -360,6 +373,7 @@ fi
 case $HOST in
     debian)
 	install_file ifupdown ${DESTDIR}/etc/network/if-up.d/shorewall 0544
+	install_file ifupdown ${DESTDIR}/etc/network/if-down.d/shorewall 0544
 	install_file ifupdown ${DESTDIR}/etc/network/if-post-down.d/shorewall 0544
 	;;
     suse)
@@ -382,7 +396,7 @@ if [ -z "$DESTDIR" ]; then
     if [ -n "$first_install" ]; then
 	if [ $HOST = debian ]; then
 	    
-	    update-rc.d shorewall-init defaults
+	    update-rc.d shorewall-init enable
 
 	    echo "Shorewall Init will start automatically at boot"
 	else
