@@ -145,6 +145,14 @@
 #         Prior to Shorewall 4.4.24, the option is ignored with a warning message
 #         if USE_DEFAULT_RT=Yes in shorewall.conf.
 # 
+#     tproxy
+# 
+#         Added in Shorewall 4.5.4. Used for supporting the TPROXY action in
+#         shorewall-tcrules(5). See http://www.shorewall.net/
+#         Shorewall_Squid_Usage.html. When specified, the MARK, DUPLICATE and
+#         GATEWAY columns should be empty, INTERFACE should be set to 'lo' and
+#         tproxy should be the only OPTION.
+# 
 # COPY - [{none|interface[,interface]...}]
 # 
 #     A comma-separated list of other interfaces on your firewall. Wildcards

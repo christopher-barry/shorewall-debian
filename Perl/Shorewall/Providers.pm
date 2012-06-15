@@ -39,6 +39,7 @@ our @EXPORT = qw( process_providers
 		  @routemarked_interfaces
 		  handle_stickiness
 		  handle_optional_interfaces
+		  compile_updown
 		  setup_load_distribution
 	       );
 our @EXPORT_OK = qw( initialize lookup_provider );
@@ -396,8 +397,8 @@ sub process_a_provider() {
 	$gateway = '';
     }
 
-    my ( $loose, $track,                   $balance , $default, $default_balance,                $optional,                           $mtu, $local , $load ) =
-	(0,      $config{TRACK_PROVIDERS}, 0 ,        0,        $config{USE_DEFAULT_RT} ? 1 : 0, interface_is_optional( $interface ), ''  , 0      , 0 );
+    my ( $loose, $track,                   $balance , $default, $default_balance,                $optional,                           $mtu, $tproxy , $local, $load ) =
+	(0,      $config{TRACK_PROVIDERS}, 0 ,        0,        $config{USE_DEFAULT_RT} ? 1 : 0, interface_is_optional( $interface ), ''  , 0       , 0,      0 );
 
     unless ( $options eq '-' ) {
 	for my $option ( split_list $options, 'option' ) {
@@ -435,9 +436,14 @@ sub process_a_provider() {
 		$default = -1;
 		$default_balance = 0;
 	    } elsif ( $option eq 'local' ) {
-		$local = 1;
-		$track = 0           if $config{TRACK_PROVIDERS};
-		$default_balance = 0 if $config{USE_DEFAULT_RT};
+		warning_message q(The 'local' provider option is deprecated in favor of 'tproxy');
+		$local = $tproxy = 1;
+		$track  = 0           if $config{TRACK_PROVIDERS};
+		$default_balance = 0  if $config{USE_DEFAULT_RT};
+	    } elsif ( $option eq 'tproxy' ) {
+		$tproxy = 1;
+		$track  = 0           if $config{TRACK_PROVIDERS};
+		$default_balance = 0  if $config{USE_DEFAULT_RT};
 	    } elsif ( $option =~ /^load=(0?\.\d{1,8})/ ) {
 		$load = $1;
 		require_capability 'STATISTIC_MATCH', "load=$load", 's';
@@ -459,7 +465,12 @@ sub process_a_provider() {
 	fatal_error "GATEWAY not valid with 'local' provider" unless $gatewaycase eq 'none';
 	fatal_error "'track' not valid with 'local'"          if $track;
 	fatal_error "DUPLICATE not valid with 'local'"        if $duplicate ne '-';
-	fatal_error "MARK required with 'local'"              unless $mark;
+    } elsif ( $tproxy ) {
+	fatal_error "GATEWAY not valid with 'tproxy' provider" unless $gatewaycase eq 'none';
+	fatal_error "'track' not valid with 'tproxy'"          if $track;
+	fatal_error "DUPLICATE not valid with 'tproxy'"        if $duplicate ne '-';
+	fatal_error "MARK not allowed with 'tproxy'"           if $mark ne '-';
+	$mark = $globals{TPROXY_MARK};
     }
 
     my $val = 0;
@@ -471,23 +482,28 @@ sub process_a_provider() {
 
 	require_capability( 'MANGLE_ENABLED' , 'Provider marks' , '' );
 
-	$val = numeric_value $mark;
+	if ( $tproxy && ! $local ) {
+	    $val = $globals{TPROXY_MARK};
+	    $pref = 1;
+	} else {
+	    $val = numeric_value $mark;
 
-	fatal_error "Invalid Mark Value ($mark)" unless defined $val && $val;
+	    fatal_error "Invalid Mark Value ($mark)" unless defined $val && $val;
 
-	verify_mark $mark;
+	    verify_mark $mark;
 
-	fatal_error "Invalid Mark Value ($mark)" unless ( $val & $globals{PROVIDER_MASK} ) == $val;
+	    fatal_error "Invalid Mark Value ($mark)" unless ( $val & $globals{PROVIDER_MASK} ) == $val;
 
-	fatal_error "Provider MARK may not be specified when PROVIDER_BITS=0" unless $config{PROVIDER_BITS};
+	    fatal_error "Provider MARK may not be specified when PROVIDER_BITS=0" unless $config{PROVIDER_BITS};
 
-	for my $providerref ( values %providers  ) {
-	    fatal_error "Duplicate mark value ($mark)" if numeric_value( $providerref->{mark} ) == $val;
+	    for my $providerref ( values %providers  ) {
+		fatal_error "Duplicate mark value ($mark)" if numeric_value( $providerref->{mark} ) == $val;
+	    }
+
+	    $lastmark = $val;
+	    
+	    $pref = 10000 + $number - 1;
 	}
-
-	$pref = 10000 + $number - 1;
-
-	$lastmark = $val;
 
     }
 
@@ -527,6 +543,7 @@ sub process_a_provider() {
 			   duplicate   => $duplicate ,
 			   address     => $address ,
 			   local       => $local ,
+			   tproxy      => $tproxy ,
 			   load        => $load ,
 			   rules       => [] ,
 			   routes      => [] ,
@@ -579,6 +596,7 @@ sub add_a_provider( $$ ) {
     my $duplicate   = $providerref->{duplicate};
     my $address     = $providerref->{address};
     my $local       = $providerref->{local};
+    my $tproxy      = $providerref->{tproxy};
     my $load        = $providerref->{load};
 
     my $dev         = chain_base $physical;
@@ -600,7 +618,7 @@ sub add_a_provider( $$ ) {
 	$provider_interfaces{$interface} = $table;
 
 	if ( $gatewaycase eq 'none' ) {
-	    if ( $local ) {
+	    if ( $tproxy ) {
 		emit 'run_ip route add local ' . ALLIP . " dev $physical table $number";
 	    } else {
 		emit "run_ip route add default dev $physical table $number";
@@ -633,7 +651,7 @@ CEOF
 
     if ( $mark ne '-' ) {
 	my $hexmark = in_hex( $mark );
-	my $mask = have_capability 'FWMARK_RT_MASK' ? '/' . in_hex $globals{PROVIDER_MASK} : '';
+	my $mask = have_capability 'FWMARK_RT_MASK' ? '/' . in_hex( $globals{ $tproxy && ! $local ? 'TPROXY_MARK' : 'PROVIDER_MASK' } ) : '';
 
 	emit ( "qt \$IP -$family rule del fwmark ${hexmark}${mask}" ) if $config{DELETE_THEN_ADD};
 
@@ -698,7 +716,7 @@ CEOF
 	  qq(    qt \$IP -6 rule add from all table ) . DEFAULT_TABLE . qq( prio 32767\n) ,
 	  qq(fi) ) if $family == F_IPV6;
 
-    unless ( $local ) {
+    unless ( $tproxy ) {
 	emit '';
 
 	if ( $loose ) {
@@ -762,7 +780,7 @@ CEOF
 		if ( $gateway ) {
 		    emit qq(add_gateway "via $gateway dev $physical $realm" ) . $tbl;
 		} else {
-		    emit qq(add_gateway "nexthop dev $physical $realm" ) . $tbl;
+		    emit qq(add_gateway "dev $physical $realm" ) . $tbl;
 		}
 	    }
 	    	} else {
@@ -864,7 +882,8 @@ CEOF
 		  "qt \$TC qdisc del dev $physical ingress\n" ) if $tcdevices->{$interface};
 	}
 
-	emit( "progress_message2 \"   Provider $table ($number) stopped\"" );
+	emit( "echo 1 > \${VARDIR}/${physical}.status",
+	      "progress_message2 \"   Provider $table ($number) stopped\"" );
 
 	pop_indent;
 
@@ -1027,8 +1046,8 @@ sub setup_null_routing() {
     emit "> \${VARDIR}/undo_rfc1918_routing\n";
     for ( rfc1918_networks ) {
 	emit( qq(if ! \$IP -4 route ls | grep -q '^$_.* dev '; then),
-	      qq(    run_ip route replace unreachable $_),
-	      qq(    echo "qt \$IP -4 route del unreachable $_" >> \${VARDIR}/undo_rfc1918_routing),
+	      qq(    run_ip route replace blackhole $_),
+	      qq(    echo "qt \$IP -4 route del blackhole $_" >> \${VARDIR}/undo_rfc1918_routing),
 	      qq(fi\n) );
     }
 }
@@ -1117,6 +1136,10 @@ sub finish_providers() {
 	       '# We don\'t have any \'balance\' providers so we restore any default route that we\'ve saved',
 	       '#',
 	       "restore_default_route $config{USE_DEFAULT_RT}" ,
+	       '#',
+	       '# And delete any routes in the \'balance\' table',
+	       '#',
+	       "qt \$IP -$family route del default table " . BALANCE_TABLE,
 	       '' );
     }
 
@@ -1130,10 +1153,15 @@ sub finish_providers() {
 	}
 
 	emit( "    progress_message \"Fallback route '\$(echo \$FALLBACK_ROUTE | sed 's/\$\\s*//')' Added\"",
+	      'else',
+	      '#',
+	      '# We don\'t have any \'fallback\' providers so we delete any default routes in the default table',
+	      '#',
+	      "    while qt \$IP -$family route del default table " . DEFAULT_TABLE . '; do true; done',
 	      'fi',
 	      '' );
     } elsif ( $config{USE_DEFAULT_RT} ) {
-	emit "qt \$IP -$family route del default table " . DEFAULT_TABLE;
+	emit "while qt \$IP -$family route del default table " . DEFAULT_TABLE . '; do true; done';
     }
 
     unless ( $config{KEEP_RT_TABLES} ) {
@@ -1242,6 +1270,7 @@ EOF
             startup_error "$g_interface is not an optional provider or provider interface"
             ;;
     esac
+
 }
 
 #
@@ -1325,6 +1354,228 @@ sub setup_providers() {
 	emit "fi\n";
     }
 
+}
+
+#
+# Emit the updown() function
+#
+sub compile_updown() {
+    emit( '',
+	  '#',
+	  '# Handle the "up" and "down" commands',
+	  '#',
+	  'updown() # $1 = interface',
+	  '{',
+	);
+
+    push_indent;
+
+    emit( 'local state',
+	  'state=cleared',
+	  ''
+	);
+
+    emit 'progress_message3 "$g_product $COMMAND triggered by $1"';
+    emit '';
+
+    if ( $family == F_IPV4 ) {
+	emit 'if shorewall_is_started; then';
+    } else {
+	emit 'if shorewall6_is_started; then';
+    }
+
+    emit( '    state=started',
+	  'elif [ -f ${VARDIR}/state ]; then',
+	  '    case "$(cat ${VARDIR}/state)" in',
+	  '        Stopped*)',
+	  '            state=stopped',
+	  '            ;;',
+	  '        Cleared*)',
+	  '            ;;',
+	  '        *)',
+	  '            state=unknown',
+	  '            ;;',
+	  '    esac',
+	  'else',
+	  '    state=unknown',
+	  'fi',
+	  ''
+	);
+
+    emit( 'case $1 in' );
+
+    push_indent;
+
+    my $ignore   = find_interfaces_by_option 'ignore', 1;
+    my $required = find_interfaces_by_option 'required';
+    my $optional = find_interfaces_by_option 'optional';
+
+    if ( @$ignore ) {
+	my $interfaces = join '|', map get_physical( $_ ), @$ignore;
+
+	$interfaces =~ s/\+/*/g;
+
+	emit( "$interfaces)",
+	      '    progress_message3 "$COMMAND on interface $1 ignored"',
+	      '    exit 0',
+	      '    ;;'
+	    );
+    }
+
+    my @nonshared = ( grep $providers{$_}->{optional},
+		      sort( { $providers{$a}->{number} <=> $providers{$b}->{number} } values %provider_interfaces ) );
+
+    if ( @nonshared ) {
+	my $interfaces = join( '|', map $providers{$_}->{physical}, @nonshared );
+
+	emit "$interfaces)";
+
+	push_indent;
+
+	emit( q(if [ "$state" = started ]; then) ,
+	      q(    if [ "$COMMAND" = up ]; then) , 
+	      q(        progress_message3 "Attempting enable on interface $1") ,
+	      q(        COMMAND=enable) ,
+	      q(        detect_configuration),        
+	      q(        enable_provider $1),
+	      q(    elif [ "$PHASE" != post-down ]; then # pre-down or not Debian) ,
+	      q(        progress_message3 "Attempting disable on interface $1") ,
+	      q(        COMMAND=disable) ,
+	      q(        detect_configuration),        
+	      q(        disable_provider $1) ,
+	      q(    fi) ,
+	      q(elif [ "$COMMAND" = up ]; then) ,
+	      q(    echo 0 > ${VARDIR}/${1}.status) ,
+	      q(    COMMAND=start),
+	      q(    progress_message3 "$g_product attempting start") ,
+	      q(    detect_configuration),
+	      q(    define_firewall),
+	      q(else),
+	      q(    progress_message3 "$COMMAND on interface $1 ignored") ,
+	      q(fi) ,
+	      q(;;) );
+
+	pop_indent;
+    }
+
+    if ( @$required ) {
+	my $interfaces = join '|', map get_physical( $_ ), @$required;
+
+	my $wildcard = ( $interfaces =~ s/\+/*/g );
+
+	emit( "$interfaces)",
+	      '    if [ "$COMMAND" = up ]; then' );
+
+	if ( $wildcard ) {
+	    emit( '        if [ "$state" = started ]; then',
+		  '            COMMAND=restart',
+		  '        else',
+		  '            COMMAND=start',
+		  '        fi' );
+	} else {
+	    emit( '        COMMAND=start' );
+	}
+
+	emit( '        progress_message3 "$g_product attempting $COMMAND"',
+	      '        detect_configuration',
+	      '        define_firewall',
+	      '    elif [ "$PHASE" != pre-down ]; then # Not Debian pre-down phase'
+	    );
+
+	push_indent;
+
+	if ( $wildcard ) {
+
+	    emit( '    if [ "$state" = started ]; then',
+		  '        progress_message3 "$g_product attempting restart"',
+		  '        COMMAND=restart',
+		  '        detect_configuration',
+		  '        define_firewall',
+		  '    fi' );
+
+	} else {
+	    emit( '    COMMAND=stop',
+		  '    progress_message3 "$g_product attempting stop"',
+		  '    detect_configuration',
+		  '    stop_firewall' );
+	}
+
+	pop_indent;
+
+	emit( '    fi',
+	      '    ;;'
+	    );
+    }
+
+    if ( @$optional ) {
+	my @interfaces = map( get_physical( $_ ), grep( ! $provider_interfaces{$_} , @$optional ) );
+	my $interfaces = join '|', @interfaces;
+
+	if ( $interfaces ) {
+	    if ( $interfaces =~ s/\+/*/g || @interfaces > 1 ) {
+		emit( "$interfaces)",
+		      '    if [ "$COMMAND" = up ]; then',
+		      '        echo 0 > ${VARDIR}/${1}.state',
+		      '    else',
+		      '        echo 1 > ${VARDIR}/${1}.state',
+		      '    fi' );
+	    } else {
+		emit( "$interfaces)",
+		      '    if [ "$COMMAND" = up ]; then',
+		      "        echo 0 > \${VARDIR}/$interfaces.state",
+		      '    else',
+		      "        echo 1 > \${VARDIR}/$interfaces.state",
+		      '    fi' );
+	    }
+
+	    emit( '',
+		  '    if [ "$state" = started ]; then',
+		  '        COMMAND=restart',
+		  '        progress_message3 "$g_product attempting restart"',
+		  '        detect_configuration',
+		  '        define_firewall',
+		  '    elif [ "$state" = stopped ]; then',
+		  '        COMMAND=start',
+		  '        progress_message3 "$g_product attempting start"',
+		  '        detect_configuration',
+		  '        define_firewall',
+		  '    else',
+		  '        progress_message3 "$COMMAND on interface $1 ignored"',
+		  '    fi',
+		  '    ;;',
+		);
+	}
+    }
+
+    if ( my @plain_interfaces = all_plain_interfaces ) {			
+	my $interfaces = join ( '|', @plain_interfaces );
+
+	$interfaces =~ s/\+/*/g;
+	
+	emit( "$interfaces)",
+	      '    case $state in',
+	      '        started)',
+	      '            COMMAND=restart',
+	      '            progress_message3 "$g_product attempting restart"',
+	      '            detect_configuration',
+	      '            define_firewall',
+	      '            ;;',
+	      '        *)',
+	      '            progress_message3 "$COMMAND on interface $1 ignored"',
+	      '            ;;',
+	      '    esac',
+	    );
+    }
+
+    pop_indent;
+
+    emit( 'esac' );
+
+    pop_indent;
+
+    emit( '}',
+	  '',
+	);
 }
 
 sub lookup_provider( $ ) {

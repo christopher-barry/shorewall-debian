@@ -28,7 +28,8 @@ package Shorewall::Chains;
 require Exporter;
 
 use Scalar::Util 'reftype';
-use Digest::SHA1 qw(sha1);
+use Digest::SHA qw(sha1);
+use File::Basename;
 use Shorewall::Config qw(:DEFAULT :internal);
 use Shorewall::Zones;
 use Shorewall::IPAddrs;
@@ -79,6 +80,7 @@ our @EXPORT = qw(
 
 		    %chain_table
 		    %helpers
+		    %targets
 		    $raw_table
 		    $rawpost_table
 		    $nat_table
@@ -110,6 +112,7 @@ our %EXPORT_TAGS = (
 				       ALL_COMMANDS
 				       NOT_RESTORE
 				       OPTIMIZE_POLICY_MASK
+				       OPTIMIZE_POLICY_MASK2n4
 				       OPTIMIZE_RULESET_MASK
 				       OPTIMIZE_MASK
 
@@ -246,7 +249,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = 'MODULEVERSION';
+our $VERSION = '4.5_4';
 
 #
 # Chain Table
@@ -365,8 +368,9 @@ use constant { ALL_COMMANDS => 1, NOT_RESTORE => 2 };
 # Optimization masks
 #
 use constant {
-	       OPTIMIZE_POLICY_MASK  => 0x02 , # Call optimize_policy_chains()
-	       OPTIMIZE_RULESET_MASK => 0x1C , # Call optimize_ruleset()
+	       OPTIMIZE_POLICY_MASK    => 0x02 , # Call optimize_policy_chains()
+	       OPTIMIZE_POLICY_MASK2n4 => 0x06 ,
+	       OPTIMIZE_RULESET_MASK   => 0x1C , # Call optimize_ruleset()
 	     };
 
 use constant { OPTIMIZE_MASK => OPTIMIZE_POLICY_MASK | OPTIMIZE_RULESET_MASK };
@@ -564,6 +568,10 @@ my %aliases = ( protocol        => 'p',
 
 my @unique_options = ( qw/p dport sport icmp-type icmpv6-type s d i o/ );
 
+my %isocodes;
+
+use constant { ISODIR => '/usr/share/xt_geoip/LE' };
+
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -632,6 +640,9 @@ sub initialize( $$$ ) {
 		 sip             => UDP,
 		 snmp            => UDP,
 		 tftp            => UDP);
+
+    %isocodes = ();
+
     #
     # The chain table is initialized via a call to initialize_chain_table() after the configuration and capabilities have been determined.
     #
@@ -696,7 +707,9 @@ sub macro_comment( $ ) {
 # Functions to manipulate cmdlevel
 #
 sub incr_cmd_level( $ ) {
-    $_[0]->{cmdlevel}++;
+    my $chain = $_[0];
+    $chain->{cmdlevel}++;
+    $chain->{optflags} |= ( DONT_OPTIMIZE | DONT_MOVE );
 }
 
 sub decr_cmd_level( $ ) {
@@ -736,6 +749,7 @@ sub set_rule_option( $$$ ) {
 
 		push @{$ruleref->{$option}}, ( reftype $value ? @$value : $value );
 	    } else {
+		assert( ! reftype $value );
 		$ruleref->{$option} = join(' ', $value1, $value ) unless $value1 eq $value;
 	    }
 	} elsif ( $opttype == EXCLUSIVE ) {
@@ -751,7 +765,7 @@ sub set_rule_option( $$$ ) {
 }
 
 sub transform_rule( $ ) {
-    my $input    = shift;
+    my $input = $_[0];
     my $ruleref  = { mode => CAT_MODE, target => '' };
     my $simple   = 1;
 
@@ -806,7 +820,7 @@ sub transform_rule( $ ) {
 	    }
 	}
 
-	set_rule_option( $ruleref, $option, $params ) unless $params eq '';
+	set_rule_option( $ruleref, $option, $params );
     }
 
     $ruleref->{simple} = $simple;
@@ -842,11 +856,11 @@ sub set_rule_target( $$$ ) {
     $ruleref->{target}   = $target;
     $ruleref->{targetopts} = $opts if defined $opts;
 
-    1
+    1;
 }
 
 #
-# Convert an trule into iptables input
+# Convert an irule into iptables input
 #
 # First, a helper function that formats a single option
 #
@@ -1009,6 +1023,7 @@ sub add_commands ( $$;@ ) {
 				} for @_;
 
     $chainref->{referenced} = 1;
+    $chainref->{optflags} |= ( DONT_OPTIMIZE | DONT_MOVE );
 }
 
 #
@@ -1183,12 +1198,16 @@ sub push_matches {
     while ( @_ ) {
 	my ( $option, $value ) = ( shift, shift );
 
-	assert( defined $value );
+	assert( defined $value && ! reftype $value );
 
 	if ( exists $ruleref->{$option} ) {
 	    my $curvalue = $ruleref->{$option};
-	    $ruleref->{$option} = [ $curvalue ] unless reftype $curvalue;
-	    push @{$ruleref->{$option}}, reftype $value ? @$value : $value;
+	    if ( $globals{KLUDGEFREE} ) {
+		$ruleref->{$option} = [ $curvalue ] unless reftype $curvalue;
+		push @{$ruleref->{$option}}, reftype $value ? @$value : $value;
+	    } else {
+		$ruleref->{$option} = join( '', $curvalue, $value );
+	    }
 	} else {
 	    $ruleref->{$option} = $value;
 	    $dont_optimize ||= $option =~ /^[piosd]$/ && $value =~ /^!/;
@@ -2307,6 +2326,8 @@ sub ensure_manual_chain($) {
     $chainref;
 }
 
+sub log_rule_limit( $$$$$$$$ );
+
 sub ensure_blacklog_chain( $$$$ ) {
     my ( $target, $disposition, $level, $audit ) = @_;
 
@@ -2518,6 +2539,12 @@ sub initialize_chain_table($) {
 	#
 	new_standard_chain 'reject';
     }
+
+    my $ruleref = transform_rule( $globals{LOGLIMIT} );
+
+    $globals{iLOGLIMIT} =
+	( $ruleref->{hashlimit} ? [ hashlimit => $ruleref->{hashlimit} ] :
+	  $ruleref->{limit}     ? [ limit     => $ruleref->{limit}     ] : [] );
 }
 
 #
@@ -2527,15 +2554,22 @@ sub optimize_chain( $ ) {
     my $chainref = shift;
 
     if ( $chainref->{referenced} ) {
-	my $rules    = $chainref->{rules};
-	my $count    = 0;
+	my $rules     = $chainref->{rules};
+	my $count     = 0;
+	my $rulecount = @$rules - 1;
 
-	pop @$rules; # Pop the plain -j ACCEPT rule at the end of the chain
+	my $lastrule = pop @$rules; # Pop the plain -j ACCEPT rule at the end of the chain
 
-	pop @$rules, $count++ while @$rules && $rules->[-1]->{target} eq 'ACCEPT';
+	while ( @$rules && $rules->[-1]->{target} eq 'ACCEPT' ) {
+	    my $rule = pop @$rules;
+
+	    trace( $chainref, 'D', $rulecount , $rule ) if $debug;
+	    $count++;
+	    $rulecount--;
+	}
 
 	if ( @${rules} ) {
-	    add_ijump $chainref, j => 'ACCEPT';
+	    push @$rules, $lastrule;
 	    my $type = $chainref->{builtin} ? 'builtin' : 'policy';
 	    progress_message "  $count ACCEPT rules deleted from $type chain $chainref->{name}" if $count;
 	} elsif ( $chainref->{builtin} ) {
@@ -2850,6 +2884,47 @@ sub optimize_level4( $$ ) {
 			    #
 			    $progress = 1 if replace_references1 $chainref, $firstrule;
 			}
+		    }
+		} else {
+		    #
+		    # Chain has more than one rule. If the last rule is a simple jump, then delete
+		    # all immediately preceding rules that have the same target
+		    #
+		    my $rulesref = $chainref->{rules};
+		    my $lastref = $rulesref->[-1];
+
+		    if ( $lastref->{simple} && $lastref->{target} && ! $lastref->{targetopts} ) {
+			my $target = $lastref->{target};
+			my $count  = 0;
+			my $rule   = @$rulesref - 1;
+
+			pop @$rulesref; #Pop the last simple rule
+
+			while ( @$rulesref ) {
+			    my $rule1ref = $rulesref->[-1];
+
+			    last unless ( $rule1ref->{target} || '' ) eq $target && ! $rule1ref->{targetopts};
+
+			    trace ( $chainref, 'D', $rule, $rule1ref ) if $debug;
+
+			    pop @$rulesref;
+			    $progress = 1;
+			    $count++;
+			    $rule--;
+			}
+
+			if ( @$rulesref || ! $chainref->{builtin} || $target !~ /^(?:ACCEPT|DROP|REJECT)$/ ) {
+			    push @$rulesref, $lastref; # Restore the last simple rule
+			} else {
+			    #
+			    #empty builtin chain -- change it's policy
+			    #
+			    $chainref->{policy} = $target;
+			    trace( $chainref, 'P', undef, 'ACCEPT' ) if $debug;
+			    $count++;
+			}
+
+			progress_message "   $count $target rules deleted from chain $chainref->{name}" if $count;
 		    }
 		}
 	    }
@@ -3208,17 +3283,32 @@ sub optimize_level16( $$$ ) {
     $passes++;
 }
 
-sub optimize_ruleset() {
-    for my $table ( qw/raw rawpost mangle nat filter/ ) {
+#
+# Return an array of valid Netfilter tables
+#
+sub valid_tables() {
+    my @table_list;
 
-	next if $family == F_IPV6 && $table eq 'nat';
+    push @table_list, 'raw'     if have_capability( 'RAW_TABLE' );
+    push @table_list, 'rawpost' if have_capability( 'RAWPOST_TABLE' );
+    push @table_list, 'nat'     if have_capability( 'NAT_ENABLED' );
+    push @table_list, 'mangle'  if have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
+    push @table_list, 'filter';
+
+    @table_list;
+}
+
+sub optimize_ruleset() {
+
+    for my $table ( valid_tables ) {
 
 	my $tableref = $chain_table{$table};
 	my $passes   = 0;
+	my $optimize = $config{OPTIMIZE};
 
-	$passes = optimize_level4(  $table, $tableref )           if $config{OPTIMIZE} & 4;
-	$passes = optimize_level8(  $table, $tableref , $passes ) if $config{OPTIMIZE} & 8;
-	$passes = optimize_level16( $table, $tableref , $passes ) if $config{OPTIMIZE} & 16;
+	$passes = optimize_level4(  $table, $tableref )           if $optimize & 4;
+	$passes = optimize_level8(  $table, $tableref , $passes ) if $optimize & 8;
+	$passes = optimize_level16( $table, $tableref , $passes ) if $optimize & 16;
 
 	progress_message "  Table $table Optimized -- Passes = $passes";
 	progress_message '';
@@ -3262,7 +3352,7 @@ sub set_mss( $$$ ) {
 sub imatch_source_dev( $;$ );
 sub imatch_dest_dev( $;$ );
 sub imatch_source_net( $;$\$ );
-sub imatch_dest_net( $ );
+sub imatch_dest_net( $;$ );
 
 sub newmsschain( ) {
     my $seq = $chainseq{filter}++;
@@ -4616,6 +4706,21 @@ sub conditional_rule_end( $ ) {
     add_commands( $chainref , "fi\n" );
 }
 
+#
+# Populate %isocodes from the GeoIP database directory
+#
+sub load_isocodes() {
+    my $isodir = $config{GEOIPDIR} || ISODIR;
+
+    fatal_error "GEOIPDIR ($isodir) does not exist" unless -d $isodir;
+
+    my @codes = `ls $isodir/*$family 2>/dev/null`;
+
+    fatal_error "$isodir contains no IPv${family} entries" unless @codes;
+
+    $isocodes{substr(basename($_),0,2)} = 1 for @codes;
+}
+
 sub mysplit( $;$ );
 
 #
@@ -4648,7 +4753,7 @@ sub match_source_net( $;$\$ ) {
 	my $result = '';
 	my @sets = mysplit $1, 1;
 
-	fatal_error "Multiple ipset matches requires the Repeat Match capability in your kernel and iptables" unless $globals{KLUDGEFREE};
+	fatal_error "Multiple ipset matches require the Repeat Match capability in your kernel and iptables" unless $globals{KLUDGEFREE};
 
 	for $net ( @sets ) {
 	    fatal_error "Expected ipset name ($net)" unless $net =~ /^(!?)(\+?)[a-zA-Z][-\w]*(\[.*\])?/;
@@ -4656,6 +4761,24 @@ sub match_source_net( $;$\$ ) {
 	}
 
 	return $result;
+    }
+
+    if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
+	fatal_error "A countrycode list may not be used in this context" if $restriction & ( OUTPUT_RESTRICT | POSTROUTE_RESTRICT );
+
+	require_capability 'GEOIP_MATCH', 'A country-code', '';
+
+	load_isocodes unless %isocodes;
+
+	my @countries = split_list $2, 'country-code';
+
+	fatal_error "Too many Country Codes ($2)" if @countries > 15;
+ 
+	for ( @countries ) {
+	    fatal_error "Unknown or invalid Country Code ($_)" unless $isocodes{$_};
+	}
+
+	return join( '', '-m geoip ', $1 ? '! ' : '', '--src-cc ', $2 , ' ');
     }
 
     if ( $net =~ s/^!// ) {
@@ -4684,7 +4807,8 @@ sub imatch_source_net( $;$\$ ) {
 	 ( $family == F_IPV6 && $net =~  /^(!?)(.*:.*)-(.*:.*)$/ ) ) {
 	my ($addr1, $addr2) = ( $2, $3 );
 	$net =~ s/!// if my $invert = $1 ? '! ' : '';
-	fatal_error "Address Ranges require the Multiple Match capability in your kernel and iptables" unless $globals{KLUDGEFREE};
+	validate_range $addr1, $addr2;
+	require_capability( 'IPRANGE_MATCH' , 'Address Ranges' , '' );
 	return ( iprange => "${invert}--src-range $net" );
     }
 
@@ -4706,10 +4830,28 @@ sub imatch_source_net( $;$\$ ) {
 
 	for $net ( @sets ) {
 	    fatal_error "Expected ipset name ($net)" unless $net =~ /^(!?)(\+?)[a-zA-Z][-\w]*(\[.*\])?/;
-	    push @result, join( '', $1 ? '! ' : '', get_set_flags( $net, 'src' ) );
+	    push @result , ( set => join( '', $1 ? '! ' : '', get_set_flags( $net, 'src' ) ) );
 	}
 
-	return ( s => \@result );
+	return \@result;
+    }
+
+    if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
+	fatal_error "A countrycode list may not be used in this context" if $restriction & ( OUTPUT_RESTRICT | POSTROUTE_RESTRICT );
+
+	require_capability 'GEOIP_MATCH', 'A country-code', '';
+
+	load_isocodes unless %isocodes;
+
+	my @countries = split_list $2, 'country-code';
+
+	fatal_error "Too many Country Codes ($2)" if @countries > 15;
+ 
+	for ( @countries ) {
+	    fatal_error "Unknown or invalid Country Code ($_)" unless $isocodes{$_};
+	}
+
+	return ( geoip => , join( '', $1 ? '! ' : '', '--src-cc ', $2 ) );
     }
 
     if ( $net =~ s/^!// ) {
@@ -4732,8 +4874,10 @@ sub imatch_source_net( $;$\$ ) {
 #
 # Match a Destination.
 #
-sub match_dest_net( $ ) {
-    my $net = $_[0];
+sub match_dest_net( $;$ ) {
+    my ( $net, $restriction ) = @_;
+
+    $restriction |= 0;
 
     if ( ( $family == F_IPV4 && $net =~ /^(!?)(\d+\.\d+\.\d+\.\d+)-(\d+\.\d+\.\d+\.\d+)$/ ) ||
 	 ( $family == F_IPV6 && $net =~  /^(!?)(.*:.*)-(.*:.*)$/ ) ) {
@@ -4761,6 +4905,24 @@ sub match_dest_net( $ ) {
 	return $result;
     }
 
+    if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
+	fatal_error "A countrycode list may not be used in this context" if $restriction & (PREROUTE_RESTRICT | INPUT_RESTRICT );
+
+	require_capability 'GEOIP_MATCH', 'A country-code', '';
+
+	load_isocodes unless %isocodes;
+
+	my @countries = split_list $2, 'country-code';
+
+	fatal_error "Too many Country Codes ($2)" if @countries > 15;
+ 
+	for ( @countries ) {
+	    fatal_error "Unknown or invalid Country Code ($_)" unless $isocodes{$_};
+	}
+
+	return join( '', '-m geoip ', $1 ? '! ' : '', '--dst-cc ', $2, ' ' );
+    }
+
     if ( $net =~ s/^!// ) {
 	if ( $net =~ /^([&%])(.+)/ ) {
 	    return '! -d ' . record_runtime_address $1, $2;
@@ -4778,8 +4940,10 @@ sub match_dest_net( $ ) {
     $net eq ALLIP ? '' : "-d $net ";
 }
 
-sub imatch_dest_net( $ ) {
-    my $net = $_[0];
+sub imatch_dest_net( $;$ ) {
+    my ( $net, $restriction ) = @_;
+
+    $restriction |= NO_RESTRICT;
 
     if ( ( $family == F_IPV4 && $net =~ /^(!?)(\d+\.\d+\.\d+\.\d+)-(\d+\.\d+\.\d+\.\d+)$/ ) ||
 	 ( $family == F_IPV6 && $net =~  /^(!?)(.*:.*)-(.*:.*)$/ ) ) {
@@ -4805,7 +4969,25 @@ sub imatch_dest_net( $ ) {
 	    push @result , ( set => join( '', $1 ? '! ' : '', get_set_flags( $net, 'dst' ) ) );
 	}
 
-	return ( set => \@result );
+	return \@result;
+    }
+
+    if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
+	fatal_error "A countrycode list may not be used in this context" if $restriction & (PREROUTE_RESTRICT | INPUT_RESTRICT );
+
+	require_capability 'GEOIP_MATCH', 'A country-code', '';
+
+	load_isocodes unless %isocodes;
+
+	my @countries = split_list $2, 'country-code';
+
+	fatal_error "Too many Country Codes ($2)" if @countries > 15;
+ 
+	for ( @countries ) {
+	    fatal_error "Unknown or invalid Country Code ($_)" unless $isocodes{$_};
+	}
+
+	return ( geoip => , join( '', $1 ? '! ' : '', '--dst-cc ', $2 ) );
     }
 
     if ( $net =~ s/^!// ) {
@@ -5004,7 +5186,15 @@ sub log_rule_limit( $$$$$$$$ ) {
 	} elsif  ( $level =~ /^NFLOG/ ) {
 	    $prefix = "-j $level ";
 	} else {
-	    $prefix = "-j LOG $globals{LOGPARMS}--log-level $level ";
+	    my $flags = $globals{LOGPARMS};
+
+	    if ( $level =~ /^(.+)\((.*)\)$/ ) {
+		$level = $1;
+		$flags = join( ' ', $flags, $2 ) . ' ';
+		$flags =~ s/,/ /g;
+	    }
+
+	    $prefix = "-j LOG ${flags}--log-level $level ";
 	}
     } else {
 	if ( $tag ) {
@@ -5039,7 +5229,15 @@ sub log_rule_limit( $$$$$$$$ ) {
 	    $prefix = join( '', substr( $prefix, 0, 12 ) , ':' ) if length $prefix > 13;
 	    $prefix = "-j $level --log-prefix \"$prefix\" ";
 	} else {
-	    $prefix = "-j LOG $globals{LOGPARMS}--log-level $level --log-prefix \"$prefix\" ";
+	    my $options = $globals{LOGPARMS};
+
+	    if ( $level =~ /^(.+)\((.*)\)$/ ) {
+		$level   = $1;
+		$options = join( ' ', $options, $2 ) . ' ';
+		$options =~ s/,/ /g;
+	    }
+
+	    $prefix = "-j LOG ${options}--log-level $level --log-prefix \"$prefix\" ";
 	}
     }
 
@@ -5436,6 +5634,33 @@ sub set_global_variables( $ ) {
     }
 }
 
+############################################################################################
+# Helpers for expand_rule()
+############################################################################################
+#
+# Loops and conditionals can be opened by calling push_command().
+# All loops/conditionals are terminated by calling pop_commands().
+#
+sub push_command( $$$ ) {
+    my ( $chainref, $command, $end ) = @_;
+    our @ends;
+
+    add_commands $chainref, $command;
+    incr_cmd_level $chainref;
+    push @ends, $end;
+}
+
+sub pop_commands( $ ) {
+    my $chainref = $_[0];
+
+    our @ends;
+
+    while ( @ends ) {
+	decr_cmd_level $chainref;
+	add_commands $chainref, pop @ends;
+    }
+}
+
 #
 # Issue an invalid list error message
 #
@@ -5514,9 +5739,398 @@ sub handle_network_list( $$ ) {
 
 }
 
+#
+# Split an interface:address pair and returns its components
+#
+sub isolate_source_interface( $ ) {
+    my ( $source ) = @_;
+
+    my ( $iiface, $inets );
+
+    if ( $family == F_IPV4 ) {
+	if ( $source =~ /^~/ ) {
+	    $inets = $source;
+	} elsif ( $source =~ /^(.+?):(.+)$/ ) {
+	    $iiface = $1;
+	    $inets  = $2;
+	} elsif ( $source =~ /\+|&|~|\..*\./ || $source =~ /^!?\^/ ) {
+	    $inets = $source;
+	} else {
+	    $iiface = $source;
+	}
+    } elsif  ( $source =~ /^(.+?):<(.+)>\s*$/ || $source =~ /^(.+?):\[(.+)\]\s*$/ || $source =~ /^(.+?):(!?\+.+)$/ ) {
+	$iiface = $1;
+	$inets  = $2;
+    } elsif ( $source =~ /:/ ) {
+	if ( $source =~ /^<(.+)>$/ || $source =~ /^\[(.+)\]$/ ) {
+	    $inets = $1;
+	} else {
+	    $inets = $source;
+	}
+    } elsif ( $source =~ /(?:\+|&|%|~|\..*\.)/ || $source =~ /^!?\^/ ) {
+	$inets = $source;
+    } else {
+	$iiface = $source;
+    }
+
+    ( $iiface, $inets );
+}
+
+#
+# Verify the source interface -- returns a rule fragment to be added to the rule being created
+#
+sub verify_source_interface( $$$$ ) {
+    my ( $iiface, $restriction, $table, $chainref ) = @_;
+
+    my $rule = '';
+
+    fatal_error "Unknown Interface ($iiface)" unless known_interface $iiface;
+
+    if ( $restriction & POSTROUTE_RESTRICT ) {
+	#
+	# An interface in the SOURCE column of a masq file
+	#
+	fatal_error "Bridge ports may not appear in the SOURCE column of this file" if port_to_bridge( $iiface );
+	fatal_error "A wildcard interface ( $iiface) is not allowed in this context" if $iiface =~ /\+$/;
+
+	if ( $table eq 'nat' ) {
+	    warning_message qq(Using an interface as the masq SOURCE requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount++;
+	} else {
+	    warning_message qq(Using an interface as the SOURCE in a T: rule requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount1++;
+	}
+
+	push_command $chainref, join( '', 'for source in ', get_interface_nets( $iiface) , '; do' ), 'done';
+
+	$rule .= '-s $source ';
+    } else {
+	if ( $restriction & OUTPUT_RESTRICT ) {
+	    if ( $chainref->{accounting} ) {
+		fatal_error "Source Interface ($iiface) not allowed in the $chainref->{name} chain";
+	    } else {
+		fatal_error "Source Interface ($iiface) not allowed when the SOURCE is the firewall";
+	    }
+	}
+
+	$chainref->{restricted} |= $restriction;
+	$rule .= match_source_dev( $iiface );
+    }
+
+    $rule;
+}
+
+#
+# Splits an interface:address pair. Updates that passed rule and returns ($rule, $interface, $address )
+#
+sub isolate_dest_interface( $$$$ ) {
+    my ( $restriction, $dest, $chainref, $rule ) = @_;
+
+    my ( $diface, $dnets );
+
+    if ( ( $restriction & PREROUTE_RESTRICT ) && $dest =~ /^detect:(.*)$/ ) {
+	#
+	# DETECT_DNAT_IPADDRS=Yes and we're generating the nat rule
+	#
+	my @interfaces = split /\s+/, $1;
+
+	if ( @interfaces > 1 ) {
+	    my $list = "";
+	    my $optional;
+
+	    for my $interface ( @interfaces ) {
+		$optional++ if interface_is_optional $interface;
+		$list = join( ' ', $list , get_interface_address( $interface ) );
+	    }
+
+	    push_command( $chainref , "for address in $list; do" , 'done' );
+
+	    push_command( $chainref , 'if [ $address != 0.0.0.0 ]; then' , 'fi' ) if $optional;
+
+	    $rule .= '-d $address ';
+	} else {
+	    my $interface = $interfaces[0];
+	    my $variable  = get_interface_address( $interface );
+
+	    push_command( $chainref , "if [ $variable != 0.0.0.0 ]; then" , 'fi') if interface_is_optional( $interface );
+
+	    $rule .= "-d $variable ";
+	}
+    } elsif ( $family == F_IPV4 ) {
+	if ( $dest =~ /^(.+?):(.+)$/ ) {
+	    $diface = $1;
+	    $dnets  = $2;
+	} elsif ( $dest =~ /\+|&|%|~|\..*\./ || $dest =~ /^!?\^/ ) {
+	    $dnets = $dest;
+	} else {
+	    $diface = $dest;
+	}
+    } elsif ( $dest =~ /^(.+?):<(.+)>\s*$/ || $dest =~ /^(.+?):\[(.+)\]\s*$/ || $dest =~ /^(.+?):(!?\+.+)$/ ) {
+	$diface = $1;
+	$dnets  = $2;
+    } elsif ( $dest =~ /:/ ) {
+	if ( $dest =~ /^<(.+)>$/ || $dest =~ /^\[(.+)\]$/ ) {
+	    $dnets = $1;
+	} else {
+	    $dnets = $dest;
+	}
+    } elsif ( $dest =~ /(?:\+|&|\..*\.)/ || $dest =~ /^!?\^/ ) {
+	$dnets = $dest;
+    } else {
+	$diface = $dest;
+    }
+
+    ( $diface, $dnets, $rule );
+}
+
+#
+# Verify the destination interface. Returns a rule fragment to be added to the rule being created
+#
+sub verify_dest_interface( $$$$ ) {
+    my ( $diface, $restriction, $chainref, $iiface ) = @_;
+
+    my $rule = '';
+
+    fatal_error "Unknown Interface ($diface)" unless known_interface $diface;
+
+    if ( $restriction & PREROUTE_RESTRICT ) {
+	#
+	# Dest interface -- must use routing table
+	#
+	fatal_error "A DEST interface is not permitted in the PREROUTING chain" if $restriction & DESTIFACE_DISALLOW;
+	fatal_error "Bridge port ($diface) not allowed" if port_to_bridge( $diface );
+	fatal_error "A wildcard interface ($diface) is not allowed in this context" if $diface =~ /\+$/;
+	push_command( $chainref , 'for dest in ' . get_interface_nets( $diface) . '; do', 'done' );
+	$rule .= '-d $dest ';
+    } else {
+	fatal_error "Bridge Port ($diface) not allowed in OUTPUT or POSTROUTING rules" if ( $restriction & ( POSTROUTE_RESTRICT + OUTPUT_RESTRICT ) ) && port_to_bridge( $diface );
+	fatal_error "Destination Interface ($diface) not allowed when the destination zone is the firewall" if $restriction & INPUT_RESTRICT;
+	if ( $restriction & DESTIFACE_DISALLOW ) {
+	    if ( $chainref->{accounting} ) {
+		fatal_error "Destination Interface ($diface) not allowed in the $chainref->{name} chain";
+	    } else {
+		fatal_error "Destination Interface ($diface) not allowed in the mangle OUTPUT chain";
+	    }
+	}
+
+	if ( $iiface ) {
+	    my $bridge = port_to_bridge( $diface );
+	    fatal_error "Source interface ($iiface) is not a port on the same bridge as the destination interface ( $diface )" if $bridge && $bridge ne source_port_to_bridge( $iiface );
+	}
+
+	$chainref->{restricted} |= $restriction;
+	$rule .= match_dest_dev( $diface );
+    }
+
+    $rule;
+}
+
+#
+# Handles the original destination. Updates the passed rule and returns ( $networks, $exclusion, $rule )
+#
+sub handle_original_dest( $$$ ) {
+    my ( $origdest, $chainref, $rule ) = @_;
+    my ( $onets, $oexcl );
+
+    if ( $origdest eq '-' || ! have_capability( 'CONNTRACK_MATCH' ) ) {
+	$onets = $oexcl = '';
+    } elsif ( $origdest =~ /^detect:(.*)$/ ) {
+	#
+	# Either the filter part of a DNAT rule or 'detect' was given in the ORIG DEST column
+	#
+	my @interfaces = split /\s+/, $1;
+
+	if ( @interfaces > 1 ) {
+	    my $list = "";
+	    my $optional;
+
+	    for my $interface ( @interfaces ) {
+		$optional++ if interface_is_optional $interface;
+		$list = join( ' ', $list , get_interface_address( $interface ) );
+	    }
+
+	    push_command( $chainref , "for address in $list; do" , 'done' );
+
+	    push_command( $chainref , 'if [ $address != 0.0.0.0 ]; then' , 'fi' ) if $optional;
+
+	    $rule .= '-m conntrack --ctorigdst $address ';
+	} else {
+	    my $interface = $interfaces[0];
+	    my $variable  = get_interface_address( $interface );
+
+	    push_command( $chainref , "if [ $variable != 0.0.0.0 ]; then" , 'fi' ) if interface_is_optional( $interface );
+
+	    $rule .= "-m conntrack --ctorigdst $variable ";
+	}
+
+	$onets = $oexcl = '';
+    } else {
+	fatal_error "Invalid ORIGINAL DEST" if  $origdest =~ /^([^!]+)?,!([^!]+)$/ || $origdest =~ /.*!.*!/;
+
+	if ( $origdest =~ /^([^!]+)?!([^!]+)$/ ) {
+	    #
+	    # Exclusion
+	    #
+	    $onets = $1;
+	    $oexcl = $2;
+	} else {
+	    $oexcl = '';
+	    $onets = $origdest;
+	}
+
+	unless ( $onets ) {
+	    my @oexcl = mysplit $oexcl;
+	    if ( @oexcl == 1 ) {
+		$rule .= match_orig_dest( "!$oexcl" );
+		$oexcl = '';
+	    }
+	}
+    }
+
+    ( $onets, $oexcl, $rule );
+}
+
+#
+# Handles non-trivial exclusion. Updates the passed rule and returns ( $rule, $done )
+#
+sub handle_exclusion( $$$$$$$$$$$$$$$$$$ ) {
+    my ( $disposition, 
+	 $table,
+	 $rule,
+	 $restriction, 
+	 $inets,
+	 $iexcl,
+	 $onets,
+	 $oexcl,
+	 $dnets,
+	 $dexcl,
+	 $chainref,
+	 $chain,
+	 $mac,
+	 $loglevel,
+	 $logtag,
+	 $targetref,
+	 $exceptionrule,
+	 $jump ) = @_;
+
+    if ( $disposition eq 'RETURN' || $disposition eq 'CONTINUE' ) {
+	#
+	# We can't use an exclusion chain -- we mark those packets to be excluded and then condition the rules generated in the block below on the mark value
+	#
+	require_capability 'MARK_ANYWHERE' , 'Exclusion in ACCEPT+/CONTINUE/NONAT rules', 's' unless $table eq 'mangle';
+
+	fatal_error "Exclusion in ACCEPT+/CONTINUE/NONAT rules requires the Multiple Match capability in your kernel and iptables"
+	    if $rule =~ / -m mark / && ! $globals{KLUDGEFREE};
+	#
+	# Clear the exclusion bit
+	#
+	add_ijump $chainref , j => 'MARK', targetopts => '--and-mark ' . in_hex( $globals{EXCLUSION_MASK} ^ 0xffffffff );
+	#
+	# Mark packet if it matches any of the exclusions
+	#
+	my $exclude = '-j MARK --or-mark ' . in_hex( $globals{EXCLUSION_MASK} );
+
+	for ( mysplit $iexcl ) {
+	    my $cond = conditional_rule( $chainref, $_ );
+	    add_rule $chainref, ( match_source_net $_ , $restriction, $mac ) . $exclude;
+	    conditional_rule_end( $chainref ) if $cond;
+	}
+
+	for ( mysplit $dexcl ) {
+	    my $cond = conditional_rule( $chainref, $_ );
+	    add_rule $chainref, ( match_dest_net $_, $restriction ) . $exclude;
+	    conditional_rule_end( $chainref ) if $cond;
+	}
+
+	for ( mysplit $oexcl ) {
+	    my $cond = conditional_rule( $chainref, $_ );
+	    add_rule $chainref, ( match_orig_dest $_ ) . $exclude;
+	    conditional_rule_end( $chainref ) if $cond;
+	}
+	#
+	# Augment the rule to include 'not excluded'
+	#
+	$rule .= '-m mark --mark 0/' . in_hex( $globals{EXCLUSION_MASK} ) . ' ';
+
+	( $rule, 0 );
+    } else {
+	#
+	# Create the Exclusion Chain
+	#
+	my $echain = newexclusionchain( $table );
+
+	my $echainref = new_chain $table, $echain;
+	#
+	# Use the current rule and send all possible matches to the exclusion chain
+	#
+	for my $onet ( mysplit $onets ) {
+
+	    my $cond = conditional_rule( $chainref, $onet );
+
+	    $onet = match_orig_dest $onet;
+
+	    for my $inet ( mysplit $inets ) {
+
+		my $cond = conditional_rule( $chainref, $inet );
+
+		my $source_match = match_source_net( $inet, $restriction, $mac ) if $globals{KLUDGEFREE};
+
+		for my $dnet ( mysplit $dnets ) {
+		    $source_match = match_source_net( $inet, $restriction, $mac ) unless $globals{KLUDGEFREE};
+		    add_expanded_jump( $chainref, $echainref, 0, join( '', $rule, $source_match, match_dest_net( $dnet, $restriction ), $onet ) );
+		}
+
+		conditional_rule_end( $chainref ) if $cond;
+	    }
+
+	    conditional_rule_end( $chainref ) if $cond;
+	}
+	#
+	# Generate RETURNs for each exclusion
+	#
+	for ( mysplit $iexcl ) {
+	    my $cond = conditional_rule( $echainref, $_ );
+	    add_rule $echainref, ( match_source_net $_ , $restriction, $mac ) . '-j RETURN';
+	    conditional_rule_end( $echainref ) if $cond;
+	}
+
+	for ( mysplit $dexcl ) {
+	    my $cond = conditional_rule( $echainref, $_ );
+	    add_rule $echainref, ( match_dest_net $_, $restriction ) . '-j RETURN';
+	    conditional_rule_end( $echainref ) if $cond;
+	}
+
+	for ( mysplit $oexcl ) {
+	    my $cond = conditional_rule( $echainref, $_ );
+	    add_rule $echainref, ( match_orig_dest $_ ) . '-j RETURN';
+	    conditional_rule_end( $echainref ) if $cond;
+	}
+	#
+	# Log rule
+	#
+	log_rule_limit( $loglevel ,
+			$echainref ,
+			$chain,
+			$disposition eq 'reject' ? 'REJECT' : $disposition ,
+			'' ,
+			$logtag ,
+			'add' ,
+			'' )
+	    if $loglevel;
+	#
+	# Generate Final Rule
+	#
+	if ( $targetref ) {
+	    add_expanded_jump( $echainref, $targetref, 0, $exceptionrule );
+	} else {
+	    add_rule( $echainref, $exceptionrule . $jump , 1 ) unless $disposition eq 'LOG';
+	}
+
+	( $rule, 1 );
+    }
+}
+
 ################################################################################################################
 #
-# This function provides a uniform way to generate Netfilter[6] rules (something the original Shorewall
+# This function provides a uniform way to generate ip[6]tables rules (something the original Shorewall
 # sorely needed).
 #
 # Returns the destination interface specified in the rule, if any.
@@ -5536,13 +6150,12 @@ sub expand_rule( $$$$$$$$$$;$ )
 	$logname,      # Name of chain to name in log messages
        ) = @_;
 
-    my ($iiface, $diface, $inets, $dnets, $iexcl, $dexcl, $onets , $oexcl, $trivialiexcl, $trivialdexcl );
-    my $chain = $chainref->{name};
+    my ( $iiface, $diface, $inets, $dnets, $iexcl, $dexcl, $onets , $oexcl, $trivialiexcl, $trivialdexcl ) = 
+       ( '',      '',      '',     '',     '',     '',     '',      '',     '',            '' );
+    my  $chain = $chainref->{name};
     my $table = $chainref->{table};
-    my $jump;
-    my $mac;
-    my $targetref;
-    my $basictarget;
+    my ( $jump, $mac,  $targetref, $basictarget );
+    our @ends = ();
 
     if ( $target ) {
 	( $basictarget, my $rest ) = split ' ', $target, 2;
@@ -5552,7 +6165,6 @@ sub expand_rule( $$$$$$$$$$;$ )
 	$jump = $basictarget = '';
     }
 
-    our @ends = ();
     #
     # In the generated rules, we sometimes need run-time loops or conditional blocks. This function is used
     # to define such a loop or block.
@@ -5561,23 +6173,13 @@ sub expand_rule( $$$$$$$$$$;$ )
     # $command  = The shell command that begins the loop or conditional
     # $end      = The shell keyword ('done' or 'fi') that ends the loop or conditional
     #
-    # All open loops and conditionals are closed just before expand_rule() exits
-    #
-    sub push_command( $$$ ) {
-	my ( $chainref, $command, $end ) = @_;
-
-	add_commands $chainref, $command;
-	incr_cmd_level $chainref;
-	push @ends, $end;
-    }
-    #
     # Trim disposition
     #
     $disposition =~ s/\s.*//;
     #
     # Handle Log Level
     #
-    my $logtag;
+    our $logtag = undef;
 
     if ( $loglevel ne '' ) {
 	( $loglevel, $logtag, my $remainder ) = split( /:/, $loglevel, 3 );
@@ -5597,234 +6199,23 @@ sub expand_rule( $$$$$$$$$$;$ )
     #
     # Isolate Source Interface, if any
     #
-    if ( supplied $source ) {
-	if ( $source eq '-' ) {
-	    $source = '';
-	} elsif ( $family == F_IPV4 ) {
-	    if ( $source =~ /^~/ ) {
-		$inets = $source;
-	    } elsif ( $source =~ /^(.+?):(.+)$/ ) {
-		$iiface = $1;
-		$inets  = $2;
-	    } elsif ( $source =~ /\+|&|~|\..*\./ ) {
-		$inets = $source;
-	    } else {
-		$iiface = $source;
-	    }
-	} elsif  ( $source =~ /^(.+?):<(.+)>\s*$/ || $source =~ /^(.+?):\[(.+)\]\s*$/ || $source =~ /^(.+?):(!?\+.+)$/ ) {
-	    $iiface = $1;
-	    $inets  = $2;
-	} elsif ( $source =~ /:/ ) {
-	    if ( $source =~ /^<(.+)>$/ || $source =~ /^\[(.+)\]$/ ) {
-		$inets = $1;
-	    } else {
-		$inets = $source;
-	    }
-	} elsif ( $source =~ /(?:\+|&|%|~|\..*\.)/ ) {
-	    $inets = $source;
-	} else {
-	    $iiface = $source;
-	}
-    } else {
-	$source = '';
-    }
-
+    ( $iiface, $inets ) = isolate_source_interface( $source ) if supplied $source && $source ne '-';
     #
-    # Verify Interface, if any
+    # Verify Source Interface, if any
     #
-    if ( supplied $iiface ) {
-	fatal_error "Unknown Interface ($iiface)" unless known_interface $iiface;
-
-	if ( $restriction & POSTROUTE_RESTRICT ) {
-	    #
-	    # An interface in the SOURCE column of a masq file
-	    #
-	    fatal_error "Bridge ports may not appear in the SOURCE column of this file" if port_to_bridge( $iiface );
-	    fatal_error "A wildcard interface ( $iiface) is not allowed in this context" if $iiface =~ /\+$/;
-
-	    if ( $table eq 'nat' ) {
-		warning_message qq(Using an interface as the masq SOURCE requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount++;
-	    } else {
-		warning_message qq(Using an interface as the SOURCE in a T: rule requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount1++;
-	    }
-
-	    push_command $chainref, join( '', 'for source in ', get_interface_nets( $iiface) , '; do' ), 'done';
-
-	    $rule .= '-s $source ';
-	} else {
-	    if ( $restriction & OUTPUT_RESTRICT ) {
-		if ( $chainref->{accounting} ) {
-		    fatal_error "Source Interface ($iiface) not allowed in the $chainref->{name} chain";
-		} else {
-		    fatal_error "Source Interface ($iiface) not allowed when the SOURCE is the firewall";
-		}
-	    }
-
-	    $chainref->{restricted} |= $restriction;
-	    $rule .= match_source_dev( $iiface );
-	}
-    }
-
+    $rule .= verify_source_interface( $iiface, $restriction, $table, $chainref ) if supplied $iiface;
     #
     # Isolate Destination Interface, if any
     #
-    if ( supplied $dest ) {
-	if ( $dest eq '-' ) {
-	    $dest = '';
-	} elsif ( ( $restriction & PREROUTE_RESTRICT ) && $dest =~ /^detect:(.*)$/ ) {
-	    #
-	    # DETECT_DNAT_IPADDRS=Yes and we're generating the nat rule
-	    #
-	    my @interfaces = split /\s+/, $1;
-
-	    if ( @interfaces > 1 ) {
-		my $list = "";
-		my $optional;
-
-		for my $interface ( @interfaces ) {
-		    $optional++ if interface_is_optional $interface;
-		    $list = join( ' ', $list , get_interface_address( $interface ) );
-		}
-
-		push_command( $chainref , "for address in $list; do" , 'done' );
-
-		push_command( $chainref , 'if [ $address != 0.0.0.0 ]; then' , 'fi' ) if $optional;
-
-		$rule .= '-d $address ';
-	    } else {
-		my $interface = $interfaces[0];
-		my $variable  = get_interface_address( $interface );
-
-		push_command( $chainref , "if [ $variable != 0.0.0.0 ]; then" , 'fi') if interface_is_optional( $interface );
-
-		$rule .= "-d $variable ";
-	    }
-
-	    $dest = '';
-	} elsif ( $family == F_IPV4 ) {
-	    if ( $dest =~ /^(.+?):(.+)$/ ) {
-		$diface = $1;
-		$dnets  = $2;
-	    } elsif ( $dest =~ /\+|&|%|~|\..*\./ ) {
-		$dnets = $dest;
-	    } else {
-		$diface = $dest;
-	    }
-	} elsif ( $dest =~ /^(.+?):<(.+)>\s*$/ || $dest =~ /^(.+?):\[(.+)\]\s*$/ || $dest =~ /^(.+?):(!?\+.+)$/ ) {
-	    $diface = $1;
-	    $dnets  = $2;
-	} elsif ( $dest =~ /:/ ) {
-	    if ( $dest =~ /^<(.+)>$/ || $dest =~ /^\[(.+)\]$/ ) {
-		$dnets = $1;
-	    } else {
-		$dnets = $dest;
-	    }
-	} elsif ( $dest =~ /(?:\+|&|\..*\.)/ ) {
-	    $dnets = $dest;
-	} else {
-	    $diface = $dest;
-	}
-    } else {
-	$dest = '';
-    }
-
+    ( $diface, $dnets, $rule ) = isolate_dest_interface( $restriction, $dest, $chainref, $rule ) if supplied $dest && $dest ne '-';
     #
     # Verify Destination Interface, if any
     #
-    if ( supplied $diface ) {
-	fatal_error "Unknown Interface ($diface)" unless known_interface $diface;
-
-	if ( $restriction & PREROUTE_RESTRICT ) {
-	    #
-	    # Dest interface -- must use routing table
-	    #
-	    fatal_error "A DEST interface is not permitted in the PREROUTING chain" if $restriction & DESTIFACE_DISALLOW;
-	    fatal_error "Bridge port ($diface) not allowed" if port_to_bridge( $diface );
-	    fatal_error "A wildcard interface ($diface) is not allowed in this context" if $diface =~ /\+$/;
-	    push_command( $chainref , 'for dest in ' . get_interface_nets( $diface) . '; do', 'done' );
-	    $rule .= '-d $dest ';
-	} else {
-	    fatal_error "Bridge Port ($diface) not allowed in OUTPUT or POSTROUTING rules" if ( $restriction & ( POSTROUTE_RESTRICT + OUTPUT_RESTRICT ) ) && port_to_bridge( $diface );
-	    fatal_error "Destination Interface ($diface) not allowed when the destination zone is the firewall" if $restriction & INPUT_RESTRICT;
-	    if ( $restriction & DESTIFACE_DISALLOW ) {
-		if ( $chainref->{accounting} ) {
-		    fatal_error "Destination Interface ($diface) not allowed in the $chainref->{name} chain";
-		} else {
-		    fatal_error "Destination Interface ($diface) not allowed in the mangle OUTPUT chain";
-		}
-	    }
-
-	    if ( $iiface ) {
-		my $bridge = port_to_bridge( $diface );
-		fatal_error "Source interface ($iiface) is not a port on the same bridge as the destination interface ( $diface )" if $bridge && $bridge ne source_port_to_bridge( $iiface );
-	    }
-
-	    $chainref->{restricted} |= $restriction;
-	    $rule .= match_dest_dev( $diface );
-	}
-    } else {
-	$diface = '';
-    }
-
-    if ( $origdest ) {
-	if ( $origdest eq '-' || ! have_capability( 'CONNTRACK_MATCH' ) ) {
-	    $onets = $oexcl = '';
-	} elsif ( $origdest =~ /^detect:(.*)$/ ) {
-	    #
-	    # Either the filter part of a DNAT rule or 'detect' was given in the ORIG DEST column
-	    #
-	    my @interfaces = split /\s+/, $1;
-
-	    if ( @interfaces > 1 ) {
-		my $list = "";
-		my $optional;
-
-		for my $interface ( @interfaces ) {
-		    $optional++ if interface_is_optional $interface;
-		    $list = join( ' ', $list , get_interface_address( $interface ) );
-		}
-
-		push_command( $chainref , "for address in $list; do" , 'done' );
-
-		push_command( $chainref , 'if [ $address != 0.0.0.0 ]; then' , 'fi' ) if $optional;
-
-		$rule .= '-m conntrack --ctorigdst $address ';
-	    } else {
-		my $interface = $interfaces[0];
-		my $variable  = get_interface_address( $interface );
-
-		push_command( $chainref , "if [ $variable != 0.0.0.0 ]; then" , 'fi' ) if interface_is_optional( $interface );
-
-		$rule .= "-m conntrack --ctorigdst $variable ";
-	    }
-
-	    $onets = $oexcl = '';
-	} else {
-	    fatal_error "Invalid ORIGINAL DEST" if  $origdest =~ /^([^!]+)?,!([^!]+)$/ || $origdest =~ /.*!.*!/;
-
-	    if ( $origdest =~ /^([^!]+)?!([^!]+)$/ ) {
-		#
-		# Exclusion
-		#
-		$onets = $1;
-		$oexcl = $2;
-	    } else {
-		$oexcl = '';
-		$onets = $origdest;
-	    }
-
-	    unless ( $onets ) {
-		my @oexcl = mysplit $oexcl;
-		if ( @oexcl == 1 ) {
-		    $rule .= match_orig_dest( "!$oexcl" );
-		    $oexcl = '';
-		}
-	    }
-	}
-    } else {
-	$oexcl = '';
-    }
-
+    $rule .= verify_dest_interface(  $diface, $restriction, $chainref, $iiface ) if supplied $diface;
+    #
+    # Handle Original Destination
+    #
+    ( $onets, $oexcl, $rule ) = handle_original_dest( $origdest, $chainref, $rule ) if $origdest;
     #
     # Determine if there is Source Exclusion
     #
@@ -5839,10 +6230,7 @@ sub expand_rule( $$$$$$$$$$;$ )
 		$trivialiexcl = 1;
 	    }
 	}
-    } else {
-	$iexcl = '';
     }
-
     #
     # Determine if there is Destination Exclusion
     #
@@ -5852,13 +6240,11 @@ sub expand_rule( $$$$$$$$$$;$ )
 	unless ( $dnets || $dexcl =~ /^\+\[/ ) {
 	    my @dexcl = mysplit $dexcl, 1;
 	    if ( @dexcl == 1 ) {
-		$rule .= match_dest_net "!$dexcl";
+		$rule .= match_dest_net "!$dexcl", $restriction;
 		$dexcl = '';
 		$trivialdexcl = 1;
 	    }
 	}
-    } else {
-	$dexcl = '';
     }
 
     $inets = ALLIP unless $inets;
@@ -5868,126 +6254,30 @@ sub expand_rule( $$$$$$$$$$;$ )
     fatal_error "SOURCE interface may not be specified with a source IP address in the POSTROUTING chain"   if $restriction == POSTROUTE_RESTRICT && $iiface && ( $inets ne ALLIP || $iexcl || $trivialiexcl);
     fatal_error "DEST interface may not be specified with a destination IP address in the PREROUTING chain" if $restriction == PREROUTE_RESTRICT &&  $diface && ( $dnets ne ALLIP || $dexcl || $trivialdexcl);
 
-    my ( $fromref, $done );
+    my $done;
 
     if ( $iexcl || $dexcl || $oexcl ) {
 	#
 	# We have non-trivial exclusion
 	#
-	if ( $disposition eq 'RETURN' || $disposition eq 'CONTINUE' ) {
-	    #
-	    # We can't use an exclusion chain -- we mark those packets to be excluded and then condition the rules generated in the block below on the mark value
-	    #
-	    require_capability 'MARK_ANYWHERE' , 'Exclusion in ACCEPT+/CONTINUE/NONAT rules', 's' unless $table eq 'mangle';
-
-	    fatal_error "Exclusion in ACCEPT+/CONTINUE/NONAT rules requires the Multiple Match capability in your kernel and iptables"
-		if $rule =~ / -m mark / && ! $globals{KLUDGEFREE};
-	    #
-	    # Clear the exclusion bit
-	    #
-	    add_ijump $chainref , j => 'MARK', targetopts => '--and-mark ' . in_hex( $globals{EXCLUSION_MASK} ^ 0xffffffff );
-	    #
-	    # Mark packet if it matches any of the exclusions
-	    #
-	    my $exclude = '-j MARK --or-mark ' . in_hex( $globals{EXCLUSION_MASK} );
-
-	    for ( mysplit $iexcl ) {
-		my $cond = conditional_rule( $chainref, $_ );
-		add_rule $chainref, ( match_source_net $_ , $restriction, $mac ) . $exclude;
-		conditional_rule_end( $chainref ) if $cond;
-	    }
-
-	    for ( mysplit $dexcl ) {
-		my $cond = conditional_rule( $chainref, $_ );
-		add_rule $chainref, ( match_dest_net $_ ) . $exclude;
-		conditional_rule_end( $chainref ) if $cond;
-	    }
-
-	    for ( mysplit $oexcl ) {
-		my $cond = conditional_rule( $chainref, $_ );
-		add_rule $chainref, ( match_orig_dest $_ ) . $exclude;
-		conditional_rule_end( $chainref ) if $cond;
-	    }
-	    #
-	    # Augment the rule to include 'not excluded'
-	    #
-	    $rule .= '-m mark --mark 0/' . in_hex( $globals{EXCLUSION_MASK} ) . ' ';
-	} else {
-	    #
-	    # Create the Exclusion Chain
-	    #
-	    my $echain = newexclusionchain( $table );
-
-	    my $echainref = new_chain $table, $echain;
-	    #
-	    # Use the current rule and send all possible matches to the exclusion chain
-	    #
-	    for my $onet ( mysplit $onets ) {
-
-		my $cond = conditional_rule( $chainref, $onet );
-
-		$onet = match_orig_dest $onet;
-
-		for my $inet ( mysplit $inets ) {
-
-		    my $cond = conditional_rule( $chainref, $inet );
-
-		    my $source_match = match_source_net( $inet, $restriction, $mac ) if $globals{KLUDGEFREE};
-
-		    for my $dnet ( mysplit $dnets ) {
-			$source_match = match_source_net( $inet, $restriction, $mac ) unless $globals{KLUDGEFREE};
-			add_expanded_jump( $chainref, $echainref, 0, join( '', $rule, $source_match, match_dest_net( $dnet ), $onet ) );
-		    }
-
-		    conditional_rule_end( $chainref ) if $cond;
-		}
-
-		conditional_rule_end( $chainref ) if $cond;
-	    }
-
-	    #
-	    # Generate RETURNs for each exclusion
-	    #
-	    for ( mysplit $iexcl ) {
-		my $cond = conditional_rule( $echainref, $_ );
-		add_rule $echainref, ( match_source_net $_ , $restriction, $mac ) . '-j RETURN';
-		conditional_rule_end( $echainref ) if $cond;
-	    }
-
-	    for ( mysplit $dexcl ) {
-		my $cond = conditional_rule( $echainref, $_ );
-		add_rule $echainref, ( match_dest_net $_ ) . '-j RETURN';
-		conditional_rule_end( $echainref ) if $cond;
-	    }
-
-	    for ( mysplit $oexcl ) {
-		my $cond = conditional_rule( $echainref, $_ );
-		add_rule $echainref, ( match_orig_dest $_ ) . '-j RETURN';
-		conditional_rule_end( $echainref ) if $cond;
-	    }
-	    #
-	    # Log rule
-	    #
-	    log_rule_limit( $loglevel ,
-			    $echainref ,
-			    $chain,
-			    $disposition eq 'reject' ? 'REJECT' : $disposition ,
-			    '' ,
-			    $logtag ,
-			    'add' ,
-			    '' )
-		if $loglevel;
-	    #
-	    # Generate Final Rule
-	    #
-	    if ( $targetref ) {
-		add_expanded_jump( $fromref = $echainref, $targetref, 0, $exceptionrule );
-	    } else {
-		add_rule( $fromref = $echainref, $exceptionrule . $jump , 1 ) unless $disposition eq 'LOG';
-	    }
-
-	    $done = 1;
-	}
+	( $rule, $done ) = handle_exclusion( $disposition,
+					     $table,
+					     $rule,
+					     $restriction,
+					     $inets,
+					     $iexcl,
+					     $onets,
+					     $oexcl,
+					     $dnets,
+					     $dexcl,
+					     $chainref,
+					     $chain,
+					     $mac,
+					     $loglevel,
+					     $logtag,
+					     $targetref,
+					     $exceptionrule,
+					     $jump );
     }
 
     unless ( $done ) {
@@ -5995,32 +6285,32 @@ sub expand_rule( $$$$$$$$$$;$ )
 	# No non-trivial exclusions or we're using marks to handle them
 	#
 	for my $onet ( mysplit $onets ) {
-	    my $cond = conditional_rule( $chainref, $onet );
+	    my $cond1 = conditional_rule( $chainref, $onet );
 
 	    $onet = match_orig_dest $onet;
 
 	    for my $inet ( mysplit $inets ) {
 		my $source_match;
 
-		my $cond = conditional_rule( $chainref, $inet );
+		my $cond2 = conditional_rule( $chainref, $inet );
 
 		$source_match = match_source_net( $inet, $restriction, $mac ) if $globals{KLUDGEFREE};
 
 		for my $dnet ( mysplit $dnets ) {
 		    $source_match  = match_source_net( $inet, $restriction, $mac ) unless $globals{KLUDGEFREE};
-		    my $dest_match = match_dest_net( $dnet );
+		    my $dest_match = match_dest_net( $dnet, $restriction );
 		    my $matches = join( '', $rule, $source_match, $dest_match, $onet );
 
-		    my $cond = conditional_rule( $chainref, $dnet );
+		    my $cond3 = conditional_rule( $chainref, $dnet );
 
 		    if ( $loglevel eq '' ) {
 			#
 			# No logging -- add the target rule with matches to the rule chain
 			#
 			if ( $targetref ) {
-			    add_expanded_jump( $fromref = $chainref, $targetref , 0, $matches );
+			    add_expanded_jump( $chainref, $targetref , 0, $matches );
 			} else {
-			    add_rule( $fromref = $chainref, $matches . $jump , 1 );
+			    add_rule( $chainref, $matches . $jump , 1 );
 			}
 		    } elsif ( $disposition eq 'LOG' || $disposition eq 'COUNT' ) {
 			#
@@ -6048,9 +6338,9 @@ sub expand_rule( $$$$$$$$$$;$ )
 				       $matches );
 
 			if ( $targetref ) {
-			    add_expanded_jump( $fromref = $chainref, $targetref, 0, $matches );
+			    add_expanded_jump( $chainref, $targetref, 0, $matches );
 			} else {
-			    add_rule( $fromref = $chainref, $matches . $jump, 1 );
+			    add_rule( $chainref, $matches . $jump, 1 );
 			}
 		    } else {
 			#
@@ -6063,22 +6353,19 @@ sub expand_rule( $$$$$$$$$$;$ )
 					   $matches );
 		    }
 
-		    conditional_rule_end( $chainref ) if $cond;
+		    conditional_rule_end( $chainref ) if $cond3;
 		}
 
-		conditional_rule_end( $chainref ) if $cond;
+		conditional_rule_end( $chainref ) if $cond2;
 	    }
 
-	    conditional_rule_end( $chainref ) if $cond;
+	    conditional_rule_end( $chainref ) if $cond1;
 	}
     }
 
     $chainref->{restricted} |= INPUT_RESTRICT if $mac;
 
-    while ( @ends ) {
-	decr_cmd_level $chainref;
-	add_commands $chainref, pop @ends;
-    }
+    pop_commands( $chainref ) if @ends;
 
     $diface;
 }
@@ -6101,6 +6388,7 @@ sub add_interface_options( $ ) {
     if ( $_[0] ) {
 	#
 	# We have blacklist rules.
+	#
 	my %input_chains;
 	my %forward_chains;
 
@@ -6575,14 +6863,6 @@ sub load_ipsets() {
 sub create_netfilter_load( $ ) {
     my $test = shift;
 
-    my @table_list;
-
-    push @table_list, 'raw'     if have_capability( 'RAW_TABLE' );
-    push @table_list, 'rawpost' if have_capability( 'RAWPOST_TABLE' );
-    push @table_list, 'nat'     if have_capability( 'NAT_ENABLED' );
-    push @table_list, 'mangle'  if have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
-    push @table_list, 'filter';
-
     $mode = NULL_MODE;
 
     emit ( '#',
@@ -6613,7 +6893,7 @@ sub create_netfilter_load( $ ) {
 	emit_unindented '#';
     }
 
-    for my $table ( @table_list ) {
+    for my $table ( valid_tables ) {
 	emit_unindented "*$table";
 
 	my @chains;
@@ -6678,14 +6958,6 @@ sub create_netfilter_load( $ ) {
 #
 sub preview_netfilter_load() {
 
-    my @table_list;
-
-    push @table_list, 'raw'     if have_capability( 'RAW_TABLE' );
-    push @table_list, 'rawpost' if have_capability( 'RAWPOST_TABLE' );
-    push @table_list, 'nat'     if have_capability( 'NAT_ENABLED' );
-    push @table_list, 'mangle'  if have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
-    push @table_list, 'filter';
-
     $mode = NULL_MODE;
 
     push_indent;
@@ -6696,7 +6968,7 @@ sub preview_netfilter_load() {
 
     print "#\n# Generated by Shorewall $globals{VERSION} - $date\n#\n";
 
-    for my $table ( @table_list ) {
+    for my $table ( valid_tables ) {
 	print "*$table\n";
 
 	my @chains;
@@ -6898,14 +7170,6 @@ sub create_chainlist_reload($) {
 sub create_stop_load( $ ) {
     my $test = shift;
 
-    my @table_list;
-
-    push @table_list, 'raw'     if have_capability( 'RAW_TABLE' );
-    push @table_list, 'rawpost' if have_capability( 'RAWPOST_TABLE' );
-    push @table_list, 'nat'     if have_capability( 'NAT_ENABLED' );
-    push @table_list, 'mangle'  if have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
-    push @table_list, 'filter';
-
     my $utility = $family == F_IPV4 ? 'iptables-restore' : 'ip6tables-restore';
     my $UTILITY = $family == F_IPV4 ? 'IPTABLES_RESTORE' : 'IP6TABLES_RESTORE';
 
@@ -6926,7 +7190,7 @@ sub create_stop_load( $ ) {
 	emit_unindented '#';
     }
 
-    for my $table ( @table_list ) {
+    for my $table ( valid_tables ) {
 	emit_unindented "*$table";
 
 	my @chains;

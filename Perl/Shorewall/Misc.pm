@@ -45,7 +45,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_3';
+our $VERSION = '4.5_4';
 
 my $family;
 
@@ -151,7 +151,7 @@ sub setup_ecn()
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ($interface, $hosts ) = split_line 'ecn file entry', { interface => 0, hosts => 1 };
+	    my ($interface, $hosts ) = split_line1 'ecn file entry', { interface => 0, host => 1, hosts => 1 }, {}, 2;
 
 	    fatal_error 'INTERFACE must be specified' if $interface eq '-';
 	    fatal_error "Unknown interface ($interface)" unless known_interface $interface;
@@ -749,7 +749,7 @@ sub add_common_rules ( $ ) {
 
 	my $interfaceref = find_interface $interface;
 
-	unless ( $interfaceref->{options}{ignore} ) {
+	unless ( $interfaceref->{options}{ignore} & NO_SFILTER ) {
 
 	    my @filters = @{$interfaceref->{filter}};
 
@@ -1853,8 +1853,6 @@ sub generate_matrix() {
 	} else {
 	    @dest_zones =  @zones ;
 	}
-	#
-	# Here it is -- THE BIG UGLY!!!!!!!!!!!!
 	#
 	# We now loop through the destination zones creating jumps to the rules chain for each source/dest combination.
 	# @dest_zones is the list of destination zones that we need to handle from this source zone
