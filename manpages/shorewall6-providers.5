@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/10/2012
+.\"      Date: 06/09/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-PROVIDER" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-PROVIDER" "5" "06/09/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -191,6 +191,14 @@ is given in the INTERFACE column\&. If this option is not used, Shorewall6 subst
 mtu=\fInumber\fR
 .RS 4
 Specifies the MTU when forwarding through this provider\&. If not given, the MTU of the interface named in the INTERFACE column is assumed\&.
+.RE
+.PP
+\fBtproxy\fR
+.RS 4
+Added in Shorewall 4\&.5\&.4\&. Used for supporting the TPROXY action in shorewall\-tcrules(5)\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/Shorewall_Squid_Usage\&.html\fR\m[]\&. When specified, the MARK, DUPLICATE and GATEWAY columns should be empty, INTERFACE should be set to \*(Aqlo\*(Aq and
+\fBtproxy\fR
+should be the only OPTION\&.
 .RE
 .RE
 .PP
