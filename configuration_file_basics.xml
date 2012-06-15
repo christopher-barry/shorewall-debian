@@ -579,13 +579,15 @@ ACCEPT      net:\
           <row>
             <entry>ecn</entry>
 
-            <entry>interface,hosts</entry>
+            <entry>interface,hosts. Beginning with Shorewall 4.5.4, 'host' is
+            a synonym for 'hosts'.</entry>
           </row>
 
           <row>
             <entry>hosts</entry>
 
-            <entry>zone,hosts,options</entry>
+            <entry>zone,hosts,options. Beginning with Shorewall 4.5.4, 'host'
+            is a synonym for 'hosts'.</entry>
           </row>
 
           <row>
@@ -720,7 +722,9 @@ ACCEPT      net:\
             <entry>tunnels</entry>
 
             <entry>type,zone,gateway,gateway_zone. Beginning with Shorewall
-            4.5.3, 'gateways' is a synonym for 'gateway'.</entry>
+            4.5.3, 'gateways' is a synonym for 'gateway'. Beginning with
+            Shorewall 4.5.4, 'gateway_zones' is a synonym for
+            'gateway_zone'.</entry>
           </row>
 
           <row>
@@ -830,7 +834,7 @@ DNAT { source=net dest=loc:10.0.0.1 proto=tcp dport=80 mark=88 }</programlisting
       <listitem>
         <para>ADDRESS LIST — A list of one or more addresses (host or network)
         or address ranges, separated by commas. In an IPv6 configuration, this
-        list must be includef in square or angled brackets ("[...]" or
+        list must be included in square or angled brackets ("[...]" or
         "&lt;...&gt;"). The list may have <link
         linkend="Exclusion">exclusion</link>.</para>
       </listitem>
@@ -871,13 +875,19 @@ DNAT { source=net dest=loc:10.0.0.1 proto=tcp dport=80 mark=88 }</programlisting
       <listitem>
         <para>Host 2002:ce7c:92b4:1:a00:27ff:feb1:46a9 in the <emphasis
         role="bold">loc</emphasis> zone — <emphasis
-        role="bold">loc:[2002:ce7c:92b4:1:a00:27ff:feb1:46a9]</emphasis></para>
+        role="bold">loc::[2002:ce7c:92b4:1:a00:27ff:feb1:46a9]</emphasis></para>
       </listitem>
 
       <listitem>
         <para>The primary IP address of eth0 in the $FW zone - <emphasis
         role="bold">$FW:&amp;eth0</emphasis> (see <link
         linkend="Rvariables">Run-time Address Variables</link> below)</para>
+      </listitem>
+
+      <listitem>
+        <para>All hosts in Vatican City - <emphasis
+        role="bold">net:^VA</emphasis> (Shorwall 4.5.4 and later - See <ulink
+        url="ISO-3661.html">this article</ulink>).</para>
       </listitem>
     </orderedlist>
   </section>
@@ -1513,12 +1523,23 @@ SHELL cat /etc/shorewall/rules.d/*.rules 2&gt; /dev/null || true</programlisting
       </listitem>
     </itemizedlist>
 
-    <para>If the <replaceable>variable</replaceable> is still not found and it
-    begins with '__', then those leading characters are stripped off and the
-    result is searched for in the defined <firstterm>capabilities</firstterm>.
-    The current set of capabilities may be obtained by the command
-    <command>shorewall show capabilities</command> (the capability names are
-    in parentheses).</para>
+    <para>If the <replaceable>variable</replaceable> is still not
+    found:</para>
+
+    <itemizedlist>
+      <listitem>
+        <para>it begins with '__', then those leading characters are stripped
+        off.</para>
+      </listitem>
+
+      <listitem>
+        <para>the variable is then searched for in the defined
+        <firstterm>capabilities</firstterm>. The current set of capabilities
+        may be obtained by the command <command>shorewall show
+        capabilities</command> (the capability names are in
+        parentheses).</para>
+      </listitem>
+    </itemizedlist>
 
     <para>If it is not found in any of those places, the
     <replaceable>variable</replaceable> is assumed to have a value of 0
@@ -1604,15 +1625,22 @@ SHELL cat /etc/shorewall/rules.d/*.rules 2&gt; /dev/null || true</programlisting
 
     <itemizedlist>
       <listitem>
-        <para><emphasis role="bold">PERL</emphasis> &lt;<emphasis>perl
+        <para>[<emphasis role="bold">?</emphasis>]<emphasis
+        role="bold">PERL</emphasis> &lt;<emphasis>perl
         script</emphasis>&gt;</para>
       </listitem>
 
       <listitem>
-        <para><emphasis role="bold">SHELL</emphasis> &lt;<emphasis>shell
+        <para>[<emphasis role="bold">?</emphasis>]<emphasis
+        role="bold">SHELL</emphasis> &lt;<emphasis>shell
         script</emphasis>&gt;</para>
       </listitem>
     </itemizedlist>
+
+    <note>
+      <para>The optional leading question mark (?) is allowed in Shorewall
+      4.5.5 and later.</para>
+    </note>
 
     <para>Shell scripts run in a child shell process and their output is piped
     back to the compiler which processes that output as if it were embedded at
@@ -1657,14 +1685,19 @@ use Shorewall::Config ( qw/shorewall/ );</programlisting>
       </listitem>
     </orderedlist>
 
-    <para>Multi-line scripts use one of the following forms:<programlisting><emphasis
-          role="bold">BEGIN SHELL</emphasis>
+    <para>Multi-line scripts use one of the following forms:<programlisting>[<emphasis
+          role="bold">?</emphasis>]<emphasis role="bold">BEGIN SHELL</emphasis>
 &lt;<emphasis>shell script</emphasis>&gt;
-<emphasis role="bold">END</emphasis> [ <emphasis role="bold">SHELL</emphasis> ]</programlisting><programlisting><emphasis
-          role="bold">BEGIN PERL</emphasis> [;]
+[<emphasis role="bold">?</emphasis>]<emphasis role="bold">END</emphasis> [ <emphasis
+          role="bold">SHELL</emphasis> ]</programlisting><programlisting>[<emphasis
+          role="bold">?</emphasis>]<emphasis role="bold">BEGIN PERL</emphasis> [<emphasis
+          role="bold">;</emphasis>]
 &lt;<emphasis>perl script</emphasis>&gt;
-<emphasis role="bold">END</emphasis> [ <emphasis role="bold">PERL</emphasis> ] [<emphasis
-          role="bold">;</emphasis>]</programlisting></para>
+[<emphasis role="bold">?</emphasis>]<emphasis role="bold">END</emphasis> [ <emphasis
+          role="bold">PERL</emphasis> ] [<emphasis role="bold">;</emphasis>]</programlisting><note>
+        <para>The optional leading question mark (?) is allowed in Shorewall
+        4.5.5 and later.</para>
+      </note></para>
   </section>
 
   <section id="dnsnames">
