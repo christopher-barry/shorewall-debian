@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/10/2012
+.\"      Date: 06/09/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\&.CONF" "5" "06/09/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -438,6 +438,16 @@ FASTACCEPT=Yes is incompatible with BLACKLISTNEWONLY=No\&.
 \fBFORWARD_CLEAR_MARK=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (FORWARD_CLEAR_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
+.RE
+.PP
+\fBGEOIPDIR\fR=[\fIpathname\fR]
+.RS 4
+Added in Shorewall 4\&.5\&.4\&. Specifies the pathname of the directory containing the
+GeoIP Match
+database\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/ISOCODES\&.html\fR\m[]\&. If not specified, the default value is
+/usr/share/xt_geoip/LE
+which is the default location of the little\-endian database\&.
 .RE
 .PP
 \fBHIGH_ROUTE_MARKS=\fR{\fBYes\fR|\fBNo\fR}
@@ -1060,6 +1070,25 @@ Accounting chains are subject to optimization if the OPTIMIZE_ACCOUNTING option 
 .\}
 If a chain ends with an unconditional branch to a second chain (other than to \*(Aqreject\*(Aq), then the branch is deleted from the first chain and the rules from the second chain are appended to it\&.
 .RE
+.sp
+An additional optimization was added in Shorewall 4\&.5\&.4\&. If the last rule in a chain is an unqualified jump to a simple target, then all immediately preceding rules with the same simple target are omitted\&.
+.sp
+For example, consider this chain:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+	\-A fw\-net \-p udp \-\-dport 67:68 \-j ACCEPT
+	\-A fw\-net \-p udp \-\-sport 1194 \-j ACCEPT
+	\-A fw\-net \-p 41 \-j ACCEPT
+	\-A fw\-net \-j ACCEPT
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+Since all of the rules are jumps to the simple target ACCEPT, this chain is totally optimized away and jumps to the chain are replace with jumps to ACCEPT\&.
 .RE
 .sp
 .RS 4
