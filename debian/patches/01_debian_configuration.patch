@@ -12,7 +12,7 @@ expected by Debian users.
  
  ###############################################################################
  #		              V E R B O S I T Y
-@@ -71,7 +71,7 @@
+@@ -75,7 +75,7 @@
  
  SHOREWALL_SHELL=/bin/sh
  
@@ -21,7 +21,7 @@ expected by Debian users.
  
  TC=
  
-@@ -140,7 +140,7 @@
+@@ -144,7 +144,7 @@
  
  IPSET_WARNINGS=Yes
  
@@ -30,7 +30,7 @@ expected by Debian users.
  
  KEEP_RT_TABLES=No
  
-@@ -176,7 +176,7 @@
+@@ -180,7 +180,7 @@
  
  RETAIN_ALIASES=No
  
