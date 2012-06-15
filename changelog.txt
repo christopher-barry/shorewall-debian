@@ -1,3 +1,86 @@
+Changes in 4.5.5 RC 1
+
+1)  Change in 'ignore' behavior.
+
+2)  Optional '?' in embedded script directives.
+
+3)  Fix IPv6 Shorecap
+
+4)  Fix iprange match on RHEL5
+
+5)  Fix installer's handling of SYSCONFDIR
+
+6)  Add DIGEST support.
+
+Changes in 4.5.5 Beta 2
+
+1)  Merged bug fixes from 4.5.4.
+
+2)  Added LOGFILE setting for Shorewall-init.
+
+3)  Reverse the order of continuation/directive checks.
+
+Changes in 4.5.5 Beta 1
+
+1)  Add support for additional log options.
+
+2)  Many fixes for Shoreawll-init.
+
+Changes in 4.5.4 Final
+
+1)  Update the release documents.
+
+Changes in 4.5.4 RC 2
+
+1)  Remove GeoIP from Shorewall6/actions.std
+
+2)  Minor cleanup of geoip; mostly documentation
+
+Changes in 4.5.4 RC 1
+
+1)  Use 'blackhole' routes rather than 'unreachable' for null-routing
+    RFC1918 addresses.
+
+2)  Don't overwrite empty mark geometry settings during update.
+
+3)  Additional optimization under level 4.
+
+4)  Allow bracketing of CC lists in [...]
+
+5)  Load country codes from geoip database.
+
+6)  Clear the DEFAULT table if no fallback providers are up.
+
+Changes in 4.5.4 Beta 3
+
+1)  Replace {...} with '^' prefix to denote CC list.
+
+Changes in 4.5.4 Beta 2
+
+1)  Clear the balance table if no balanced providers.
+
+2)  Use "(S)" consistently in column headings.
+
+3)  Correct add of default IPv6 when no gateway
+
+4)  Update .status file on 'disable'.
+
+5)  Ignore 'isusable' on 'disable'
+
+6)  Split a couple of functions with address-family dependent logic.
+
+7)  Don't allow RSTs to be rejected
+
+8)  Exit the tcpost chain if a connection mark is restored
+
+9)  Add geoip support.
+
+Changes in 4.5.4 Beta 1
+
+1)  Correct nested conditional defect.
+
+2)  Re-implement TPROXY
+
 Changes in 4.5.3 Final
 
 1)  Update release documents.
@@ -10,12 +93,6 @@ Changes in 4.5.3 Final
     formats.
 
 5)  Allow COMMENT by itself in the tunnels file.
-
-6)  Fix balance using statistic match.
-
-7)  Fix logical names in rtrules file.
-
-8)  Deprecate TPROXY.
 
 Changes in 4.5.3 RC 1
 
