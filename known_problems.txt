@@ -1,7 +1,2 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
-
-2)  Shorewall's TPROXY support is incomplete. A new and slightly
-    different implementation of TPROXY will be available in Shorewall
-    4.5.4.
-

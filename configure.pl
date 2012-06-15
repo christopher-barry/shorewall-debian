@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '4.5.3'
+    VERSION => '4.5.5'
 };
 
 my %params;
@@ -39,8 +39,7 @@ my %options;
 
 my %aliases = ( VENDOR         => 'HOST',
 		SHAREDSTATEDIR => 'VARDIR',
-		DATADIR        => 'SHAREDIR',
-		SYSCONFDIR     => 'CONFDIR' );
+		DATADIR        => 'SHAREDIR' );
 
 for ( @ARGV ) {
     die "ERROR: Invalid option specification ( $_ )" unless /^(?:--)?(\w+)=(.*)$/;
@@ -140,6 +139,7 @@ for ( qw/ HOST
 	  SYSTEMD
 	  SYSCONFFILE
 	  SYSCONFDIR
+	  SPARSE
 	  ANNOTATED
 	  VARDIR / ) {
 
