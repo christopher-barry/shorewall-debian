@@ -106,15 +106,11 @@ if [ -f /etc/debian_version ]; then
 	    else
 		exit 0
 	    fi
-
-	    case "$PHASE" in
-		pre-*)
-		    exit 0
-		    ;;
-	    esac
 	    ;;
     esac
 elif [ -f /etc/SuSE-release ]; then
+    PHASE=''
+
     case $0 in
 	/etc/ppp*)
 	    #
@@ -146,6 +142,8 @@ else
     #
     # Assume RedHat/Fedora/CentOS/Foobar/...
     #
+    PHASE=''
+
     case $0 in
 	/etc/ppp*)
 	    INTERFACE="$1"
@@ -186,20 +184,12 @@ else
     esac
 fi
 
+[ -n "$LOGFILE" ] || LOGFILE=/dev/null
+
 for PRODUCT in $PRODUCTS; do
-    #
-    # For backward compatibility, lib.base appends the product name to VARDIR
-    # Save it here and restore it below
-    #
-    save_vardir=${VARDIR}
     if [ -x $VARDIR/$PRODUCT/firewall ]; then
-	  ( . ${SHAREDIR}/shorewall/lib.base
-	    mutex_on
-	    ${VARDIR}/firewall -V0 $COMMAND $INTERFACE || echo_notdone
-	    mutex_off
-	  )
+	  ( ${VARDIR}/$PRODUCT/firewall -V0 $COMMAND $INTERFACE >> $LOGFILE 2>&1 ) || true
     fi
-    VARDIR=${save_vardir}
 done
 
 exit 0
