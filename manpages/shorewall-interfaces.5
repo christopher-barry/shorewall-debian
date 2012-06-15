@@ -2,12 +2,12 @@
 .\"     Title: shorewall-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/10/2012
+.\"      Date: 06/09/2012
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-INTERFACE" "5" "05/10/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-INTERFACE" "5" "06/09/2012" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -352,9 +352,13 @@ If you use
 This option allows DHCP datagrams to enter and leave the interface\&.
 .RE
 .PP
-\fBignore\fR
+\fBignore[=1]\fR
 .RS 4
-When specified, causes the generated script to ignore up/down events from Shorewall\-init for this device\&. Additionally, the option exempts the interface from hairpin filtering\&.
+When specified, causes the generated script to ignore up/down events from Shorewall\-init for this device\&. Additionally, the option exempts the interface from hairpin filtering\&. When \*(Aq=1\*(Aq is omitted, the ZONE column must contain \*(Aq\-\*(Aq and
+\fBignore\fR
+must be the only OPTION\&.
+.sp
+Beginning with Shorewall 4\&.5\&.5, may be specified as \*(Aq\fBignore=1\fR\*(Aq which only causes the generated script to ignore up/down events from Shorewall\-init; hairpin filtering is still applied\&. In this case, the above restrictions on the ZONE and OPTIONS columns are lifted\&.
 .RE
 .PP
 \fBlogmartians[={0|1}]\fR

@@ -66,7 +66,7 @@
 #     The zone of the physical interface through which tunnel traffic passes.
 #     This is normally your internet zone.
 # 
-# GATEWAYS - address-or-range [ , ... ]
+# GATEWAY(S) (gateway or gateways) - address-or-range [ , ... ]
 # 
 #     The IP address of the remote tunnel gateway. If the remote gateway has no
 #     fixed address (Road Warrior) then specify the gateway as 0.0.0.0/0. May be
@@ -76,7 +76,7 @@
 #     Beginning with Shorewall 4.5.3, a list of addresses or ranges may be given.
 #     Exclusion (shorewall-exclusion (5) ) is not supported.
 # 
-# GATEWAY ZONES (gateway_zone) - [zone[,zone]...]
+# GATEWAY ZONES (gateway_zone or gateway_zones) - [zone[,zone]...]
 # 
 #     Optional. If the gateway system specified in the third column is a
 #     standalone host then this column should contain a comma-separated list of
@@ -154,5 +154,5 @@
 #             generic:udp:4444 net     4.3.99.124
 # 
 ###############################################################################
-#TYPE			ZONE	GATEWAYS			GATEWAY
-#								ZONES
+#TYPE			ZONE	GATEWAY(S)			GATEWAY
+#								ZONE(S)

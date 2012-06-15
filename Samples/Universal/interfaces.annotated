@@ -197,11 +197,17 @@
 # 
 #         This option allows DHCP datagrams to enter and leave the interface.
 # 
-#     ignore
+#     ignore[=1]
 # 
 #         When specified, causes the generated script to ignore up/down events
 #         from Shorewall-init for this device. Additionally, the option exempts
-#         the interface from hairpin filtering.
+#         the interface from hairpin filtering. When '=1' is omitted, the ZONE
+#         column must contain '-' and ignore must be the only OPTION.
+# 
+#         Beginning with Shorewall 4.5.5, may be specified as 'ignore=1' which
+#         only causes the generated script to ignore up/down events from
+#         Shorewall-init; hairpin filtering is still applied. In this case, the
+#         above restrictions on the ZONE and OPTIONS columns are lifted.
 # 
 #     logmartians[={0|1}]
 # 
