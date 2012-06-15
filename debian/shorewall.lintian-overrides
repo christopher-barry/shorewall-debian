@@ -4,49 +4,7 @@ shorewall: manpage-has-errors-from-man
 shorewall: postinst-uses-db-input
 # we want to protect sensitive files
 shorewall: non-standard-dir-perm var/lib/shorewall/ 0750 != 0755
-shorewall: non-standard-file-perm etc/shorewall/accounting 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/actions 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/blacklist 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/blrules 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/clear 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/ecn 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/findgw 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/hosts 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/init 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/initdone 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/interfaces 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/lib.private 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/maclist 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/masq 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/nat 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/netmap 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/notrack 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/params 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/policy 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/providers 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/proxyarp 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/refresh 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/refreshed 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/restored 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/routestopped 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/rtrules 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/rules 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/scfilter 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/secmarks 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/start 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/started 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/stop 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/stopped 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcclasses 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcclear 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcdevices 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcfilters 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcinterfaces 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcpri 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tcrules 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tos 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/tunnels 0640 != 0644
-shorewall: non-standard-file-perm etc/shorewall/zones 0640 != 0644
 # It is necessary to specify /sbin/shorewall
 shorewall: command-with-path-in-maintainer-script
 # Shorewall needs to continue in runlevel 1 because networking may still be up

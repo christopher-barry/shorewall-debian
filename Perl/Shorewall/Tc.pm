@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.5_3';
+our $VERSION = '4.5_4';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -163,12 +163,16 @@ my  @tcclasses;
 my  %tcclasses;
 
 my  %restrictions = ( tcpre      => PREROUTE_RESTRICT ,
+		      PREROUTING => PREROUTE_RESTRICT ,
 		      tcpost     => POSTROUTE_RESTRICT ,
 		      tcfor      => NO_RESTRICT ,
 		      tcin       => INPUT_RESTRICT ,
-		      tcout      => OUTPUT_RESTRICT );
+		      tcout      => OUTPUT_RESTRICT ,
+		    );
 
 my $family;
+
+my $divertref; # DIVERT chain
 
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -181,36 +185,48 @@ my $family;
 #      able to re-initialize its dependent modules' state.
 #
 sub initialize( $ ) {
-    $family   = shift;
-    %classids = ();
+    $family    = shift;
+    %classids  = ();
     @tcdevices = ();
     %tcdevices = ();
     @tcclasses = ();
     %tcclasses = ();
     @devnums   = ();
-    $devnum = 0;
-    $sticky = 0;
-    $ipp2p  = 0;
+    $devnum    = 0;
+    $sticky    = 0;
+    $ipp2p     = 0;
+    $divertref = 0;
 }
 
 sub process_tc_rule( ) {
     my ( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp );
     if ( $family == F_IPV4 ) {
 	( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp ) =
-	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, probability => 12 , dscp => 13 }, undef , 14;
+	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, probability => 12 , dscp => 13 }, { COMMENT => 0, FORMAT => 2 } , 14;
 	$headers = '-';
     } else {
 	( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp ) =
-	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, headers => 12, probability => 13 , dscp => 14 }, undef, 15;
+	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, headers => 12, probability => 13 , dscp => 14 },  { COMMENT => 0, FORMAT => 2 }, 15;
     }
 
     our @tccmd;
+
+    our $format;
 
     fatal_error 'MARK must be specified' if $originalmark eq '-';
 
     if ( $originalmark eq 'COMMENT' ) {
 	process_comment;
 	return;
+    }
+
+    if ( $originalmark eq 'FORMAT' ) {
+	if ( $source =~ /^([12])$/ ) {
+	    $format = $1;
+	    return;
+	}
+
+	fatal_error "Invalid FORMAT ($source)";
     }
 
     my ( $mark, $designator, $remainder ) = split( /:/, $originalmark, 3 );
@@ -242,6 +258,7 @@ sub process_tc_rule( ) {
     my $restriction = 0;
     my $cmd;
     my $rest;
+    my $matches = '';
 
     my %processtcc = ( sticky => sub() {
 			                  if ( $chain eq 'tcout' ) {
@@ -294,22 +311,56 @@ sub process_tc_rule( ) {
 
 					  $target = "IPMARK --addr $srcdst --and-mask $mask1 --or-mask $mask2 --shift $shift";
 				      },
+		       DIVERT => sub() {
+			                  fatal_error "Invalid MARK ($originalmark)"               unless $format == 2;
+			                  fatal_error "Invalid DIVERT specification( $cmd/$rest )" if $rest;
+
+					  $chain = 'PREROUTING';
+
+					  $mark = in_hex( $globals{TPROXY_MARK} ) . '/' . in_hex( $globals{TPROXY_MARK} );
+
+					  unless ( $divertref ) {
+					      $divertref = new_chain( 'mangle', 'divert' );
+					      add_ijump( $divertref , j => 'MARK', targetopts => "--set-mark $mark"  );
+					      add_ijump( $divertref , j => 'ACCEPT' );
+					  }
+
+					  $target = 'divert';
+
+					  $matches = '! --tcp-flags FIN,SYN,RST,ACK SYN  -m socket --transparent ';
+				      },					      
 		       TPROXY => sub() {
 			                  require_capability( 'TPROXY_TARGET', 'Use of TPROXY', 's');
 
 			                  fatal_error "Invalid TPROXY specification( $cmd/$rest )" if $rest;
 
-					  $chain = 'tcpre';
+					  $chain = 'PREROUTING';
 
 					  $cmd =~ /TPROXY\((.+?)\)$/;
 
 					  my $params = $1;
+					  my ( $port, $ip, $bad );
 
-					  fatal_error "Invalid TPROXY specification( $cmd )" unless defined $params;
+					  if ( $format == 1 ) {
+					      fatal_error "Invalid TPROXY specification( $cmd )" unless defined $params;
 
-					  ( $mark, my $port, my $ip, my $bad ) = split ',', $params;
+					      ( $mark, $port, $ip, $bad ) = split_list $params, 'Parameter';
 
-					  fatal_error "Invalid TPROXY specification( $cmd )" if defined $bad;
+					      fatal_error "Invalid TPROXY specification( $cmd )" if defined $bad;
+
+					      warning_message "TPROXY is deprecated in a format-1 tcrules file";
+					  } else {
+					      if ( $params ) {
+						  ( $port, $ip, $bad ) = split_list $params, 'Parameter';
+
+						  fatal_error "Invalid TPROXY specification( $cmd )" if defined $bad;
+					      
+					      } else {
+						  fatal_error "Invalid TPROXY specification ($cmd)" unless $cmd eq 'TPROXY' || $cmd eq 'TPROXY()';
+					      }
+
+					      $mark = in_hex( $globals{TPROXY_MARK} ) . '/' . in_hex( $globals{TPROXY_MARK} );
+					  }
 
 					  if ( $port ) {
 					      $port = validate_port( 'tcp', $port );
@@ -530,7 +581,7 @@ sub process_tc_rule( ) {
 
     if ( ( my $result = expand_rule( ensure_chain( 'mangle' , $chain ) ,
 				     $restrictions{$chain} | $restriction,
-				     do_proto( $proto, $ports, $sports) .
+				     do_proto( $proto, $ports, $sports) . $matches .
 				     do_user( $user ) .
 				     do_test( $testval, $globals{TC_MASK} ) .
 				     do_length( $length ) .
@@ -539,7 +590,7 @@ sub process_tc_rule( ) {
 				     do_helper( $helper ) .
 				     do_headers( $headers ) .
 				     do_probability( $probability ) .
-				     do_dscp( $dscp ),
+				     do_dscp( $dscp ) ,
 				     $source ,
 				     $dest ,
 				     '' ,
@@ -1584,6 +1635,12 @@ sub process_tcpri() {
 			  mark => '--mark 0/'   . in_hex( $globals{TC_MASK} )
 			);
 
+	    insert_irule( $mangle_table->{tcpost} ,
+			  j => 'RETURN', 
+			  1 ,
+			  mark => '! --mark 0/' . in_hex( $globals{TC_MASK} ) ,
+			);
+
 	    add_ijump( $mangle_table->{tcpost} ,
 		       j    => 'CONNMARK --save-mark --ctmask '    . in_hex( $globals{TC_MASK} ),
 		       mark => '! --mark 0/' . in_hex( $globals{TC_MASK} )
@@ -2002,6 +2059,11 @@ sub setup_tc() {
 			  mark      => HIGHMARK,
 			  mask      => '',
 			  connmark  => '' },
+			{ match     => sub( $ ) { $_[0] =~ /^DIVERT/ },
+			  target    => 'DIVERT',
+			  mark      => HIGHMARK,
+			  mask      => '',
+			  connmark  => '' },
 			{ match     => sub( $ ) { $_[0] =~ /^TTL/ },
 			  target    => 'TTL',
 			  mark      => NOMARK,
@@ -2036,11 +2098,14 @@ sub setup_tc() {
 
 	if ( my $fn = open_file 'tcrules' ) {
 
+	    our $format = 1;
+
 	    first_entry "$doing $fn...";
 
 	    process_tc_rule while read_a_line( NORMAL_READ );
 
 	    clear_comment;
+
 	}
     }
 

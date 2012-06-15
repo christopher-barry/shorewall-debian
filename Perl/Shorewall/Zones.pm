@@ -41,6 +41,8 @@ our @EXPORT = qw( NOTHING
 		  IP
 		  BPORT
 		  IPSEC
+		  NO_UPDOWN
+		  NO_SFILTER
 
 		  determine_zones
 		  zone_report
@@ -62,6 +64,7 @@ our @EXPORT = qw( NOTHING
 		  validate_interfaces_file
 		  all_interfaces
 		  all_real_interfaces
+		  all_plain_interfaces
 		  all_bridges
 		  interface_number
 		  find_interface
@@ -72,6 +75,7 @@ our @EXPORT = qw( NOTHING
 		  port_to_bridge
 		  source_port_to_bridge
 		  interface_is_optional
+		  interface_is_required
 		  find_interfaces_by_option
 		  find_interfaces_by_option1
 		  get_interface_option
@@ -80,7 +84,6 @@ our @EXPORT = qw( NOTHING
 		  set_interface_provider
 		  interface_zones
 		  verify_required_interfaces
-		  compile_updown
 		  validate_hosts_file
 		  find_hosts_by_option
 		  find_zone_hosts_by_option
@@ -90,7 +93,7 @@ our @EXPORT = qw( NOTHING
 		 );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_3';
+our $VERSION = '4.5_4';
 
 #
 # IPSEC Option types
@@ -173,6 +176,7 @@ my  %reservedName = ( all => 1,
 #                                     number      => <ordinal position in the interfaces file>
 #                                     physical    => <physical interface name>
 #                                     base        => <shell variable base representing this interface>
+#                                     provider    => <Provider Name, if interface is associated with a provider>
 #                                     zones       => { zone1 => 1, ... }
 #                                   }
 #                 }
@@ -219,11 +223,14 @@ use constant { SIMPLE_IF_OPTION   => 1,
 	       IF_OPTION_WILDOK   => 64
 	   };
 
+use constant { NO_UPDOWN   => 1, 
+	       NO_SFILTER  => 2 };
+
 my %validinterfaceoptions;
 
 my %defaultinterfaceoptions = ( routefilter => 1 , wait => 60 );
 
-my %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 );
+my %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 , ignore => NO_UPDOWN );
 
 my %validhostoptions;
 
@@ -281,6 +288,7 @@ sub initialize( $$ ) {
 				  bridge      => SIMPLE_IF_OPTION,
 				  detectnets  => OBSOLETE_IF_OPTION,
 				  dhcp        => SIMPLE_IF_OPTION,
+				  ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				  maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  logmartians => BINARY_IF_OPTION,
 				  nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
@@ -316,6 +324,7 @@ sub initialize( $$ ) {
 	%validinterfaceoptions = (  blacklist   => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    bridge      => SIMPLE_IF_OPTION,
 				    dhcp        => SIMPLE_IF_OPTION,
+				    ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				    maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -483,7 +492,8 @@ sub process_zone( \$ ) {
 
     my $complex = 0;
 
-    my $zoneref = $zones{$zone} = { type       => $type,
+    my $zoneref = $zones{$zone} = { name       => $zone,
+				    type       => $type,
 				    parents    => \@parents,
 				    bridge     => '',
 				    options    => { in_out  => parse_zone_option_list( $options , $type, $complex , IN_OUT ) ,
@@ -565,6 +575,7 @@ sub determine_zones()
 		for ( @{$zones{$zone}{children}} ) {
 		    next ZONE unless $ordered{$_};
 		}
+
 		$ordered{$zone} = 1;
 		push @zones, $zone;
 		redo PUSHED;
@@ -572,7 +583,7 @@ sub determine_zones()
 	}
     }
 
-    assert( scalar @zones == scalar @z );
+    assert( @zones == @z );
 
 }
 
@@ -1029,7 +1040,7 @@ sub process_interface( $$ ) {
 
     if ( $options eq 'ignore' ) {
 	fatal_error "Ignored interfaces may not be associated with a zone" if $zone;
-	$options{ignore} = 1;
+	$options{ignore} = NO_UPDOWN | NO_SFILTER;
 	$options = '-';
     }
 
@@ -1149,7 +1160,16 @@ sub process_interface( $$ ) {
 	    }
 	}
 
-	fatal_error "Invalid combination of interface options" if $options{required} && $options{optional};
+	fatal_error "Invalid combination of interface options"
+	    if ( ( $options{required} && $options{optional} ) ||
+		 ( $options{required} && $options{ignore}   ) ||
+		 ( $options{optional} && $options{ignore}   ) );
+
+	if ( supplied( my $ignore = $options{ignore} ) ) {
+	    fatal_error "Invalid value ignore=0" if ! $ignore;
+	} else {
+	    $options{ignore} = 0;
+	}
 
 	if ( $netsref eq 'dynamic' ) {
 	    my $ipset = $family == F_IPV4 ? "${zone}_" . chain_base $physical : "6_${zone}_" . chain_base $physical;
@@ -1171,6 +1191,10 @@ sub process_interface( $$ ) {
 	# No options specified -- auto-detect bridge
 	#
 	$hostoptionsref->{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export;
+	#
+	# And give the 'ignore' option a defined value
+	#
+	$options{ignore} ||= 0;
     }
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
@@ -1417,10 +1441,64 @@ sub interface_is_optional($) {
 }
 
 #
+# Return the 'required' setting of the passed interface
+#
+sub interface_is_required($) {
+    my $optionsref = $interfaces{$_[0]}{options};
+    $optionsref && $optionsref->{required};
+}
+
+#
+# Return true if the interface is 'plain'
+#
+sub interface_is_plain($) {
+    my $interfaceref = $interfaces{$_[0]};
+    my $optionsref   = $interfaceref->{options};
+
+    $interfaceref->{bridge} eq $interfaceref->{name} && ! ( $optionsref && ( $optionsref->{required} || $optionsref->{optional} || $optionsref->{ignore} ) )
+}
+
+#
+# Return a minimal list of physical interfaces that are neither ignored, optional, required nor a bridge port.
+#
+sub all_plain_interfaces() {
+    my @plain1 = map get_physical($_), grep $_ ne '%vserver%' && interface_is_plain( $_ ), @interfaces;
+    my @plain2;
+    my @wild1;
+    my @wild2;
+   
+    for ( @plain1 ) {
+	if ( /\+$/ ) {
+	    return ( '+' ) if $_ eq '+';
+	    push @wild1, $_;
+	    chop;
+	    push @wild2, $_;
+	} else {
+	    push @plain2, $_;
+	}
+    }
+
+    return @plain2 unless @wild1;
+
+    @plain1 = ();
+
+NAME:
+    for my $name ( @plain2) {
+	for ( @wild2 ) {
+	    next NAME if substr( $name, 0, length( $_ ) ) eq $_;
+	}
+
+	push @plain1, $name;
+    }
+
+    ( @plain1, @wild1 );
+}
+
+#
 # Returns reference to array of interfaces with the passed option
 #
-sub find_interfaces_by_option( $ ) {
-    my $option = $_[0];
+sub find_interfaces_by_option( $;$ ) {
+    my ( $option , $nonzero ) = @_;
     my @ints = ();
 
     for my $interface ( @interfaces ) {
@@ -1429,7 +1507,11 @@ sub find_interfaces_by_option( $ ) {
 	next unless $interfaceref->{root};
 
 	my $optionsref = $interfaceref->{options};
-	if ( $optionsref && defined $optionsref->{$option} ) {
+	if ( $nonzero ) {
+	    if ( $optionsref && $optionsref->{$option} ) {
+		push @ints , $interface
+	    }
+	} elsif ( $optionsref && defined $optionsref->{$option} ) {
 	    push @ints , $interface
 	}
     }
@@ -1635,180 +1717,11 @@ sub verify_required_interfaces( $ ) {
 }
 
 #
-# Emit the updown() function
-#
-sub compile_updown() {
-    emit( '',
-	  '#',
-	  '# Handle the "up" and "down" commands',
-	  '#',
-	  'updown() # $1 = interface',
-	  '{',
-	);
-
-    push_indent;
-
-    emit( 'local state',
-	  'state=cleared',
-	  '' );
-
-    emit 'progress_message3 "$g_product $COMMAND triggered by $1"';
-    emit '';
-
-    if ( $family == F_IPV4 ) {
-	emit 'if shorewall_is_started; then';
-    } else {
-	emit 'if shorewall6_is_started; then';
-    }
-
-    emit( '    state=started',
-	  'elif [ -f ${VARDIR}/state ]; then',
-	  '    case "$(cat ${VARDIR}/state)" in',
-	  '        Stopped*)',
-	  '            state=stopped',
-	  '            ;;',
-	  '        Cleared*)',
-	  '            ;;',
-	  '        *)',
-	  '            state=unknown',
-	  '            ;;',
-	  '    esac',
-	  'else',
-	  '    state=unknown',
-	  'fi',
-	  ''
-	);
-
-    emit( 'case $1 in' );
-
-    push_indent;
-
-    my $ignore   = find_interfaces_by_option 'ignore';
-    my $required = find_interfaces_by_option 'required';
-    my $optional = find_interfaces_by_option 'optional';
-
-    if ( @$ignore ) {
-	my $interfaces = join '|', map $interfaces{$_}->{physical}, @$ignore;
-
-	$interfaces =~ s/\+/*/g;
-
-	emit( "$interfaces)",
-	      '    progress_message3 "$COMMAND on interface $1 ignored"',
-	      '    exit 0',
-	      '    ;;'
-	    );
-    }
-
-    if ( @$required ) {
-	my $interfaces = join '|', map $interfaces{$_}->{physical}, @$required;
-
-	my $wildcard = ( $interfaces =~ s/\+/*/g );
-
-	emit( "$interfaces)",
-	      '    if [ "$COMMAND" = up ]; then' );
-
-	if ( $wildcard ) {
-	    emit( '        if [ "$state" = started ]; then',
-		  '            COMMAND=restart',
-		  '        else',
-		  '            COMMAND=start',
-		  '        fi' );
-	} else {
-	    emit( '        COMMAND=start' );
-	}
-
-	emit( '        progress_message3 "$g_product attempting $COMMAND"',
-	      '        detect_configuration',
-	      '        define_firewall' );
-
-	if ( $wildcard ) {
-	    emit( '    elif [ "$state" = started ]; then',
-		  '        progress_message3 "$g_product attempting restart"',
-		  '        COMMAND=restart',
-		  '        detect_configuration',
-		  '        define_firewall' );
-	} else {
-	    emit( '    else',
-		  '        COMMAND=stop',
-		  '        progress_message3 "$g_product attempting stop"',
-		  '        detect_configuration',
-		  '        stop_firewall' );
-	}
-
-	emit( '    fi',
-	      '    ;;'
-	    );
-    }
-
-    if ( @$optional ) {
-	my @interfaces = map $interfaces{$_}->{physical}, @$optional;
-	my $interfaces = join '|', @interfaces;
-
-	if ( $interfaces =~ s/\+/*/g || @interfaces > 1 ) {
-	    emit( "$interfaces)",
-		  '    if [ "$COMMAND" = up ]; then',
-		  '        echo 0 > ${VARDIR}/${1}.state',
-		  '    else',
-		  '        echo 1 > ${VARDIR}/${1}.state',
-		  '    fi' );
-	} else {
-	    emit( "$interfaces)",
-		  '    if [ "$COMMAND" = up ]; then',
-		  "        echo 0 > \${VARDIR}/$interfaces.state",
-		  '    else',
-		  "        echo 1 > \${VARDIR}/$interfaces.state",
-		  '    fi' );
-	}
-
-	emit( '',
-	      '    if [ "$state" = started ]; then',
-	      '        COMMAND=restart',
-	      '        progress_message3 "$g_product attempting restart"',
-	      '        detect_configuration',
-	      '        define_firewall',
-	      '    elif [ "$state" = stopped ]; then',
-	      '        COMMAND=start',
-	      '        progress_message3 "$g_product attempting start"',
-	      '        detect_configuration',
-	      '        define_firewall',
-	      '    else',
-	      '        progress_message3 "$COMMAND on interface $1 ignored"',
-	      '    fi',
-	      '    ;;',
-	    );
-    }
-
-    emit( "*)",
-	  '    case $state in',
-	  '        started)',
-	  '            COMMAND=restart',
-	  '            progress_message3 "$g_product attempting restart"',
-	  '            detect_configuration',
-	  '            define_firewall',
-	  '            ;;',
-	  '        *)',
-	  '            progress_message3 "$COMMAND on interface $1 ignored"',
-	  '            ;;',
-	  '    esac',
-	);
-
-    pop_indent;
-
-    emit( 'esac' );
-
-    pop_indent;
-
-    emit( '}',
-	  '',
-	);
-}
-
-#
 # Process a record in the hosts file
 #
 sub process_host( ) {
     my $ipsec = 0;
-    my ($zone, $hosts, $options ) = split_line 'hosts file', { zone => 0, hosts => 1, options => 2 };
+    my ($zone, $hosts, $options ) = split_line1 'hosts file', { zone => 0, host => 1, hosts => 1, options => 2 }, {}, 3;
 
     fatal_error 'ZONE must be specified'  if $zone eq '-';
     fatal_error 'HOSTS must be specified' if $hosts eq '-';

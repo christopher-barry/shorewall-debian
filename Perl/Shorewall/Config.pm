@@ -54,6 +54,7 @@ our @EXPORT = qw(
 		 progress_message3
 
 		 supplied
+		 split_list
 
 		 get_action_params
 		 get_action_chain
@@ -163,7 +164,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_3';
+our $VERSION = '4.5_4';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -306,6 +307,11 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 IMQ_TARGET      => 'IMQ Target',
 		 DSCP_MATCH      => 'DSCP Match',
 		 DSCP_TARGET     => 'DSCP Target',
+		 GEOIP_MATCH     => 'GeoIP Match' ,
+		 #
+		 # Constants
+		 #
+		 LOG_OPTIONS     => 'Log Options',
 		 CAPVERSION      => 'Capability Version',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
@@ -389,6 +395,7 @@ our $currentfilename;        # File NAME
 my  $currentlinenumber;      # Line number
 my  $perlscript;             # File Handle Reference to current temporary file being written by an in-line Perl script
 my  $perlscriptname;         # Name of that file.
+my  $embedded;               # True if we're in an embedded perl script
 my  @tempfiles;              # Files that need unlinking at END
 my  $first_entry;            # Message to output or function to call on first non-blank line of a file
 
@@ -499,7 +506,7 @@ sub initialize( $;$ ) {
     $omitting       = 0;
     $ifstack        = 0;
     @ifstack        = ();
-
+    $embedded       = 0;
     #
     # Misc Globals
     #
@@ -512,8 +519,8 @@ sub initialize( $;$ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.5.3",
-		    CAPVERSION => 40502 ,
+		    VERSION    => "4.5.5",
+		    CAPVERSION => 40504 ,
 		  );
     #
     # From shorewall.conf file
@@ -556,6 +563,7 @@ sub initialize( $;$ ) {
 	  RESTOREFILE => undef,
 	  IPSECFILE => undef,
 	  LOCKFILE => undef,
+	  GEOIPDIR => undef,
 	  #
 	  # Default Actions/Macros
 	  #
@@ -744,7 +752,9 @@ sub initialize( $;$ ) {
 	       IMQ_TARGET => undef,
 	       DSCP_MATCH => undef,
 	       DSCP_TARGET => undef,
+	       GEOIP_MATCH => undef,
 	       CAPVERSION => undef,
+	       LOG_OPTIONS => 1,
 	       KERNELVERSION => undef,
 	       );
     #
@@ -946,8 +956,14 @@ sub fatal_error	{
     }
 
     cleanup;
-    confess "   ERROR: @_$currentlineinfo" if $confess;
-    die "   ERROR: @_$currentlineinfo\n";
+
+    if ( $embedded ) {
+	confess "@_$currentlineinfo" if $confess;
+	die "@_$currentlineinfo\n";
+    }  else {
+	confess "   ERROR: @_$currentlineinfo" if $confess;
+	die "   ERROR: @_$currentlineinfo\n";
+    }
 }
 
 sub fatal_error1 {
@@ -1431,10 +1447,10 @@ sub find_file($)
     "$config_path[0]$filename";
 }
 
-sub split_list( $$ ) {
-    my ($list, $type ) = @_;
+sub split_list( $$;$ ) {
+    my ($list, $type, $origlist ) = @_;
 
-    fatal_error "Invalid $type list ($list)" if $list =~ /^,|,$|,,|!,|,!$/;
+    fatal_error( "Invalid $type list (" . ( $origlist ? $origlist : $list ) . ')' ) if $list =~ /^,|,$|,,|!,|,!$/;
 
     split /,/, $list;
 }
@@ -1639,12 +1655,20 @@ sub close_file() {
 #
 sub have_capability( $ );
 
+#
+# Report an error from process_conditional() -- the first argument is the linenumber
+#
+sub cond_error( $$ ) {
+    $currentlinenumber = $_[0];
+    fatal_error $_[1];
+}
+
 sub process_conditional( $$$ ) {
     my ( $omitting, $line, $linenumber ) = @_;
 
-    print "CD===> $currentline\n" if $debug;
+    print "CD===> $line\n" if $debug;
 
-    fatal_error "Invalid compiler directive ($line)" unless $line =~ /^\s*\?(IF\s+|ELSE|ENDIF)(.*)$/;
+    cond_error $linenumber, "Invalid compiler directive ($line)" unless $line =~ /^\s*\?(IF\s+|ELSE|ENDIF)(.*)$/;
 
     my ($keyword, $rest) = ( $1, $2 );
 
@@ -1658,12 +1682,12 @@ sub process_conditional( $$$ ) {
     my ( $lastkeyword, $prioromit, $lastomit, $lastlinenumber ) = @ifstack ? @{$ifstack[-1]} : ('', 0, 0, 0 );
 
     if ( $keyword =~ /^IF/ ) {
-	fatal_error "Missing IF variable" unless $rest;
+	cond_error $linenumber, "Missing IF variable" unless $rest;
 	my $invert = $rest =~ s/^!\s*//;
 
-	fatal_error "Invalid IF variable ($rest)" unless ($rest =~ s/^\$// || $rest =~ /^__/ ) && $rest =~ /^\w+$/;
+	cond_error $linenumber, "Invalid IF variable ($rest)" unless ($rest =~ s/^\$// || $rest =~ /^__/ ) && $rest =~ /^\w+$/;
 
-	push @ifstack, [ 'IF', $lastomit, $omitting, $linenumber ];
+	push @ifstack, [ 'IF', $omitting, $omitting, $linenumber ];
 
 	if ( $rest eq '__IPV6' ) {
 	    $omitting = $family == F_IPV4;
@@ -1684,13 +1708,13 @@ sub process_conditional( $$$ ) {
 
 	$omitting ||= $lastomit; #?IF cannot transition from omitting -> not omitting
     } elsif ( $keyword eq 'ELSE' ) {
-	fatal_error "Invalid ?ELSE" unless $rest eq '';
-	fatal_error "?ELSE has no matching ?IF" unless @ifstack > $ifstack && $lastkeyword eq 'IF';
+	cond_error $linenumber, "Invalid ?ELSE" unless $rest eq '';
+	cond_error $linenumber, "?ELSE has no matching ?IF" unless @ifstack > $ifstack && $lastkeyword eq 'IF';
 	$omitting = ! $omitting unless $lastomit;
 	$ifstack[-1] = [ 'ELSE', $prioromit, $omitting, $lastlinenumber ];
     } else {
-	fatal_error "Invalid ?ENDIF" unless $rest eq '';
-	fatal_error q(Unexpected "?ENDIF" without matching ?IF or ?ELSE) if @ifstack <= $ifstack;
+	cond_error $linenumber, "Invalid ?ENDIF" unless $rest eq '';
+	cond_error $linenumber, q(Unexpected "?ENDIF" without matching ?IF or ?ELSE) if @ifstack <= $ifstack;
 	$omitting = $prioromit;
 	pop @ifstack;
     }
@@ -2040,7 +2064,7 @@ sub embedded_shell( $ ) {
 	my $last = 0;
 
 	while ( read_a_line( PLAIN_READ ) ) {
-	    last if $last = $currentline =~ s/^\s*END(\s+SHELL)?\s*;?//;
+	    last if $last = $currentline =~ s/^\s*\??END(\s+SHELL)?\s*(?:;\s*)?$//;
 	    $command .= "$currentline\n";
 	}
 
@@ -2074,13 +2098,17 @@ sub embedded_perl( $ ) {
 	my $last = 0;
 
 	while ( read_a_line( PLAIN_READ ) ) {
-	    last if $last = $currentline =~ s/^\s*END(\s+PERL)?\s*;?//;
+	    last if $last = $currentline =~ s/^\s*\??END(\s+PERL)?\s*(?:;\s*)?//;
 	    $command .= "$currentline\n";
 	}
 
 	fatal_error ( "Missing END PERL" ) unless $last;
 	fatal_error ( "Invalid END PERL directive" ) unless $currentline =~ /^\s*$/;
+    } else {
+	$currentline = '';
     }
+
+    $embedded++;
 
     unless (my $return = eval $command ) {
 	#
@@ -2098,6 +2126,8 @@ sub embedded_perl( $ ) {
 
 	fatal_error "Perl Script Returned False";
     }
+
+    $embedded--;
 
     if ( $perlscript ) {
 	fatal_error "INCLUDEs nested too deeply" if @includestack >= 4;
@@ -2249,10 +2279,21 @@ sub read_a_line($) {
 	$currentlinenumber = 0;
 
 	while ( <$currentfile> ) {
+	    chomp;
+	    #
+	    # Handle conditionals
+	    #
+	    if ( /^\s*\?(?:IF|ELSE|ENDIF)/ ) {
+		$omitting = process_conditional( $omitting, $_, $. );
+		next;
+	    }
+
+	    if ( $omitting ) {
+		print "OMIT=> $_\n" if $debug;
+		next;
+	    }
 
 	    $currentlinenumber = $. unless $currentlinenumber;
-
-	    chomp;
 	    #
 	    # Suppress leading whitespace in certain continuation lines
 	    #
@@ -2267,31 +2308,16 @@ sub read_a_line($) {
 	    #
 	    chop $currentline, next if ($currentline .= $_) =~ /\\$/;
 	    #
-	    # Handle conditionals
-	    #
-	    if ( $currentline =~ /^\s*\?(?:IF|ELSE|ENDIF)/ ) {
-		$omitting = process_conditional( $omitting, $currentline, $currentlinenumber );
-		$currentline='';
-		next;
-	    }
-
-	    if ( $omitting ) {
-		print "OMIT=> $currentline\n" if $debug;
-		$currentline='';
-		$currentlinenumber = 0;
-		next;
-	    }
-	    #
 	    # Must check for shell/perl before doing variable expansion
 	    #
 	    if ( $options & EMBEDDED_ENABLED ) {
-		if ( $currentline =~ s/^\s*(BEGIN\s+)?SHELL\s*;?// ) {
+		if ( $currentline =~ s/^\s*\??(BEGIN\s+)SHELL\s*;?// || $currentline =~ s/^\s*\??SHELL\s*// ) {
 		    handle_first_entry if $first_entry;
 		    embedded_shell( $1 );
 		    next;
 		}
 
-		if ( $currentline =~ s/^\s*(BEGIN\s+)?PERL\s*\;?// ) {
+		if ( $currentline =~ s/^\s*\??(BEGIN\s+)PERL\s*;?// || $currentline =~ s/^\s*\??PERL\s*// ) {
 		    handle_first_entry if $first_entry;
 		    embedded_perl( $1 );
 		    next;
@@ -2440,6 +2466,22 @@ sub level_error( $ ) {
     fatal_error "Invalid log level ($_[0])";
 }
 
+my %logoptions = ( tcp_sequence         => '--log-tcp-sequence',
+		   ip_options           => '--log-ip-options',
+		   tcp_options          => '--log-tcp-options',
+		   uid                  => '--log-uid',
+		   macdecode            => '--log-macdecode',
+		   #
+		   # Because a level can pass through validate_level() more than once,
+		   # the full option names are also included here.
+		   #
+		   '--log-tcp-sequence' => '--log-tcp-sequence',
+		   '--log-ip-options'   => '--log-ip-options',
+		   '--log-tcp-options'  => '--log-tcp-options',
+		   '--log-uid'          => '--log-uid',
+		   '--log-macdecode'    => '--log-macdecode',
+		 );
+
 sub validate_level( $ ) {
     my $rawlevel = $_[0];
     my $level    = uc $rawlevel;
@@ -2450,17 +2492,44 @@ sub validate_level( $ ) {
 	my $qualifier;
 
 	unless ( $value =~ /^[0-7]$/ ) {
-	    level_error( $level ) unless $level =~ /^([A-Za-z0-7]+)(.*)$/ && defined( $value = $validlevels{$1} );
-	    $qualifier = $2;
+	    } if ( $value =~ /^([0-7])(.*)$/ ) {
+		$value = $1;
+		$qualifier = $2;
+	    } elsif ( $value =~ /^([A-Za-z0-7]+)(.*)$/ ) {
+	        level_error( $level) unless defined( $value = $validlevels{$1} );
+		$qualifier = $2;
 	}
 
 	if ( $value =~ /^[0-7]$/ ) {
 	    #
 	    # Syslog Level
 	    #
-	    level_error( $rawlevel ) if supplied $qualifier;
+	    if ( supplied $qualifier ) {
+		my $options = '';
+		my %options;
+
+		level_error ( $rawlevel ) unless $qualifier =~ /^\((.*)\)$/;
+
+		for ( split_list lc $1, "log options" ) {
+		    my $option = $logoptions{$_};
+		    fatal_error "Unknown LOG option ($_)" unless $option;
+
+		    unless ( $options{$option} ) {
+			if ( $options ) {
+			    $options = join( ',', $options, $option );
+			} else {
+			    $options = $option;
+			}
+
+			$options{$option} = 1;
+		    }
+		}
+
+		$value .= "($options)" if $options;
+	    }
 
 	    require_capability ( 'LOG_TARGET' , "Log level $level", 's' );
+
 	    return $value;
 	}
 
@@ -3075,6 +3144,10 @@ sub Dscp_Target() {
     have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j DSCP --set-dscp 0" );
 }
 
+sub GeoIP_Match() {
+    qt1( "$iptables -A $sillyname -m geoip --src-cc US" );
+}
+
 our %detect_capability =
     ( ACCOUNT_TARGET =>\&Account_Target,
       AUDIT_TARGET => \&Audit_Target,
@@ -3094,6 +3167,7 @@ our %detect_capability =
       EXMARK => \&Exmark,
       FLOW_FILTER => \&Flow_Filter,
       FWMARK_RT_MASK => \&Fwmark_Rt_Mask,
+      GEOIP_MATCH => \&GeoIP_Match,
       GOTO_TARGET => \&Goto_Target,
       HASHLIMIT_MATCH => \&Hashlimit_Match,
       HEADER_MATCH => \&Header_Match,
@@ -3271,7 +3345,7 @@ sub determine_capabilities() {
 	$capabilities{IMQ_TARGET}      = detect_capability( 'IMQ_TARGET' );
 	$capabilities{DSCP_MATCH}      = detect_capability( 'DSCP_MATCH' );
 	$capabilities{DSCP_TARGET}     = detect_capability( 'DSCP_TARGET' );
-
+	$capabilities{GEOIP_MATCH}     = detect_capability( 'GEOIP_MATCH' );
 
 	qt1( "$iptables -F $sillyname" );
 	qt1( "$iptables -X $sillyname" );
@@ -3385,10 +3459,10 @@ sub update_config_file( $ ) {
     #
     # Establish default values for the mark layout items
     #
-    $config{TC_BITS}         = ( $wide ? 14 : 8 )             unless supplied $config{TC_BITS};
-    $config{MASK_BITS}       = ( $wide ? 16 : 8 )             unless supplied $config{MASK_BITS};
-    $config{PROVIDER_OFFSET} = ( $high ? $wide ? 16 : 8 : 0 ) unless supplied $config{PROVIDER_OFFSET};
-    $config{PROVIDER_BITS}   = 8                              unless supplied $config{PROVIDER_BITS};
+    $config{TC_BITS}         = ( $wide ? 14 : 8 )             unless defined $config{TC_BITS};
+    $config{MASK_BITS}       = ( $wide ? 16 : 8 )             unless defined $config{MASK_BITS};
+    $config{PROVIDER_OFFSET} = ( $high ? $wide ? 16 : 8 : 0 ) unless defined $config{PROVIDER_OFFSET};
+    $config{PROVIDER_BITS}   = 8                              unless defined $config{PROVIDER_BITS};
 
     my $fn;
 
@@ -4094,9 +4168,10 @@ sub get_configuration( $$$ ) {
 	$globals{ZONE_OFFSET}     = $config{PROVIDER_BITS};
     }
 
-    fatal_error 'Invalid Packet Mark layout' if $config{ZONE_BITS} + $globals{ZONE_OFFSET} > 31;
+    fatal_error 'Invalid Packet Mark layout' if $config{ZONE_BITS} + $globals{ZONE_OFFSET} > 30;
 
     $globals{EXCLUSION_MASK} = 1 << ( $globals{ZONE_OFFSET} + $config{ZONE_BITS} );
+    $globals{TPROXY_MARK}    = $globals{EXCLUSION_MASK} << 1;
     $globals{PROVIDER_MIN}   = 1 << $config{PROVIDER_OFFSET};
 
     $globals{TC_MAX}         = make_mask( $config{TC_BITS} );

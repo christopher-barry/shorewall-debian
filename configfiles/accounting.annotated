@@ -269,7 +269,8 @@
 #         Designates a connection mark. If omitted, the packet mark's value is
 #         tested.
 # 
-# IPSEC - option-list (Optional - Added in Shorewall 4.4.13 )
+# IPSEC - option-list (Optional - Added in Shorewall 4.4.13 but broken until
+#     4.5.4.1 )
 # 
 #     The option-list consists of a comma-separated list of options from the
 #     following list. Only packets that will be encrypted or have been de-crypted
@@ -323,16 +324,27 @@
 #         When used by itself, causes all traffic that will not be encrypted/
 #         encapsulated or has been decrypted/un-encapsulted to match the rule.
 # 
-#     If this column is non-empty, then:
+#     in
 # 
-#       ● A chain NAME may appearing in the ACTION column must be a chain
-#         branched either directly or indirectly from the accountin or accountout
-#         chain.
+#         May only be used in the FORWARD section and must be the first or the
+#         only item the list. Indicates that matching packets have been decrypted
+#         in input.
 # 
-#       ● The CHAIN column must contain either accountin or accountout or a chain
-#         branched either directly or indirectly from those chains.
+#     out
 # 
-#     These rules will NOT appear in the accounting chain.
+#         May only be used in the FORWARD section and must be the first or the
+#         only item in the list. Indicates that matching packets will be
+#         encrypted on output.
+# 
+#     If this column is non-empty and sections are not used, then:
+# 
+#       ● A chain NAME appearing in the ACTION column must be a chain branched
+#         either directly or indirectly from the accipsecin or accipsecout chain.
+# 
+#       ● The CHAIN column must contain either accipsecin or accipsecout or a
+#         chain branched either directly or indirectly from those chains.
+# 
+#       ● These rules will NOT appear in the accounting chain.
 # 
 # In all of the above columns except ACTION and CHAIN, the values -, any and all
 # may be used as wildcards. Omitted trailing columns are also treated as

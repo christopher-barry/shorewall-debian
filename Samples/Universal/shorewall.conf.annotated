@@ -294,6 +294,15 @@ CONFIG_PATH=${CONFDIR}/shorewall:${SHAREDIR}/shorewall
 #         Note that the setting in /usr/share/shorewall/configpath is always used
 #         to locate shorewall.conf.
 # 
+GEOIPDIR=/usr/share/xt_geoip/LE
+#
+# GEOIPDIR=[pathname]
+# 
+#     Added in Shorewall 4.5.4. Specifies the pathname of the directory
+#     containing the GeoIP Match database. See http://www.shorewall.net/
+#     ISOCODES.html. If not specified, the default value is /usr/share/xt_geoip/
+#     LE which is the default location of the little-endian database.
+# 
 IPTABLES=
 #
 # IPTABLES=[pathname]
@@ -1007,6 +1016,21 @@ OPTIMIZE=15
 #           ○ If a chain ends with an unconditional branch to a second chain
 #             (other than to 'reject'), then the branch is deleted from the first
 #             chain and the rules from the second chain are appended to it.
+# 
+#         An additional optimization was added in Shorewall 4.5.4. If the last
+#         rule in a chain is an unqualified jump to a simple target, then all
+#         immediately preceding rules with the same simple target are omitted.
+# 
+#         For example, consider this chain:
+# 
+#                 -A fw-net -p udp --dport 67:68 -j ACCEPT
+#                 -A fw-net -p udp --sport 1194 -j ACCEPT
+#                 -A fw-net -p 41 -j ACCEPT
+#                 -A fw-net -j ACCEPT
+# 
+#         Since all of the rules are jumps to the simple target ACCEPT, this
+#         chain is totally optimized away and jumps to the chain are replace with
+#         jumps to ACCEPT.
 # 
 #       ● Optimization category 8 - Added in Shorewall 4.4.9. When set, causes
 #         chains with identical rules to be collapsed into a single chain.

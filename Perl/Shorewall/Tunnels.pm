@@ -2,7 +2,6 @@
 # Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Tunnels.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
-#
 #     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
@@ -35,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.5_3';
+our $VERSION = '4.5_4';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -126,9 +125,9 @@ sub setup_tunnels() {
     sub setup_pptp_server {
 	my ($inchainref, $outchainref, $kind, $source, $dest ) = @_;
 
-	add_tunnel_rule $inchainref,  p => 47, @$dest;
-	add_tunnel_rule $outchainref, p => 47, @$source;
-	add_tunnel_rule $inchainref,  p => 'tcp --dport 1723', @$dest
+	add_tunnel_rule $inchainref,  p => 47, @$source;
+	add_tunnel_rule $outchainref, p => 47, @$dest;
+	add_tunnel_rule $inchainref,  p => 'tcp --dport 1723', @$source
 	}
 
     sub setup_one_openvpn {
@@ -292,7 +291,7 @@ sub setup_tunnels() {
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 }, undef, 4;
+	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 , gateway_zones => 3 }, undef, 4;
 
 	    fatal_error 'TYPE must be specified' if $kind eq '-';
 

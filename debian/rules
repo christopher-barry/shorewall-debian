@@ -43,7 +43,7 @@ override_dh_fixperms:
 	chmod 640 $(SRWL)/etc/shorewall/*
 	# These should not be executable
 	chmod 644 $(SRWL)/etc/shorewall/shorewall.conf
-	chmod 644 $(SRWL)/etc/shorewall/Makefile
+	if [ -f $(SRWL)/etc/shorewall/Makefile ] ; then chmod 644 $(SRWL)/etc/shorewall/Makefile ; fi
 	# Global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall/*
 	chmod 755 $(SRWL)/usr/share/shorewall/compiler.pl
