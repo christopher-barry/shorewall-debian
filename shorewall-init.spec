@@ -1,5 +1,5 @@
 %define name shorewall-init
-%define version 4.5.3
+%define version 4.5.5
 %define release 0base
 
 Summary: Shorewall-init adds functionality to Shoreline Firewall (Shorewall).
@@ -117,12 +117,36 @@ fi
 %attr(0544,root,root) %{_initddir}/shorewall-init
 %attr(0755,root,root) %dir %{_libexecdir}/shorewall-init
 
+%attr(0644,root,root) /etc/logrotate.d/shorewall-init
+
 %attr(0644,root,root) /usr/share/shorewall-init/version
 %attr(0544,root,root) %{_libexecdir}/shorewall-init/ifupdown
 
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Wed Jun 06 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.5-0base
+* Tue Jun 05 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.5-0RC1
+* Sat Jun 02 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.5-0Beta2
+* Thu May 24 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.5-0Beta1
+* Thu May 24 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0base
+* Tue May 22 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0RC2
+* Fri May 18 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0RC1
+* Thu May 17 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0Beta3
+* Tue May 15 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0Beta2
+* Sun May 13 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0Beta2
+* Thu May 10 2012 Tom Eastep tom@shorewall.net
+- Updated to 4.5.4-0Beta1
 * Sun May 06 2012 Tom Eastep tom@shorewall.net
 - Updated to 4.5.3-0base
 * Thu May 03 2012 Tom Eastep tom@shorewall.net

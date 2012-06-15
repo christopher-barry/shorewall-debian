@@ -28,7 +28,7 @@
 #
 # Build updates this
 #
-VERSION=4.5.3
+VERSION=4.5.5
 
 case "$BASH_VERSION" in
     [4-9].*)
@@ -81,9 +81,6 @@ for p in $@; do
 		DATADIR)
 		    pn=SHAREDIR
 		    ;;
-		SYSCONFDIR)
-		    pn=CONFDIR
-		    ;;
 	    esac
 
 	    params[${pn}]="${pv}"
@@ -132,7 +129,7 @@ if [ -z "$vendor" ]; then
 
     vendor=${params[HOST]}
 elif [ $vendor = linux ]; then
-    rcfile=$shorewallrc.default;
+    rcfile=shorewallrc.default;
 else
     rcfile=shorewallrc.$vendor
     if [ ! -f $rcfile ]; then
@@ -181,6 +178,7 @@ for on in \
     SYSTEMD \
     SYSCONFFILE \
     SYSCONFDIR \
+    SPARSE \
     ANNOTATED \
     VARDIR
 do
