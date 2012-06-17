@@ -1,2 +1,18 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
+
+2)  The change in Shorewall 4.5.4 that cleared the 'default' table if
+    there were no 'fallback' providers broke multiple 'fallback'
+    providers that didn't supply a weight. The symptoms are that there
+    are host routes to the default gateways in the 'default' routing
+    table but no default routes through them.
+
+    Corrected in Shorewall 4.5.5.1.
+
+3)  When a logical device name is specified in the REDIRECTED
+    INTERFACES column of /etc/shorewall/tcdevices, that name is used
+    in the generated script rather than the devices's physical
+    name. Unless the two are the same, this causes start/restart
+    failure.
+
+    Corrected in Shorewall 4.5.5.1.
