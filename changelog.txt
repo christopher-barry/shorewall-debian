@@ -1,3 +1,33 @@
+Changes in 4.5.5.3
+
+1)  Correct a Perl trap caused by using logical names with 'classify'.
+
+2)  Ensure that exclusion chains always have the 'DONT_MOVE' flag set.
+
+Changes in 4.5.5.2
+
+1)  Allow UID/GID ranges in the USER/GROUP column (undocumented)
+
+2)  Don't use '--ctmark' when saving marks.
+
+3)  Display PROXY_MARK in 'show marks'.
+
+4)  Another fix for nested ?IFs
+
+Changes in 4.5.5.1
+
+1)  Fix handling of multiple fallback providers.
+
+2)  Allow logical device names in the REDIRECTED column.
+
+Changes in 4.5.5 Final
+
+1)  Restore fix to configure script.
+
+2)  Fix installer's handling of SYSCONFDIR
+
+3)  Add DIGEST support.
+
 Changes in 4.5.5 RC 1
 
 1)  Change in 'ignore' behavior.

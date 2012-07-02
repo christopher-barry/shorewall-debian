@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-		     S H O R E W A L L  4 . 5 . 5 . 1
+		     S H O R E W A L L  4 . 5 . 5 . 3
                    ------------------------------------
-                           J u n e  1 7 ,  2 0 1 2
+                           J u n e  2 8 ,  2 0 1 2
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,6 +14,42 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.5.3
+
+1)  When logical interface names were used, an entry in tcrules that
+    included a classid could result in the compiler failing with this
+    Perl diagnostic:
+
+      Can't use an undefined value as an ARRAY reference at
+      /usr/share/shorewall/Shorewall/Tc.pm line nnn, <$currentfile>
+      line 20.
+
+4.5.5.2
+
+1)  Previously, when ipp2p was used in the /etc/shorewall/tcpri file,
+    the generated code for saving the packet mark was clearing the
+    connection marks fields not having to do with traffic shaping. It
+    now only alters the traffic-shaping part of the connection mark.
+
+2)  Shorewall 4.4.11 allowed UID and GID ranges to be specified in the
+    USER:GROUP column of the rules file. That undocumented capability
+    has been restored for the benefit of Debian users upgrading from
+    Squeeze to Wheezy.
+
+3)  The special TPROXY mark value is now shown in the output of
+    'shorewall show marks'.
+
+4)  Assuming that A = 0 and B = 1, the following conditionals
+    previously produced incorrect results:
+
+      ?IF $A
+      ?IF $B
+      <text>
+      ?ENDIF
+      ?ENDIF
+
+    The <text> was included when it should have been omitted.
 
 4.5.5.1
 
@@ -28,7 +64,7 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 2)  When a logical device name was specified in the REDIRECTED
     INTERFACES column of /etc/shorewall/tcdevices, that name was used
-    in the generated script rather than the devices's physical
+    in the generated script rather than the device's physical
     name. Unless the two were the same, this caused start/restart
     failure. Shorewall now uses the physical name.
 
