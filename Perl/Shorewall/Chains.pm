@@ -249,7 +249,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_4';
+our $VERSION = '4.5_5';
 
 #
 # Chain Table
@@ -1038,6 +1038,7 @@ sub push_rule( $$ ) {
 
     push @{$chainref->{rules}}, $ruleref;
     $chainref->{referenced} = 1;
+    $chainref->{optflags}  |= DONT_MOVE if ( $ruleref->{target} || '' ) eq 'RETURN';
     trace( $chainref, 'A', @{$chainref->{rules}}, "-A $chainref->{name} $_[1]" ) if $debug;
 
     $ruleref;
@@ -1229,6 +1230,7 @@ sub push_irule( $$$;@ ) {
     if ( $jump ) {
 	$ruleref->{jump}       = $jump;
 	$ruleref->{target}     = $target;
+	$chainref->{optflags} |= DONT_MOVE if $target eq 'RETURN';
 	$ruleref->{targetopts} = $targetopts if $targetopts;
     } else {
 	$ruleref->{target} = '';
@@ -4199,12 +4201,12 @@ sub do_user( $ ) {
 
 	if ( supplied $2 ) {
 	    $user  = $2;
-	    $user  = resolve_id( $user, 'user' ) unless $user =~ /\d+$/;
+	    $user  = resolve_id( $user, 'user' ) unless $user =~ /\d+(-\d+)?$/;
 	    $rule .= "${invert}--uid-owner $user ";
 	}
 
 	if ( $group ne '' ) {
-	    $group = resolve_id( $group, 'group' ) unless $group =~ /^\d+$/;
+	    $group = resolve_id( $group, 'group' ) unless $group =~ /^\d+(-\d+)?$/;
 	    $rule .= "${invert}--gid-owner $group ";
 	}
     } elsif ( $user =~ /^(!)?(.*)$/ ) {
@@ -4212,10 +4214,10 @@ sub do_user( $ ) {
 	$user   = $2;
 
 	fatal_error "Invalid USER/GROUP (!)" if $user eq '';
-	$user = resolve_id ($user, 'user' ) unless $user =~ /\d+$/;
+	$user = resolve_id ($user, 'user' ) unless $user =~ /\d+(-\d+)?$/;
 	$rule .= "${invert}--uid-owner $user ";
     } else {
-	$user  = resolve_id( $user, 'user' ) unless $user =~ /\d+$/;
+	$user  = resolve_id( $user, 'user' ) unless $user =~ /\d+(-\d+)?$/;
 	$rule .= "--uid-owner $user ";
     }
 
@@ -6057,7 +6059,7 @@ sub handle_exclusion( $$$$$$$$$$$$$$$$$$ ) {
 	#
 	my $echain = newexclusionchain( $table );
 
-	my $echainref = new_chain $table, $echain;
+	my $echainref = dont_move new_chain $table, $echain;
 	#
 	# Use the current rule and send all possible matches to the exclusion chain
 	#

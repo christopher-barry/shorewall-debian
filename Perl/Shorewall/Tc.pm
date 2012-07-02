@@ -1642,7 +1642,7 @@ sub process_tcpri() {
 			);
 
 	    add_ijump( $mangle_table->{tcpost} ,
-		       j    => 'CONNMARK --save-mark --ctmask '    . in_hex( $globals{TC_MASK} ),
+		       j    => 'CONNMARK --save-mark --mask '    . in_hex( $globals{TC_MASK} ),
 		       mark => '! --mark 0/' . in_hex( $globals{TC_MASK} )
 		     );
 	}
@@ -1765,7 +1765,7 @@ sub process_traffic_shaping() {
 		my $rate     = "$tcref->{rate}kbit";
 		my $quantum  = calculate_quantum $rate, calculate_r2q( $devref->{out_bandwidth} );
 
-		$classids{$classid}=$device;
+		$classids{$classid}=$devname;
 
 		my $priority = $tcref->{priority} << 8;
 		my $parent   = in_hexp $tcref->{parent};
@@ -1856,7 +1856,7 @@ sub process_traffic_shaping() {
 		my $devicenumber  = in_hexp $devref->{number};
 		my $classid  = join( ':', $devicenumber, $classnum);
 
-		$classids{$classid}=$device;
+		$classids{$classid}=$devname;
 	    }
 	}
     }
