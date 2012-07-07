@@ -136,7 +136,7 @@
 #         shorewall-tcrules(5). See http://www.shorewall.net/
 #         Shorewall_Squid_Usage.html. When specified, the MARK, DUPLICATE and
 #         GATEWAY columns should be empty, INTERFACE should be set to 'lo' and
-#         tproxy should be the only OPTION.
+#         tproxy should be the only OPTION. Only one tproxy provider is allowed.
 # 
 # COPY - [{none|interface[,interface]...}]
 # 
