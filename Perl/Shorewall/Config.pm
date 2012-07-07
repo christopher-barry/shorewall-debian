@@ -164,7 +164,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_4';
+our $VERSION = '4.5_5';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -519,7 +519,7 @@ sub initialize( $;$ ) {
 		    KLUDGEFREE => '',
 		    STATEMATCH => '-m state --state',
 		    UNTRACKED  => 0,
-		    VERSION    => "4.5.5.1",
+		    VERSION    => "4.5.5.3",
 		    CAPVERSION => 40504 ,
 		  );
     #
@@ -1684,10 +1684,11 @@ sub process_conditional( $$$ ) {
     if ( $keyword =~ /^IF/ ) {
 	cond_error $linenumber, "Missing IF variable" unless $rest;
 	my $invert = $rest =~ s/^!\s*//;
-
 	cond_error $linenumber, "Invalid IF variable ($rest)" unless ($rest =~ s/^\$// || $rest =~ /^__/ ) && $rest =~ /^\w+$/;
 
 	push @ifstack, [ 'IF', $omitting, $omitting, $linenumber ];
+
+	$lastomit = $omitting;
 
 	if ( $rest eq '__IPV6' ) {
 	    $omitting = $family == F_IPV4;
@@ -4185,10 +4186,10 @@ sub get_configuration( $$$ ) {
     }
 
     if ( ( my $userbits = $config{PROVIDER_OFFSET} - $config{TC_BITS} ) > 0 ) {
-
 	$globals{USER_MASK} = make_mask( $userbits ) << $config{TC_BITS};
+	$globals{USER_BITS} = $userbits;
     } else {
-	$globals{USER_MASK} = 0;
+	$globals{USER_MASK} = $globals{USER_BITS} = 0;
     }
 
     if ( supplied ( $val = $config{ZONE2ZONE} ) ) {
@@ -4606,7 +4607,7 @@ sub dump_mark_layout() {
 	     $globals{TC_MASK} );
 
     dumpout( "User",
-	     $globals{USER_MASK},
+	     $globals{USER_BITS},
 	     $globals{TC_MAX} + 1,
 	     $globals{USER_MASK},
 	     $globals{USER_MASK} );
@@ -4628,6 +4629,12 @@ sub dump_mark_layout() {
 	     $globals{EXCLUSION_MASK},
 	     $globals{EXCLUSION_MASK},
 	     $globals{EXCLUSION_MASK} );
+
+    dumpout( "TProxy",
+	     1,
+	     $globals{TPROXY_MARK},
+	     $globals{TPROXY_MARK},
+	     $globals{TPROXY_MARK} );
 }
 
 END {

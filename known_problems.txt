@@ -16,3 +16,53 @@
     failure.
 
     Corrected in Shorewall 4.5.5.1.
+
+4)  When ipp2p is used in the /etc/shorewall/tcpri file, the generated
+    code for saving the packet mark is clearing the connection marks
+    fields not having to do with traffic shaping.
+
+    Corrected in Shorewall 4.5.5.2.
+
+5)  Shorewall 4.4.11 allows UID and GID ranges to be specified in the
+    USER:GROUP column of the rules file. That undocumented feature
+    is not present in Shorewall 4.5.
+
+    Corrected in Shorewall 4.5.5.2.
+
+6)  The special TPROXY mark value is not shown in the output of
+    'shorewall show marks'.
+
+    Corrected in Shorewall 4.5.5.2.
+
+7)  Assuming that A = 0 and B = 1, the following conditionals produce
+    incorrect results:
+
+      ?IF $A
+      ?IF $B
+      <text>
+      ?ENDIF
+      ?ENDIF
+
+    The <text> is included when it should be omitted.
+
+    Corrected in Shorewall 4.5.5.2.
+
+8)  When logical interface names are used, an entry in tcrules that
+    includes a classid can result in the compiler failing with this
+    Perl diagnostic:
+
+      Can't use an undefined value as an ARRAY reference at
+      /usr/share/shorewall/Shorewall/Tc.pm line nnn, <$currentfile>
+      line 20.
+
+    Workarounds:
+
+    a: Use only physical names for interfaces appearing in the
+       tcrules file when classids are needed.
+
+    b: Follow classids in the rules file with ':T' (e.g., 1:4:T).
+
+    Corrected in Shorewall 4.5.5.3.
+
+
+
