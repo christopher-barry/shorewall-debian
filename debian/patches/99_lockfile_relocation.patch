@@ -8,7 +8,7 @@ Description: Move lockfile to /var/lock/shorewall
      local lockf
 -    lockf=${LOCKFILE:=${VARDIR}/lock}
 +    # lockf=${LOCKFILE:=${VARDIR}/lock}
-+    local lockf=/var/lock/shorewall
++    local lockf=/var/lock/$g_product
      local lockpid
  
      MUTEX_TIMEOUT=${MUTEX_TIMEOUT:-60}
@@ -18,6 +18,6 @@ Description: Move lockfile to /var/lock/shorewall
  {
 -    rm -f ${LOCKFILE:=${VARDIR}/lock}
 +    # rm -f ${LOCKFILE:=${VARDIR}/lock}
-+    rm -f /var/lock/shorewall
++    rm -f /var/lock/$g_product
  }
  

@@ -1,3 +1,9 @@
+shorewall-core (4.5.5.3-2) UNRELEASED; urgency=low
+
+  * Update lockfile relocation patch
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 13 Sep 2012 21:42:45 -0400
+
 shorewall-core (4.5.5.3-1) unstable; urgency=low
 
   * New Upstream Version
