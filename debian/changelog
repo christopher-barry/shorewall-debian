@@ -1,7 +1,7 @@
 shorewall (4.5.5.3-2) UNRELEASED; urgency=low
 
   * Update README.Debian to identify correct location for default
-    configuration files
+    configuration files (Closes: #687437)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 13 Sep 2012 22:19:41 -0400
 
