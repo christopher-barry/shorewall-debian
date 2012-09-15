@@ -1,9 +1,9 @@
-shorewall6 (4.5.5.3-2) UNRELEASED; urgency=low
+shorewall6 (4.5.5.3-2) unstable; urgency=low
 
   * Update README.Debian to identify correct location for default
     configuration files
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 13 Sep 2012 22:18:12 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 15 Sep 2012 15:10:17 -0400
 
 shorewall6 (4.5.5.3-1) unstable; urgency=low
 
