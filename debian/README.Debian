@@ -27,11 +27,7 @@ This is intentional because:
       package update
 
 The default upstream configuration files are installed, just as an example, in
-/usr/share/shorewall6/configfiles/. The only files that can be used
-'as is' are the ones installed by the package (N.B. Debian policy, point 12,
-requires that file installed under /usr/share/doc/XXX/ should be compressed;
-for this reason packaging tools automatically compress some of the
-documentation files).
+/usr/share/shorewall6/configfiles/.
 
 In order to configure a simple firewall you should, at least, set up the
 following files:
