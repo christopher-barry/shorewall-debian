@@ -1,0 +1,15 @@
+diff --git a/Perl/Shorewall/Misc.pm b/Perl/Shorewall/Misc.pm
+index 8c2f55c..58322ba 100644
+--- a/Perl/Shorewall/Misc.pm
++++ b/Perl/Shorewall/Misc.pm
+@@ -1375,9 +1375,9 @@ sub add_interface_jumps {
+ 	addnatjump 'POSTROUTING' , snat_chain( $interface ), imatch_dest_dev( $interface );
+     }
+ 
++    addnatjump 'PREROUTING', 'dnat';
+     addnatjump 'PREROUTING'  , 'nat_in';
+     addnatjump 'POSTROUTING' , 'nat_out';
+-    addnatjump 'PREROUTING', 'dnat';
+ 
+     for my $interface ( @interfaces  ) {
+ 	addnatjump 'PREROUTING'  , input_chain( $interface )  , imatch_source_dev( $interface );

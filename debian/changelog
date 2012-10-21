@@ -1,3 +1,9 @@
+shorewall (4.5.5.3-3) unstable; urgency=low
+
+  * Correct deficient behavior in handling of DNAT and SNAT packets
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 20 Oct 2012 21:36:27 -0400
+
 shorewall (4.5.5.3-2) unstable; urgency=low
 
   * Update README.Debian to identify correct location for default
