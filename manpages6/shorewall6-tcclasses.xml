@@ -11,7 +11,7 @@
   <refnamediv>
     <refname>tcclasses</refname>
 
-    <refpurpose>Shorewall6 file to define HTB classes</refpurpose>
+    <refpurpose>Shorewall6 file to define HTB and HFSC classes</refpurpose>
   </refnamediv>
 
   <refsynopsisdiv>
@@ -120,10 +120,7 @@
         <emphasis>interface</emphasis>[[:<emphasis>parent</emphasis>]:<emphasis>class</emphasis>]</term>
 
         <listitem>
-          <para>Name of <emphasis>interface</emphasis>. Each interface may be
-          listed only once in this file. You may NOT specify the name of an
-          alias (e.g., eth0:0) here; see <ulink
-          url="http://www.shorewall.net/FAQ.htm#faq18">http://www.shorewall.net/FAQ.htm#faq18</ulink></para>
+          <para>Name of <emphasis>interface</emphasis>.</para>
 
           <para>You may specify either the interface number or the interface
           name. If the <emphasis role="bold">classify</emphasis> option is
@@ -163,7 +160,8 @@
           Must be specified as '-' if the <emphasis
           role="bold">classify</emphasis> option is given for the interface in
           <ulink
-          url="shorewall6-tcdevices.html">shorewall6-tcdevices</ulink>(5)</para>
+          url="shorewall6-tcdevices.html">shorewall6-tcdevices</ulink>(5) and
+          you are running Shorewall 4.5 5 or earlier.</para>
 
           <para>You can use the same marks for different interfaces.</para>
         </listitem>
@@ -171,7 +169,7 @@
 
       <varlistentry>
         <term><emphasis role="bold">RATE</emphasis> -
-        <emphasis>rate</emphasis>[:<emphasis>dmax</emphasis>[:<emphasis>umax</emphasis>]]</term>
+        {-|<emphasis>rate</emphasis>[:<emphasis>dmax</emphasis>[:<emphasis>umax</emphasis>]]}</term>
 
         <listitem>
           <para>The minimum bandwidth this class should get, when the traffic
@@ -181,11 +179,12 @@
           class exceed the CEIL of the parent class, things don't work
           well.</para>
 
-          <para>When using the HFSC queuing discipline, leaf classes may
-          specify <replaceable>dmax</replaceable>, the maximum delay in
-          milliseconds that the first queued packet for this class should
-          experience. May be expressed as an integer, optionally followed by
-          'ms' with no intervening white space (e.g., 10ms).</para>
+          <para>When using the HFSC queuing discipline, this column specify
+          the real-time (RT) service curve. leaf classes may specify
+          <replaceable>dmax</replaceable>, the maximum delay in milliseconds
+          that the first queued packet for this class should experience. May
+          be expressed as an integer, optionally followed by 'ms' with no
+          intervening white space (e.g., 10ms).</para>
 
           <para>HFSC leaf classes may also specify
           <replaceable>umax</replaceable>, the largest packet expected in this
@@ -194,12 +193,18 @@
           followed by 'b' with no intervening white space (e.g., 800b).
           <replaceable>umax</replaceable> may only be given if
           <replaceable>dmax</replaceable> is also given.</para>
+
+          <para>Beginning with Shorewall 4.5.6, HFSC classes may omit this
+          column (e.g, '-' in the column), provided that an
+          <replaceable>lsrate</replaceable> is specified (see CEIL below).
+          These rates are used to arbitrate between classes of the same
+          priority.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis role="bold">CEIL</emphasis> -
-        <emphasis>rate</emphasis></term>
+        [<emphasis>lsrate</emphasis>:]<emphasis>rate</emphasis></term>
 
         <listitem>
           <para>The maximum bandwidth this class is allowed to use when the
@@ -210,6 +215,9 @@
           here for setting the maximum bandwidth to the RATE of the parent
           class, or the OUT-BANDWIDTH of the device if there is no parent
           class.</para>
+
+          <para>Beginning with Shorewall 4.5.6, you can also specify an
+          <replaceable>lsrate</replaceable> (link sharing rate).</para>
         </listitem>
       </varlistentry>
 
@@ -218,17 +226,47 @@
         <emphasis>priority</emphasis></term>
 
         <listitem>
-          <para>The <emphasis>priority</emphasis> in which classes will be
-          serviced by the packet shaping scheduler and also the priority in
-          which bandwidth in excess of the rate will be given to each
-          class.</para>
+          <para>For HTB:</para>
 
-          <para>Higher priority classes will experience less delay since they
-          are serviced first. Priority values are serviced in ascending order
-          (e.g. 0 is higher priority than 1).</para>
+          <blockquote>
+            <para>The <emphasis>priority</emphasis> in which classes will be
+            serviced by the packet shaping scheduler and also the priority in
+            which bandwidth in excess of the rate will be given to each
+            class.</para>
 
-          <para>Classes may be set to the same priority, in which case they
-          will be serviced as equals.</para>
+            <para>Higher priority classes will experience less delay since
+            they are serviced first. Priority values are serviced in ascending
+            order (e.g. 0 is higher priority than 1).</para>
+
+            <para>Classes may be set to the same priority, in which case they
+            will be serviced as equals.</para>
+          </blockquote>
+
+          <para>For both HTB and HFSC, the <emphasis>priority</emphasis> is
+          used to calculate the priority of following Shorewall-generated
+          classification filters that refer to the class:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para>Packet MARK</para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">tcp-ack</emphasis> and the <emphasis
+              role="bold">tos</emphasis> options (see below)</para>
+            </listitem>
+          </itemizedlist>
+
+          <para>The rules for classes with lower numeric priorities will
+          appear before those with higher numeric priorities.</para>
+
+          <para>Beginning with Shorewall 4.5.8, the PRIORITY may be omitted
+          from an HFSC class if you do not use the MARK column or the
+          <emphasis role="bold">tcp-ack</emphasis> or <emphasis
+          role="bold">tos</emphasis> options. If you use those features and
+          omit the PRIORITY, then you must specify a
+          <replaceable>priority</replaceable> along with the MARK or
+          option.</para>
         </listitem>
       </varlistentry>
 
@@ -259,7 +297,7 @@
 
             <varlistentry>
               <term><emphasis
-              role="bold">tos=0x</emphasis><emphasis>value</emphasis>[/0x<emphasis>mask</emphasis>]
+              role="bold">tos=0x</emphasis><emphasis>value</emphasis>[/0x<emphasis>mask</emphasis>][:<replaceable>priority</replaceable>]
               (mask defaults to 0xff)</term>
 
               <listitem>
@@ -267,12 +305,20 @@
                 <emphasis>value</emphasis>/<emphasis>mask</emphasis>
                 combination of the IP packet's TOS/Precedence/DiffSrv octet
                 (aka the TOS byte).</para>
+
+                <para>Beginning with Shorewall 4.5.8, the
+                <replaceable>value/mask</replaceable> may be followed by a
+                colon (":") and a <replaceable>priority</replaceable>. This
+                priority determines the order in which filter rules are
+                processed during packet classification. If not specified, the
+                value (<replaceable>class priority</replaceable> &lt;&lt; 8) |
+                10) is used.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
               <term><emphasis
-              role="bold">tos-</emphasis><emphasis>tosname</emphasis></term>
+              role="bold">tos-</emphasis><emphasis>tosname</emphasis>[:<replaceable>priority</replaceable>]</term>
 
               <listitem>
                 <para>Aliases for the following TOS octet value and mask
@@ -286,6 +332,14 @@
         <emphasis role="bold">tos-minimize-cost</emphasis>        0x02/0x02
         <emphasis role="bold">tos-normal-service</emphasis>       0x00/0x1e</programlisting>
 
+                <para>Beginning with Shorewall 4.5.8, the
+                <replaceable>tos-name</replaceable> may be followed by a colon
+                (":") and a <replaceable>priority</replaceable>. This priority
+                determines the order in which filter rules are processed
+                during packet classification. If not specified, the value
+                (<replaceable>class priority</replaceable> &lt;&lt; 8) | 10)
+                is used.</para>
+
                 <note>
                   <para>Each of these options is only valid for ONE class per
                   interface.</para>
@@ -294,7 +348,8 @@
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">tcp-ack</emphasis></term>
+              <term><emphasis
+              role="bold">tcp-ack</emphasis>[:<replaceable>priority</replaceable>]</term>
 
               <listitem>
                 <para>If defined, causes a tc filter to be created that puts
@@ -304,7 +359,13 @@
                 limited to 64 bytes because we want only packets WITHOUT
                 payload to match.</para>
 
-                <para></para>
+                <para>Beginning with Shorewall 4.5.8, the <emphasis
+                role="bold">tcp-ack</emphasis> may be followed by a colon
+                (":") and a <replaceable>priority</replaceable>. This priority
+                determines the order in which filter rules are processed
+                during packet classification. If not specified, the value
+                (<replaceable>class priority</replaceable> &lt;&lt; 8) | 20)
+                is used.</para>
 
                 <note>
                   <para>This option is only valid for ONE class per
@@ -381,6 +442,210 @@
                 assumed.</para>
               </listitem>
             </varlistentry>
+
+            <varlistentry>
+              <term>red=(<replaceable>redoption</replaceable>=<replaceable>value</replaceable>,
+              ...)</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.6. When specified on a leaf
+                class, causes the class to use the RED (Random Early
+                Detection) queuing discipline rather than SFQ. See tc-red (8)
+                for additional information.</para>
+
+                <para>Allowable redoptions are:</para>
+
+                <variablelist>
+                  <varlistentry>
+                    <term>min <replaceable>min</replaceable></term>
+
+                    <listitem>
+                      <para>Average queue size at which marking becomes a
+                      possibility.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>max <replaceable>max</replaceable></term>
+
+                    <listitem>
+                      <para>At this average queue size, the marking
+                      probability is maximal. Must be at least twice
+                      <replaceable>min</replaceable> to prevent synchronous
+                      retransmits, higher for low
+                      <replaceable>min</replaceable>.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>probability
+                    <replaceable>probability</replaceable></term>
+
+                    <listitem>
+                      <para>Maximum probability for marking, specified as a
+                      floating point number from 0.0 to 1.0. Suggested values
+                      are 0.01 or 0.02 (1 or 2%, respectively).</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>limit <replaceable>limit</replaceable></term>
+
+                    <listitem>
+                      <para>Hard limit on the real (not average) queue size in
+                      bytes. Further packets are dropped. Should be set higher
+                      than
+                      <replaceable>max</replaceable>+<replaceable>burst</replaceable>.
+                      It is advised to set this a few times higher than
+                      <replaceable>max</replaceable>. Shorewall requires that
+                      <replaceable>limit</replaceable> be at least twice
+                      <replaceable>min</replaceable>.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>burst <replaceable>burst</replaceable></term>
+
+                    <listitem>
+                      <para>Used for determining how fast the average queue
+                      size is influenced by the real queue size. Larger values
+                      make the calculation more sluggish, allowing longer
+                      bursts of traffic before marking starts. Real life
+                      experiments support the following guide‐line:
+                      (<replaceable>min</replaceable>+<replaceable>min</replaceable>+<replaceable>max</replaceable>)/(3*<replaceable>avpkt</replaceable>).</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>avpkt <replaceable>avpkt</replaceable></term>
+
+                    <listitem>
+                      <para>Optional. Specified in bytes. Used with burst to
+                      determine the time constant for average queue size
+                      calculations. 1000 is a good value and is the Shorewall
+                      default.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>bandwidth
+                    <replaceable>bandwidth</replaceable></term>
+
+                    <listitem>
+                      <para>Optional. This rate is used for calculating the
+                      average queue size after some idle time. Should be set
+                      to the bandwidth of your interface. Does not mean that
+                      RED will shape for you!</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>ecn</term>
+
+                    <listitem>
+                      <para>RED can either 'mark' or 'drop'. Explicit
+                      Congestion Notification allows RED to notify remote
+                      hosts that their rate exceeds the amount of bandwidth
+                      available. Non-ECN capable hosts can only be notified by
+                      dropping a packet. If this parameter is specified,
+                      packets which indicate that their hosts honor ECN will
+                      only be marked and not dropped, unless the queue size
+                      hits <replaceable>limit</replaceable> bytes. Needs a tc
+                      binary with RED support compiled in. Recommended.</para>
+                    </listitem>
+                  </varlistentry>
+                </variablelist>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>fq_codel[=(<replaceable>codeloption</replaceable>=<replaceable>value</replaceable>,
+              ...)]</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.12. When specified for a leaf
+                class, causes the class to use the FQ_CODEL
+                (<firstterm>Fair-queuing Controlled-Delay</firstterm>) queuing
+                discipline rather than SFQ. See tc-fq_codel (8) for additional
+                information.</para>
+
+                <para>Allowable <replaceable>codeloptions</replaceable>
+                are:</para>
+
+                <variablelist>
+                  <varlistentry>
+                    <term>limit</term>
+
+                    <listitem>
+                      <para>hard limit on the real queue size. When this limit
+                      is reached, incoming packets are dropped. If the value
+                      is lowered, packets are dropped so that the new limit is
+                      met. Default is 1000 packets.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>flows</term>
+
+                    <listitem>
+                      <para>is the number of flows into which the incoming
+                      packets are classified. Due to the stochastic nature of
+                      hashing, multiple flows may end up being hashed into the
+                      same slot. Newer flows have priority over older ones.
+                      This parameter can be set only at load time since memory
+                      has to be allocated for the hash table. Default value is
+                      1024.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>target</term>
+
+                    <listitem>
+                      <para>is the acceptable minimum standing/persistent
+                      queue delay. This minimum delay is identified by
+                      tracking the local minimum queue delay that packets
+                      experience. Default and recommended value is 5ms.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>interval</term>
+
+                    <listitem>
+                      <para>is used to ensure that the measured minimum delay
+                      does not become too stale. The minimum delay must be
+                      experienced in the last epoch of length interval. It
+                      should be set on the order of the worst-case RTT through
+                      the bottleneck to give endpoints sufficient time to
+                      react. Default value is 100ms.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>quantum</term>
+
+                    <listitem>
+                      <para>is the number of bytes used as 'deficit' in the
+                      fair queuing algorithm. Default is set to 1514 bytes
+                      which corresponds to the Ethernet MTU plus the hardware
+                      header length of 14 bytes.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>ecn | noecn</term>
+
+                    <listitem>
+                      <para>can be used to mark packets instead of dropping
+                      them. If ecn has been enabled, noecn can be used to turn
+                      it off and vice-a-versa. By default, ecn is
+                      enabled.</para>
+                    </listitem>
+                  </varlistentry>
+                </variablelist>
+              </listitem>
+            </varlistentry>
           </variablelist>
         </listitem>
       </varlistentry>
@@ -447,6 +712,10 @@
 
   <refsect1>
     <title>See ALSO</title>
+
+    <para>tc-hfsc(7)</para>
+
+    <para>tc-red(8)</para>
 
     <para><ulink
     url="http://shorewall.net/traffic_shaping.htm">http://shorewall.net/traffic_shaping.htm</ulink></para>

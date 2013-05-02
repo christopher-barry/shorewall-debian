@@ -37,15 +37,45 @@
   <section id="Frequent">
     <title>Frequently Used Articles</title>
 
-    <simplelist>
-      <member><ulink url="FAQ.htm">FAQs</ulink> (<ulink
-      url="FAQ_fr.html">Français</ulink>)</member>
+    <informaltable frame="none" orient="land">
+      <tgroup cols="1">
+        <tbody>
+          <row>
+            <entry><ulink url="FAQ.htm">FAQs</ulink></entry>
+          </row>
 
-      <member><ulink url="GettingStarted.html">Beginner
-      Documentation</ulink></member>
+          <row>
+            <entry><ulink url="Manpages.html">IPv4 Manpages</ulink></entry>
+          </row>
 
-      <member><ulink url="troubleshoot.htm">Troubleshooting</ulink></member>
-    </simplelist>
+          <row>
+            <entry><ulink url="Manpages6.html">IPv6 Manpages</ulink></entry>
+          </row>
+
+          <row>
+            <entry><ulink url="configuration_file_basics.htm">Configuration
+            File Basics</ulink></entry>
+          </row>
+
+          <row>
+            <entry><ulink url="GettingStarted.html">Beginner
+            Documentation</ulink></entry>
+          </row>
+
+          <row>
+            <entry><ulink
+            url="troubleshoot.htm">Troubleshooting</ulink></entry>
+          </row>
+        </tbody>
+      </tgroup>
+    </informaltable>
+  </section>
+
+  <section>
+    <title>Documentation for Earlier Versions</title>
+
+    <para><ulink url="4.2/Documentation_Index.html">Shorewall 4.0/4.2
+    Documentation</ulink></para>
   </section>
 
   <section id="Index">
@@ -55,7 +85,7 @@
       <tgroup align="left" cols="3">
         <tbody>
           <row>
-            <entry/>
+            <entry><ulink url="6to4.htm">6to4 and 6in4 Tunnels</ulink></entry>
 
             <entry><ulink url="LXC.html">Linux Containers
             (LXC)</ulink></entry>
@@ -65,7 +95,7 @@
           </row>
 
           <row>
-            <entry><ulink url="6to4.htm">6to4 and 6in4 Tunnels</ulink></entry>
+            <entry><ulink url="Accounting.html">Accounting</ulink></entry>
 
             <entry><ulink url="Vserver.html">Linux-vserver</ulink></entry>
 
@@ -74,7 +104,7 @@
           </row>
 
           <row>
-            <entry><ulink url="Accounting.html">Accounting</ulink></entry>
+            <entry><ulink url="Actions.html">Actions</ulink></entry>
 
             <entry><ulink url="ConnectionRate.html">Limiting Connection
             Rates</ulink></entry>
@@ -84,7 +114,8 @@
           </row>
 
           <row>
-            <entry><ulink url="Actions.html">Actions</ulink></entry>
+            <entry><ulink url="Shorewall_and_Aliased_Interfaces.html">Aliased
+            (virtual) Interfaces (e.g., eth0:0)</ulink></entry>
 
             <entry><ulink url="shorewall_logging.html">Logging</ulink></entry>
 
@@ -92,8 +123,8 @@
           </row>
 
           <row>
-            <entry><ulink url="Shorewall_and_Aliased_Interfaces.html">Aliased
-            (virtual) Interfaces (e.g., eth0:0)</ulink></entry>
+            <entry><ulink url="Anatomy.html">Anatomy of
+            Shorewall</ulink></entry>
 
             <entry><ulink url="Macros.html">Macros</ulink></entry>
 
@@ -103,8 +134,8 @@
           </row>
 
           <row>
-            <entry><ulink url="Anatomy.html">Anatomy of
-            Shorewall</ulink></entry>
+            <entry><ulink url="Anti-Spoofing.html">Anti-Spoofing
+            Measures</ulink></entry>
 
             <entry><ulink url="MAC_Validation.html">MAC
             Verification</ulink></entry>
@@ -117,7 +148,8 @@
             <entry><ulink url="Audit.html">AUDIT Target
             support</ulink></entry>
 
-            <entry><ulink url="Manpages.html">Man Pages</ulink></entry>
+            <entry>Manpages (<ulink url="Manpages.html">IPv4</ulink>) (<ulink
+            url="Manpages6.html">IPv6</ulink>)</entry>
 
             <entry><ulink url="Shorewall_Squid_Usage.html">Squid with
             Shorewall</ulink></entry>
@@ -295,7 +327,7 @@
             <entry><ulink url="PortKnocking.html">Port Knocking and Other Uses
             of the 'Recent Match'</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -304,16 +336,16 @@
 
             <entry><ulink url="PPTP.htm">PPTP</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
-            <entry><ulink url="support.htm">Getting help or answers to
-            questions</ulink></entry>
+            <entry><ulink url="Helpers.html">Helpers/Helper
+            Modules</ulink></entry>
 
             <entry><ulink url="ProxyARP.htm">Proxy ARP</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -323,7 +355,7 @@
             <entry><ulink url="shorewall_quickstart_guide.htm">QuickStart
             Guides</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -331,7 +363,7 @@
 
             <entry><ulink url="NewRelease.html">Release Model</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -340,7 +372,7 @@
             <entry><ulink
             url="shorewall_prerequisites.htm">Requirements</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -349,7 +381,7 @@
             <entry><ulink url="Shorewall_and_Routing.html">Routing and
             Shorewall</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -358,7 +390,7 @@
             <entry><ulink url="Multiple_Zones.html">Routing on One
             Interface</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -367,7 +399,7 @@
 
             <entry><ulink url="samba.htm">Samba</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -377,7 +409,7 @@
             <entry><ulink url="Shorewall-init.html">Shorewall
             Init</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
@@ -387,16 +419,16 @@
             <entry><ulink url="Shorewall-Lite.html">Shorewall
             Lite</ulink></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
 
           <row>
             <entry><ulink url="KVM.html">KVM (Kernel-mode Virtual
             Machine)</ulink></entry>
 
-            <entry/>
+            <entry></entry>
 
-            <entry/>
+            <entry></entry>
           </row>
         </tbody>
       </tgroup>

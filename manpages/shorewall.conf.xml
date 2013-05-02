@@ -92,47 +92,47 @@
     <variablelist>
       <varlistentry>
         <term><emphasis
-        role="bold">ACCEPT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
+        role="bold">ACCEPT_DEFAULT=</emphasis>{<emphasis>action</emphasis>[(<replaceable>parameters</replaceable>)][:<replaceable>level</replaceable>]|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para/>
+          <para></para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis
-        role="bold">DROP_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
+        role="bold">DROP_DEFAULT=</emphasis>{<emphasis>action</emphasis>[(<replaceable>parameters</replaceable>)][:<replaceable>level</replaceable>]|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para/>
+          <para></para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis
-        role="bold">NFQUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
+        role="bold">NFQUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>[(<replaceable>parameters</replaceable>)][:<replaceable>level</replaceable>]|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para/>
+          <para></para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis
-        role="bold">QUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
+        role="bold">QUEUE_DEFAULT=</emphasis>{<emphasis>action</emphasis>[(<replaceable>parameters</replaceable>)][:<replaceable>level</replaceable>]|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para/>
+          <para></para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
         <term><emphasis
-        role="bold">REJECT_DEFAULT=</emphasis>{<emphasis>action</emphasis>|<emphasis
+        role="bold">REJECT_DEFAULT=</emphasis>{<emphasis>action</emphasis>[(<replaceable>parameters</replaceable>)][:<replaceable>level</replaceable>]|<emphasis
         role="bold">none</emphasis>}</term>
 
         <listitem>
@@ -140,9 +140,9 @@
           REJECT policies was specified in the file
           /usr/share/shorewall/actions.std.</para>
 
-          <para>To allow for default rules to be applied when USE_ACTIONS=No,
-          the DROP_DEFAULT, REJECT_DEFAULT, ACCEPT_DEFAULT, QUEUE_DEFAULT and
-          NFQUEUE_DEFAULT options have been added.</para>
+          <para>In Shorewall 4.4.0, the DROP_DEFAULT, REJECT_DEFAULT,
+          ACCEPT_DEFAULT, QUEUE_DEFAULT and NFQUEUE_DEFAULT options were
+          added.</para>
 
           <para>DROP_DEFAULT describes the rules to be applied before a
           connection request is dropped by a DROP policy; REJECT_DEFAULT
@@ -151,14 +151,6 @@
           QUEUE and NFQUEUE policies.</para>
 
           <para>The value applied to these may be:</para>
-
-          <simplelist>
-            <member>a) The name of an
-            <replaceable>action</replaceable>.</member>
-
-            <member>b) <emphasis role="bold">None</emphasis> or <emphasis
-            role="bold">none</emphasis></member>
-          </simplelist>
 
           <para>The default values are:</para>
 
@@ -174,14 +166,20 @@
             <member>NFQUEUE_DEFAULT="None"</member>
           </simplelist>
 
-          <para>If USE_ACTIONS=Yes, then these values refer to action.Drop and
-          action.Reject respectively. If USE_ACTIONS=No, then these values
-          refer to macro.Drop and macro.Reject.</para>
-
           <para>If you set the value of either option to "None" then no
           default action will be used and the default action or macro must be
           specified in <ulink
           url="shorewall-policy.html">shorewall-policy</ulink>(5).</para>
+
+          <para>You can pass <replaceable>parameters</replaceable> to the
+          specified action (e.g.,
+          <emphasis>myaction(audit,DROP)</emphasis>).</para>
+
+          <para>Beginning with Shorewall 4.5.10, the action name can be
+          followed optionally by a colon and a log
+          <replaceable>level</replaceable>. The level will be applied to each
+          rule in the action or body that does not already have a log
+          level.</para>
         </listitem>
       </varlistentry>
 
@@ -283,19 +281,79 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">AUTO_COMMENT=</emphasis>[<emphasis
+        <term><emphasis
+        role="bold">ARPTABLES=</emphasis>[<emphasis>pathname</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.12. This parameter names the arptables
+          executable to be used by Shorewall. If not specified or if specified
+          as a null value, then the arptables executable located using the
+          PATH option is used.</para>
+
+          <para>Regardless of how the arptables utility is located (specified
+          via arptables= or located via PATH), Shorewall uses the
+          arptables-restore and arptables-save utilities from that same
+          directory.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">AUTOCOMMENT=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
         <listitem>
-          <para>If set, if there is not a current comment when a macro is
-          invoked, the behavior is as if the first line of the macro file was
-          "COMMENT &lt;macro name&gt;". The AUTO_COMMENT option has a default
-          value of 'Yes'.</para>
+          <para>Formerly named AUTO_COMMENT. If set, if there is not a current
+          comment when a macro is invoked, the behavior is as if the first
+          line of the macro file was "COMMENT &lt;macro name&gt;". The
+          AUTO_COMMENT option has a default value of 'Yes'.</para>
 
           <para>The setting of the AUTOMAKE option is ignored if the
           <command>start</command> or <command>restart</command> command
           includes a directory name (e.g.,<command> shorewall restart
           /etc/shorewall.new</command>).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">AUTOHELPERS=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.7. When set to <option>Yes</option>
+          (the default), the generated ruleset will automatically associate
+          helpers with applications that require them (FTP, IRC, etc.). When
+          configuring your firewall on systems running kernel 3.5 or later, it
+          is recommended that you:</para>
+
+          <orderedlist>
+            <listitem>
+              <para>Set AUTOHELPERS=No.</para>
+            </listitem>
+
+            <listitem>
+              <para>Either:</para>
+
+              <orderedlist numeration="loweralpha">
+                <listitem>
+                  <para>Modify <ulink
+                  url="shorewall-conntrack.html">shorewall-conntrack</ulink>
+                  (5) to only apply helpers where they are required; or</para>
+                </listitem>
+
+                <listitem>
+                  <para>Specify the appropriate helper in the HELPER column in
+                  <ulink url="shorewall-rules.html">shorewall-rules</ulink>
+                  (5).</para>
+
+                  <note>
+                    <para>The macros for those applications requiring a helper
+                    automatically specify the appropriate HELPER where
+                    required.</para>
+                  </note>
+                </listitem>
+              </orderedlist>
+            </listitem>
+          </orderedlist>
         </listitem>
       </varlistentry>
 
@@ -311,6 +369,28 @@
           executed the last <command>start</command> or
           <command>restart</command> command is used. The default is
           AUTOMAKE=No.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">BLACKLIST=</emphasis>[{<emphasis
+        role="bold">ALL</emphasis>|<emphasis
+        role="bold"><replaceable>state</replaceable>[,...]</emphasis>}]</term>
+
+        <listitem>
+          <para>where state is one of NEW, ESTABLISHED, RELATED, INVALID,or
+          UNTRACKED.</para>
+
+          <para>Added in Shorewall 4.5.13 to replace the BLACKLISTNEWONLY
+          option below. Specifies the connection tracking states that are to
+          be subject to blacklist screening. If neither BLACKLIST nor
+          BLACKLISTNEWONLY are specified then the states subject to
+          blacklisting are NEW,ESTABLISHED,INVALID,UNTRACKED.</para>
+
+          <para>ALL sends all packets through the blacklist chains.</para>
+
+          <para>Note: The ESTABLISHED state may not be specified if FASTACCEPT
+          is specified.</para>
         </listitem>
       </varlistentry>
 
@@ -342,19 +422,17 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">BLACKLIST_LOGLEVEL=</emphasis>[<emphasis>log-level</emphasis>]</term>
+        role="bold">BLACKLIST_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>]</term>
 
         <listitem>
-          <para>This parameter determines if packets from blacklisted hosts
-          are logged and it determines the syslog level that they are to be
-          logged at. Its value is a syslog level (Example:
-          BLACKLIST_LOGLEVEL=debug). If you do not assign a value or if you
-          assign an empty value then packets from blacklisted hosts are not
-          logged. The BLACKLIST_LOGLEVEL setting has no effect on entries in
-          the BLACKLIST section of <ulink
-          url="shorewall-rules.html">shorewall-rules</ulink> (5). It
-          determines the log level of packets sent to the <emphasis
-          role="bold">blacklog</emphasis> target of <ulink
+          <para>Formerly named BLACKLIST_LOGLEVEL. This parameter determines
+          if packets from blacklisted hosts are logged and it determines the
+          syslog level that they are to be logged at. Its value is a syslog
+          level (Example: BLACKLIST_LOG_LEVEL=debug). If you do not assign a
+          value or if you assign an empty value then packets from blacklisted
+          hosts are not logged. The setting determines the log level of
+          packets sent to the <emphasis role="bold">blacklog</emphasis> target
+          of <ulink
           url="shorewall-blrules.html">shorewall-blrules</ulink>(5).</para>
         </listitem>
       </varlistentry>
@@ -364,12 +442,16 @@
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
         <listitem>
+          <para>Deprecated in Shorewall 4.5.13 in favor of BLACKLIST
+          above.</para>
+
           <para>When set to <emphasis role="bold">Yes</emphasis> or <emphasis
           role="bold">yes</emphasis>, blacklists are only consulted for new
-          connections. That includes entries in the <ulink
-          url="???">shorewall-blrules</ulink> (5) file and in the BLACKLIST
-          section of <ulink url="shorewall-rules.html">shorewall-rules</ulink>
-          (5).</para>
+          connections and for packets in the INVALID connection state (such as
+          TCP SYN,ACK when there has been no corresponding SYN). That includes
+          entries in the <ulink url="???">shorewall-blrules</ulink> (5) file
+          and in the BLACKLIST section of <ulink
+          url="shorewall-rules.html">shorewall-rules</ulink> (5).</para>
 
           <para>When set to <emphasis role="bold">No</emphasis> or <emphasis
           role="bold">no</emphasis>, blacklists are consulted for every packet
@@ -381,6 +463,22 @@
             <para>BLACKLISTNEWONLY=No is incompatible with
             FASTACCEPT=Yes.</para>
           </note>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">CHAIN_SCRIPTS=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.16. Prior to the availability of BEGIN
+          PERL....END PERL in configuration files, the only way to execute a
+          chain-specific script was to create a script file with the same name
+          as the chain and place it in a directory on the CONFIG_PATH. That
+          facility has the drawback that the compiler will attempt to run a
+          non-script file just because it has the same name as a chain. To
+          disable this facility, set CHAIN_SCRIPTS=No. If not specified or
+          specified as the empty value, CHAIN_SCRIPTS=Yes is assumed. </para>
         </listitem>
       </varlistentry>
 
@@ -481,19 +579,31 @@
             </listitem>
           </itemizedlist>
 
-          <blockquote>
-            <para/>
+          <para>If CONFIG_PATH is not given or if it is set to the empty value
+          then the contents of /usr/share/shorewall/configpath are used. As
+          released from shorewall.net, that file sets the CONFIG_PATH to
+          /etc/shorewall:/usr/share/shorewall but your particular distribution
+          may set it differently. See the output of shorewall show config for
+          the default on your system.</para>
+        </listitem>
+      </varlistentry>
 
-            <para>If CONFIG_PATH is not given or if it is set to the empty
-            value then the contents of /usr/share/shorewall/configpath are
-            used. As released from shorewall.net, that file sets the
-            CONFIG_PATH to /etc/shorewall:/usr/share/shorewall but your
-            particular distribution may set it differently. See the output of
-            shorewall show config for the default on your system.</para>
+      <varlistentry>
+        <term><emphasis role="bold">DEFER_DNS_RESOLUTION=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
-            <para>Note that the setting in /usr/share/shorewall/configpath is
-            always used to locate shorewall.conf.</para>
-          </blockquote>
+        <listitem>
+          <para>Added in Shorewall 4.5.12. When set to 'Yes' (the default),
+          DNS names are validated in the compiler and then passed on to the
+          generated script where they are resolved by iptables-restore. This
+          is an advantage if you use AUTOMAKE=Yes and the IP address
+          associated with the DNS name is subject to change. When
+          DEFER_DNS_RESOLUTION=No, DNS names are converted into IP addresses
+          by the compiler. This has the advantage that when AUTOMAKE=Yes, the
+          <command>start</command> and <command>restart</command> commands
+          will succeed even if no DNS server is reachable (assuming that the
+          configuration hasn't changed since the compiled script was last
+          generated).</para>
         </listitem>
       </varlistentry>
 
@@ -537,6 +647,25 @@
           Shorewall will take no action with respect to allowing or
           disallowing IPv6 traffic. If not specified or empty,
           “DISABLE_IPV6=No” is assumed.</para>
+
+          <para>It is important to note that changing DISABLE_IPV6=Yes to
+          DISABLE_IPV6=No does <emphasis>not</emphasis> enable IPV6. The
+          recommended approach for enabling IPv6 on your system is:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para>Install, configure and start <ulink
+              url="../IPv6Support.html">Shorewall6</ulink>.</para>
+            </listitem>
+
+            <listitem>
+              <para>Change DISABLE_IPV6=Yes to DISABLE_IPV6=No</para>
+            </listitem>
+
+            <listitem>
+              <para>Restart Shorewall</para>
+            </listitem>
+          </itemizedlist>
         </listitem>
       </varlistentry>
 
@@ -677,10 +806,80 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           <para>Added in Shorewall 4.5.4. Specifies the pathname of the
           directory containing the <firstterm>GeoIP Match</firstterm>
           database. See <ulink
-          url="http://www.shorewall.net/ISOCODES.html">http://www.shorewall.net/ISOCODES.html</ulink>.
+          url="http://www.shorewall.net/ISO-3661.html">http://www.shorewall.net/ISO-3661.html</ulink>.
           If not specified, the default value is
           <filename>/usr/share/xt_geoip/LE</filename> which is the default
           location of the little-endian database.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">HELPERS</emphasis>=[<emphasis>helper</emphasis>[,<replaceable>helper</replaceable>...]]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.7. This option lists the Netfilter
+          application helps that are to be enabled. If not specified, the
+          default is to enable all helpers.</para>
+
+          <para>Possible values for <replaceable>helper</replaceable>
+          are:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para><emphasis role="bold">amanda</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">ftp</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">h323</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">irc</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">netbios-ns</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">none</emphasis> - This special value
+              was added in Shorewall 4.5.16 and indicates that no helpers are
+              to be enabled. It also prevents the compiler for probing for
+              helper support; such probing generates messages on the system
+              log of the form "xt_CT: No such helper XXX" where XXX is the
+              helper name. When used, <emphasis role="bold">none</emphasis>
+              must be the only helper specified.</para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">pptp</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">sane</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">sip</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">snmp</emphasis></para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis role="bold">tftp</emphasis></para>
+            </listitem>
+          </itemizedlist>
+
+          <para>When HELPERS is specified on a system running Kernel 3.5.0 or
+          later, automatic association of helpers to connections is
+          disabled.</para>
         </listitem>
       </varlistentry>
 
@@ -752,6 +951,21 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis
+        role="bold">IGNOREUNKNOWNVARIABLES=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.11. Normally, if an unknown shell
+          variable is encountered in a configuration file (except in ?IF and
+          ?ELSIF directives), the compiler raises a fatal error. If
+          IGNOREUNKNOWNVARIABLES is set to <emphasis
+          role="bold">Yes</emphasis>, then such variables simply expand to an
+          empty string. Default is <emphasis role="bold">No</emphasis>.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">IMPLICIT_CONTINUE=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -774,6 +988,34 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           IMPLICIT_CONTINUE=Yes, an implicit CONTINUE policy may be overridden
           by including an explicit policy (one that does not specify "all" in
           either the SOURCE or the DEST columns).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">INVALID_DISPOSITION=[A_DROP|A_REJECT|DROP|REJECT|CONTINUE]</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.13. Shorewall has traditionally passed
+          INVALID packets through the NEW section of <ulink
+          url="shorewall-rules.html">shorewall-rules</ulink> (5). When a
+          packet in INVALID state fails to match any rule in the INVALID
+          section, the packet is disposed of based on this setting. The
+          default value is CONTINUE for compatibility with earlier
+          versions.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">INVALID_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.13. Packets in the INVALID state that
+          do not match any rule in the INVALID section of <ulink
+          url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5) are
+          logged at this level. The default value is empty which means no
+          logging is performed.</para>
         </listitem>
       </varlistentry>
 
@@ -829,7 +1071,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
             </varlistentry>
           </variablelist>
 
-          <para/>
+          <para></para>
 
           <blockquote>
             <para>If this variable is not set or is given an empty value
@@ -896,7 +1138,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           the iptables executable located using the PATH option is
           used.</para>
 
-          <para>Regardless of how the IPTABLES utility is located (specified
+          <para>Regardless of how the iptables utility is located (specified
           via IPTABLES= or located via PATH), Shorewall uses the
           iptables-restore and iptables-save utilities from that same
           directory.</para>
@@ -1039,7 +1281,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
             </listitem>
           </itemizedlist>
 
-          <para/>
+          <para></para>
 
           <blockquote>
             <para>For example, using the default LOGFORMAT, the log prefix for
@@ -1056,7 +1298,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
               control your firewall after you enable this option.</para>
             </important>
 
-            <para/>
+            <para></para>
 
             <caution>
               <para>Do not use this option if the resulting log messages will
@@ -1186,6 +1428,33 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           names may be used with log tags if you set LOGTAGONLY=Yes. With
           LOGTAGONLY=Yes, if a log tag is specified then the tag is included
           in the log prefix in place of the chain name.</para>
+
+          <para>Beginning with Shorewall 4.5.12, when LOGTAGONLY=Yes, you have
+          more control over the generated log prefix. Beginning with that
+          release, the tag is interpreted as a <replaceable>chain
+          name</replaceable> and a <replaceable>disposition</replaceable>
+          separated by a comma. So this rule:</para>
+
+          <programlisting>#ACTION                                SOURCE         DEST
+LOG:info:foo,bar                 net                   fw</programlisting>
+
+          <para>would generate the following log prefix when using the default
+          LOGFORMAT setting:</para>
+
+          <simplelist>
+            <member>Shorewall:foo:bar:</member>
+          </simplelist>
+
+          <para>Similarly,</para>
+
+          <programlisting>#ACTION                               SOURCE            DEST
+LOG:info:,bar                        net                    fw</programlisting>
+
+          <para>would generate</para>
+
+          <simplelist>
+            <member>Shorewall:net2fw:bar:</member>
+          </simplelist>
         </listitem>
       </varlistentry>
 
@@ -1438,8 +1707,23 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis
+        role="bold">NFACCT=</emphasis>[<emphasis>pathname</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.7. Specifies the pathname of the nfacct
+          utiliity. If not specified, Shorewall will use the PATH settting to
+          find the program.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">NULL_ROUTE_RFC1918=</emphasis>[<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+        role="bold">Yes</emphasis>|<emphasis
+        role="bold">No</emphasis>|<emphasis
+        role="bold">blackhole</emphasis>|<emphasis
+        role="bold">unreachable</emphasis>|<emphasis
+        role="bold">prohibit</emphasis>]</term>
 
         <listitem>
           <para>When set to Yes, causes Shorewall to null-route the IPv4
@@ -1452,6 +1736,12 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           this option ensures that packets with an RFC1918 source address are
           only accepted from interfaces having known routes to networks using
           such addresses.</para>
+
+          <para>Beginning with Shorewall 4.5.15, you may specify
+          <option>blackhole</option>, <option>unreachable</option> or
+          <option>prohibit</option> to set the type of route to be created.
+          See <ulink
+          url="http://www.shorewall.net/MultiISP.html#null_routing">http://www.shorewall.net/MultiISP.html#null_routing</ulink>.</para>
         </listitem>
       </varlistentry>
 
@@ -1612,6 +1902,15 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
               'Others and'. Empty comments at the end of a group of combined
               comments are replaced by 'and others'.</para>
 
+              <para>Beginning in Shorewall 4.5.10, this option also suppresses
+              duplicate adjacent rules and duplicate non-adjacent rules that
+              don't include <emphasis role="bold">mark</emphasis>, <emphasis
+              role="bold">connmark</emphasis>, <emphasis
+              role="bold">dscp</emphasis>, <emphasis
+              role="bold">ecn</emphasis>, <emphasis
+              role="bold">set</emphasis>, <emphasis role="bold">tos</emphasis>
+              or <emphasis role="bold">u32</emphasis> matches.</para>
+
               <variablelist>
                 <varlistentry>
                   <term>Example 1:</term>
@@ -1709,7 +2008,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         role="bold">"</emphasis></term>
 
         <listitem>
-          <para/>
+          <para></para>
         </listitem>
       </varlistentry>
 
@@ -1759,18 +2058,17 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
       <varlistentry>
         <term><emphasis
-        role="bold">RELATED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT]</emphasis></term>
+        role="bold">RELATED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]</emphasis></term>
 
         <listitem>
           <para>Added in Shorewall 4.4.27. Shorewall has traditionally
           ACCEPTed RELATED packets that don't match any rule in the RELATED
-          section of <ulink
-          url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5).
-          Concern about the safety of this practice resulted in the addition
-          of this option. When a packet in RELATED state fails to match any
-          rule in the RELATED section, the packet is disposed of based on this
-          setting. The default value is ACCEPT for compatibility with earlier
-          versions.</para>
+          section of <ulink url="shorewall-rules.html">shorewall-rules</ulink>
+          (5). Concern about the safety of this practice resulted in the
+          addition of this option. When a packet in RELATED state fails to
+          match any rule in the RELATED section, the packet is disposed of
+          based on this setting. The default value is ACCEPT for compatibility
+          with earlier versions.</para>
         </listitem>
       </varlistentry>
 
@@ -1781,9 +2079,9 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
         <listitem>
           <para>Added in Shorewall 4.4.27. Packets in the related state that
           do not match any rule in the RELATED section of <ulink
-          url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5) are
-          logged at this level. The default value is empty which means no
-          logging is performed.</para>
+          url="shorewall-rules.html">shorewall-rules</ulink> (5) are logged at
+          this level. The default value is empty which means no logging is
+          performed.</para>
         </listitem>
       </varlistentry>
 
@@ -1817,6 +2115,22 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           default table (USE_DEFAULT_RT=Yes) when there are no balance
           providers available. In that case, RESTORE_DEFAULT_ROUTE=No will
           cause any default route in the relevant table to be deleted.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">RESTORE_ROUTEMARKS=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.9. When set to <emphasis
+          role="bold">Yes</emphasis> (the default), provider marks are
+          restored unconditionally at the top of the mangle OUTPUT and
+          PREROUTING chains, even if the saved mark is zero. When this option
+          is set to <emphasis role="bold">No</emphasis>, the mark is restored
+          even when it is zero. If you have problems with IPSEC ESP packets
+          not being routed correctly on output, try setting this option to
+          <emphasis role="bold">No</emphasis>.</para>
         </listitem>
       </varlistentry>
 
@@ -1880,6 +2194,46 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">RPFILTER_DISPOSITION=</emphasis>[<emphasis
+        role="bold">DROP</emphasis>|<emphasis
+        role="bold">REJECT</emphasis>|A_DROP|A_REJECT]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.7. Determines the disposition of
+          packets entering from interfaces the <option>rpfilter</option>
+          option (see <ulink
+          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)).
+          Packets disposed of by this option are those whose response packets
+          would not be sent through the same interface receiving the
+          packet.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">RPFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+
+        <listitem>
+          <para>Added in shorewall 4.5.7. Determines the logging of packets
+          disposed via the RPFILTER_DISPOSITION. The default value is
+          <option>info</option>.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SAVE_ARPTABLES=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.12. If SAVE_ARPTABLES=Yes, then the
+          current arptables contents will be saved by <emphasis
+          role="bold">shorewall save</emphasis> command and restored by
+          <emphasis role="bold">shorewall restore</emphasis> command. Default
+          value is No.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">SAVE_IPSETS=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -1900,7 +2254,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
         <listitem>
           <para>Added in Shorewall 4.4.20. Determines the disposition of
-          packets matching the <option>filter</option> option (see <ulink
+          packets matching the <option>sfilter</option> option (see <ulink
           url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)) and
           of <firstterm>hairpin</firstterm> packets on interfaces without the
           <option>routeback</option> option.<footnote>
@@ -1916,7 +2270,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
 
         <listitem>
           <para>Added on Shorewall 4.4.20. Determines the logging of packets
-          matching the <option>filter</option> option (see <ulink
+          matching the <option>sfilter</option> option (see <ulink
           url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)) and
           of <firstterm>hairpin</firstterm> packets on interfaces without the
           <option>routeback</option> option.<footnote>
@@ -2172,6 +2526,34 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis
+        role="bold">UNTRACKED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.13. Shorewall has traditionally passed
+          UNTRACKED packets through the NEW section of <ulink
+          url="shorewall-rules.html">shorewall-rules</ulink> (5). When a
+          packet in UNTRACKED state fails to match any rule in the UNTRACKED
+          section, the packet is disposed of based on this setting. The
+          default value is CONTINUE for compatibility with earlier
+          versions.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">UNTRACKED_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.13. Packets in the UNTRACKED state that
+          do not match any rule in the UNTRACKED section of <ulink
+          url="shorewall-rules.html">shorewall-rules</ulink> (5) are logged at
+          this level. The default value is empty which means no logging is
+          performed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">USE_DEFAULT_RT=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
@@ -2252,6 +2634,39 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">USE_RT_NAMES=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.15. When set to 'Yes', Shorewall will
+          use routing table (provider) names in the generated script rather
+          than table numbers. When set to 'No' (the default), routing table
+          numbers will be used.</para>
+
+          <caution>
+            <para>If you set USE_RT_NAMES=Yes and KEEP_RT_TABLES=Yes, then you
+            must insure that all of your providers have entries in
+            /etc/iproute2/rt_tables as well as the following entries:</para>
+
+            <simplelist>
+              <member>255 local</member>
+
+              <member>254 main</member>
+
+              <member>253 default</member>
+
+              <member>250 balance</member>
+
+              <member>0 unspec</member>
+            </simplelist>
+
+            <para>Without these entries, the firewall will fail to
+            start.</para>
+          </caution>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis
         role="bold">VERBOSITY=</emphasis>[<emphasis>number</emphasis>]</term>
 
@@ -2273,6 +2688,20 @@ net     all  DROP   info</programlisting>then the chain name is 'net2all'
           </simplelist>
 
           <para>If not specified, then 2 is assumed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">WARNOLDCAPVERSION=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.12. When set to <emphasis
+          role="bold">Yes</emphasis> (the default), the compiler issues a
+          warning when it finds a capabilities file that doesn't specify all
+          of the capabilities supported by the compiler. When
+          WARNOLDCAPVERSION is set to <emphasis role="bold">No</emphasis>, no
+          warning is issued.</para>
         </listitem>
       </varlistentry>
 

@@ -68,7 +68,12 @@
 
         <member><ulink
         url="manpages6/shorewall6-blacklist.html">blacklist</ulink> - Static
-        blacklisting.</member>
+        blacklisting (deprecated)</member>
+
+        <member><ulink
+        url="manpages6/shorewall6-conntrack.html">conntrack</ulink> - Specify
+        helpers for connections or exempt certain traffic from netfilter
+        connection tracking.</member>
 
         <member><ulink
         url="manpages6/shorewall6-exclusion.html">exclusion</ulink> -
@@ -92,7 +97,9 @@
         - How to define nested zones.</member>
 
         <member><ulink url="manpages6/shorewall6-notrack.html">notrack</ulink>
-        - Exclude certain traffic from Netfilter6 connection tracking</member>
+        - Exclude certain traffic from Netfilter6 connection tracking (renamed
+        <ulink url="manpages6/shorewall6-conntrack.html">conntrack</ulink> in
+        Shorewall 4.5.7)</member>
 
         <member><ulink url="manpages6/shorewall6-params.html">params</ulink> -
         Assign values to shell variables used in other files.</member>
@@ -108,9 +115,8 @@
         url="manpages6/shorewall6-proxyndp.html">proxyndp</ulink> - Defines
         Proxy NDP</member>
 
-        <member><ulink
-        url="manpages6/shorewall6-rtrules.html">rtrules</ulink> -
-        Define routing rules.</member>
+        <member><ulink url="manpages6/shorewall6-rtrules.html">rtrules</ulink>
+        - Define routing rules.</member>
 
         <member><ulink url="manpages6/shorewall6-routes.html">routes</ulink> -
         (Added in Shorewall 4.4.15) Add additional routes to provider routing
@@ -119,7 +125,7 @@
         <member><ulink
         url="manpages6/shorewall6-routestopped.html">routestopped</ulink> -
         Specify connections to be permitted when Shorewall6 is in the stopped
-        state.</member>
+        state (Deprecated in Shoreall 4.5.8).</member>
 
         <member><ulink url="manpages6/shorewall6-rules.html">rules</ulink> -
         Specify exceptions to policies, including DNAT and REDIRECT.</member>
@@ -127,6 +133,11 @@
         <member><ulink
         url="manpages6/shorewall6-secmarks.html">secmarks</ulink> - Attached
         an SELinux context to a packet.</member>
+
+        <member><ulink
+        url="manpages6/shorewall6-stoppedrules.html">stoppedrules</ulink> -
+        Specify connections to be permitted when Shorewall6 is in the stopped
+        state (Added in Shoreall 4.5.8).</member>
 
         <member><ulink
         url="manpages6/shorewall6-tcclasses.html">tcclasses</ulink> - Define

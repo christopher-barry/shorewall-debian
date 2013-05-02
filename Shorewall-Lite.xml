@@ -149,20 +149,26 @@
         </listitem>
 
         <listitem>
-          <para>The <filename>/etc/shorewall/shorewall.conf</filename> file is
-          used to determine the VERBOSITY setting which determines how much
-          output the compiler generates. All other settings are taken from the
+          <para>Prior to Shorewall 4.5.8, the
+          <filename>/etc/shorewall/shorewall.conf</filename> file was used to
+          determine the VERBOSITY setting which determines how much output the
+          compiler generates. All other settings were taken from the
           <filename>shorewall.conf </filename>file in the remote systems
           export directory.</para>
 
           <caution>
-            <para>If you want to be able to allow non-root users to manage
-            remote firewall systems, then the files
+            <para>Prior to Shorewall 4.5.8, if you want to be able to allow
+            non-root users to manage remote firewall systems, then the files
             <filename>/etc/shorewall/params</filename> and
             <filename>/etc/shorewall/shorewall.conf</filename> must be
             readable by all users on the administrative system. Not all
             packages secure the files that way and you may have to change the
             file permissions yourself.</para>
+
+            <para>Prior to Shorewall 4.5.14,
+            <filename>/etc/shorewall/params</filename> must be readable by
+            non-root users or each export directory must have its own params
+            file.</para>
           </caution>
         </listitem>
 
@@ -221,6 +227,22 @@
                   on the firewall system is
                   "/etc/shorewall-lite:/usr/share/shorewall-lite".</para>
                 </listitem>
+
+                <listitem>
+                  <para>Prior to Shorewall 4.5.14, the export directory should
+                  contain a <filename>params</filename> file, even if it is
+                  empty. Otherwise, <filename>/sbin/shorewall</filename> will
+                  attempt to read<filename>
+                  /etc/shorewall/params</filename>.</para>
+                </listitem>
+
+                <listitem>
+                  <para>If the remote system has a different directory layout
+                  from the administrative system, then the export directory
+                  should contain a copy of the remote system's shorewallrc
+                  file (normally found in
+                  /usr/share/shorewall/shorewallrc).</para>
+                </listitem>
               </itemizedlist>
             </listitem>
 
@@ -248,7 +270,8 @@
               command, Shorewall will use ssh to run
               <filename>/usr/share/shorewall-lite/shorecap</filename> on the
               remote firewall to create a capabilities file in the firewall's
-              administrative direction. See <link
+              administrative direction. It also uses scp to copy the
+              shorewallrc file from the remote firewall system. See <link
               linkend="Shorecap">below</link>.</para>
             </listitem>
           </orderedlist>
@@ -592,8 +615,9 @@
     command:</para>
 
     <blockquote>
-      <para><command>shorewall compile [ -e ] [ &lt;directory name&gt; ] [
-      &lt;path name&gt; ]</command></para>
+      <para><command>shorewall compile [ -e ] [ <replaceable>&lt;directory
+      name&gt;</replaceable> ] [ <replaceable>&lt;path name&gt;</replaceable>
+      ]</command></para>
     </blockquote>
 
     <para>where</para>
@@ -615,6 +639,11 @@
             supports. It rather reads those capabilities from
             <filename>/etc/shorewall/capabilities</filename>. See below for
             details.</para>
+
+            <para>Also, when <option>-e</option> is specified you should have
+            a copy of the remote firewall's <filename>shorewallrc</filename>
+            file in the the directory specified by <replaceable>&lt;directory
+            name&gt;</replaceable>.</para>
           </listitem>
         </varlistentry>
 
@@ -626,12 +655,19 @@
             before those directories listed in the CONFIG_PATH variable in
             <filename>shorewall.conf</filename>.</para>
 
-            <para>When -e &lt;directory-name&gt; is included, only the
-            SHOREWALL_SHELL and VERBOSITY settings from
+            <para>When -e <replaceable>&lt;directory-name&gt;</replaceable> is
+            included, only the SHOREWALL_SHELL and VERBOSITY settings from
             <filename>/etc/shorewall/shorewall.conf</filename> are used and
             these apply only to the compiler itself. The settings used by the
             compiled firewall script are determined by the contents of
             <filename>&lt;directory name&gt;/shorewall.conf</filename>.</para>
+
+            <note>
+              <para>Beginning with Shorewall 4.5.7.2,
+              <filename>/etc/shorewall/shorewall.conf</filename> is not read
+              if there is a <filename>shorewall.conf</filename> file in the
+              specified configuration directory.</para>
+            </note>
           </listitem>
         </varlistentry>
 
