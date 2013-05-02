@@ -1,8 +1,9 @@
 Shorewall Debian packaging README:
 ----------------------------------
 
-There are six (6) Shorewall packages released by upstream:
+There are seven (7) Shorewall packages released by upstream:
   shorewall
+  shorewall-core
   shorewall-lite
   shorewall6
   shorewall6-lite
@@ -16,6 +17,8 @@ repository:
 
 * master
   pristine-tar
+  shorewall-core/master
+  shorewall-core/upstream
   shorewall-doc/master
   shorewall-doc/upstream
   shorewall-init/master
