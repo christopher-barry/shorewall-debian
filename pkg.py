@@ -383,7 +383,7 @@ elif op == 'tag':
 
 elif op == 'upload':
     print "Pushing to SourceForge repository"
-    push_cmd = 'git push --mirror ssh://el_cubano@shorewall.git.sourceforge.net/gitroot/shorewall/debian'
+    push_cmd = 'git push --mirror ssh://el_cubano@git.code.sf.net/p/shorewall/debian'
     if verbose: print "Pushing with this command:\n%s" % push_cmd
     if dry_run:
         print "DRY RUN: command not executed"
