@@ -24,12 +24,14 @@
 
       <arg rep="norepeat">-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>add</option></arg>
+      <arg choice="plain"><option>add {</option></arg>
 
       <arg choice="plain"
       rep="repeat"><replaceable>interface</replaceable>[:<replaceable>host-list</replaceable>]</arg>
 
-      <arg choice="plain"><replaceable>zone</replaceable></arg>
+      <arg choice="plain"><replaceable>zone</replaceable><option>
+      |</option><replaceable> zone host-list</replaceable><option>
+      }</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -109,12 +111,14 @@
 
       <arg rep="norepeat">-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>delete</option></arg>
+      <arg choice="plain"><option>delete {</option></arg>
 
       <arg choice="plain"
       rep="repeat"><replaceable>interface</replaceable>[:<replaceable>host-list</replaceable>]</arg>
 
-      <arg choice="plain"><replaceable>zone</replaceable></arg>
+      <arg choice="plain"><replaceable>zone</replaceable><option>
+      |</option><replaceable> zone host-list</replaceable><option>
+      }</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -498,6 +502,8 @@
 
       <arg choice="plain"><option>show</option></arg>
 
+      <arg><option>-b</option></arg>
+
       <arg><option>-x</option></arg>
 
       <arg><option>-l</option></arg>
@@ -668,6 +674,8 @@
 
       <arg><option>-a</option></arg>
 
+      <arg><option>-D</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -710,10 +718,10 @@
     url="shorewall.conf.html">shorewall.conf</ulink>(5). Each <emphasis
     role="bold">v</emphasis> adds one to the effective verbosity and each
     <emphasis role="bold">q</emphasis> subtracts one from the effective
-    VERBOSITY. Anternately, <emphasis role="bold">v</emphasis> may be followed
-    immediately with one of -1,0,1,2 to specify a specify VERBOSITY. There may
-    be no white space between <emphasis role="bold">v</emphasis> and the
-    VERBOSITY.</para>
+    VERBOSITY. Alternatively, <emphasis role="bold">v</emphasis> may be
+    followed immediately with one of -1,0,1,2 to specify a specify VERBOSITY.
+    There may be no white space between <emphasis role="bold">v</emphasis> and
+    the VERBOSITY.</para>
 
     <para>The <emphasis>options</emphasis> may also include the letter
     <option>t</option> which causes all progress messages to be
@@ -746,6 +754,15 @@
               <command>add</command> by <command>delete</command> and run the
               same command again. Then enter the correct command.</para>
             </caution></para>
+
+          <para>Beginning with Shorewall 4.5.9, the <emphasis
+          role="bold">dynamic_shared</emphasis> zone option (<ulink
+          url="shorewall-zones.html">shorewall-zones</ulink>(5)) allows a
+          single ipset to handle entries for multiple interfaces. When that
+          option is specified for a zone, the <command>add</command> command
+          has the alternative syntax in which the
+          <replaceable>zone</replaceable> name precedes the
+          <replaceable>host-list</replaceable>.</para>
         </listitem>
       </varlistentry>
 
@@ -861,6 +878,15 @@
           url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)
           file. A <emphasis>host-list</emphasis> is comma-separated list whose
           elements are a host or network address.</para>
+
+          <para>Beginning with Shorewall 4.5.9, the <emphasis
+          role="bold">dynamic_shared</emphasis> zone option (<ulink
+          url="shorewall-zones.html">shorewall-zones</ulink>(5)) allows a
+          single ipset to handle entries for multiple interfaces. When that
+          option is specified for a zone, the <command>delete</command>
+          command has the alternative syntax in which the
+          <replaceable>zone</replaceable> name precedes the
+          <replaceable>host-list</replaceable>.</para>
         </listitem>
       </varlistentry>
 
@@ -873,6 +899,13 @@
           or <replaceable>provider</replaceable>. Where more than one provider
           share a single network interface, a
           <replaceable>provider</replaceable> name must be given.</para>
+
+          <para>Beginning with Shorewall 4.5.10, this command may be used with
+          any optional network interface. <replaceable>interface</replaceable>
+          may be either the logical or physical name of the interface. The
+          command removes any routes added from <ulink
+          url="shorewall-routes.html">shorewall-routes</ulink>(5) and any
+          traffic shaping configuration for the interface.</para>
         </listitem>
       </varlistentry>
 
@@ -912,6 +945,14 @@
           or <replaceable>provider</replaceable>. Where more than one provider
           share a single network interface, a
           <replaceable>provider</replaceable> name must be given.</para>
+
+          <para>Beginning with Shorewall 4.5.10, this command may be used with
+          any optional network interface. <replaceable>interface</replaceable>
+          may be either the logical or physical name of the interface. The
+          command sets <filename>/proc</filename> entries for the interface,
+          adds any route specified in <ulink
+          url="shorewall-routes.html">shorewall-routes</ulink>(5) and installs
+          the interface's traffic shaping configuration, if any.</para>
         </listitem>
       </varlistentry>
 
@@ -1372,14 +1413,20 @@
                 Netfilter table to display. The default is <emphasis
                 role="bold">filter</emphasis>.</para>
 
+                <para>The <emphasis role="bold">-b</emphasis> ('brief') option
+                causes rules which have not been used (i.e. which have zero
+                packet and byte counts) to be omitted from the output. Chains
+                with no rules displayed are also omitted from the
+                output.</para>
+
                 <para>The <emphasis role="bold">-l</emphasis> option causes
                 the rule number for each Netfilter rule to be
                 displayed.</para>
 
-                <para>If the <emphasis role="bold">t</emphasis> option and the
-                <option>chain</option> keyword are both omitted and any of the
-                listed <replaceable>chain</replaceable>s do not exist, a usage
-                message is displayed.</para>
+                <para>If the -<emphasis role="bold">t</emphasis> option and
+                the <option>chain</option> keyword are both omitted and any of
+                the listed <replaceable>chain</replaceable>s do not exist, a
+                usage message is displayed.</para>
               </listitem>
             </varlistentry>
 
@@ -1623,9 +1670,11 @@
           temporary saved configuration
           (<filename>/var/lib/shorewall/.try</filename>). Next, if Shorewall
           is currently started then a <emphasis role="bold">restart</emphasis>
-          command is issued; otherwise, a <emphasis
-          role="bold">start</emphasis> command is performed. if an error
-          occurs during the compliation phase of the <emphasis
+          command is issued using the specified configuration
+          <replaceable>directory</replaceable>; otherwise, a <emphasis
+          role="bold">start</emphasis> command is performed using the
+          specified configuration <replaceable>directory</replaceable>. if an
+          error occurs during the compliation phase of the <emphasis
           role="bold">restart</emphasis> or <emphasis
           role="bold">start</emphasis>, the command terminates without
           changing the Shorewall state. If an error occurs during the
@@ -1675,6 +1724,13 @@
           url="shorewall-interfaces.html">shorewall-interfaces</ulink> (5) and
           <ulink url="shorewall-hosts.html">shorewall-hosts</ulink> (5). The
           unmodified files are saved with a .bak suffix.</para>
+
+          <para>The <option>-D</option> option was added in Shorewall 4.5.11.
+          When this option is specified, the compiler will walk through the
+          directories in the CONFIG_PATH replacing FORMAT and COMMENT entries
+          to compiler directives (e.g., ?FORMAT and ?COMMENT. When a file is
+          updated, the original is saved in a .bak file in the same
+          directory.</para>
 
           <para>For a description of the other options, see the <emphasis
           role="bold">check</emphasis> command above.</para>

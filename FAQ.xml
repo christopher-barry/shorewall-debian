@@ -20,7 +20,7 @@
     <pubdate><?dbtimestamp format="Y/m/d"?></pubdate>
 
     <copyright>
-      <year>2001-2011</year>
+      <year>2001-2013</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -247,7 +247,7 @@ DNAT    net:<emphasis>address</emphasis>   loc:<emphasis>local-IP-address</empha
         <itemizedlist>
           <listitem>
             <para>You are trying to test from inside your firewall (no, that
-            won't work -- see <xref linkend="faq2"/>).</para>
+            won't work -- see <xref linkend="faq2" />).</para>
           </listitem>
 
           <listitem>
@@ -545,6 +545,28 @@ REDIRECT        net           22          tcp          9022</programlisting>
         <para>Note that the above rule will also allow connections from the
         net on TCP port 22. If you don't want that, see <link
         linkend="faq1e">FAQ 1e</link>.</para>
+      </section>
+
+      <section id="faq1j">
+        <title>(FAQ 1j) Why doesn't this DNAT rule work?</title>
+
+        <para>I added this rule but I'm still seeing the log message
+        below</para>
+
+        <programlisting>RULE:
+DNAT           scnet:172.19.41.2       dmz0:10.199.198.145             udp     2055
+
+LOG:
+Sep 21 12:55:37 fw001 kernel: [10357687.114928] Shorewall:scnet2fw:DROP:IN=eth2 OUT=
+MAC=00:26:33:dd:aa:05:00:24:f7:19:ce:44:08:00 SRC=172.19.41.2 DST=172.19.1.1 LEN=1492
+TOS=0x00 PREC=0x00 TTL=63 ID=23035 PROTO=UDP SPT=6376 DPT=2055 LEN=1472</programlisting>
+
+        <para><emphasis role="bold">Answer</emphasis>: There was already a
+        conntrack entry for the failing connection before you added the rule.
+        Install the <emphasis role="bold">conntrack</emphasis> utility program
+        and use it to delete the entry.</para>
+
+        <programlisting><command>conntrack -D -s 172.19.41.2 -d 172.19.1.1 -p udp -sport 6367 -dport 2055 </command></programlisting>
       </section>
     </section>
 
@@ -948,6 +970,20 @@ DNAT       loc           dmz:192.168.2.4    tcp      80          -         <emph
 
   <section id="Openports">
     <title>Open Ports</title>
+
+    <section id="faq100">
+      <title>(FAQ 100) With Shorewall started, the output of 'iptables -L'
+      looks like my firewall is wide open!</title>
+
+      <para><emphasis role="bold">Answer:</emphasis> The problem here is that
+      a bare <command>iptables -L</command> command produces totally useless
+      output. Use <command>shorewall show</command> instead.</para>
+
+      <note>
+        <para>The <command>shorewall show</command> command is a wrapper
+        around <command>iptables -L -n -v</command>.</para>
+      </note>
+    </section>
 
     <section id="faq51">
       <title>(FAQ 51) How do I Open Ports in Shorewall?</title>
@@ -1587,9 +1623,12 @@ teastep@ursa:~$ </programlisting>The first number determines the maximum log
             zones</command></quote> and look at the printed zone definitions)
             or the chain is FORWARD and the destination IP isn't in any of
             your defined zones. If the chain is FORWARD and the IN and OUT
-            interfaces are the same, then you probably need the <emphasis
-            role="bold">routeback</emphasis> option on that interface in
-            <filename> <ulink
+            interfaces are the same or they match the same wildcard entry in
+            <ulink
+            url="manpages/shorewall-interfaces.html">/etc/shorewall/interfaces</ulink>,
+            then you probably need the <emphasis
+            role="bold">routeback</emphasis> option on that interface
+            in<filename> <ulink
             url="manpages/shorewall-interfaces.html">/etc/shorewall/interfaces</ulink>
             </filename>, you need the <emphasis
             role="bold">routeback</emphasis> option in the relevant entry in
@@ -1913,12 +1952,15 @@ Dec 15 16:47:30 heath-desktop last message repeated 2 times</programlisting>
       stop</quote>, I can't connect to anything. Why doesn't that command
       work?</title>
 
-      <para><emphasis role="bold">Answer:</emphasis> The <quote>
-      <command>stop</command> </quote> command is intended to place your
-      firewall into a safe state whereby only those hosts listed in
-      <filename>/etc/shorewall/routestopped</filename> are allowed. If you
-      want to totally open up your firewall, you must use the <quote>
-      <command>shorewall[-lite] clear</command> </quote> command.</para>
+      <para><emphasis role="bold">Answer:</emphasis> The
+      <command>stop</command> command places the firewall in a safe state;
+      connections that are allowed are governed by the setting of
+      ADMINISABSENTMINDED in <ulink
+      url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5) and the
+      contents of <ulink
+      url="manpages/shorewall-routestopped.html">shorewall-routestopped</ulink>
+      (5). To totally open the firewall, use the <command>clear</command>
+      command.</para>
     </section>
 
     <section id="faq9">
@@ -1995,7 +2037,8 @@ Creating input Chains...
       <filename>/usr/share/shorewall[-lite]/modules</filename> to
       <filename>/etc/shorewall/modules </filename>and modify the copy to
       include only the modules that you need. An alternative is to set
-      LOAD_HELPERS_ONLY=Yes in shorewall.conf.</para>
+      LOAD_HELPERS_ONLY=Yes in <ulink
+      url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5).</para>
     </section>
 
     <section id="faq68">
@@ -2150,6 +2193,46 @@ gateway:~# </programlisting>
       and configured the <emphasis>shorewall-init</emphasis> package and a
       required interface has gone down.</para>
     </section>
+
+    <section id="faq99">
+      <title>(FAQ 99) My /var/lib/shorewall-init.log shows that Shorewall is
+      running at boot but after boot 'iptables -L' shows an empty
+      configuration</title>
+
+      <para><emphasis role="bold">Answer</emphasis>: This is caused by your
+      failure to disable your distributions default iptables configuration
+      tool when you installed Shorewall. Look for a service called 'iptables'
+      that is being started after Shorewall and disable it.</para>
+    </section>
+
+    <section id="faq101">
+      <title>(FAQ 101) How can I speed up 'shorewall start' and 'shorewall
+      restart' on my slow hardware?</title>
+
+      <para><emphasis role="bold">Answer</emphasis>: There are several steps
+      that you can take:</para>
+
+      <orderedlist>
+        <listitem>
+          <para>If your kernel supports module autoloading (and distribution
+          default kernels almost always do), then set LOAD_HELPERS_ONLY=Yes in
+          shorewall.conf.</para>
+        </listitem>
+
+        <listitem>
+          <para>Set AUTOMAKE=Yes in shorewall.conf. This will avoid the
+          compilation phase in cases where the configuration has not changed
+          since the last time that the configuration was compiled.</para>
+        </listitem>
+
+        <listitem>
+          <para>Don't set optimization option 8. For example, if you currently
+          set OPTIMIZE=31, then change that to OPTIMIZE=23. Optimization
+          option 8 combines identical chains which can result in a smaller
+          ruleset, but it slows down the compilation of large rulesets.</para>
+        </listitem>
+      </orderedlist>
+    </section>
   </section>
 
   <section id="MultiISP">
@@ -2221,6 +2304,8 @@ We have an error talking to the kernel
       you may be able to resolve the problem by loading the <emphasis
       role="bold">act_police</emphasis> kernel module. Other kernel modules
       that you will need include:<simplelist>
+          <member>cls_basic</member>
+
           <member>cls_fw</member>
 
           <member>cls_u32</member>
@@ -2258,8 +2343,8 @@ root@gateway:~#</programlisting>
 
       <para>If that is the case, you can correct the problem by adjusting the
       <replaceable>minburst</replaceable> setting in
-      /etc/shorewall/tcinterfaces (complex traffic shaping) or
-      /etc/shorewall/tcdevices (simple traffic shaping). We suggest starting
+      /etc/shorewall/tcinterfaces (simple traffic shaping) or
+      /etc/shorewall/tcdevices (complex traffic shaping). We suggest starting
       at 10-12kb and adjust as necessary. Example (simple traffic
       shaping):</para>
 
@@ -2302,6 +2387,23 @@ root@gateway:/etc/shorewall#
 
       <programlisting><emphasis role="bold">ethtool -K eth</emphasis>N <emphasis
           role="bold">gro off</emphasis></programlisting>
+
+      <para>Beginning with Shorewall 4.4.25, another option is available in
+      the form of a <firstterm>rate-estimated policing
+      filter</firstterm>.</para>
+
+      <para>Example from /etc/shorewall/tcdevices:</para>
+
+      <programlisting>#NUMBER:        IN-BANDWIDTH            OUT-BANDWIDTH   OPTIONS
+#INTERFACE
+1:COMB_IF       <emphasis role="bold">~20mbit:250ms:4sec</emphasis>      ${UPLOAD}kbit   hfsc,linklayer=ethernet,overhead=0</programlisting>
+
+      <para>To create a rate-estimated filter, precede the bandwidth with a
+      tilde ("~"). The optional interval and decay_interval determine how
+      often the rate is estimated and how many samples are retained for
+      estimating. Please see <ulink
+      url="http://ace-host.stuart.id.au/russell/files/tc/doc/estimators.txt">http://ace-host.stuart.id.au/russell/files/tc/doc/estimators.txt</ulink>
+      for details.</para>
     </section>
   </section>
 
@@ -2629,6 +2731,10 @@ if [ $kernel -lt <emphasis role="bold">20624</emphasis> ]; then
     status=2
 else 
  </programlisting>
+
+        <para>Update: The above logic is found in
+        <filename>/usr/share/shorewall/prog.footer</filename> in later
+        Shorewall releases.</para>
       </section>
     </section>
 
@@ -2720,8 +2826,12 @@ else
       behind the firewall, I get <quote>operation not permitted</quote>. How
       can I use nmap with Shorewall?"</title>
 
-      <para><emphasis role="bold">Answer:</emphasis> Temporarily remove and
-      rejNotSyn, dropNotSyn and dropInvalid rules from
+      <para><emphasis role="bold">Answer:</emphasis> Temporarily remove any
+      <emphasis role="bold">rejNotSyn</emphasis>, <emphasis
+      role="bold">dropNotSyn</emphasis>, <emphasis
+      role="bold">dropInvalid</emphasis>, <emphasis
+      role="bold">NotSyn(...)</emphasis> and <emphasis
+      role="bold">Invalid(...)</emphasis> rules from
       <filename>/etc/shorewall/rules</filename> and restart Shorewall.</para>
     </section>
 
@@ -2858,7 +2968,7 @@ Shorewall has detected the following iptables/netfilter capabilities:
    Persistent SNAT: Available
 gateway:~# </programlisting>
 
-      <para/>
+      <para></para>
     </section>
 
     <section id="faq19">

@@ -26,6 +26,12 @@
 
       <year>2010</year>
 
+      <year>2011</year>
+
+      <year>2012</year>
+
+      <year>2013</year>
+
       <holder>Thomas M. Eastep</holder>
     </copyright>
 
@@ -66,9 +72,17 @@
         <member><ulink url="manpages/shorewall-actions.html">actions</ulink> -
         Declare user-defined actions.</member>
 
+        <member><ulink url="manpages/shorewall-arprules.html">arprules</ulink>
+        - (Added in Shorewall 4.5.12) Define arpfilter rules.</member>
+
         <member><ulink
         url="manpages/shorewall-blacklist.html">blacklist</ulink> - Static
         blacklisting.</member>
+
+        <member><ulink
+        url="manpages/shorewall-conntrack.html">conntrack</ulink> - Specify
+        helpers for connections or exempt certain traffic from netfilter
+        connection tracking.</member>
 
         <member><ulink url="manpages/shorewall-ecn.html">ecn</ulink> -
         Disabling Explicit Congestion Notification</member>
@@ -123,9 +137,8 @@
         <member><ulink url="manpages/shorewall-proxyarp.html">proxyarp</ulink>
         - Define Proxy ARP.</member>
 
-        <member><ulink
-        url="manpages/shorewall-rtrules.html">rtrules</ulink> - Define
-        routing rules.</member>
+        <member><ulink url="manpages/shorewall-rtrules.html">rtrules</ulink> -
+        Define routing rules.</member>
 
         <member><ulink url="manpages/shorewall-routes.html">routes</ulink> -
         (Added in Shorewall 4.4.15) Add additional routes to provider routing
@@ -134,7 +147,7 @@
         <member><ulink
         url="manpages/shorewall-routestopped.html">routestopped</ulink> -
         Specify connections to be permitted when Shorewall is in the stopped
-        state.</member>
+        state (deprecated in Shorewall 4.5.8).</member>
 
         <member><ulink url="manpages/shorewall-rules.html">rules</ulink> -
         Specify exceptions to policies, including DNAT and REDIRECT.</member>
@@ -161,6 +174,11 @@
 
         <member><ulink url="manpages/shorewall-tcpri.html">tcpri</ulink> -
         Classify traffic for simplified traffic shaping.</member>
+
+        <member><ulink
+        url="manpages/shorewall-stoppedrules.html">stoppedrules</ulink> -
+        Specify connections to be permitted when Shorewall is in the stopped
+        state (added in Shorewall 4.5.8).</member>
 
         <member><ulink url="manpages/shorewall-tcrules.html">tcrules</ulink> -
         Define packet marking rules, usually for traffic shaping.</member>

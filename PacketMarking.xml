@@ -20,6 +20,8 @@
     <copyright>
       <year>2006</year>
 
+      <year>2013</year>
+
       <holder>Thomas M. Eastep</holder>
     </copyright>
 
@@ -54,7 +56,7 @@
     <command>ethereal</command> or any other packet sniffing program. They can
     be seen in an iptables/ip6tables trace -- see the
     <command>iptrace</command> command in <ulink
-    url="manpages/shorewall.html">shorewal</ulink>(8) and <ulink
+    url="manpages/shorewall.html">shorewall</ulink>(8) and <ulink
     url="manpages6/shorewall6.html">shorewall6</ulink>(8).</para>
 
     <para>Example (output has been folded for display ):</para>
@@ -278,8 +280,9 @@ tcp      6 19 TIME_WAIT src=206.124.146.176 dst=192.136.34.98 sport=58597 dport=
     <para>Shorewall actually allows you to have complete control over the
     layout of the 32-bit mark using the following options in <ulink
     url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5) (these
-    options were documents in the shorewall.conf manpage in Shorewall
-    4.4.26):</para>
+    options were documented in the <ulink
+    url="manpages/shorewall.conf.html">shorewall.conf</ulink>(5) manpage in
+    Shorewall 4.4.26):</para>
 
     <variablelist>
       <varlistentry>
@@ -339,9 +342,9 @@ tcp      6 19 TIME_WAIT src=206.124.146.176 dst=192.136.34.98 sport=58597 dport=
     <para>The relationship between these options is shown in this
     diagram.</para>
 
-    <graphic align="left" fileref="images/MarkGeometry.png" valign="top"/>
+    <graphic align="left" fileref="images/MarkGeometry.png" valign="top" />
 
-    <para/>
+    <para></para>
 
     <para>The default values of these options are determined by the settings
     of other options as follows:</para>

@@ -52,8 +52,11 @@
     <para>The format is specified by a line as follows:</para>
 
     <blockquote>
-      <para><emphasis role="bold">FORMAT {1|2}</emphasis></para>
+      <para><emphasis role="bold">[?]FORMAT {1|2}</emphasis></para>
     </blockquote>
+
+    <para>The optional '?' was introduced in Shorewall 4.5.11 and ?FORMAT is
+    the preferred form; the form without the '?' is deprecated.</para>
 
     <para>The columns in the file are as follows.</para>
 
@@ -202,7 +205,7 @@ loc     eth2            -</programlisting>
                 changed; the value assigned to the setting will be the value
                 specified (if any) or 1 if no value is given.</para>
 
-                <para/>
+                <para></para>
 
                 <note>
                   <para>This option does not work with a wild-card
@@ -236,7 +239,7 @@ loc     eth2            -</programlisting>
 
                 <para>8 - do not reply for all local addresses</para>
 
-                <para/>
+                <para></para>
 
                 <note>
                   <para>This option does not work with a wild-card
@@ -244,7 +247,7 @@ loc     eth2            -</programlisting>
                   the INTERFACE column.</para>
                 </note>
 
-                <para/>
+                <para></para>
 
                 <warning>
                   <para>Do not specify <emphasis
@@ -394,7 +397,7 @@ loc     eth2            -</programlisting>
         1
         teastep@lists:~$ </programlisting>
 
-                <para/>
+                <para></para>
 
                 <note>
                   <para>This option does not work with a wild-card
@@ -461,7 +464,7 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
-              <term>nosmurfs</term>
+              <term><emphasis role="bold">nosmurfs</emphasis></term>
 
               <listitem>
                 <para>Filter packets for smurfs (packets with a broadcast
@@ -637,7 +640,22 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
-              <term>sfilter=(<emphasis>net</emphasis>[,...])</term>
+              <term><emphasis role="bold">rpfilter</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.7. This is an anti-spoofing
+                measure that requires the 'RPFilter Match' capability in your
+                iptables and kernel. It provides a more efficient alternative
+                to the <option>sfilter</option> option below. It performs a
+                function similar to <option>routefilter</option> (see above)
+                but works with Multi-ISP configurations that do now use
+                balanced routes.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis
+              role="bold">sfilter=(<emphasis>net</emphasis>[,...])</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.4.20. This option provides an
@@ -657,18 +675,15 @@ loc     eth2            -</programlisting>
               <listitem>
                 <para>If this option is not specified for an interface, then
                 source-routed packets will not be accepted from that interface
-                (sets
-                /proc/sys/net/ipv4/conf/<emphasis>interface</emphasis>/accept_source_route
-                to 1). Only set this option if you know what you are doing.
-                This might represent a security risk and is usually
+                unless it has been explicitly enabled via sysconf. Only set
+                this option to 1 (enable source routing) if you know what you
+                are doing. This might represent a security risk and is usually
                 unneeded.</para>
 
                 <para>Only those interfaces with the
                 <option>sourceroute</option> option will have their setting
                 changed; the value assigned to the setting will be the value
                 specified (if any) or 1 if no value is given.</para>
-
-                <para/>
 
                 <note>
                   <para>This option does not work with a wild-card

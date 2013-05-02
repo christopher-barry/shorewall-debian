@@ -11,7 +11,7 @@
       <author>
         <firstname>Tom</firstname>
 
-        <surname>Eastep</surname>
+        <surname>Eastep and Mr Dash Four</surname>
       </author>
     </authorgroup>
 
@@ -32,9 +32,11 @@
 
       <year>2011</year>
 
-      <year>2012</year>
+      <year>2012 2013</year>
 
-      <holder>Thomas M. Eastep</holder>
+      <holder>Thomas M. Eastep,</holder>
+
+      <holder>2013 Mr Dash Four</holder>
     </copyright>
 
     <legalnotice>
@@ -117,7 +119,7 @@
           ISP.</para>
         </footnote> as in the following diagram.</para>
 
-      <graphic align="center" fileref="images/TwoISPs.png" valign="middle"/>
+      <graphic align="center" fileref="images/TwoISPs.png" valign="middle" />
 
       <itemizedlist>
         <listitem>
@@ -279,9 +281,10 @@
           <listitem>
             <para>Gives the name or number of a routing table to duplicate.
             May be 'main' or the name or number of a previously declared
-            provider. For most applications, you want to specify 'main' here.
-            This field should be be specified as '-' when USE_DEFAULT_RT=Yes
-            in <filename>shorewall.conf</filename></para>
+            provider. This field should be be specified as '-' when
+            USE_DEFAULT_RT=Yes in <filename>shorewall.conf. When
+            USE_DEFAULT_RT=No (not recommended), this column is normally
+            specified as <option>main</option>.</filename></para>
           </listitem>
         </varlistentry>
 
@@ -528,6 +531,14 @@
                   <para>Prior to Shorewall 4.4.24, the option is ignored with
                   a warning message if USE_DEFAULT_RT=Yes in
                   <filename>shorewall.conf</filename>.</para>
+
+                  <warning>
+                    <para>If you set this option on an interface, you must
+                    disable route filtering on the interface. Include
+                    'routefilter=0,logmartions=0' in the OPTIONS column of
+                    <ulink
+                    url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>(5).</para>
+                  </warning>
                 </listitem>
               </varlistentry>
             </variablelist>
@@ -555,16 +566,12 @@
           <term>COPY</term>
 
           <listitem>
-            <para>A comma-separated list of interface names. Wildcards
-            specified using an asterisk ("*") are permitted (e.g., tun*
-            ).</para>
-
-            <para>When you specify an existing table in the DUPLICATE column,
-            Shorewall copies all routes through the interface specified in the
-            INTERFACE column plus the interfaces listed in this column.
-            Normally, you will list all interfaces on your firewall in this
-            column except those Internet interfaces specified in the INTERFACE
-            column of entries in this file.</para>
+            <para>A comma-separated list of other interfaces on your firewall.
+            Wildcards specified using an asterisk ("*") are permitted (e.g.,
+            tun* ). Usually used only when DUPLICATE is <option>main</option>.
+            Only copy routes through INTERFACE and through interfaces listed
+            here. If you only wish to copy routes through INTERFACE, enter
+            <option>none</option> in this column.</para>
 
             <note>
               <para>Beginning with Shorewall 4.4.15, provider routing tables
@@ -776,7 +783,12 @@ DROP:info        net:192.168.1.0/24         all</programlisting>
     </section>
 
     <section id="Example1">
-      <title id="Example">Example</title>
+      <title id="Example">Legacy Example</title>
+
+      <para>This section describes the legacy method of configuring multiple
+      uplinks. It is deprecated in favor of the USE_DEFAULT_RT=Yes
+      configuration described <link
+      linkend="USE_DEFAULT_RT">below</link>.</para>
 
       <para>The configuration in the figure at the top of this section would
       be specified in <filename>/etc/shorewall/providers</filename> as
@@ -1150,6 +1162,20 @@ gateway:~ #</programlisting>Note that because we used a priority of 1000, the
           <listitem>
             <para>If specified, gives the IP address of the gateway to the
             DEST.</para>
+
+            <para>Beginning with Shorewall 4.5.14, you may specify
+            <option>blackhole</option> in this column to create a
+            <firstterm>blackhole</firstterm> route. When
+            <option>blackhole</option> is specified, the DEVICE column must be
+            empty.</para>
+
+            <para>Beginning with Shorewall 4.5.15, you may specify
+            <option>prohibit</option> or <option>unreachable</option> to
+            create a <firstterm>prohibit</firstterm> or
+            <firstterm>unreachable</firstterm> route respectively. Again, the
+            DEVICE column must be empty.</para>
+
+            <para>See the next section for additional information.</para>
           </listitem>
         </varlistentry>
 
@@ -1179,6 +1205,363 @@ Comcast      1     -    xxx             eth2            ....     </programlistin
 Comcast       172.20.1.0/24    -               eth0          | ip -4 route add 172.20.1.0/24 dev eth0 table 1
 Comcast       192.168.4.0/24   172.20.1.1                    | ip -4 route add 192.168.1.0/24 via 172.20.1.1 table 1
 Comcast       192.168.4.0/24                                 | ip -4 route add 192.168.4.0/24 dev eth2 table 1 </programlisting>
+    </section>
+
+    <section id="null_routing">
+      <title>Null Routing</title>
+
+      <para>Null routing is a type of routing which discards a given packet
+      instead of directing it through a specific predefined route. Generally
+      speaking, there are 3 different types of Null routing as indicated
+      below:</para>
+
+      <orderedlist>
+        <listitem>
+          <para>Unreachable routes</para>
+
+          <para>When used, a request for a routing decision returns a
+          destination with an unreachable route type, an ICMP unreachable is
+          generated (icmp type 3) and returned to the source address.</para>
+
+          <para>Example:</para>
+
+          <programlisting>ip route add unreachable 10.22.0.12
+ip route add unreachable 192.168.14.0/26
+ip route add unreachable 82.32.0.0/12
+</programlisting>
+
+          <para>Unreachable routes are usually indicated by a dash ("-") in
+          the "Iface" column when "route -n" is executed:</para>
+
+          <programlisting>~# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+10.22.0.12      -               255.255.255.255 !H    0      -        0 -
+192.168.14.0    -               255.255.255.192 !     0      -        0 -
+82.32.0.0       -               255.240.0.0     !     0      -        0 -
+</programlisting>
+        </listitem>
+
+        <listitem>
+          <para>Prohibit routes</para>
+
+          <para>Similar to "unreachable" routes above, when a request for a
+          routing decision returns a destination with a prohibit route type,
+          the kernel generates an ICMP prohibited to return to the source
+          address.</para>
+
+          <para>Example:</para>
+
+          <programlisting>ip route add prohibit 10.22.0.12
+ip route add prohibit 192.168.14.0/26
+ip route add prohibit 82.32.0.0/12</programlisting>
+
+          <para>"Prohibit" type routes are also indicated by a dash in the
+          "Iface" column as shown above.</para>
+        </listitem>
+
+        <listitem>
+          <para>Blackhole routes</para>
+
+          <para>The difference between this type of routing and the previous
+          two listed above is that a packet matching a route with the route
+          type blackhole is simply discarded (DROPed). No ICMP is sent and no
+          packet is forwarded.</para>
+
+          <para>Example:</para>
+
+          <programlisting>ip route add blackhole 10.22.0.12
+ip route add blackhole 192.168.14.0/26
+ip route add blackhole 82.32.0.0/12</programlisting>
+
+          <para>Blackhole routes are usually indicated with a star ("*") in
+          the "Iface" column:</para>
+
+          <programlisting>~# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+10.22.0.12      0.0.0.0         255.255.255.255 UH    0      0        0 *
+192.168.14.0    0.0.0.0         255.255.255.192 U     0      0        0 *
+82.32.0.0       0.0.0.0         255.240.0.0     U     0      0        0 *</programlisting>
+        </listitem>
+      </orderedlist>
+
+      <section>
+        <title>Null Routing Implementation in Shorewall</title>
+
+        <para>As of Shorewall 4.5.14, the only type of null routing
+        implemented in Shorewall is "blackhole" routing. This can be specified
+        in two different ways as described below.</para>
+
+        <orderedlist>
+          <listitem>
+            <para>Null Routing with NULL_ROUTE_RFC1918 shorewall.conf
+            configuration option.</para>
+
+            <para>When NULL_ROUTE_RFC1918 is set to Yes, it causes Shorewall
+            to null-route the IPv4 address ranges reserved by RFC1918 (private
+            networks).</para>
+
+            <para>When combined with route filtering (ROUTE_FILTER=Yes or
+            routefilter in <ulink
+            url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>(5)),
+            this option ensures that packets with an RFC1918 source address
+            are only accepted from interfaces having known routes to networks
+            using such addresses.</para>
+
+            <para>When this option is used, the blackhole routes for all
+            RFC1918 subnets are defined for the "main" routing table only.
+            These, however, can be copied over to different routing tables or
+            further customised and fine-tuned to suit individual needs by
+            using the "routes" file (see below).</para>
+
+            <para>For example, by specifying NULL_ROUTE_RFC1918=Yes in
+            shorewall.conf, Shorewall generates 3 different route statements
+            to be executed at Shorewall startup:</para>
+
+            <programlisting>ip route replace blackhole 10.0.0.0/8
+ip route replace blackhole 172.16.0.0/12
+ip replace blackhole 192.168.0.0/16
+</programlisting>
+
+            <important>
+              <para>When NULL_ROUTE_RFC1918=Yes is used, Shorewall creates a
+              shell script file in ${VARDIR}/undo_rfc1918_routing to undo the
+              null routing, if needed (see below as to some instances when
+              this may be necessary).</para>
+            </important>
+          </listitem>
+
+          <listitem>
+            <para>Null Routing Using Shorewall "routes" (added in Shorewall
+            4.5.14)</para>
+
+            <para>By definition, entries in this file are used to define
+            routes to be added to provider routing tables, including the
+            default routing table (main).</para>
+
+            <para>This option allows for a better control over what is defined
+            as a null route in Shorewall and also allows for custom-defined
+            subnets (in addition to RFC1918 type networks) to be added.
+            Blackhole routes defined in this way need to include the word
+            "blackhole" in the GATEWAY column and the DEVICE column must also
+            be ommitted (see example below).</para>
+
+            <para>Example of use
+            (<filename>/etc/shorewall/routes</filename>):</para>
+
+            <programlisting>#PROVIDER       DEST            GATEWAY         DEVICE
+main            10.0.0.0/8      blackhole
+dmz             82.32.0.0/12    blackhole
+dmz             192.168.14.0/26 blackhole
+</programlisting>
+
+            <para>The above generates the following 3 statements for execution
+            upon Shorewall startup:</para>
+
+            <programlisting>ip route add blackhole 10.0.0.0/8 table main
+ip route add blackhole 82.32.0.0/12 table dmz
+ip route add blackhole 192.168.14.0/26 table dmz</programlisting>
+
+            <important>
+              <para>When blackhole routes are added to a
+              <replaceable>provider</replaceable> (including 'main'),
+              Shorewall creates a shell script file in
+              ${VARDIR}/undo_<replaceable>provider</replaceable>_routing to
+              undo the routing, if needed (see below as to some instances when
+              this may be necessary).</para>
+            </important>
+          </listitem>
+        </orderedlist>
+
+        <para>Beginning with Shorewall 4.5.15, Shorewall also supports
+        "unreachable" and "prohibit" routing.</para>
+
+        <orderedlist>
+          <listitem>
+            <para>The NULL_ROUTE_RFC1918 option may be set to "blackhole",
+            "prohibit" or "unreachable" in addition to "Yes" and "No".</para>
+
+            <para>Shorewall will create the three route statements using the
+            specified type type. For compatibility with earlier releases,
+            "Yes" is equivalent to "blackhole".</para>
+
+            <para>For example, if NULL_ROUTE_RFC1918=prohibit, then the
+            following three route statements will be executed at Shorewall
+            startup:</para>
+
+            <programlisting>ip route replace prohibit 10.0.0.0/8
+ip route replace prohibit 172.16.0.0/12
+ip replace prohibit 192.168.0.0/16
+</programlisting>
+          </listitem>
+
+          <listitem>
+            <para>The words "prohibit" and "unreachable" may be placed in the
+            GATEWAY column of
+            <filename>/etc/shorewall/routes</filename>.</para>
+
+            <para>The DEVICE column must be omitted.</para>
+
+            <para>Example of use
+            (<filename>/etc/shorewall/routes</filename>):</para>
+
+            <programlisting>#PROVIDER       DEST            GATEWAY         DEVICE
+main            10.0.0.0/8      unreachable
+dmz             82.32.0.0/12    unreachable
+dmz             192.168.14.0/26 unreachable
+</programlisting>
+
+            <para>The above generates the following 3 statements for execution
+            upon Shorewall startup:</para>
+
+            <programlisting>ip route add unreachable 10.0.0.0/8 table main
+ip route add unreachable 82.32.0.0/12 table dmz
+ip route add unreachable 192.168.14.0/26 table dmz</programlisting>
+
+            <important>
+              <para>When prohibit or unreachable routes are added to a
+              <replaceable>provider</replaceable> (including 'main'),
+              Shorewall creates a shell script file in
+              ${VARDIR}/undo_<replaceable>provider</replaceable>_routing to
+              undo the routing, if needed (see below as to some instances when
+              this may be necessary).</para>
+            </important>
+          </listitem>
+        </orderedlist>
+      </section>
+
+      <section>
+        <title>Important Points To Remember When Using Null Routing in
+        Shorewall</title>
+
+        <orderedlist>
+          <listitem>
+            <para>In order to create "pinhole" in a particular blackhole
+            route, at least one route needs to be defined in addition to the
+            null route.</para>
+
+            <para>Lets take the following example: We need to null-route all
+            addresses from the 10.0.0.0/8 range, <emphasis
+            role="bold">except</emphasis> 10.1.0.0/24. In such a case we need
+            to define two routes in our "routes" file (assuming the default
+            "main" routing table is used and also assuming that 10.1.0.0/24 is
+            routed via the default gateway on eth0 and we need to use
+            'blackhole' type null routing).</para>
+
+            <para><filename>/etc/shorewall/routes</filename>:</para>
+
+            <programlisting>#PROVIDER       DEST            GATEWAY         DEVICE
+main            10.0.0.0/8      blackhole
+main            10.1.0.0/24     -               eth0</programlisting>
+
+            <para>The above will generate 2 statements for execution when
+            Shorewall starts:</para>
+
+            <programlisting>ip route replace blackhole 10.0.0.0/8 table main
+ip route replace 10.1.0.0/24 table main
+</programlisting>
+
+            <para>The order in which the two routes above are defined in
+            "routes" is not important, simply because, by definition, routes
+            with lower mask value are always traversed first. In that way,
+            packets originating from or destined to 10.1.0.0/24 will always be
+            processed before the 10.0.0.0/8 blackhole route.</para>
+          </listitem>
+
+          <listitem>
+            <para>Null routes, by their definition, are not attached to any
+            network device. What this means in reality is that when the status
+            of a particular device changes (either going up or down), that has
+            absolutely <emphasis role="bold">no</emphasis> effect on the null
+            routes defined (as already indicated, these are "static" and can
+            only be removed by executing "ip route del" or by executing the
+            relevant ${VARDIR}/undo_*_routing shell script).</para>
+
+            <important>
+              <para>The ${VARDIR}/undo_*_routing scripts generated by
+              Shorewall 4.5.14 and earlier cannot be executed directly from
+              the shell without first sourcing
+              ${SHAREDIR}/shorewall/functions. Example:</para>
+
+              <programlisting>. /usr/share/shorewall/functions
+. /var/lib/shorewall/undo_x_routing</programlisting>
+            </important>
+
+            <para>This sometimes may lead to undesirable side effect: when a
+            network interface goes down (even temporarily), then <emphasis
+            role="bold">all</emphasis> routes defined or attached to that
+            interface are simply deleted from the routing table by the kernel,
+            while the blackhole routes are untouched.</para>
+
+            <para>Lets take our example above: when eth0 goes down, then the
+            route we defined in "routes" for our private subnet (10.1.0.0/24)
+            will be deleted from the routing table. As soon as eth0 goes back
+            up again, unless the route for our private 10.1.0.0/24 subnet is
+            defined again, all packets originating from or destined to
+            10.1.0.0/24 will simply be dropped by the kernel!</para>
+
+            <para>An indication of this type of behaviour is getting endless
+            "martian" packets reported in the system log, like so:</para>
+
+            <programlisting>IPv4: martian source 10.1.0.7 from 10.1.0.1, on dev eth0</programlisting>
+
+            <para>There are currently two possible solutions to this
+            particular problem:</para>
+
+            <orderedlist numeration="upperalpha">
+              <listitem>
+                <para>Add all network-interface dependent routes (the ones
+                which are deleted when that interface goes down) to your
+                distribution's network configuration system. On Redhat and
+                derivatives, that would be
+                <filename>/etc/sysconfig/network-scripts/route-X</filename>
+                (where "X" is the name of the interface in question). On
+                Debian and derivatives, it is
+                <filename>/etc/network/interfaces</filename>.</para>
+
+                <para>That way, when the network device goes back up again,
+                the Linux OS will add these routes "automatically". Using our
+                example above - to add a route to 10.1.0.0/24 using the
+                default gateway on eth0 and also using the main routing table,
+                the following needs to be added to
+                <filename>/etc/sysconfig/network-scripts/route-eth0</filename>
+                (Redhat and derivatives):</para>
+
+                <programlisting>10.1.0.0/24 dev eth0 table main
+</programlisting>
+
+                <para>On Debian and derivatives (in the eth0 stanza of
+                <filename>/etc/network/interfaces</filename>):</para>
+
+                <programlisting>iface eth0 ...
+       ... 
+       post-up ip route add 10.1.0.0/24 dev eth0 table main</programlisting>
+              </listitem>
+
+              <listitem>
+                <para>A more elegant solution is, in addition to the
+                "standard" shorewall package (shorewall-lite, shorewall, etc),
+                to add <ulink url="Shorewall-init.html">shorewall-init</ulink>
+                to take care of this automatically.</para>
+
+                <para>With this approach, when the network interface is
+                brought back up, the OS passes control to /sbin/ifup-local,
+                which forms part of the shorewall-init package, and that
+                script, in turn, executes the appropriate command to reload
+                the network device settings in the already-compiled
+                ${VARDIR}/firewall file.</para>
+
+                <para>When shorewall-init is used, all configuration settings
+                (routes, interface options etc) are kept in one place and do
+                not have to be defined separately (via
+                /etc/sysconfig/network-scripts/route-X for example), which
+                eases maintenance efforts quite considerably.</para>
+              </listitem>
+            </orderedlist>
+          </listitem>
+        </orderedlist>
+      </section>
     </section>
 
     <section>
@@ -1275,6 +1658,16 @@ lillycat: #</programlisting>
           must have a GATEWAY specified explicitly.</para>
         </listitem>
       </orderedlist>
+
+      <para>The configuration in the figure at the top of this section would
+      be specified in <filename>/etc/shorewall/providers</filename> as
+      follows.</para>
+
+      <programlisting>#NAME   NUMBER  MARK    DUPLICATE       INTERFACE       GATEWAY         OPTIONS          COPY
+ISP1    1       1       -               eth0            206.124.146.254 track            -
+ISP2    2       2       -               eth1            130.252.99.254  track            -  </programlisting>
+
+      <para>The remainder of the example is the same.</para>
 
       <para>Although 'balance' is automatically assumed when
       USE_DEFAULT_RT=Yes, you can easily cause all traffic to use one provider
@@ -2197,7 +2590,7 @@ exit 0
       on ursa that I will describe here</emphasis>.</para>
 
       <para>Below is a diagram of our network:<graphic align="center"
-      fileref="images/Network2008a.png"/></para>
+      fileref="images/Network2008a.png" /></para>
 
       <para>The local wired network in my office is connected to both gateways
       and uses the private (RFC 1918) network 172.20.1.0/24. The Comcast
@@ -2317,7 +2710,7 @@ wlan0                   192.168.0.0/24</programlisting><note>
   <section id="Complete">
     <title>A Complete Working Example</title>
 
-    <para>This section describes the network at shorewall.net early in 2009.
+    <para>This section describes the network at shorewall.net in late 2012.
     The configuration is as follows:</para>
 
     <itemizedlist>
@@ -2326,196 +2719,374 @@ wlan0                   192.168.0.0/24</programlisting><note>
 
         <itemizedlist>
           <listitem>
-            <para>Avvanta -- A slow (1.5mb/384kb) DSL service with 5 static IP
-            addresses.</para>
+            <para>ComcastC -- A consumer-grade Comcast cable line with a
+            dynamic IP address.</para>
           </listitem>
 
           <listitem>
-            <para>Comcast -- A fast (20mb/10mb) Cable circuit with a single
-            <emphasis>dynamic</emphasis> address.</para>
+            <para>ComcastB -- A Comcast Business-class line with 5 static IP
+            addresses.</para>
           </listitem>
         </itemizedlist>
       </listitem>
 
       <listitem>
         <para>A local network consisting of wired and wireless client systems.
-        A Linksys WRT300N wireless router is used as an access point for the
-        wireless hosts.</para>
+        A wireless-N router is used as an access point for the wireless
+        hosts.</para>
       </listitem>
 
       <listitem>
-        <para>A DMZ hosting a single server (lists.shorewall.net aka
-        www1.shorewall.net, ftp1.shorewall.net,etc.)</para>
+        <para>A DMZ hosting a two servers (one has two public IP addresses -
+        one for receiving email and one for sending) and a system dedicaed to
+        running irssi (usually via IPv6)</para>
       </listitem>
     </itemizedlist>
 
     <para>The network is pictured in the following diagram:</para>
 
-    <graphic align="center" fileref="images/Network2009.png"/>
+    <graphic fileref="images/Network2012a.png" />
 
-    <para>Because of the speed of the cable provider, all traffic uses that
-    provider unless there is a specific need for the traffic to use the DSL
-    line.</para>
+    <section>
+      <title>IPv4 Configuration</title>
 
-    <itemizedlist>
-      <listitem>
-        <para>Responses to connections from the Internet to one of the DSL IP
-        addresses -- the <emphasis role="bold">track</emphasis> option takes
-        care of that.</para>
-      </listitem>
+      <para>The Business Gateway manages a gigabit local network with address
+      10.0.1.1/24. So The firewall is given address 10.0.1.11/24 and the
+      gateway is configured to route the public IP block via that address. The
+      gateway's firewall is only enabled for the 10.0.1.0/24 network.</para>
 
-      <listitem>
-        <para>Connections initiated by the server and connections requested by
-        clients on the firewall that have bound their local socket to one of
-        the DSL IP addresses. Two entries in
-        <filename>/etc/shorewall/rtrules</filename> take care of that
-        traffic.</para>
-      </listitem>
-    </itemizedlist>
+      <para>Because the business network is faster and more reliable, the
+      configuration favors sending local network traffic via that uplink
+      rather than the consumer line.</para>
 
-    <para>As a consequence, I have disabled all route filtering on the
-    firewall and only use the <emphasis role="bold">balance</emphasis> option
-    in <filename>/etc/shorewall/providers</filename> on the Comcast provider
-    whose default route in the main table is established by DHCP. By
-    specifying the <emphasis role="bold">fallback</emphasis> option on
-    Avvanta, I ensure that there is still a default route if Comcast is down.
-    <link linkend="lsm">lsm</link> is used to monitor the links.</para>
+      <para>Here are the key entries in
+      <filename>/etc/shorewall/params</filename>:</para>
 
-    <para><filename>/etc/sysctl.conf</filename>:</para>
+      <programlisting>LOG=NFLOG
 
-    <programlisting>net.ipv4.conf.all.rp_filter = 0</programlisting>
+INT_IF=eth2
+TUN_IF=tun+
+COMB_IF=eth1
+COMC_IF=eth0
 
-    <para><filename>/etc/shorewall/shorewall.conf</filename>:</para>
+STATISTICAL=
+PROXY=
+FALLBACK=
+PROXYDMZ=
+SQUID2=</programlisting>
 
-    <programlisting>ROUTE_FILTER=No
-RESTORE_DEFAULT_ROUTE=No</programlisting>
+      <para>The last three variables are used to configure the firewall
+      differently to exercise various Shorewall features.</para>
 
-    <para>RESTORE_DEFAULT_ROUTE=No causes the default route in the main table
-    to be deleted when the Comcast link is unavailable. That way, the default
-    route in the default table will be used until Comcast is available
-    again.</para>
+      <para>Here are the key entries in
+      <filename>/etc/shorewall/shorewall.conf</filename>:</para>
 
-    <para><filename>/etc/shorewall/providers</filename>:</para>
+      <programlisting>###############################################################################
+#                       F I R E W A L L   O P T I O N S
+###############################################################################
 
-    <programlisting>#NAME  NUMBER MARK  DUPLICATE INTERFACE GATEWAY         OPTIONS                 COPY
-Avvanta     1 0x100 main      eth0      206.124.146.254 track,loose,fallback    eth2,eth4,tun*
-Comcast     2 0x200 main      eth3      detect          track,balance           eth2,eth4,tun*
-#LAST LINE -- ADD YOUR ENTRIES ABOVE THIS LINE -- DO NOT REMOVE</programlisting>
+...
 
-    <para>The <emphasis role="bold">loose</emphasis> option on Avvanta results
-    in fewer routing rules. The first two routing rules below insure that all
-    traffic from Avvanta-assigned IP addresses is sent via the Avvanta
-    provider. The 'tun*' included in the COPY column is there because I run a
-    routed OpenVPN server on the firewall.</para>
+ACCOUNTING_TABLE=mangle
 
-    <para><filename>/etc/shorewall/rtrules</filename>:</para>
+...
 
-    <programlisting>#SOURCE            DEST           PROVIDER PRIORITY
--                  172.20.0.0/24  main     1000    # Addresses assigned by routed OpenVPN server
-206.124.146.176/30 -              Avvanta  26000
-206.124.146.180    -              Avvanta  26000
--                  216.168.3.44   Avvanta  26000   # Avvanta NNTP Server -- verifies source IP address
-#LAST LINE -- ADD YOUR ENTRIES BEFORE THIS ONE -- DO NOT REMOVE</programlisting>
+AUTOMAKE=Yes
 
-    <para>The <filename>/etc/shorewall/rtrules </filename>entries provide all
-    of the provider selection necessary so my
-    <filename>/etc/shorewall/tcrules</filename> file is used exclusively for
-    traffic shaping of the Avvanta line. Note that I still need to provide
-    values in the MARK colum of <filename>/etc/shorewall/providers</filename>
-    because I specify <emphasis role="bold">track</emphasis> on both
-    providers.</para>
+BLACKLISTNEWONLY=Yes
 
-    <para>Here is the output of <command>shorewall show
-    routing</command>:</para>
+...
 
-    <programlisting>Routing Rules
+EXPAND_POLICIES=No
 
-0:     from all lookup local
-1000:  from all to 172.20.0.0/24 lookup main 
-10000: from all fwmark 0x100 lookup Avvanta 
-10001: from all fwmark 0x200 lookup Comcast 
-20256: from 71.227.156.229 lookup Comcast 
-26000: from 206.124.146.176/30 lookup Avvanta 
-26000: from 206.124.146.180 lookup Avvanta 
-26000: from all to 216.168.3.44 lookup Avvanta 
-32766: from all lookup main 
+EXPORTMODULES=Yes
+
+FASTACCEPT=No
+
+..
+
+<emphasis role="bold">KEEP_RT_TABLES=Yes</emphasis> #This is necessary when both IPv4 and IPv6 Multi-ISP are used
+
+LEGACY_FASTSTART=Yes
+
+LOAD_HELPERS_ONLY=Yes
+
+...
+
+MARK_IN_FORWARD_CHAIN=No
+
+MODULE_SUFFIX=ko
+
+MULTICAST=No
+
+MUTEX_TIMEOUT=60
+
+NULL_ROUTE_RFC1918=Yes
+
+OPTIMIZE=31
+
+OPTIMIZE_ACCOUNTING=No
+
+REQUIRE_INTERFACE=No
+
+<emphasis role="bold">RESTORE_DEFAULT_ROUTE=No</emphasis>
+
+RETAIN_ALIASES=No
+
+<emphasis role="bold">ROUTE_FILTER=No</emphasis>
+
+SAVE_IPSETS=
+
+TC_ENABLED=No
+
+TC_EXPERT=No
+
+TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2 2 2"
+
+<emphasis role="bold">TRACK_PROVIDERS=Yes</emphasis>
+
+<emphasis role="bold">USE_DEFAULT_RT=Yes</emphasis>
+
+<emphasis role="bold">USE_PHYSICAL_NAMES=Yes</emphasis>
+
+ZONE2ZONE=-
+
+################################################################################
+#                       P A C K E T  M A R K  L A Y O U T
+################################################################################
+
+TC_BITS=8
+
+<emphasis role="bold">PROVIDER_BITS=2</emphasis>
+
+<emphasis role="bold">PROVIDER_OFFSET=16</emphasis>
+
+MASK_BITS=8
+
+ZONE_BITS=0</programlisting>
+
+      <para>I use USE_DEFAULT_RT=Yes and since there are only two providers,
+      two provider bits are all that are required.</para>
+
+      <para>Here is /etc/shorewall/zones:</para>
+
+      <programlisting>fw              firewall
+loc             ip           #Local Zone
+net             ip           #Internet
+smc:net         ip           #10.0.1.0/24
+vpn             ip           #OpenVPN clients
+dmz             ip           #LXC Containers</programlisting>
+
+      <para><filename>/etc/shorewall/interfaces</filename>:</para>
+
+      <programlisting>#ZONE  INTERFACE   OPTIONS
+loc    INT_IF      dhcp,physical=$INT_IF,required,wait=5,routefilter,nets=172.20.1.0/24
+net    COMB_IF     optional,sourceroute=0,routefilter=0,arp_ignore=1,proxyarp=0,physical=$COMB_IF,upnp,nosmurfs,tcpflags
+net    COMC_IF     optional,sourceroute=0,routefilter=0,arp_ignore=1,proxyarp=0,physical=$COMC_IF,upnp,nosmurfs,tcpflags,dhcp
+vpn    TUN_IF+     physical=tun+,ignore=1
+dmz    br0         routeback,proxyarp=1
+-      lo          ignore</programlisting>
+
+      <para><filename>/etc/shorewall/hosts:</filename></para>
+
+      <programlisting>#ZONE   HOST(S)                                 OPTIONS
+smc     COMB_IF:10.1.10.0/24</programlisting>
+
+      <para><filename>/etc/shorewall/providers</filename>:</para>
+
+      <programlisting>#NAME             NUMBER   MARK    DUPLICATE  INTERFACE	GATEWAY         OPTIONS               COPY
+?if $FALLBACK
+ComcastB          1        0x10000 -          COMB_IF     70.90.191.126 loose,fallback
+ComcastC          2        0x20000 -          COMC_IF     detect        loose,fallback
+?elsif $STATISTICAL
+ComcastB          1        0x10000 -          COMB_IF     70.90.191.126 loose,load=0.66666667
+ComcastC          2        0x20000 -          COMC_IF     detect        loose,load=0.33333333
+?else
+<emphasis role="bold">ComcastB          1        0x10000 -          COMB_IF     70.90.191.126 loose,balance=2
+ComcastC          2        0x20000 -          COMC_IF     detect        loose,balance</emphasis>
+?endif
+?if $PROXY &amp;&amp; ! $SQUID2
+Squid             3        -       -          lo          -             tproxy 
+?endif
+</programlisting>
+
+      <para>Notice that in the current balance mode, as in the STATISTICAL
+      mode, the business line is favored 2:1 over the consumer line.</para>
+
+      <para>Here is <filename>/etc/shorewall/rtrules</filename>:</para>
+
+      <programlisting>#SOURCE             DEST             PROVIDER  PRIORITY
+70.90.191.121       -                ComcastB  1000
+70.90.191.123       -                ComcastB  1000
+&amp;COMC_IF            -                ComcastC  1000
+172.20.1.145        -                ComcastC  1000
+172.20.1.146        -                ComcastC  1000
+br0                 -                ComcastB  11000</programlisting>
+
+      <para>For reference, this configuration generates these routing
+      rules:</para>
+
+      <programlisting>root@gateway:~# ip rule ls
+0:     from all lookup local 
+999:   from all lookup main 
+1000:  from 70.90.191.121 lookup ComcastB 
+1000:  from 70.90.191.123 lookup ComcastB 
+1000:  from 67.170.121.6 lookup ComcastC 
+1000:  from 172.20.1.145 lookup ComcastC 
+1000:  from 172.20.1.146 lookup ComcastC 
+10000: from all fwmark 0x10000/0x30000 lookup ComcastB 
+10001: from all fwmark 0x20000/0x30000 lookup ComcastC 
+11000: from all iif br0 lookup ComcastB 
+32765: from all lookup balance 
 32767: from all lookup default 
+root@gateway:~# </programlisting>
 
-Table Avvanta:
+      <para><filename>/etc/shorewall/tcrules</filename> is not used to support
+      Multi-ISP:</para>
 
-206.124.146.254 dev eth0  scope link  src 206.124.146.176 
-206.124.146.177 dev eth4  scope link 
-172.20.1.0/24 dev eth2  proto kernel  scope link  src 172.20.1.254 
-206.124.146.0/24 dev eth0  proto kernel  scope link  src 206.124.146.176 
-169.254.0.0/16 dev eth0  scope link 
-default via 206.124.146.254 dev eth0  src 206.124.146.176 
+      <programlisting>#MARK                           SOURCE        DEST          PROTO  DEST    SOURCE  
+#                                                                  PORT(S) PORT(S)
+FORMAT 2
+TTL(+1):P                       INT_IF        -
+SAME:P                          INT_IF        -             tcp    80,443
+?if $PROXY &amp;&amp; ! $SQUID2
+   DIVERT                       COMB_IF       -             tcp    -       80
+   DIVERT                       COMC_IF       -             tcp    -       80
+   DIVERT                       br0           172.20.1.0/24 tcp    -       80
+   TPROXY(3129,172.20.1.254)    INT_IF        -             tcp    80
+   ?if $PROXYDMZ
+      TPROXY(3129,172.20.1.254) br0           -             tcp    80
+   ?endif
+?endof
+</programlisting>
+    </section>
 
-Table Comcast:
+    <section>
+      <title>IPv6 Configuration</title>
 
-206.124.146.177 dev eth4  scope link 
-71.227.156.1 dev eth3  scope link  src 71.227.156.229 
-172.20.1.0/24 dev eth2  proto kernel  scope link  src 172.20.1.254 
-71.227.156.0/23 dev eth3  proto kernel  scope link  src 71.227.156.229 
-default via 71.227.156.1 dev eth3  src 71.227.156.229 
+      <para>The IPv6 configuration has two separate sub-nets, both services
+      through 6in4 tunnels from <ulink
+      url="http://tunnelbroker.he.net">Hurricane Electric</ulink>. They are
+      both configured through the Business IPv4 uplink. I originally had the
+      sit2 tunnel configured through the consumer uplink but Comcast (Xfinity)
+      decided to start blocking HE IPv6 tunnels on their consumer network,
+      preferring their own 6to4 IPv6 solution.</para>
 
-Table default:
+      <para>One HE tunnel handles the servers and one tunnel handles the local
+      network.</para>
 
-default via 206.124.146.254 dev eth0 metric 1
+      <para>Here are the key entries in
+      <filename>/etc/shorewall6/shorewall6.conf</filename>:</para>
 
-Table local:
+      <programlisting>###############################################################################
+#                      F I R E W A L L  O P T I O N S
+###############################################################################
 
-broadcast 127.255.255.255 dev lo  proto kernel  scope link  src 127.0.0.1 
-broadcast 172.20.1.0 dev eth2  proto kernel  scope link  src 172.20.1.254 
-broadcast 206.124.146.255 dev eth0  proto kernel  scope link  src 206.124.146.176 
-local 206.124.146.179 dev eth0  proto kernel  scope host  src 206.124.146.176 
-local 206.124.146.178 dev eth0  proto kernel  scope host  src 206.124.146.176 
-local 206.124.146.176 dev eth0  proto kernel  scope host  src 206.124.146.176 
-local 206.124.146.176 dev eth4  proto kernel  scope host  src 206.124.146.176 
-broadcast 71.227.157.255 dev eth3  proto kernel  scope link  src 71.227.156.229 
-broadcast 71.227.156.0 dev eth3  proto kernel  scope link  src 71.227.156.229 
-local 172.20.1.254 dev eth2  proto kernel  scope host  src 172.20.1.254 
-local 127.0.0.2 dev lo  proto kernel  scope host  src 127.0.0.1 
-broadcast 172.20.1.255 dev eth2  proto kernel  scope link  src 172.20.1.254 
-local 71.227.156.229 dev eth3  proto kernel  scope host  src 71.227.156.229 
-broadcast 206.124.146.0 dev eth0  proto kernel  scope link  src 206.124.146.176 
-broadcast 127.0.0.0 dev lo  proto kernel  scope link  src 127.0.0.1 
-local 206.124.146.180 dev eth0  proto kernel  scope host  src 206.124.146.176 
-local 127.0.0.1 dev lo  proto kernel  scope host  src 127.0.0.1 
-local 127.0.0.0/8 dev lo  proto kernel  scope host  src 127.0.0.1 
+...
 
-Table main:
+FASTACCEPT=No
 
-206.124.146.177 dev eth4  scope link 
-172.20.1.0/24 dev eth2  proto kernel  scope link  src 172.20.1.254 
-206.124.146.0/24 dev eth0  proto kernel  scope link  src 206.124.146.176 
-71.227.156.0/23 dev eth3  proto kernel  scope link  src 71.227.156.229 
-169.254.0.0/16 dev eth0  scope link 
-127.0.0.0/8 dev lo  scope link 
-default via 71.227.156.1 dev eth3 </programlisting>
+FORWARD_CLEAR_MARK=Yes
 
-    <para><filename>/etc/shorewall/interfaces</filename>:</para>
+IMPLICIT_CONTINUE=No
 
-    <programlisting>#ZONE    INTERFACE         BROADCAST           OPTIONS
-loc      eth2              detect              dhcp,routeback
-dmz      eth4              detect
-net      eth0              detect              dhcp,blacklist,tcpflags,optional
-net      eth3              detect              dhcp,blacklist,tcpflags,optional
-#LAST LINE -- ADD YOUR ENTRIES BEFORE THIS ONE -- DO NOT REMOVE</programlisting>
+<emphasis role="bold">IP_FORWARDING=Keep</emphasis>
 
-    <para><filename>/etc/shorewall/masq</filename>:</para>
+<emphasis role="bold">KEEP_RT_TABLES=Yes</emphasis> #Required when both IPv4 and IPv6 Multi-ISP are used
 
-    <programlisting>#INTERFACE   SOURCE           ADDRESS      PROTO      PORT(S)      IPSEC
+...
 
-COMMENT Masquerade Local Network
-eth3         0.0.0.0/0
-eth0        !206.124.146.0/24 206.124.146.179
+TRACK_PROVIDERS=No
 
-#LAST LINE -- ADD YOUR ENTRIES ABOVE THIS LINE -- DO NOT REMOVE</programlisting>
+<emphasis role="bold">USE_DEFAULT_RT=Yes</emphasis>
 
-    <para>All traffic leaving eth3 must use the dynamic IP address assigned to
-    that interface as the SOURCE address. All traffic leaving eth0 that does
-    not have a SOURCE address falling within the Avvanta subnet
-    (206.124.146.0/24) must have its SOURCE address changed to
-    206.124.146.179.</para>
+ZONE2ZONE=-
+
+...
+
+################################################################################
+#                      P A C K E T  M A R K  L A Y O U T
+################################################################################
+
+TC_BITS=8
+
+PROVIDER_BITS=8
+
+PROVIDER_OFFSET=8
+
+MASK_BITS=8
+
+ZONE_BITS=0
+</programlisting>
+
+      <para>Here is <filename>/etc/shorewall6/zones</filename>:</para>
+
+      <programlisting>#ZONE   TYPE    OPTIONS
+fw      firewall
+net     ipv6
+loc     ipv6
+dmz     ipv6</programlisting>
+
+      <para><filename>/etc/shorewall/interfaces</filename>:</para>
+
+      <programlisting>#ZONE   INTERFACE       OPTIONS
+net     sit1            forward=1,sfilter=2001:470:b:227::40/124,optional
+net     sit2            forward=1,sfilter=2001:470:b:227::40/124,optional
+net     sit3            forward=1,sfilter=2001:470:b:227::40/124,optional
+loc     eth2            forward=1
+dmz     br0             routeback,forward=1,required</programlisting>
+
+      <para><filename>/etc/shorewall/providers</filename>:</para>
+
+      <programlisting>#NAME   NUMBER    MARK    DUPLICATE   INTERFACE GATEWAY                OPTIONS            COPY
+LOC     4        0x100    -           sit2      -                      track,balance,loose
+DMZ     5        0x200    -           sit1      -                      track,fallback,loose
+6to4    6        0x300    -           sit3      ::192.88.99.1          track,fallback,loose</programlisting>
+
+      <para>Notice that the provider numbers are disjoint from those in the
+      IPv4 configuration. This allows for unique provider names in
+      <filename>/etc/iproute2/rt_tables</filename>:</para>
+
+      <programlisting>#
+# reserved values
+#
+255     local
+254     main
+253     default
+250     balance
+0       unspec
+#
+# local
+#
+1       ComcastB
+2       ComcastC
+3       TProxy
+4       LOC
+5       DMZ
+6       6to4</programlisting>
+
+      <para>The <filename>/etc/shorewall6/rtrules</filename> file is
+      straight-forward:</para>
+
+      <programlisting>#SOURCE                DEST                     PROVIDER             PRIORITY
+2001:470:B:227::1/64   ::/0                     DMZ                  11000
+2001:470:B:787::1/64   ::/0                     LOC                  11000
+2002:465a:bf79::1/64   ::/0                     6to4                 11000</programlisting>
+
+      <para>This results in the following routing rules:</para>
+
+      <programlisting>root@gateway:~# <command>ip -6 rule ls</command>
+0:     from all lookup local 
+999:   from all lookup main 
+10003: from all fwmark 0x100/0xff00 lookup LOC 
+10004: from all fwmark 0x200/0xff00 lookup DMZ 
+10005: from all fwmark 0x300/0xff00 lookup 6to4 
+11000: from 2001:470:b:787::1/64 lookup LOC 
+11000: from 2001:470:b:227::1/64 lookup DMZ 
+11000: from 2002:465a:bf79::1/64 lookup 6to4 
+32765: from all lookup balance 
+32767: from all lookup default 
+root@gateway:~# </programlisting>
+    </section>
   </section>
 </article>
