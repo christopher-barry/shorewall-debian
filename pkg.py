@@ -27,6 +27,7 @@
 ###############################################################################
 
 import sys, os, re, getopt
+from distutils.version import StrictVersion
 # For manipulating the Git repo programmatically with git-buildpackage
 from gbp.git import GitRepository
 from gbp.deb import parse_changelog
@@ -250,7 +251,7 @@ if op == 'import':
     latest_ver = latest_tag.split('/')[2]
     if verbose: print "Searching branch: %s" % this_branch
     if verbose: print "Found tag: %s" % latest_tag
-    if pkg_ver <= latest_ver:
+    if StrictVersion(pkg_ver) <= StrictVersion(latest_ver):
         print "Unable to import %s!" % name_parts[-1]
         print "Version %s is less than or equal to %s." % (pkg_ver, latest_ver)
         sys.exit(1)
