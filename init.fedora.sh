@@ -14,13 +14,8 @@
 #                    prior to bringing up the network.  
 ### END INIT INFO
 #determine where the files were installed
-if [ -f ~/.shorewallrc ]; then
-    . ~/.shorewallrc || exit 1
-else
-    SBINDIR=/sbin
-    SYSCONFDIR=/etc/default
-    VARDIR=/var/lib
-fi
+
+. /usr/share/shorewall/shorewallrc
 
 prog="shorewall-init"
 logger="logger -i -t $prog"
@@ -28,6 +23,8 @@ lockfile="/var/lock/subsys/shorewall-init"
 
 # Source function library.
 . /etc/rc.d/init.d/functions
+
+vardir=$VARDIR
 
 # Get startup options (override default)
 OPTIONS=
@@ -40,9 +37,25 @@ else
     exit 6
 fi
 
+# set the STATEDIR variable
+setstatedir() {
+    local statedir
+    if [ -f ${CONFDIR}/${PRODUCT}/vardir ]; then
+	statedir=$( . /${CONFDIR}/${PRODUCT}/vardir && echo $VARDIR )
+    fi
+
+    [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARDIR}/${PRODUCT}
+
+    if [ ! -x $STATEDIR/firewall ]; then
+	if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+	    ${SBINDIR}/$PRODUCT compile
+	fi
+    fi
+}
+
 # Initialize the firewall
 start () {
-    local product
+    local PRODUCT
     local vardir
 
     if [ -z "$PRODUCTS" ]; then
@@ -52,11 +65,19 @@ start () {
     fi
 
     echo -n "Initializing \"Shorewall-based firewalls\": "
-    for product in $PRODUCTS; do
-	if [ -x ${VARDIR}/$product/firewall ]; then
-	    ${VARDIR}/$product/firewall stop 2>&1 | $logger
+    for PRODUCT in $PRODUCTS; do
+	setstatedir
+
+	if [ ! -x ${VARDIR}/firewall ]; then
+	    if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+		${SBINDIR}/$PRODUCT compile
+	    fi
+	fi
+
+	if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
+	    ${VARDIR}/$PRODUCT/firewall stop 2>&1 | $logger
 	    retval=${PIPESTATUS[0]}
-	    [ retval -ne 0 ] && break
+	    [ $retval -ne 0 ] && break
 	fi
     done
 
@@ -72,15 +93,23 @@ start () {
 
 # Clear the firewall
 stop () {
-    local product
+    local PRODUCT
     local vardir
 
     echo -n "Clearing \"Shorewall-based firewalls\": "
-    for product in $PRODUCTS; do
-	if [ -x ${VARDIR}/$product/firewall ]; then
-	    ${VARDIR}/$product/firewall clear 2>&1 | $logger
+    for PRODUCT in $PRODUCTS; do
+	setstatedir
+
+	if [ ! -x ${VARDIR}/firewall ]; then
+	    if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+		${SBINDIR}/$PRODUCT compile
+	    fi
+	fi
+
+	if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
+	    ${VARDIR}/$PRODUCT/firewall clear 2>&1 | $logger
 	    retval=${PIPESTATUS[0]}
-	    [ retval -ne 0 ] && break
+	    [ $retval -ne 0 ] && break
 	fi
     done
 
@@ -107,19 +136,15 @@ case "$1" in
 	status_q || exit 0
 	$1
 	;;
-    restart|reload|force-reload)
+    restart|reload|force-reload|condrestart|try-restart)
 	echo "Not implemented"
 	exit 3
 	;;
-    condrestart|try-restart)
-	echo "Not implemented"
-	exit 3
-        ;;
     status)
 	status $prog
 	;;
   *)
-	echo "Usage: /etc/init.d/shorewall-init {start|stop}"
+	echo "Usage: /etc/init.d/shorewall-init {start|stop|status}"
 	exit 1
 esac
 

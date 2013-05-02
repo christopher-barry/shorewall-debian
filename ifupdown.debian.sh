@@ -1,10 +1,10 @@
 #!/bin/sh
 #
-# ifupdown script for Shorewall-based products
+# Debian ifupdown script for Shorewall-based products
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2010 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2010,2013 - Tom Eastep (teastep@shorewall.net)
 #
 #       Shorewall documentation is available at http://shorewall.net
 #
@@ -22,7 +22,22 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-Debian_SuSE_ppp() {
+setstatedir() {
+    local statedir
+    if [ -f ${CONFDIR}/${PRODUCT}/vardir ]; then
+	statedir=$( . /${CONFDIR}/${PRODUCT}/vardir && echo $VARDIR )
+    fi
+
+    [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARDIR}/${PRODUCT}
+
+    if [ ! -x $STATEDIR/firewall ]; then
+	if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+	    ${SBINDIR}/$PRODUCT compile
+	fi
+    fi
+}
+
+Debian_ppp() {
     NEWPRODUCTS=
     INTERFACE="$1"
 
@@ -84,111 +99,36 @@ fi
 
 [ "$IFUPDOWN" = 1 -a -n "$PRODUCTS" ] || exit 0
 
-if [ -f /etc/debian_version ]; then
-    case $0 in
-	/etc/ppp*)
-	    #
-	    # Debian ppp
-	    #
-	    Debian_SuSE_ppp
-	    ;;
-	
-	*)
-            #
-            # Debian ifupdown system
-            #
-	    INTERFACE="$IFACE"
+case $0 in
+    /etc/ppp*)
+	#
+	# Debian ppp
+	#
+	Debian_ppp
+	;;
+    *)
+        #
+        # Debian ifupdown system
+        #
+	INTERFACE="$IFACE"
 
-	    if [ "$MODE" = start ]; then
-		COMMAND=up
-	    elif [ "$MODE" = stop ]; then
-		COMMAND=down
-	    else
-		exit 0
-	    fi
-	    ;;
-    esac
-elif [ -f /etc/SuSE-release ]; then
-    PHASE=''
-
-    case $0 in
-	/etc/ppp*)
-	    #
-	    # SUSE ppp
-	    #
-	    Debian_SuSE_ppp
-	    ;;
-	
-	*)
-            #
-            # SuSE ifupdown system
-            #
-	    INTERFACE="$2"
-
-	    case $0 in
-		*if-up.d*)
-		    COMMAND=up
-		    ;;
-		*if-down.d*)
-		    COMMAND=down
-		    ;;
-		*)
-		    exit 0
-		    ;;
-	    esac
-	    ;;
-    esac
-else
-    #
-    # Assume RedHat/Fedora/CentOS/Foobar/...
-    #
-    PHASE=''
-
-    case $0 in
-	/etc/ppp*)
-	    INTERFACE="$1"
-
-	    case $0 in
-		*ip-up.local)
-		    COMMAND=up
-		    ;;
-		*ip-down.local)
-		    COMMAND=down
-		    ;;
-		*)
-		    exit 0
-		    ;;
-	    esac
-	    ;;
-	*)
-	    #
-	    # RedHat ifup/down system
-	    #
-	    INTERFACE="$1"
-    
-	    case $0 in 
-		*ifup*)
-		    COMMAND=up
-		    ;;
-		*ifdown*)
-		    COMMAND=down
-		    ;;
-		*dispatcher.d*)
-		    COMMAND="$2"
-		    ;;
-		*)
-		    exit 0
-		    ;;
-	    esac
-	    ;;
-    esac
-fi
+	if [ "$MODE" = start ]; then
+	    COMMAND=up
+	elif [ "$MODE" = stop ]; then
+	    COMMAND=down
+	else
+	    exit 0
+	fi
+	;;
+esac
 
 [ -n "$LOGFILE" ] || LOGFILE=/dev/null
 
 for PRODUCT in $PRODUCTS; do
-    if [ -x $VARDIR/$PRODUCT/firewall ]; then
-	  ( ${VARDIR}/$PRODUCT/firewall -V0 $COMMAND $INTERFACE >> $LOGFILE 2>&1 ) || true
+    setstatedir
+
+    if [ -x $VARLIB/$PRODUCT/firewall ]; then
+	  ( ${VARLIB}/$PRODUCT/firewall -V0 $COMMAND $INTERFACE >> $LOGFILE 2>&1 ) || true
     fi
 done
 
