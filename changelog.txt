@@ -1,24 +1,846 @@
-Changes in 4.5.5.3
+Changes in 4.5.16.1
 
-1)  Correct a Perl trap caused by using logical names with 'classify'.
+1)  Update release documents.
 
-2)  Ensure that exclusion chains always have the 'DONT_MOVE' flag set.
+2)  Correct handling of helpers when CT_TARGET is available.
 
-Changes in 4.5.5.2
+Changes in 4.5.16 Final
 
-1)  Allow UID/GID ranges in the USER/GROUP column (undocumented)
+1)  Update release documents.
 
-2)  Don't use '--ctmark' when saving marks.
+2)  Apply Mr-4's patch.
 
-3)  Display PROXY_MARK in 'show marks'.
+3)  Document @caller.
 
-4)  Another fix for nested ?IFs
+Changes in 4.5.16 RC 1
 
-Changes in 4.5.5.1
+1)  Update release documents.
 
-1)  Fix handling of multiple fallback providers.
+2)  Update blrules manpage.
 
-2)  Allow logical device names in the REDIRECTED column.
+3)  Allow special characters in nfacct names.
+
+4)  Update TPROXY article.
+
+5)  Centralize validation of nfacct object names.
+
+
+Changes in 4.5.16 RC 2
+
+1)  Update release documents.
+
+2)  Documentation tweaks.
+
+3)  Centralize verification and registration of nfacct objects.
+
+4)  Correct INLINE in tcrules and accounting.
+
+Changes in 4.5.16 RC 1
+
+1)  Update release documents.
+
+2)  Added CHAIN_SCRIPTS option.
+
+3)  Add INLINE to the tcrules file.
+
+4)  Apply Mr-4's NFACCT patch.
+
+Changes in 4.5.16 Beta 6
+
+1)  Update release documents.
+
+2)  Add INLINE to the accounting file.
+
+Changes in 4.5.16 Beta 5
+
+1)  Update release documents.
+
+2)  Preserve order when multiple instances of the same match are not
+    adjacent.
+
+3)  Support 'HELPERS=none'.
+
+4)  Allow multiple nfacct objects in one rule.
+
+5)  Allow an nfacct object to be incremented when an ipset is matched.
+
+Changes in 4.5.16 Beta 4
+
+1)  Update release documents.
+
+2)  Preserve match order in rules.
+
+Changes in 4.5.16 Beta 3
+
+1)  Update release documents.
+
+2)  Correct generation of the blacklog chain when disposition is
+    audited.
+
+3)  Correct handling of MACLIST_DISPOSITION with MACLIST_TABLE=mangle.
+
+4)  Re-implement INLINE.
+
+Changes in 4.5.16 Beta 2
+
+1)  Update release documents.
+
+2)  Add INLINE action.
+
+3)  Add NEW_TOS_MATCH capability.
+
+Changes in 4.5.16 Beta 1
+
+1)  Update release documents.
+
+2)  Don't emit quantum calculations for hfsc qdiscs.
+
+3)  Add two new macros.
+
+Changes in 4.5.16 Beta 1
+
+1)  Update release documents.
+
+2)  Add the ra_accept interface option for IPv6.
+
+Changes in 4.5.15 Final.
+
+1)  Update release documents.
+
+Changes in 4.5.15 Final.
+
+1)  Update release documents.
+
+2)  Apply Thibaut Chèze's fix for DSCP.
+
+3)  Correct range test in do_dscp().
+
+Changes in 4.5.15 RC 1.
+
+1)  Update release documents.
+
+2)  Revert back to using 'add' for adding routes.
+
+3)  Initialize the 'id' field of reserved tables after .conf is
+    processed.
+
+4)  Additional uses of 'id' in place of 'number'.
+
+Changes in 4.5.15 Beta 3.
+
+1)  Update release documents.
+
+2)  Don't use 'qt' in the undo_x_routing files.
+
+3)  Use 'replace' in IPv4 route rules rather than 'add'.
+
+4)  Detect duplicate route destinations.
+
+5)  Uniform handling of VLSM width.
+
+6)  Add USE_RT_NAMES option.
+
+Changes in 4.5.15 Beta 2.
+
+1)  Update release documents.
+
+2)  Make NetworkManager up/down work with Shorewall Init on SuSE.
+
+Changes in 4.5.15 Beta 1.
+
+1)  Update release documents.
+
+2)  Fix the Shorewall[6] installer WRT the routes and tcstart files.
+
+3)  Fix the Shoreawll-init installer WRT Redhat and derivatives.
+
+4)  Make the 'ifupdown' script distribution-specific.
+
+Changes in 4.5.14 Final.
+
+1)  Update release documents.
+
+2)  Merge '-m multiport --ports' patch from master.
+
+Changes in 4.5.14 RC 2.
+
+1)  Update release documents.
+
+2)  Detect ALL and NIL server addresses in DNAT rules.
+
+3)  Avoid duplicate 'echo' commands in generated script.
+
+4)  Remove duplicate interface names in generated case statement
+
+5)  Copy blackhole routes to secondary tables
+
+6)  Allow addition of blackhole routes.
+
+Changes in 4.5.14 RC 1.
+
+1)  Update release documents.
+
+2)  Fix several bugs reported by Steven Springl.
+
+3)  Support IPv6 MASQUERADE.
+
+4)  Support ports to be specified with UDPLITE.
+
+5)  Correct SUBSYSLOCK setting in shorewall6.conf.
+
+Changes in 4.5.14 Beta 3.
+
+1)  Update release documents.
+
+2)  Report used/required capabilities.
+
+3)  Simple SNAT and DNAT.
+
+4)  Rework load/reload/export commands.
+
+Changes in 4.5.14 Beta 2.
+
+1)  Update release documents.
+
+2)  Remote outdated comments from the configpath file.
+
+3)  Fix another bug in IPv6 address list processing.
+
+4)  Unify the error reporting about the params and .conf files.
+
+5)  Correct a syntax error in uninstall.sh.
+
+6)  Make load, reload and export shorewallrc-aware.
+
+7)  Correct the configpath files.
+
+8)  Eliminate $globals{CONFDIR}
+
+9)  Save/use local SHAREDIR in reload_command()
+
+10) Defer calling get_config() during 'update'.
+
+11) Give address-family-specific help text for 'iptrace'
+
+12) Remove macros during uninstall.
+
+Changes in 4.5.14 Beta 1.
+
+1)  Update release documents.
+
+2)  Create separate chains for ESTABLISHED section rules.
+
+3)  Add a section => name-function map.
+
+4)  Only look in the specified directory for params file.
+
+5)  Add a section => state(s) map.
+
+6)  Correct IPv6 address list handling.
+
+7)  Rename BLACKLIST_LOGLEVEL to BLACKLIST_LOG_LEVEL.
+
+Changes in 4.5.13 Final.
+
+1)  Update release documents.
+
+2)  Correct action.TCPFlags.
+
+3)  Allow parameters to be omitted in action invocations.
+
+4)  Fix reset_optflags().
+
+5)  Correct handling of numbers in simple arithmetic expressions.
+
+6)  Correct inline default actions with parameters.
+
+Changes in 4.5.13 RC 3.
+
+1)  Update release documents.
+
+2)  Handle RETURN correctly in a state chain.
+
+3)  Correct a syntax error in action.Untracked.
+
+4)  Remove cruft from two action files.
+
+5)  Use -j unconditionally to branch to a state chain/disposition.
+
+6)  More tweaks in check_state().
+
+7)  Convert the legacy dropInvalid and allowInvalid actions to inline
+    actions.
+
+Changes in 4.5.13 RC 2.
+
+1)  Update release documents.
+
+2)  Fix the state action.* files.
+
+3)  Correct state rule generation and rule combining.
+
+Changes in 4.5.13 RC 1.
+
+1)  Update release documents.
+
+2)  Apply Evangelos Foutras's Arch Linux patches.
+
+3)  Remove requirement that the $state argument ends with a space.
+
+4)  Update Shorewall6 actions.std
+
+5)  Allow specification of the action type via perl_action_helper().
+
+6)  Simplify Perl actions even further.
+
+7)  Correct handling of audited dispositions.
+
+8)  Detect some state conflicts.
+
+9)  Add New action.
+
+10) Delete imports of process_rule1.
+
+11) Correct behavior when @chain is altered.
+
+12) Documentation clarifications.
+
+13) Handle port numbers passed to the tcp-specific actions.
+
+14) Fix handling of normal actions in perl_action_tcp_helper().
+
+15) Handle UNTRACKED_DISPOSITION=ACCEPT correctly.
+
+Changes in 4.5.13 Beta 4.
+
+1)  Update release documents.
+
+2)  Update module version.
+
+3)  Favor shorter less-complex chain names in Optimize 8.
+
+4)  Handle chains ending with RETURN in Optimize 4.
+
+5)  Call handle_first_entry() before issuing a warning or error
+    message.
+
+6)  Allow inline actions to use BEGIN PERL .... END PERL
+
+7)  Make some of the standard actions inlined.
+
+8)  Replace BLACKLISTNEWONLY with BLACKLIST
+
+Changes in 4.5.13 Beta 3.
+
+1)  Update release documents.
+
+2)  Correct chain completion.
+
+3)  Correct handling of audited RELATED_DISPOSITION
+
+4)  Make optimize 8 a multi-pass operation.
+
+5)  Implement the INVALID and NOTRACK rules sections.
+
+Changes in 4.5.13 Beta 2.
+
+1)  Update release documents.
+
+2)  Allow RESET of Shorewall variables.
+
+3)  Fix use of Shorewall variables in a default action.
+
+Changes in 4.5.13 Beta 2.
+
+1)  Update release documents.
+
+2)  Add DEFER_DNS_RESOLUTION configuration option.
+
+3)  Make Shorewall variables writable and use them to generate the log
+    prefix.
+
+Changes in 4.5.12 RC 1
+
+1)  Update release documents.
+
+2)  Fix an old optimizer bug.
+
+3)  Avoid fatal Perl run-time error if an error is raised while
+    compiling a default action.
+
+4)  Correct handling of rules in the ESTABLISHED section.
+
+5)  Restore the ability to use DNS names without an interface name.
+
+Changes in 4.5.12 Beta 5
+
+1)  Update release documents.
+
+2)  Support protocol lists in most files.
+
+3)  Detect and optimize for terminating rules.
+
+4)  Make CLEAR_TC work on interfaces with an @xxxxx suffix in their
+    names.
+
+Changes in 4.5.12 Beta 4
+
+1)  Update release documents.
+
+2)  Fix a lot of bugs in arptables support
+
+3)  Make '+' optional in the ADD and deL statements.
+
+4)  Don't add --cstate to dropInvalid rule
+
+5)  Make inline actions work in sections other than NEW
+
+6)  Change the interpretation of the log tag when LOGTAGONLY=Yes
+
+7)  Generate error when a protocol list appears in the wrong context.
+
+Changes in 4.5.12 Beta 3
+
+1)  Merge defect repair from 4.5.11.2
+
+2)  Correct two defects in 'update -D'.
+
+3)  Add arptables support
+
+Changes in 4.5.12 Beta 2
+
+1)  Update release documents.
+
+2)  Avoid invalid function names involving optional interfaces (from
+    4.5.11.1).
+
+3)  Correct handling of wildcards whose root matches another interface.
+
+4)  Add support for fq_codel.
+
+Changes in 4.5.12 Beta 1
+
+1)  Update release documents.
+
+2)  Add the xtables-addons modules to modules.xtables.
+
+3)  Add the 'WARNOLDCAPVERSION' option.
+
+4)  Finish centralizing the handling of 'COMMENT' and 'FORMAT'.
+
+5)  Ignore COMMENTs when deleting duplicate rules.
+
+Changes in 4.5.11 Final
+
+1)  Update release documents
+
+2)  Update Perl module versions.
+
+3)  Make all module-global variables 'our' to aid debugging.
+
+Changes in 4.5.11 RC 1
+
+1)  update -D
+
+Changes in 4.5.11 Beta 3
+
+1)  Implement user-defined address variables.
+
+2)  Sort output of 'show capabilities'.
+
+3)  ?FORMAT and ?COMMENT
+
+Changes in 4.5.11 Beta 2
+
+1)  Update release documents.
+
+2)  Implement @-variables.
+
+3)  Rename ALLOWUNKNOWNVARIABLES to IGNOREUNKNOWNVARIABLES.
+
+4)  Make $chain (@chain) a synonym for $0 ($0).
+
+Changes in 4.5.11 Beta 1
+
+1)  Add ${loglevel} and ${logtag} as variables visible within actions.
+
+2)  Add 'nolog' action option.
+
+3)  Create a symbol table to hold all non-action shell variables.
+
+4)  Implement ?set and ?reset
+
+Changes in 4.5.10 Final
+
+1)  Update release documents.
+
+Changes in 4.5.10 RC 1
+
+1)  Change '@' substitution to '@0' (${0}'.
+
+2)  Disallow leading '0' in action parameter numbers.
+
+3)  Eliminate the need for functions called by
+    Shorewall::Compiler::generate_script_3 to have knowledge of the
+    current script file indentation.
+
+4)  Copy the temporary script to $VARDIR/$PRODUCT/firewall before
+    running the 'started' script.
+
+5)  Ignore 'inline' on certain actions.
+
+6)  Only initialize switches that survived optimization.
+
+7)  Be more agressive about detecting action recursion.
+
+8)  Support passing log levels inside parameters.
+
+9)  Fix AUTOCOMMENT=No
+
+10) Delete duplicate rules in tables
+
+Changes in 4.5.10 Beta 3
+
+1)  Update release documents.
+
+2)  Inherit 'tag' from macro/action invocation.
+
+3)  Correct NFLOG/ULOG documentation.
+
+4)  Another optimizer bug fixed.
+
+5)  Multiple parameter support for macros.
+
+6)  $0 expands to current action chain name.
+
+7)  Replace '@' by chain name in SWITCH contents.
+
+8)  Add in-line actions.
+
+9)  Add switch initialization.
+
+10) Allowing inline override on Standard Actions.
+
+Changes in 4.5.10 Beta 2
+
+1)  Update release documents.
+
+2)  New macro expansion capability.
+
+3)  Add NFLOG and ULOG macros.
+
+4)  Add UNTRACKED match to the secmarks file.
+
+5)  Add DROP target to the conntrack file.
+
+6)  Remove references to USE_ACTIONS
+
+7)  Allow macros to be used as default actions.
+
+8)  Correct the compiler's CHECKSUM detection
+
+9)  Don't generate start/stop functions for wildcard optional
+    interfaces.
+
+10) Apply Tuomo Soini's fix for RHEL5
+
+11) Improve handling of 'all' in the conntrack file.
+
+12) Add SWITCH column to the conntrack file.
+
+13) Add AUDIT built-in
+
+14) Support audited targets on IPv6.
+
+Changes in 4.5.10 Beta 1
+
+1)  Update release documents.
+
+2)  Treat optional interfaces as pseudo-providers.
+
+3)  New macro expansion capability.
+
+4)  Add NFLOG and ULOG macros.
+
+Changes in 4.5.9.2
+
+1)  Update release documents.
+
+2)  Add mask to routemark rules.
+
+3)  Document TPROXY gotcha.
+
+4)  Make exclusion work with TPROXY.
+
+Changes in 4.5.9.1
+
+1)  Update release documents.
+
+2)  Correct handling of wildcard interfaces in rules.
+
+3)  Correct shorewall-masq(5).
+
+4)  Remove spurious warning message.
+
+5)  Don't default IPSET to 'ipset'
+
+Changes in 4.5.9 Final
+
+1)  Update release documents.
+
+2)  Small wording change in the release notes description of CHECKSUM.
+    The text copied from iptables(8) didn't read quite right. 
+
+Changes in 4.5.9 RC 1
+
+1)  Update release documents.
+
+2)  Add Terado Macro (Paul Gear).
+
+3)  Don't display naked chain heading when -b
+
+4)  Add CHECKSUM action in tcrules.
+
+5)  Sort IPv6 routing tables
+
+6)  Allow mark range in /etc/shorewall/tcrules.
+
+Changes in 4.5.9 Beta 3
+
+1)  Update release documents.
+
+2)  Apply Paul Gear's typo correction
+
+3)  Add Pupet Macro (Paul Gear).
+
+4)  Don't shout in compiler directives in lib.core.
+
+5)  Don't include IPv6-specific code in the IPv4 checkkernelversion()
+    function.
+
+6)  Rename crvsn -> vlsm in sort_routes() (lib.core)
+
+7)  Add the Shorewall Logging URL to the "Log doesn't exist" message.
+
+8)  Correct a typo in a comment in get_params()
+
+9)  Allow quotes in paremeter to run_iptables()
+
+10) Correct error messages in action.RST.
+
+11) Apply Paul Gear's '-b' option patchset.
+
+Changes in 4.5.9 Beta 2
+
+1)  Update release documents.
+
+2)  More 'show dynamic fixes'
+
+3)  Implement 'dynamic_shared' zone option.
+
+4)  Implement RESTORE_ROUTEMARKS option in shorewall[6].conf.
+
+Changes in 4.5.9 Beta 1
+
+1)  Update release documents.
+
+2)  Allow [...]/vlsm for IPv6 Nets.
+
+3)  Don't suppress '-' in generated ipset names.
+
+4)  Expunge some of the g_* variables.
+
+Changes in 4.5.8 Final.
+
+1)  Update release documents.
+
+Changes in 4.5.8 RC 2
+
+1)  Update release documents.
+
+2)  Minor updates to the manpages.
+
+3)  Update rc file during shorewall-core install.
+
+4)  Disallow ':' as the contents of a USER/GROUP column.
+
+Changes in 4.5.8 RC 1
+
+1)  Add PRIORITY column to the tcfilters file.
+
+2)  Add capability to adjust priority of Shorewall-generated filters.
+
+3)  Don't require PRIORITY in HFSC classes.
+
+4)  Assign sequential priorities to filters.
+
+Changes in 4.5.8 Beta 3
+
+1)  Don't process routestopped if stoppedrules is non-empty
+
+2)  Correct handling of -e with a directory name specified
+
+3)  Simplify handling of export rc file.
+
+4)  Add support for multiple UID/GIDs in a rule.
+
+Changes in 4.5.8 Beta 2
+
+1)  Pass both shorewallrc file name from lib.cli-std to compiler.pl
+
+2)  Correct PRODUCT handling in rpm-generated configurations.
+
+3)  Make ./firewall the default script when 'compile -e'
+
+Changes in 4.5.8 Beta 1
+
+1)  Update Release Documents.
+
+2)  HELPER column in the rules file.
+
+3)  Macros specify HELPER
+
+4)  Add VARLIB
+
+5)  Fix handling of different admin/firewall configurations.
+
+6)  Include "." in CONFIG_PATH when compiling for export.
+
+Changes in 4.5.7 Final
+
+1)  Update Release Documents.
+
+2)  Downcase conditional directives in the conntrack files.
+
+3)  Adjust reference counts in the new opt level 4 logic.
+
+4)  Correct 'enable' of ppp devices.
+
+5)  Don't combine rules that specify -m policy
+
+6)  Eliminate hard-wired directory paths in the installers.
+
+7)  Workaround for silly RHEL bug.
+
+Changes in 4.5.7 RC 2
+
+1)  Update Release Documents.
+
+2)  Merge content previously scheduled for 4.5.8.
+
+3)  Add HELPER action.
+
+Changes in 4.5.7 RC 1
+
+1)  Update Release Documents.
+
+2)  Handle CT/NOTRACK rules from vserver zones.
+
+3)  Make conditional directives case insensitive.
+
+Changes in 4.5.7 Beta 5
+
+1)  Update Release Documents.
+
+2)  Factor out ?IF __CT_TARGET tests in the conntrack files.
+
+3)  Correctly handle disabled helpers in pre-3.5 kernels.
+
+Changes in 4.5.7 Beta 4
+
+1)  Update Release Documents.
+
+2)  Fix 'netbios-ns' detection in the CLIs.
+
+3)  Replace list separator in 'helper' specs.
+
+Changes in 4.5.7 Beta 3
+
+1)  Update Release Documents.
+
+2)  Rename the notrack file to conntrack
+
+3)  Rename the AUTO_COMMENT option to AUTOCOMMENT
+
+4)  Add HELPERS option
+
+5)  Redesign the CT:helper feature.
+
+Changes in 4.5.7 Beta 2
+
+1)  Update Release Documents.
+
+2)  Add support for nfacct.
+
+Changes in 4.5.7 Beta 1
+
+1)  Update Release Documents
+
+2)  Implement 'rpfilter' interface option.
+
+3)  Correct systemctl command in installers.
+
+Changes in 4.5.6 Final
+
+1)  Update release documents.
+
+2)  Simplify handling of __IPVn in conditional directives
+
+3)  Avoid a call to eval() for simple expressions
+
+4)  Apply patch from Daniel Meißner correcting STARTUP_ENABLED=No message
+
+5)  Correct typo in ISO 3660 doc.
+
+6)  Add FAQ 99 (empty ruleset after boot)
+
+7)  When TC_ENABLED=No, require providers to process tcrules.
+
+Changes in 4.5.6 RC 1
+
+1)  Update release documents.
+
+2)  Add $VERSION as a defined variable.
+
+3)  Add missing 'sleep 1' when waiting for wildcard interfaces.
+
+4)  Only require MANGLE_ENABLED for tcrules processing.
+
+Changes in 4.5.6 Beta 4
+
+1)  Support ?ELSIF
+
+2)  Allow generalized expressions in ?IF and ?ELSIF
+
+3)  Correct a logical name bug in tc
+
+4)  Add ORIGINAL DEST column to the masq file.
+
+Changes in 4.5.6 Beta 3
+
+1)  Rewrote RED option handling.
+
+2)  Rewrote USER/GROUP column handling.
+
+3)  Allow UID/GID ranges in USR/GROUP.
+
+4)  Display PROXY_MARK in 'show marks'.
+
+Changes in 4.5.6 Beta 2
+
+1)  May logical->physical name when using an IFB.
+
+2)  Allow fractional delays in TC.
+
+3)  Allow Linksharing rate to be specified in HFSC.
+
+4)  Add RED support.
+
+Changes in 4.5.6 Beta 1
+
+1)  Fix multiple unweighted 'fallback' providers.
+
+2)  Add stab TC support.
 
 Changes in 4.5.5 Final
 
@@ -37,10 +859,6 @@ Changes in 4.5.5 RC 1
 3)  Fix IPv6 Shorecap
 
 4)  Fix iprange match on RHEL5
-
-5)  Fix installer's handling of SYSCONFDIR
-
-6)  Add DIGEST support.
 
 Changes in 4.5.5 Beta 2
 

@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 1999-2012 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2013 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -21,8 +21,13 @@
 #	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # This library contains the command processing code common to /sbin/shorewall[6] and
-# /sbin/shorewall[6]-lite.
+# /sbin/shorewall[6]-lite. In Shorewall and Shorewall6, the lib.cli-std library is 
+# loaded after this one and replaces some of the functions declared here.
 #
+
+SHOREWALL_CAPVERSION=40515
+
+[ -n "${g_program:=shorewall}" ]
 
 if [ -z "$g_readrc" ]; then
     #
@@ -30,11 +35,7 @@ if [ -z "$g_readrc" ]; then
     #
     . /usr/share/shorewall/shorewallrc
 
-    g_libexec="$LIBEXECDIR"
     g_sharedir="$SHAREDIR"/$g_program
-    g_sbindir="$SBINDIR"
-    g_perllib="$PERLLIBDIR"
-    g_vardir="$VARDIR"
     g_confdir="$CONFDIR"/$g_program
     g_readrc=1
 fi
@@ -276,8 +277,7 @@ logwatch() # $1 = timeout -- if negative, prompt each time that
 	elif [ -r $LOGFILE ]; then
 	    g_logread="tac $LOGFILE"
 	else
-	    echo "LOGFILE ($LOGFILE) does not exist!" >&2
-	    exit 2
+	    fatal_error "LOGFILE ($LOGFILE) does not exist!"
 	fi
     fi
 
@@ -328,11 +328,30 @@ logwatch() # $1 = timeout -- if negative, prompt each time that
     done
 }
 
+
+#
+# Try to find the arptables binary -- sets the variable 'arptables'
+#
+resolve_arptables() {
+    arptables="$ARPTABLES"
+
+    [ -n "${arptables:=arptables}" ]
+
+    case $arptables in
+	*/*)
+	    ;;
+	*)
+	    arptables=$(mywhich "$arptables")
+	    ;;
+    esac
+}
+
 #
 # Save currently running configuration
 #
 do_save() {
     local status
+    local arptables
     status=0
 
     if [ -f ${VARDIR}/firewall ]; then
@@ -351,6 +370,42 @@ do_save() {
 	echo "   ERROR: ${VARDIR}/firewall does not exist" >&2
 	status=1
     fi
+
+    case ${SAVE_ARPTABLES:=No} in
+	[Yy]es)
+	    resolve_arptables
+
+	    if [ -n "$arptables" ]; then
+	        #
+	        # 'sed' command is a hack to work around broken arptables_jf
+	        #
+		if ${arptables}-save | sed 's/-p[[:space:]]\+0\([[:digit:]]\)00\/ffff/-p 000\1\/ffff/' > ${VARDIR}/restore-$$; then
+		    if grep -q '^-A' ${VARDIR}/restore-$$; then
+			mv -f ${VARDIR}/restore-$$ ${g_restorepath}-arptables
+		    else
+			rm -f ${VARDIR}/restore-$$
+		    fi
+		fi
+	    else
+		case "$ARPTABLES" in
+		    */*)
+			error_message "ERROR: ARPTABLES=$ARPTABLES does not exist or is not executable - arptables not saved"
+			;;
+		    *)
+			error_message "ERROR: The arptables utility cannot be located - arptables not saved"
+		    ;;
+		esac
+
+		rm -f ${g_restorepath}-arptables
+	    fi
+	    ;;
+	[Nn]o)
+	    rm -f ${g_restorepath}-arptables
+	    ;;
+	*)
+	    error_message "WARNING: Invalid value ($SAVE_ARPTABLES) for SAVE_ARPTABLES"
+	    ;;
+    esac
 
     case ${SAVE_IPSETS:=No} in
 	[Yy]es)
@@ -416,7 +471,10 @@ save_config() {
 		    ;;
 		*)
 		    validate_restorefile RESTOREFILE
-		    do_save && rm -f ${VARDIR}/save
+		    if do_save; then
+			rm -f ${VARDIR}/save
+			result=0
+		    fi
 		    ;;
 	    esac
 	fi
@@ -424,7 +482,7 @@ save_config() {
 	echo "$g_product isn't started" >&2
     fi
 
-    return 0
+    return $result
 
 }
 
@@ -435,21 +493,42 @@ save_config() {
 #
 sort_routes() {
     local dest
+    local second
     local rest
-    local crvsn
+    local vlsm
+    local maxvlsm
+    local rule
 
-    while read dest rest; do
+    if [ $g_family -eq 4 ]; then
+	maxvlsm=032
+    else
+	maxvlsm=128
+    fi
+
+    while read dest second rest; do
 	if [ -n "$dest" ]; then
+	    rule="$dest $second $rest"
 	    case "$dest" in
 		default)
-		    echo "00 $dest $rest"
+		    echo "000 $rule"
+		    ;;
+		blackhole|local)
+		    case "$second" in
+			*/*)
+			    vlsm=${second#*/}
+			    printf "%03d %s\n" $vlsm "$rule"
+			    ;;
+			*)
+			    echo "$maxvlsm $rule"
+			    ;;
+		    esac
 		    ;;
 		*/*)
-		    crvsn=${dest#*/}
-		    printf "%02d %s\n" $crvsn "$dest $rest"
+		    vlsm=${dest#*/}
+		    printf "%03d %s\n" $vlsm "$rule"
 		    ;;
 		*)
-		    echo "32 $dest $rest"
+		    echo "$maxvlsm $rule"
 		    ;;
 	    esac
 	fi
@@ -480,7 +559,7 @@ show_routing() {
 	ip -$g_family rule list | find_tables | sort -u | while read table; do
 	    heading "Table $table:"
 	    if [ $g_family -eq 6 ]; then
-		ip -$g_family -o route list table $table | fgrep -v cache
+		ip -$g_family -o route list table $table | fgrep -v cache | sort_routes
 	    else
 		ip -4 -o route list table $table | sort_routes
 	    fi
@@ -493,10 +572,30 @@ show_routing() {
     else
 	heading "Routing Table"
 	if [ $g_family -eq 6 ]; then
-	    ip -$g_family -o route list | fgrep -v cache
+	    ip -$g_family -o route list | fgrep -v cache | sort_routes
 	else
 	    ip -4 -o route list table $table | sort_routes
 	fi
+    fi
+}
+
+determine_ipset_version() {
+    local setname
+
+    if [ -z "$IPSET" -o $IPSET = ipset ]; then
+	IPSET=$(mywhich ipset)
+	[ -n "$IPSET" ] || fatal_error "The ipset utility cannot be located"
+    fi
+
+    setname=fooX$$
+
+    qt ipset -X $setname # Just in case something went wrong the last time
+
+    if qt ipset -N $setname hash:ip family inet; then
+	qt ipset -X $setname
+	IPSETN="$IPSET"
+    else
+	IPSETN="$IPSET -n"
     fi
 }
 
@@ -507,7 +606,7 @@ find_sets() {
     local junk
     local setname
 
-    ipset -L -n | grep "^Name: ${1}_" | while read junk setname; do echo $setname; done
+    $IPSETN -L | egrep "^Name: ${1}(_.+)?$" | while read junk setname; do echo $setname; done
 }
 
 list_zone() {
@@ -515,22 +614,22 @@ list_zone() {
     local sets
     local setname
 
-    [ -n "$(mywhich ipset)" ] || fatal_error "The ipset utility cannot be located"
+    determine_ipset_version
 
     if [ $g_family -eq 4 ]; then
-	sets=$(ipset -L -n | grep '^$1_');
+	sets=$($IPSETN -L | egrep "^$1(_.+)?");
      else
-	sets=$(ipset -L -n | grep "^6_$1_")
+	sets=$($IPSETN -L | egrep "^6_$1(_.+)?")
     fi
 
     [ -n "$sets" ] || sets=$(find_sets $1)
 
     for setname in $sets; do
 	echo "${setname#${1}_}:"
-	ipset -L $setname -n | awk 'BEGIN        {prnt=0;}; \
-                                    /^Members:/  {prnt=1; next; }; \
-                                    /^Bindings:/ {prnt=0; }; \
-                                                 { if (prnt == 1) print "   ", $1; };'
+	$IPSETN -L $setname | awk 'BEGIN        {prnt=0;}; \
+                                   /^Members:/  {prnt=1; next; }; \
+                                   /^Bindings:/ {prnt=0; }; \
+                                                { if (prnt == 1) print "   ", $1; };'
     done
 }
 
@@ -573,7 +672,7 @@ version_command() {
     [ $# -gt 0 ] && usage 1
 
     if [ -n "$all" ]; then
-	echo "shorewall-core: $(cat $g_sharedir/coreversion)"
+	echo "shorewall-core: $(cat ${SHAREDIR}/shorewall/coreversion)"
 
 	for product in shorewall shorewall6 shorewall-lite shorewall6-lite shorewall-init; do
 	    if [ -f ${SHAREDIR}/$product/version ]; then
@@ -615,6 +714,20 @@ show_connections_filter() {
     fi
 }
 
+show_nfacct() {
+    if [ -n "$NFACCT" -a ! -x "$NFACCT" ]; then
+	error_message "WARNING: NFACCT=$NFACCT does not exist or is not executable"
+	NFACCT=
+    else
+	NFACCT=$(mywhich nfacct)
+	[ -n "$NFACCT" ] || echo "No NF Accounting defined (nfacct not found)"
+    fi
+
+    if [ -n "$NFACCT" ]; then
+	$NFACCT list
+	echo
+    fi
+}
 #
 # Show Command Executor
 #
@@ -625,6 +738,9 @@ show_command() {
     table=filter
     local table_given
     table_given=
+    local output_filter
+    output_filter=cat
+    local arptables
 
     show_macro() {
 	foo=`grep 'This macro' $macro | sed 's/This macro //'`
@@ -637,6 +753,16 @@ show_command() {
 		$g_echo_e "   $macro  \t${foo#\#}"
 	    fi
 	fi
+    }
+
+    # eliminates rules which have not been used from ip*tables' output
+    brief_output() {
+	awk \
+	'/^Chain /  { heading1 = $0; getline heading2; printed = 0; next; };
+         /^ +0 +0 / { next; };
+         /^$/       { if ( printed == 1 ) { print $0; }; next; };
+                    { if ( printed == 0 ) { print heading1; print heading2; printed = 1 }; };
+	            { print; }';
     }
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
@@ -691,6 +817,10 @@ show_command() {
 			    g_routecache=Yes
 			    option=${option#c}
 			    ;;
+			b*)
+			    output_filter=brief_output
+			    option=${option#b}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -708,6 +838,7 @@ show_command() {
 
 
     [ -n "$g_debugging" ] && set -x
+
     case "$1" in
 	connections)
 	    [ $# -gt 1 ] && usage 1
@@ -751,28 +882,28 @@ show_command() {
 	    echo "$g_product $SHOREWALL_VERSION NAT Table at $g_hostname - $(date)"
 	    echo
 	    show_reset
-	    $g_tool -t nat -L $g_ipt_options
+	    $g_tool -t nat -L $g_ipt_options | $output_filter
 	    ;;
 	raw)
 	    [ $# -gt 1 ] && usage 1
 	    echo "$g_product $SHOREWALL_VERSION RAW Table at $g_hostname - $(date)"
 	    echo
 	    show_reset
-	    $g_tool -t raw -L $g_ipt_options
+	    $g_tool -t raw -L $g_ipt_options | $output_filter
 	    ;;
 	rawpost)
 	    [ $# -gt 1 ] && usage 1
 	    echo "$g_product $SHOREWALL_VERSION RAWPOST Table at $g_hostname - $(date)"
 	    echo
 	    show_reset
-	    $g_tool -t rawpost -L $g_ipt_options
+	    $g_tool -t rawpost -L $g_ipt_options | $output_filter
 	    ;;
 	tos|mangle)
 	    [ $# -gt 1 ] && usage 1
 	    echo "$g_product $SHOREWALL_VERSION Mangle Table at $g_hostname - $(date)"
 	    echo
 	    show_reset
-	    $g_tool -t mangle -L $g_ipt_options
+	    $g_tool -t mangle -L $g_ipt_options | $output_filter
 	    ;;
 	log)
 	    [ $# -gt 2 ] && usage 1
@@ -785,8 +916,7 @@ show_command() {
 		elif [ -r $LOGFILE ]; then
 		    g_logread="tac $LOGFILE"
 		else
-		    echo "LOGFILE ($LOGFILE) does not exist!" >&2
-		    exit 2
+		    fatal_error "LOGFILE ($LOGFILE) does not exist!"
 		fi
 	    fi
 
@@ -808,7 +938,7 @@ show_command() {
 	    shift
 
 	    if [ -z "$1" ]; then
-		$g_tool -t mangle -L -n -v
+		$g_tool -t mangle -L -n -v | $output_filter
 		echo
 	    fi
 
@@ -840,8 +970,7 @@ show_command() {
 		done < ${VARDIR}/zones
 		echo
 	    else
-		echo "   ERROR: ${VARDIR}/zones does not exist" >&2
-		exit 1
+		fatal_error "${VARDIR}/zones does not exist"
 	    fi
 	    ;;
 	capabilities)
@@ -871,15 +1000,15 @@ show_command() {
 	    if [ -n "$g_filemode" ]; then
 		echo "CONFIG_PATH=$CONFIG_PATH"
 		echo "VARDIR=$VARDIR"
-		echo "LIBEXEC=$g_libexec"
-		echo "SBINDIR=$g_sbindir"
+		echo "LIBEXEC=${LIBEXECDIR}"
+		echo "SBINDIR=${SBINDIR}"
 		echo "CONFDIR=${CONFDIR}"
 		[ -n "$g_lite" ] && [ ${VARDIR} != /var/lib/$g_program ] && echo "LITEDIR=${VARDIR}"
 	    else
 		echo "Default CONFIG_PATH is $CONFIG_PATH"
 		echo "Default VARDIR is /var/lib/$g_program"
-		echo "LIBEXEC is $g_libexec"
-		echo "SBINDIR is $g_sbindir"
+		echo "LIBEXEC is ${LIBEXECDIR}"
+		echo "SBINDIR is ${SBINDIR}"
 		echo "CONFDIR is ${CONFDIR}"
 		[ -n "$g_lite" ] && [ ${VARDIR} != /var/lib/$g_program ] && echo "LITEDIR is ${VARDIR}"
 	    fi
@@ -891,11 +1020,11 @@ show_command() {
 	    show_reset
 	    if [ $# -gt 0 ]; then
 		for chain in $*; do
-		    $g_tool -t $table -L $chain $g_ipt_options
+		    $g_tool -t $table -L $chain $g_ipt_options | $output_filter
 		    echo
 		done
 	    else
-		$g_tool -t $table -L $g_ipt_options
+		$g_tool -t $table -L $g_ipt_options | $output_filter
 	    fi
 	    ;;
 	vardir)
@@ -920,6 +1049,23 @@ show_command() {
 	    echo
 	    [ -f ${VARDIR}/marks ] && cat ${VARDIR}/marks;
 	    ;;
+	nfacct)
+	    [ $# -gt 1 ] && usage 1
+	    echo "$g_product $SHOREWALL_VERSION NF Accounting at $g_hostname - $(date)"
+	    echo
+	    show_nfacct
+	    ;;
+	arptables)
+	    [ $# -gt 1 ] && usage 1
+	    resolve_arptables
+	    if [ -n "$arptables" -a -x $arptables ]; then
+		echo "$g_product $SHOREWALL_VERSION arptables at $g_hostname - $(date)"
+		echo
+		$arptables -L -n -v
+	    else
+		error_message "Cannot locate the arptables executable"
+	    fi
+	    ;;
 	*)
 	    case "$g_program" in
 		*-lite)
@@ -928,18 +1074,18 @@ show_command() {
 		    case $1 in
 			actions)
 			    [ $# -gt 1 ] && usage 1
-			    echo "A_ACCEPT            # Audit and accept the connection"
-			    echo "A_DROP              # Audit and drop the connection"
-			    echo "A_REJECT            # Audit and reject the connection "
-			    echo "allowBcast          # Silently Allow Broadcast/multicast"
-			    echo "allowInvalid        # Accept packets that are in the INVALID conntrack state."
-			    echo "allowinUPnP         # Allow UPnP inbound (to firewall) traffic"
-			    echo "allowoutUPnP        # Allow traffic from local command 'upnpd' (does not work with kernels after 2.6.13)"
-			    echo "dropBcast           # Silently Drop Broadcast/multicast"
-			    echo "dropInvalid         # Silently Drop packets that are in the INVALID conntrack state"
-			    echo "dropNotSyn          # Silently Drop Non-syn TCP packets"
-			    echo "forwardUPnP         # Allow traffic that upnpd has redirected from"
-			    echo "rejNotSyn           # Silently Reject Non-syn TCP packets"
+			    echo "A_ACCEPT                        # Audit and accept the connection"
+			    echo "A_DROP                          # Audit and drop the connection"
+			    echo "A_REJECT                        # Audit and reject the connection "
+			    echo "allowBcast                      # Silently Allow Broadcast/multicast"
+			    echo "allowInvalid                    # Accept packets that are in the INVALID conntrack state."
+			    echo "allowinUPnP                     # Allow UPnP inbound (to firewall) traffic"
+			    echo "allowoutUPnP                    # Allow traffic from local command 'upnpd' (does not work with kernels after 2.6.13)"
+			    echo "dropBcast                       # Silently Drop Broadcast/multicast"
+			    echo "dropInvalid                     # Silently Drop packets that are in the INVALID conntrack state"
+			    echo "dropNotSyn                      # Silently Drop Non-syn TCP packets"
+			    echo "forwardUPnP                     # Allow traffic that upnpd has redirected from"
+			    echo "rejNotSyn                       # Silently Reject Non-syn TCP packets"
 
 			    if [ -f ${g_confdir}/actions ]; then
 				cat ${g_sharedir}/actions.std ${g_confdir}/actions | grep -Ev '^\#|^$'
@@ -1007,14 +1153,14 @@ show_command() {
 		echo
 		show_reset
 		for chain in $*; do
-		    $g_tool -t $table -L $chain $g_ipt_options
+		    $g_tool -t $table -L $chain $g_ipt_options | $output_filter
 		    echo
 		done
 	    else
 		echo "$g_product $SHOREWALL_VERSION $table Table at $g_hostname - $(date)"
 		echo
 		show_reset
-		$g_tool -t $table -L $g_ipt_options
+		$g_tool -t $table -L $g_ipt_options | $output_filter
 	    fi
 	    ;;
     esac
@@ -1077,6 +1223,9 @@ dump_filter() {
 do_dump_command() {
     local finished
     finished=0
+    local arptables
+
+    resolve_arptables
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -1127,8 +1276,7 @@ do_dump_command() {
 	elif [ -r $LOGFILE ]; then
 	    g_logread="tac $LOGFILE"
 	else
-	    echo "LOGFILE ($LOGFILE) does not exist!" >&2
-	    exit 2
+	    fatal_error "LOGFILE ($LOGFILE) does not exist! - See http://www.shorewall.net/shorewall_logging.html"
 	fi
     fi
 
@@ -1150,6 +1298,11 @@ do_dump_command() {
     show_reset
     host=$(echo $g_hostname | sed 's/\..*$//')
     $g_tool -L $g_ipt_options
+
+    if [ -n "$arptables" -a -x "$arptables" ]; then
+	heading "ARP rules"
+	$arptables -L -n -v
+    fi
 
     heading "Log ($LOGFILE)"
     packet_log 20
@@ -1196,11 +1349,16 @@ do_dump_command() {
 	brctl show
     fi
 
+    show_routing
+
     if [ $g_family -eq 4 ]; then
 	heading "Per-IP Counters"
 
 	perip_accounting
     fi
+
+    heading "NF Accounting"
+    show_nfacct
 
     if qt mywhich setkey; then
 	heading "PFKEY SPD"
@@ -1228,8 +1386,6 @@ do_dump_command() {
 	    done
 	done
     fi
-
-    show_routing
 
     if [ $g_family -eq 4 ]; then
 	heading "ARP"
@@ -1563,64 +1719,86 @@ separate_list() {
 add_command() {
     local interface host hostlist zone ipset
     if ! product_is_started ; then
-	echo "$g_product Not Started" >&2
-	exit 2
+	fatal_error "$g_product Not Started"
     fi
 
-    case "$IPSET" in
-	*/*)
+    determine_ipset_version
+
+    case $1 in
+	*:*)
+	    while [ $# -gt 1 ]; do
+		if [ $g_family -eq 4 ]; then
+		    interface=${1%%:*}
+		    host=${1#*:}
+		else
+		    interface=${1%%|*}
+		    host=${1#*|}
+		fi
+
+		[ "$host" = "$1" ] && host=
+
+		if [ -z "$host" ]; then
+		    if [ $g_family -eq 4 ]; then
+			hostlist="$hostlist $interface:0.0.0.0/0"
+		    else
+			hostlist="$hostlist $interface:::/0"
+		    fi
+		else
+		    for h in $(separate_list $host); do
+			hostlist="$hostlist $interface:$h"
+		    done
+		fi
+
+		shift
+	    done
 	    ;;
 	*)
-	    [ -n "$(mywhich $IPSET)" ] || fatal_error "The $IPSET utility cannot be located"
+	    ipset=$1
+	    shift
+	    while [ $# -gt 0 ]; do
+		for h in $(separate_list $1); do
+		    hostlist="$hostlist $h"
+		done
+		shift
+	    done
 	    ;;
     esac
-    #
-    # Normalize host list
-    #
-    while [ $# -gt 1 ]; do
-	interface=${1%%:*}
-	host=${1#*:}
-	[ "$host" = "$1" ] && host=
-
-	if [ -z "$host" ]; then
-	    if [ $g_family -eq 4 ]; then
-	        hostlist="$hostlist $interface:0.0.0.0/0"
-	    else
-		hostlist="$hostlist $interface:::/0"
-	    fi
-	else
-	    for h in $(separate_list $host); do
-		hostlist="$hostlist $interface:$h"
-	    done
-	fi
-
-	shift
-    done
 
     zone=$1
 
-    for host in $hostlist; do
-	if [ $g_family -eq 4 ]; then
-	    interface=${host%:*}
-	    ipset=${zone}_${interface};
-	else
-	    interface=${host%%:*}
-	    ipset=6_${zone}_${interface};
-	fi
+    if [ -n "$zone" ]; then
+	for host in $hostlist; do
+	    if [ $g_family -eq 4 ]; then
+		interface=${host%:*}
+		ipset=${zone}_${interface};
+	    else
+		interface=${host%%:*}
+		ipset=6_${zone}_${interface};
+	    fi
 
-	if ! qt $IPSET -L $ipset -n; then
-	    fatal_error "Zone $zone, interface $interface is does not have a dynamic host list"
-	fi
+	    if ! qt $IPSET -L $ipset; then
+		fatal_error "Zone $zone, interface $interface does not have a dynamic host list"
+	    fi
 
-	host=${host#*:}
+	    host=${host#*:}
 
-	if $IPSET -A $ipset $host; then
-	    echo "Host $interface:$host added to zone $zone"
-	else
-	    fatal_error "Unable to add $interface:$host to zone $zone"
-	fi
-    done
+	    if $IPSET -A $ipset $host; then
+		echo "Host $interface:$host added to zone $zone"
+	    else
+		fatal_error "Unable to add $interface:$host to zone $zone"
+	    fi
+	done
+    else
+	qt $IPSET -L $ipset || fatal_error "Zone $ipset is not dynamic"
 
+	for host in $hostlist; do
+	    if $IPSET -A $ipset $host; then
+		echo "Host $host added to zone $ipset"
+	    else
+		fatal_error "Unable to add $host to zone $ipset"
+	    fi
+	done
+    fi
 }
 
 #
@@ -1629,65 +1807,86 @@ add_command() {
 delete_command() {
     local interface host hostent hostlist zone ipset
     if ! product_is_started ; then
-	echo "$g_product Not Started" >&2
-	exit 2;
+	fatal_error "$g_product Not Started"
     fi
 
-    case "$IPSET" in
-	*/*)
+    determine_ipset_version
+
+    case $1 in
+	*:*)
+	    while [ $# -gt 1 ]; do
+		if [ $g_family -eq 4 ]; then
+		    interface=${1%%:*}
+		    host=${1#*:}
+		else
+		    interface=${1%%|*}
+		    host=${1#*|}
+		fi
+
+		[ "$host" = "$1" ] && host=
+
+		if [ -z "$host" ]; then
+		    if [ $g_family -eq 4 ]; then
+			hostlist="$hostlist $interface:0.0.0.0/0"
+		    else
+			hostlist="$hostlist $interface:::/0"
+		    fi
+		else
+		    for h in $(separate_list $host); do
+			hostlist="$hostlist $interface:$h"
+		    done
+		fi
+
+		shift
+	    done
 	    ;;
 	*)
-	    [ -n "$(mywhich $IPSET)" ] || fatal_error "The $IPSET utility cannot be located"
+	    ipset=$1
+	    shift
+	    while [ $# -gt 0 ]; do
+		for h in $(separate_list $1); do
+		    hostlist="$hostlist $h"
+		done
+		shift
+	    done
 	    ;;
     esac
 
-    #
-    # Normalize host list
-    #
-    while [ $# -gt 1 ]; do
-	interface=${1%%:*}
-	host=${1#*:}
-	[ "$host" = "$1" ] && host=
-
-	if [ -z "$host" ]; then
-	    if [ $g_family -eq 4 ]; then
-		hostlist="$hostlist $interface:0.0.0.0/0"
-	    else
-		hostlist="$hostlist $interface:::/0"
-	    fi
-	else
-	    for h in $(separate_list $host); do
-		hostlist="$hostlist $interface:$h"
-	    done
-	fi
-
-	shift
-    done
-
     zone=$1
 
-    for hostent in $hostlist; do
-	if [ $g_family -eq 4 ]; then
-	    interface=${hostent%:*}
-	    ipset=${zone}_${interface};
-	else
-	    interface=${hostent%%:*}
-	    ipset=6_${zone}_${interface};
-	fi
+    if [ -n "$zone" ]; then
+	for host in $hostlist; do
+	    if [ $g_family -eq 4 ]; then
+		interface=${host%:*}
+		ipset=${zone}_${interface};
+	    else
+		interface=${host%%:*}
+		ipset=6_${zone}_${interface};
+	    fi
 
-	if ! qt $IPSET -L $ipset -n; then
-	    fatal_error "Zone $zone, interface $interface is does not have a dynamic host list"
-	fi
+	    if ! qt $IPSET -L $ipset -n; then
+		fatal_error "Zone $zone, interface $interface does not have a dynamic host list"
+	    fi
 
-	host=${hostent#*:}
+	    host=${host#*:}
 
-	if $IPSET -D $ipset $host; then
-	    echo "Host $hostent deleted from zone $zone"
-	else
-	    echo "   WARNING: Unable to delete host $hostent to zone $zone" >&2
-	fi
-    done
+	    if $IPSET -D $ipset $host; then
+		echo "Host $host deleted from zone $zone"
+	    else
+		echo "   WARNING: Unable to delete host $hostent to zone $zone" >&2
+	    fi
+	done
+    else
+	qt $IPSET -L $ipset -n || fatal_error "Zone $ipset is not dynamic"
 
+	for host in $hostlist; do
+	    if $IPSET -D $ipset $host; then
+		echo "Host $host deleted from to zone $ipset"
+	    else
+		echo "   WARNING: Unable to delete host $host from zone $zone" >&2
+	    fi
+	done
+    fi
 }
 
 #
@@ -1793,8 +1992,7 @@ allow_command() {
 	range='--src-range'
 
 	if ! chain_exists dynamic; then
-	    echo "Dynamic blacklisting is not enabled in the current $g_product configuration" >&2
-	    exit 2
+	    fatal_error "Dynamic blacklisting is not enabled in the current $g_product configuration"
 	fi
 
 	[ -n "$g_nolock" ] || mutex_on
@@ -1908,6 +2106,7 @@ determine_capabilities() {
     local tool
     local chain
     local chain1
+    local arptables
 
     if [ -z "$g_tool" ]; then
 	[ $g_family -eq 4 ] && tool=iptables || tool=ip6tables
@@ -1915,8 +2114,7 @@ determine_capabilities() {
 	g_tool=$(mywhich $tool)
 
 	if [ -z "$g_tool" ]; then
-	    echo "   ERROR: No executable $tool binary can be found on your PATH" >&2
-	    exit 1
+	    fatal-error "No executable $tool binary can be found on your PATH"
 	fi
     fi
 
@@ -1936,6 +2134,7 @@ determine_capabilities() {
     OLD_CONNTRACK_MATCH=
     MULTIPORT=
     XMULTIPORT=
+    EMULTIPORT=
     POLICY_MATCH=
     PHYSDEV_MATCH=
     PHYSDEV_BRIDGE=
@@ -1995,6 +2194,35 @@ determine_capabilities() {
     DSCP_MATCH=
     DSCP_TARGET=
     GEOIP_MATCH=
+    RPFILTER_MATCH=
+    NFACCT_MATCH=
+    CHECKSUM_TARGET=
+    ARPTABLESJF=
+    MASQUERADE_TGT=
+    UDPLITEREDIRECT=
+    NEW_TOS_MATCH=
+
+    AMANDA_HELPER=
+    FTP_HELPER=
+    FTP0_HELPER=
+    IRC_HELPER=
+    IRC0_HELPER=
+    NETBIOS_NS_HELPER=
+    H323_HELPER=
+    PPTP_HELPER=
+    SANE_HELPER=
+    SANE0_HELPER=
+    SIP_HELPER=
+    SIP0_HELPER=
+    SNMP_HELPER=
+    TFTP_HELPER=
+    TFTP0_HELPER=
+
+    resolve_arptables
+
+    if [ -n "$arptables" -a -x "$arptables" ]; then
+	qt $arptables -L OUT && ARPTABLESJF=Yes
+    fi
 
     chain=fooX$$
 
@@ -2002,7 +2230,11 @@ determine_capabilities() {
 	if qt $g_tool -t nat -N $chain; then
 	    if [ $g_family -eq 4 ]; then
 		qt $g_tool -t nat -A $chain -j SNAT --to-source 1.2.3.4 --persistent && PERSISTENT_SNAT=Yes
+	    else
+		qt $g_tool -t nat -A $chain -j SNAT --to-source 2001::1 --persistent && PERSISTENT_SNAT=Yes
 	    fi
+	    qt $g_tool -t nat -A $chain -j MASQUERADE && MASQUERADE_TGT=Yes
+	    qt $g_tool -t nat -A $chain -p udplite -m multiport --dport 33 -j REDIRECT --to-port 22 && UDPREDIRECT=Yes
 	    qt $g_tool -t nat -F $chain
 	    qt $g_tool -t nat -X $chain
 	fi
@@ -2011,8 +2243,7 @@ determine_capabilities() {
     qt $g_tool -F $chain
     qt $g_tool -X $chain
     if ! $g_tool -N $chain; then
-	echo "   ERROR: The command \"$g_tool -N $chain\" failed" >&2
-	exit 1
+	fatal_error "The command \"$g_tool -N $chain\" failed"
     fi
 
     chain1=${chain}1
@@ -2021,16 +2252,14 @@ determine_capabilities() {
     qt $g_tool -X $chain1
     if ! $g_tool -N $chain1; then
 	qt $g_tool -X $CHAIN
-	echo "   ERROR: The command \"$g_tool -N $chain1\" failed" >&2
-	exit 1
+	fatal_error "The command \"$g_tool -N $chain1\" failed"
     fi
 
     if ! qt $g_tool -A $chain -m state --state ESTABLISHED,RELATED -j ACCEPT &&
        ! qt $g_tool -A $chain -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT; then
 	qt $g_tool -x $chain
 	qt $g_tool -x $chain1
-	echo "   ERROR: Your kernel lacks connection tracking and/or state matching -- $g_product will not run on this system" >&2
-	exit 1
+	fatal_error "Your kernel lacks connection tracking and/or state matching -- $g_product will not run on this system"
     fi
 
     if [ $g_family -eq 4 ]; then
@@ -2054,7 +2283,8 @@ determine_capabilities() {
 	qt $g_tool -A $chain -p tcp -m multiport --sports 60 -m multiport --dports 99 -j ACCEPT && KLUDEFREE=Yes
     fi
 
-    qt $g_tool -A $chain -p tcp -m multiport --dports 21:22 -j ACCEPT           && XMULTIPORT=Yes
+    qt $g_tool -A $chain -p tcp  -m multiport --dports 21:22 -j ACCEPT           && XMULTIPORT=Yes
+    qt $g_tool -A $chain -p sctp -m multiport --dports 21,22 -j ACCEPT           && EMULTIPORT=Yes
     qt $g_tool -A $chain -m policy --pol ipsec --mode tunnel --dir in -j ACCEPT && POLICY_MATCH=Yes
 
     if qt $g_tool -A $chain -m physdev --physdev-out eth0 -j ACCEPT; then
@@ -2107,6 +2337,19 @@ determine_capabilities() {
 
     qt $g_tool -A $chain -j ACCEPT -m comment --comment "This is a comment" && COMMENTS=Yes
 
+    if [ -n "$NFACCT" -a ! -x "$NFACCT" ]; then
+	error_message "WARNING: NFACCT=$NFACCT does not exist or is not executable"
+	NFACCT=
+    else
+	NFACCT=$(mywhich nfacct)
+    fi
+
+    if [ -n "$NFACCT" ] && qt $NFACCT add $chain; then
+	qt $g_tool -A $chain -m nfacct --nfacct-name $chain && NFACCT_MATCH=Yes
+	qt $g_tool -D $chain -m nfacct --nfacct-name $chain
+	qt $NFACCT del $chain
+    fi
+
     if [ -n "$MANGLE_ENABLED" ]; then
 	qt $g_tool -t mangle -N $chain
 
@@ -2127,6 +2370,9 @@ determine_capabilities() {
 	qt $g_tool -t mangle -A $chain -j IMQ --todev 0 && IMQ_TARGET=Yes
 	qt $g_tool -t mangle -A $chain -m dscp --dscp 0 && DSCP_MATCH=Yes
 	qt $g_tool -t mangle -A $chain -j DSCP --set-dscp 0 && DSCP_TARGET=Yes
+	qt $g_tool -t mangle -A $chain -m rpfilter && RPFILTER_MATCH=Yes
+	qt $g_tool -t mangle -A $chain -j CHECKSUM --checksum-fill && CHECKSUM_TARGET=Yes
+	qt $g_tool -t mangle -A $chain -m tos --tos 0x10/0xff && NEW_TOS_MATCH=Yes
 
 	qt $g_tool -t mangle -F $chain
 	qt $g_tool -t mangle -X $chain
@@ -2134,15 +2380,36 @@ determine_capabilities() {
 	qt $g_tool -t mangle -L FORWARD -n && MANGLE_FORWARD=Yes
     fi
 
-    qt $g_tool -t raw	    -L -n && RAW_TABLE=Yes
+    qt $g_tool -t raw	  -L -n && RAW_TABLE=Yes
     qt $g_tool -t rawpost -L -n && RAWPOST_TABLE=Yes
 
     if [ -n "$RAW_TABLE" ]; then
-	qt $g_tool -t raw -N $chain
-	qt $g_tool -t raw -A $chain -j CT --notrack && CT_TARGET=Yes
-	qt $g_tool -t raw -N $chain
 	qt $g_tool -t raw -F $chain
 	qt $g_tool -t raw -X $chain
+	qt $g_tool -t raw -N $chain
+	
+	if qt $g_tool -t raw -A $chain -j CT --notrack; then
+	    CT_TARGET=Yes;
+
+	    qt $g_tool -t raw -A $chain -p udp --dport 10080 -j CT --helper amanda     && AMANDA_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 21    -j CT --helper ftp        && FTP_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 21    -j CT --helper ftp-0      && FTP0_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 1719  -j CT --helper RAS        && H323_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 6667  -j CT --helper irc        && IRC_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 6667  -j CT --helper irc-0      && IRC0_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 137   -j CT --helper netbios-ns && NETBIOS_NS_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 1729  -j CT --helper pptp       && PPTP_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 6566  -j CT --helper sane       && SANE_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p tcp --dport 6566  -j CT --helper sane-0     && SANE0_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 5060  -j CT --helper sip        && SIP_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 5060  -j CT --helper sip-0      && SIP0_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 161   -j CT --helper snmp       && SNMP_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 69    -j CT --helper tftp       && TFTP_HELPER=Yes
+	    qt $g_tool -t raw -A $chain -p udp --dport 69    -j CT --helper tftp-0     && TFTP0_HELPER=Yes
+	fi
+
+	qt $g_tool -t raw -F $chain
+	qt $g_tool -t raw -X $chain	   
     fi
 
     if qt mywhich ipset; then
@@ -2160,10 +2427,10 @@ determine_capabilities() {
 
 	    if [ -n "$have_ipset" ]; then
 		if qt $g_tool -A $chain -m set --match-set $chain src -j ACCEPT; then
-		    qt $g_tool -D $chain -m set --match-set $chain src -j ACCEPT
+		    qt $g_tool -F $chain
 		    IPSET_MATCH=Yes
 		elif qt $g_tool -A $chain -m set --set $chain src -j ACCEPT; then
-		    qt $g_tool -D $chain -m set --set $chain src -j ACCEPT
+		    qt $g_tool -F $chain
 		    IPSET_MATCH=Yes
 		    OLD_IPSET_MATCH=Yes
 		fi
@@ -2172,10 +2439,10 @@ determine_capabilities() {
 	elif qt ipset -N $chain hash:ip family inet6; then
 	    IPSET_V5=Yes
 	    if qt $g_tool -A $chain -m set --match-set $chain src -j ACCEPT; then
-		qt $g_tool -D $chain -m set --match-set $chain src -j ACCEPT
+		qt $g_tool -F $chain
 		IPSET_MATCH=Yes
 	    elif qt $g_tool -A $chain -m set --set $chain src -j ACCEPT; then
-		qt $g_tool -D $chain -m set --set $chain src -j ACCEPT
+		qt $g_tool -F $chain
 		IPSET_MATCH=Yes
 		OLD_IPSET_MATCH=Yes
 	    fi
@@ -2193,7 +2460,28 @@ determine_capabilities() {
     fi
     qt $g_tool -A $chain -j NFQUEUE --queue-num 4 && NFQUEUE_TARGET=Yes
     qt $g_tool -A $chain -m realm --realm 4 && REALM_MATCH=Yes
-    qt $g_tool -A $chain -m helper --helper "ftp" && HELPER_MATCH=Yes
+
+    #
+    # -m helper doesn't verify the existence of the specified helper :-(
+    #
+    if qt $g_tool -A $chain -p tcp --dport 21 -m helper --helper ftp; then
+	HELPER_MATCH=Yes
+
+	if [ -z "$CT_TARGET" ]; then
+	    AMANDA_HELPER=Yes
+	    FTP_HELPER=Yes
+	    FTP_HELPER=Yes
+	    H323_HELPER=Yes
+	    IRC_HELPER=Yes
+	    NS_HELPER=Yes
+	    PPTP_HELPER=Yes
+	    SANE_HELPER=Yes
+	    SIP_HELPER=Yes
+	    SNMP_HELPER=Yes
+	    TFTP_HELPER=Yes
+	fi
+    fi
+
     qt $g_tool -A $chain -m connlimit --connlimit-above 8 -j DROP && CONNLIMIT_MATCH=Yes
     qt $g_tool -A $chain -m time --timestart 23:00 -j DROP && TIME_MATCH=Yes
     qt $g_tool -A $chain -g $chain1 && GOTO_TARGET=Yes
@@ -2213,7 +2501,9 @@ determine_capabilities() {
     fi
 
     qt $g_tool -A $chain -j AUDIT --type drop && AUDIT_TARGET=Yes
+
     qt $g_tool -A $chain -m condition --condition foo && CONDITION_MATCH=Yes
+
     qt $g_tool -S INPUT && IPTABLES_S=Yes
     qt $g_tool -F $chain
     qt $g_tool -X $chain
@@ -2238,7 +2528,7 @@ determine_capabilities() {
     esac
 }
 
-report_capabilities() {
+report_capabilities_unsorted() {
     report_capability() # $1 = Capability Description , $2 Capability Setting (if any)
     {
 	local setting
@@ -2249,104 +2539,134 @@ report_capabilities() {
 	echo "  " $1: $setting
     }
 
+    report_capability "NAT (NAT_ENABLED)" $NAT_ENABLED
+    report_capability "Packet Mangling (MANGLE_ENABLED)" $MANGLE_ENABLED
+    report_capability "Multi-port Match (MULTIPORT)" $MULTIPORT
+    [ -n "$MULTIPORT" ]  && report_capability "Extended Multi-port Match (XMULIPORT)" $XMULTIPORT
+    [ -n "$EMULTIPORT" ] && report_capability "Enhanced Multi-port Match (EMULIPORT)" $EMULTIPORT
+    report_capability "Connection Tracking Match (CONNTRACK_MATCH)" $CONNTRACK_MATCH
+    if [ -n "$CONNTRACK_MATCH" ]; then
+	report_capability "Extended Connection Tracking Match Support (NEW_CONNTRACK_MATCH)" $NEW_CONNTRACK_MATCH
+	[ -n "$OLD_CONNTRACK_MATCH" ] && report_capability "Old Connection Tracking Match Syntax (OLD_CONNTRACK_MATCH)" $OLD_CONNTRACK_MATCH
+    fi
+    report_capability "Packet Type Match (USEPKTTYPE)" $USEPKTTYPE
+    report_capability "Policy Match (POLICY_MATCH)" $POLICY_MATCH
+    report_capability "Physdev Match (PHYSDEV_MATCH)" $PHYSDEV_MATCH
+    report_capability "Physdev-is-bridged Support (PHYSDEV_BRIDGE)" $PHYSDEV_BRIDGE
+    report_capability "Packet length Match (LENGTH_MATCH)" $LENGTH_MATCH
+    report_capability "IP range Match(IPRANGE_MATCH)" $IPRANGE_MATCH
+    report_capability "Recent Match (RECENT_MATCH)" $RECENT_MATCH
+    report_capability "Owner Match (OWNER_MATCH)" $OWNER_MATCH
+    report_capability "Owner Name Match (OWNER_NAME_MATCH)" $OWNER_NAME_MATCH
+    if [ -n "$IPSET_MATCH" ]; then
+	report_capability "Ipset Match (IPSET_MATCH)" $IPSET_MATCH
+	[ -n "$OLD_IPSET_MATCH" ] && report_capability "OLD_Ipset Match (OLD_IPSET_MATCH)" $OLD_IPSET_MATCH
+    fi
+    report_capability "CONNMARK Target (CONNMARK)" $CONNMARK
+    [ -n "$CONNMARK" ] && report_capability "Extended CONNMARK Target (XCONNMARK)" $XCONNMARK
+    report_capability "Connmark Match (CONNMARK_MATCH)" $CONNMARK_MATCH
+    [ -n "$CONNMARK_MATCH" ] && report_capability "Extended Connmark Match (XCONNMARK_MATCH)" $XCONNMARK_MATCH
+    report_capability "Raw Table (RAW_TABLE)" $RAW_TABLE
+    report_capability "Rawpost Table (RAWPOST_TABLE)" $RAWPOST_TABLE
+    report_capability "IPP2P Match (IPP2P_MATCH)" $IPP2P_MATCH
+    [ -n "$OLD_IPP2P_MATCH" ] && report_capability "Old IPP2P Match Syntax (OLD_IPP2P_MATCH)" $OLD_IPP2P_MATCH
+    report_capability "CLASSIFY Target (CLASSIFY_TARGET)" $CLASSIFY_TARGET
+    report_capability "Extended REJECT (ENHANCED_REJECT)" $ENHANCED_REJECT
+    report_capability "Repeat match (KLUDGEFREE)" $KLUDGEFREE
+    report_capability "MARK Target (MARK)" $MARK
+    [ -n "$MARK" ] && report_capability "Extended MARK Target (XMARK)" $XMARK
+    [ -n "$XMARK" ] && report_capability "Extended MARK Target 2 (EXMARK)" $EXMARK
+    report_capability "Mangle FORWARD Chain (MANGLE_FORWARD)" $MANGLE_FORWARD
+    report_capability "Comments (COMMENTS)" $COMMENTS
+    report_capability "Address Type Match (ADDRTYPE)" $ADDRTYPE
+    report_capability "TCPMSS Match (TCPMSS_MATCH)" $TCPMSS_MATCH
+    report_capability "Hashlimit Match (HASHLIMIT_MATCH)" $HASHLIMIT_MATCH
+    [ -n "$OLD_HL_MATCH" ] && report_capability "Old Hashlimit Match (OLD_HL_MATCH)" $OLD_HL_MATCH
+    report_capability "NFQUEUE Target (NFQUEUE_TARGET)" $NFQUEUE_TARGET
+    report_capability "Realm Match (REALM_MATCH)" $REALM_MATCH
+    report_capability "Helper Match (HELPER_MATCH)" $HELPER_MATCH
+    report_capability "Connlimit Match (CONNLIMIT_MATCH)" $CONNLIMIT_MATCH
+    report_capability "Time Match (TIME_MATCH)" $TIME_MATCH
+    report_capability "Goto Support (GOTO_TARGET)" $GOTO_TARGET
+    report_capability "LOGMARK Target (LOGMARK_TARGET)" $LOGMARK_TARGET
+    report_capability "IPMARK Target (IPMARK_TARGET)" $IPMARK_TARGET
+    report_capability "LOG Target (LOG_TARGET)" $LOG_TARGET
+    report_capability "ULOG Target (ULOG_TARGET)" $ULOG_TARGET
+    report_capability "NFLOG Target (NFLOG_TARGET)" $NFLOG_TARGET
+    report_capability "Persistent SNAT (PERSISTENT_SNAT)" $PERSISTENT_SNAT
+    report_capability "TPROXY Target (TPROXY_TARGET)" $TPROXY_TARGET
+    report_capability "FLOW Classifier (FLOW_FILTER)" $FLOW_FILTER
+    report_capability "fwmark route mask (FWMARK_RT_MASK)" $FWMARK_RT_MASK
+    report_capability "Mark in any table (MARK_ANYWHERE)" $MARK_ANYWHERE
+    report_capability "Header Match (HEADER_MATCH)" $HEADER_MATCH
+    report_capability "ACCOUNT Target (ACCOUNT_TARGET)" $ACCOUNT_TARGET
+    report_capability "AUDIT Target (AUDIT_TARGET)" $AUDIT_TARGET
+    report_capability "ipset V5 (IPSET_V5)" $IPSET_V5
+    report_capability "Condition Match (CONDITION_MATCH)" $CONDITION_MATCH
+    report_capability "Statistic Match (STATISTIC_MATCH)" $STATISTIC_MATCH
+    report_capability "IMQ Target (IMQ_TARGET)" $IMQ_TARGET
+    report_capability "DSCP Match (DSCP_MATCH)" $DSCP_MATCH
+    report_capability "DSCP Target (DSCP_TARGET)" $DSCP_TARGET
+    report_capability "Geo IP match" $GEOIP_MATCH
+    report_capability "RPFilter match" $RPFILTER_MATCH
+    report_capability "NFAcct match" $NFACCT_MATCH
+    report_capability "Checksum Target" $CHECKSUM_TARGET
+    report_capability "Arptables JF" $ARPTABLESJF
+    report_capability "MASQUERADE Target" $MASQUERADE_TGT
+    report_capability "UDPLITE Port Redirection" $UDPLITEREDIRECT
+    report_capability "New tos Match" $NEW_TOS_MATCH
+
+    report_capability "Amanda Helper" $AMANDA_HELPER
+    report_capability "FTP Helper" $FTP_HELPER
+    report_capability "FTP-0 Helper" $FTP0_HELPER
+    report_capability "IRC Helper" $IRC_HELPER
+    report_capability "IRC-0 Helper" $IRC0_HELPER
+    report_capability "Netbios_ns Helper" $NETBIOS_NS_HELPER
+    report_capability "H323 Helper" $H323_HELPER
+    report_capability "PPTP Helper" $PPTP_HELPER
+    report_capability "SANE Helper" $SANE_HELPER
+    report_capability "SANE-0 Helper" $SANE0_HELPER
+    report_capability "SIP Helper" $SIP_HELPER
+    report_capability "SIP-0 Helper" $SIP0_HELPER
+    report_capability "SNMP Helper" $SNMP_HELPER
+    report_capability "TFTP Helper" $TFTP_HELPER
+    report_capability "TFTP-0 Helper" $TFTP0_HELPER
+
+    if [ $g_family -eq 4 ]; then
+	report_capability "iptables -S (IPTABLES_S)" $IPTABLES_S
+    else
+	report_capability "ip6tables -S (IPTABLES_S)" $IPTABLES_S
+    fi
+
+    report_capability "Basic Filter (BASIC_FILTER)" $BASIC_FILTER
+    report_capability "CT Target (CT_TARGET)" $CT_TARGET
+
+    echo "   Kernel Version (KERNELVERSION): $KERNELVERSION"
+    echo "   Capabilities Version (CAPVERSION): $CAPVERSION"
+}
+
+report_capabilities() {
+
     if [ $VERBOSITY -gt 1 ]; then
 	echo "$g_product has detected the following iptables/netfilter capabilities:"
-	report_capability "NAT (NAT_ENABLED)" $NAT_ENABLED
-	report_capability "Packet Mangling (MANGLE_ENABLED)" $MANGLE_ENABLED
-	report_capability "Multi-port Match (MULTIPORT)" $MULTIPORT
-	[ -n "$MULTIPORT" ] && report_capability "Extended Multi-port Match (XMULIPORT)" $XMULTIPORT
-	report_capability "Connection Tracking Match (CONNTRACK_MATCH)" $CONNTRACK_MATCH
-	if [ -n "$CONNTRACK_MATCH" ]; then
-	    report_capability "Extended Connection Tracking Match Support (NEW_CONNTRACK_MATCH)" $NEW_CONNTRACK_MATCH
-	    [ -n "$OLD_CONNTRACK_MATCH" ] && report_capability "Old Connection Tracking Match Syntax (OLD_CONNTRACK_MATCH)" $OLD_CONNTRACK_MATCH
-	fi
-	report_capability "Packet Type Match (USEPKTTYPE)" $USEPKTTYPE
-	report_capability "Policy Match (POLICY_MATCH)" $POLICY_MATCH
-	report_capability "Physdev Match (PHYSDEV_MATCH)" $PHYSDEV_MATCH
-	report_capability "Physdev-is-bridged Support (PHYSDEV_BRIDGE)" $PHYSDEV_BRIDGE
-	report_capability "Packet length Match (LENGTH_MATCH)" $LENGTH_MATCH
-	report_capability "IP range Match(IPRANGE_MATCH)" $IPRANGE_MATCH
-	report_capability "Recent Match (RECENT_MATCH)" $RECENT_MATCH
-	report_capability "Owner Match (OWNER_MATCH)" $OWNER_MATCH
-	report_capability "Owner Name Match (OWNER_NAME_MATCH)" $OWNER_NAME_MATCH
-	if [ -n "$IPSET_MATCH" ]; then
-	    report_capability "Ipset Match (IPSET_MATCH)" $IPSET_MATCH
-	    [ -n "$OLD_IPSET_MATCH" ] && report_capability "OLD_Ipset Match (OLD_IPSET_MATCH)" $OLD_IPSET_MATCH
-	fi
-	report_capability "CONNMARK Target (CONNMARK)" $CONNMARK
-	[ -n "$CONNMARK" ] && report_capability "Extended CONNMARK Target (XCONNMARK)" $XCONNMARK
-	report_capability "Connmark Match (CONNMARK_MATCH)" $CONNMARK_MATCH
-	[ -n "$CONNMARK_MATCH" ] && report_capability "Extended Connmark Match (XCONNMARK_MATCH)" $XCONNMARK_MATCH
-	report_capability "Raw Table (RAW_TABLE)" $RAW_TABLE
-	report_capability "Rawpost Table (RAWPOST_TABLE)" $RAWPOST_TABLE
-	report_capability "IPP2P Match (IPP2P_MATCH)" $IPP2P_MATCH
-	[ -n "$OLD_IPP2P_MATCH" ] && report_capability "Old IPP2P Match Syntax (OLD_IPP2P_MATCH)" $OLD_IPP2P_MATCH
-	report_capability "CLASSIFY Target (CLASSIFY_TARGET)" $CLASSIFY_TARGET
-	report_capability "Extended REJECT (ENHANCED_REJECT)" $ENHANCED_REJECT
-	report_capability "Repeat match (KLUDGEFREE)" $KLUDGEFREE
-	report_capability "MARK Target (MARK)" $MARK
-	[ -n "$MARK" ] && report_capability "Extended MARK Target (XMARK)" $XMARK
-	[ -n "$XMARK" ] && report_capability "Extended MARK Target 2 (EXMARK)" $EXMARK
-	report_capability "Mangle FORWARD Chain (MANGLE_FORWARD)" $MANGLE_FORWARD
-	report_capability "Comments (COMMENTS)" $COMMENTS
-	report_capability "Address Type Match (ADDRTYPE)" $ADDRTYPE
-	report_capability "TCPMSS Match (TCPMSS_MATCH)" $TCPMSS_MATCH
-	report_capability "Hashlimit Match (HASHLIMIT_MATCH)" $HASHLIMIT_MATCH
-	[ -n "$OLD_HL_MATCH" ] && report_capability "Old Hashlimit Match (OLD_HL_MATCH)" $OLD_HL_MATCH
-	report_capability "NFQUEUE Target (NFQUEUE_TARGET)" $NFQUEUE_TARGET
-	report_capability "Realm Match (REALM_MATCH)" $REALM_MATCH
-	report_capability "Helper Match (HELPER_MATCH)" $HELPER_MATCH
-	report_capability "Connlimit Match (CONNLIMIT_MATCH)" $CONNLIMIT_MATCH
-	report_capability "Time Match (TIME_MATCH)" $TIME_MATCH
-	report_capability "Goto Support (GOTO_TARGET)" $GOTO_TARGET
-	report_capability "LOGMARK Target (LOGMARK_TARGET)" $LOGMARK_TARGET
-	report_capability "IPMARK Target (IPMARK_TARGET)" $IPMARK_TARGET
-	report_capability "LOG Target (LOG_TARGET)" $LOG_TARGET
-	report_capability "ULOG Target (ULOG_TARGET)" $ULOG_TARGET
-	report_capability "NFLOG Target (NFLOG_TARGET)" $NFLOG_TARGET
-	report_capability "Persistent SNAT (PERSISTENT_SNAT)" $PERSISTENT_SNAT
-	report_capability "TPROXY Target (TPROXY_TARGET)" $TPROXY_TARGET
-	report_capability "FLOW Classifier (FLOW_FILTER)" $FLOW_FILTER
-	report_capability "fwmark route mask (FWMARK_RT_MASK)" $FWMARK_RT_MASK
-	report_capability "Mark in any table (MARK_ANYWHERE)" $MARK_ANYWHERE
-	report_capability "Header Match (HEADER_MATCH)" $HEADER_MATCH
-        report_capability "ACCOUNT Target (ACCOUNT_TARGET)" $ACCOUNT_TARGET
-	report_capability "AUDIT Target (AUDIT_TARGET)" $AUDIT_TARGET
-	report_capability "ipset V5 (IPSET_V5)" $IPSET_V5
-	report_capability "Condition Match (CONDITION_MATCH)" $CONDITION_MATCH
-	report_capability "Statistic Match (STATISTIC_MATCH)" $STATISTIC_MATCH
-	report_capability "IMQ Target (IMQ_TARGET)" $IMQ_TARGET
-	report_capability "DSCP Match (DSCP_MATCH)" $DSCP_MATCH
-	report_capability "DSCP Target (DSCP_TARGET)" $DSCP_TARGET
-	report_capability "Geo IP match" $GEOIP_MATCH
-
-	if [ $g_family -eq 4 ]; then
-	    report_capability "iptables -S (IPTABLES_S)" $IPTABLES_S
-	else
-	    report_capability "ip6tables -S (IPTABLES_S)" $IPTABLES_S
-	fi
-
-	report_capability "Basic Filter (BASIC_FILTER)" $BASIC_FILTER
-	report_capability "CT Target (CT_TARGET)" $CT_TARGET
+	report_capabilities_unsorted | sort
     fi
 
     [ -n "$PKTTYPE" ] || USEPKTTYPE=
 
 }
 
-report_capabilities1() {
+report_capabilities_unsorted1() {
     report_capability1() # $1 = Capability
     {
 	eval echo $1=\$$1
     }
 
-    echo "#"
-    echo "# $g_product $SHOREWALL_VERSION detected the following iptables/netfilter capabilities - $(date)"
-    echo "#"
     report_capability1 NAT_ENABLED
     report_capability1 MANGLE_ENABLED
     report_capability1 MULTIPORT
     report_capability1 XMULTIPORT
+    report_capability1 EMULTIPORT
     report_capability1 CONNTRACK_MATCH
     report_capability1 NEW_CONNTRACK_MATCH
     report_capability1 OLD_CONNTRACK_MATCH
@@ -2410,9 +2730,39 @@ report_capabilities1() {
     report_capability1 DSCP_MATCH
     report_capability1 DSCP_TARGET
     report_capability1 GEOIP_MATCH
+    report_capability1 RPFILTER_MATCH
+    report_capability1 NFACCT_MATCH
+    report_capability1 CHECKSUM_TARGET
+    report_capability1 ARPTABLESJF
+    report_capability1 MASQUERADE_TGT
+    report_capability1 UDPLITEREDIRECT
+    report_capability1 NEW_TOS_MATCH
+
+    report_capability1 AMANDA_HELPER
+    report_capability1 FTP_HELPER
+    report_capability1 FTP0_HELPER
+    report_capability1 IRC_HELPER
+    report_capability1 IRC0_HELPER
+    report_capability1 NETBIOS_NS_HELPER
+    report_capability1 H323_HELPER
+    report_capability1 PPTP_HELPER
+    report_capability1 SANE_HELPER
+    report_capability1 SANE0_HELPER
+    report_capability1 SIP_HELPER
+    report_capability1 SIP0_HELPER
+    report_capability1 SNMP_HELPER
+    report_capability1 TFTP_HELPER
+    report_capability1 TFTP0_HELPER
 
     echo CAPVERSION=$SHOREWALL_CAPVERSION
     echo KERNELVERSION=$KERNELVERSION
+}
+
+report_capabilities1() {
+    echo "#"
+    echo "# $g_product $SHOREWALL_VERSION detected the following iptables/netfilter capabilities - $(date)"
+    echo "#"
+    report_capabilities_unsorted1 | sort
 }
 
 show_status() {
@@ -2530,6 +2880,7 @@ forget_command() {
 	rm -f $g_restorepath
 	rm -f ${g_restorepath}-iptables
 	rm -f ${g_restorepath}-ipsets
+	rm -f ${g_restorepath}-arptables
 	echo "    $g_restorepath removed"
     elif [ -f $g_restorepath ]; then
 	echo "   $g_restorepath exists and is not a saved $g_product configuration"
@@ -2556,7 +2907,7 @@ ipcalc_command() {
     valid_address $address || fatal_error "Invalid IP address: $address"
     [ -z "$vlsm" ] && usage 2
     [ "x$address" = "x$vlsm" ] && usage 2
-    [ $vlsm -gt 32 ] && echo "Invalid VLSM: /$vlsm" >&2 && exit 2
+    [ $vlsm -gt 32 ] && fatal_error "Invalid VLSM: /$vlsm"
 
     address=$address/$vlsm
 
@@ -2638,12 +2989,10 @@ get_config() {
 	if [ -r $config ]; then
 	    . $config
 	else
-	    echo "Cannot read $config! (Hint: Are you root?)" >&2
-	    exit 1
+	    fatal_error "Cannot read $config! (Hint: Are you root?)"
 	fi
     else
-	echo "$config does not exist!" >&2
-	exit 2
+	fatal_error "$config does not exist!"
     fi
 
     ensure_config_path
@@ -2659,8 +3008,7 @@ get_config() {
     elif [ -r $LOGFILE ]; then
 	g_logread="tac $LOGFILE"
     else
-	echo "LOGFILE ($LOGFILE) does not exist!" >&2
-	exit 2
+	fatal_error "LOGFILE ($LOGFILE) does not exist!"
     fi
     #
     # See if we have a real version of "tail" -- use separate redirection so
@@ -2677,14 +3025,12 @@ get_config() {
     if [ $g_family -eq 4 ]; then
 	if [ -n "$IPTABLES" ]; then
 	    if [ ! -x "$IPTABLES" ]; then
-		echo "   ERROR: The program specified in IPTABLES does not exist or is not executable" >&2
-		exit 2
+		fatal_error "The program specified in IPTABLES does not exist or is not executable"
 	    fi
 	else
 	    IPTABLES=$(mywhich iptables 2> /dev/null)
 	    if [ -z "$IPTABLES" ] ; then
-		echo "   ERROR: Can't find iptables executable" >&2
-		exit 2
+		fatal_error "Can't find iptables executable"
 	    fi
 	fi
 
@@ -2692,14 +3038,12 @@ get_config() {
     else
 	if [ -n "$IP6TABLES" ]; then
 	    if [ ! -x "$IP6TABLES" ]; then
-		echo "   ERROR: The program specified in IP6TABLES does not exist or is not executable" >&2
-		exit 2
+		fatal_error "The program specified in IP6TABLES does not exist or is not executable"
 	    fi
 	else
 	    IP6TABLES=$(mywhich ip6tables 2> /dev/null)
 	    if [ -z "$IP6TABLES" ] ; then
-		echo "   ERROR: Can't find ip6tables executable" >&2
-		exit 2
+		fatal_error "Can't find ip6tables executable"
 	    fi
 	fi
 
@@ -2731,11 +3075,28 @@ get_config() {
 
     IP=$(mywhich ip 2> /dev/null)
     if [ -z "$IP" ] ; then
-	echo "   ERROR: Can't find ip executable" >&2
-	exit 2
+	fatal_error "Can't find ip executable"
     fi
 
-    IPSET=ipset
+    if [ -n "$IPSET" ]; then
+	case "$IPSET" in
+	    */*)
+		if [ ! -x "$IPSET" ] ; then
+		    fatal_error "The program specified in IPSET ($IPSET) does not exist or is not executable"
+		fi
+		;;
+	    *)
+		prog="$(mywhich $IPSET 2> /dev/null)"
+		if [ -z "$prog" ] ; then
+		    fatal_error "Can't find $IPSET executable"
+		fi
+		IPSET=$prog
+		;;
+	esac
+    else
+	IPSET=''
+    fi
+
     TC=tc
 
 }
@@ -2939,16 +3300,24 @@ usage() # $1 = exit status
     echo "   restart [ -n ] [ -p ] [ -f ] [ <directory> ]"
     echo "   restore [ -n ] [ <file name> ]"
     echo "   save [ <file name> ]"
-    echo "   show [ -x ] [ -t {filter|mangle|nat} ] [ {chain [<chain> [ <chain> ... ]"
+    echo "   show [ -b ] [ -x ] [ -t {filter|mangle|nat} ] [ {chain [<chain> [ <chain> ... ]"
     echo "   show [ -f ] capabilities"
+    echo "   show arptables"
     echo "   show classifiers"
     echo "   show config"
     echo "   show connections"
     echo "   show filters"
     echo "   show ip"
+
+    if [ $g_family -eq 4 ]; then
+	echo "   show ipa"
+    fi
+
     echo "   show [ -m ] log [<regex>]"
-    echo "   show [ -x ] mangle|nat|raw|rawpost|routing"
+    echo "   show [ -x ] mangle|nat|raw|rawpost"
+    echo "   show nfacct"
     echo "   show policies"
+    echo "   show routing"
     echo "   show tc [ device ]"
     echo "   show vardir"
     echo "   show zones"
@@ -2997,9 +3366,10 @@ shorewall_cli() {
     g_recovering=
     g_timestamp=
     g_shorewalldir=
+    g_haveconfig=
 
     VERBOSE=
-    VERBOSITY=
+    VERBOSITY=1
 
     [ -n "$g_lite" ] || . ${g_basedir}/lib.cli-std
 
@@ -3022,9 +3392,9 @@ shorewall_cli() {
 
 			    if [ ! -d $2 ]; then
 				if [ -e $2 ]; then
-				    echo "$2 is not a directory" >&2 && exit 2
+				    fatal_error "$2 is not a directory"
 				else
-				    echo "Directory $2 does not exist" >&2 && exit 2
+				    fatal_error "Directory $2 does not exist"
 				fi
 			    fi
 
@@ -3181,7 +3551,7 @@ shorewall_cli() {
 	    if product_is_started; then
 		run_it ${VARDIR}/firewall $g_debugging $@
 	    else
-		fatal_error "Shorewall is not running"
+		fatal_error "$g_product is not running"
 	    fi
 	    ;;
 	show|list)
