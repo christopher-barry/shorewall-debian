@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-lite
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/28/2012
+.\"      Date: 05/01/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-LITE" "8" "06/28/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-LITE" "8" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -77,7 +77,7 @@ shorewall6-lite \- Administration tool for Shoreline 6 Firewall Lite (Shorewall6
 .HP \w'\fBshorewall6\-lite\fR\ 'u
 \fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsave\fR [\fIfilename\fR]
 .HP \w'\fBshorewall6\-lite\fR\ 'u
-\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-x\fR] [\fB\-l\fR] [\fB\-t\fR\ {\fBfilter\fR|\fBmangle\fR|\fBnat\fR|\fBraw|rawpost\fR}] [[\fBchain\fR]\ \fIchain\fR...]
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-b\fR] [\fB\-x\fR] [\fB\-l\fR] [\fB\-t\fR\ {\fBfilter\fR|\fBmangle\fR|\fBnat\fR|\fBraw|rawpost\fR}] [[\fBchain\fR]\ \fIchain\fR...]
 .HP \w'\fBshorewall6\-lite\fR\ 'u
 \fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBshow\fR [\fB\-f\fR] \fBcapabilities\fR
 .HP \w'\fBshorewall6\-lite\fR\ 'u
@@ -408,6 +408,10 @@ option is passed directly through to iptables and causes actual packet and byte 
 \fB\-t\fR
 option specifies the Netfilter table to display\&. The default is
 \fBfilter\fR\&.
+.sp
+The
+\fB\-b\fR
+(\*(Aqbrief\*(Aq) option causes rules which have not been used (i\&.e\&. which have zero packet and byte counts) to be omitted from the output\&. Chains with no rules displayed are also omitted from the output\&.
 .sp
 The
 \fB\-l\fR
