@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.5.3
+VERSION=4.5.16.1
 
 usage() # $1 = exit status
 {
@@ -160,7 +160,14 @@ else
     usage 1
 fi
 
-for var in SHAREDIR LIBEXECDIR CONFDIR SBINDIR VARDIR; do
+if [ -z "${VARLIB}" ]; then
+    VARLIB=${VARDIR}
+    VARDIR=${VARLIB}/${PRODUCT}
+elif [ -z "${VARDIR}" ]; then
+    VARDIR=${VARLIB}/${PRODUCT}
+fi
+
+for var in SHAREDIR LIBEXECDIR CONFDIR SBINDIR VARLIB VARDIR; do
     require $var
 done
 
@@ -285,6 +292,7 @@ fi
 if [ -n "$SYSTEMD" ]; then
     mkdir -p ${DESTDIR}${SYSTEMD}
     run_install $OWNERSHIP -m 600 shorewall-init.service ${DESTDIR}${SYSTEMD}/shorewall-init.service
+    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/shorewall-init.service
     echo "Service file installed as ${DESTDIR}${SYSTEMD}/shorewall-init.service"
     if [ -n "$DESTDIR" ]; then
 	mkdir -p ${DESTDIR}${SBINDIR}
@@ -297,8 +305,8 @@ fi
 #
 # Create /usr/share/shorewall-init if needed
 #
-mkdir -p ${DESTDIR}/usr/share/shorewall-init
-chmod 755 ${DESTDIR}/usr/share/shorewall-init
+mkdir -p ${DESTDIR}${SHAREDIR}/shorewall-init
+chmod 755 ${DESTDIR}${SHAREDIR}/shorewall-init
 
 #
 # Install logrotate file
@@ -311,14 +319,14 @@ fi
 #
 # Create the version file
 #
-echo "$VERSION" > ${DESTDIR}/usr/share/shorewall-init/version
-chmod 644 ${DESTDIR}/usr/share/shorewall-init/version
+echo "$VERSION" > ${DESTDIR}/${SHAREDIR}/shorewall-init/version
+chmod 644 ${DESTDIR}${SHAREDIR}/shorewall-init/version
 
 #
 # Remove and create the symbolic link to the init script
 #
 if [ -z "$DESTDIR" ]; then
-    rm -f /usr/share/shorewall-init/init
+    rm -f ${SHAREDIR}/shorewall-init/init
     ln -s ${INITDIR}/${INITFILE} ${SHAREDIR}/shorewall-init/init
 fi
 
@@ -335,6 +343,8 @@ if [ $HOST = debian ]; then
 
 	install_file sysconfig ${DESTDIR}/etc/default/shorewall-init 0644
     fi
+
+    IFUPDOWN=ifupdown.debian.sh
 else
     if [ -n "$DESTDIR" ]; then
 	mkdir -p ${DESTDIR}${SYSCONFDIR}
@@ -351,14 +361,16 @@ else
 
     if [ -d ${DESTDIR}${SYSCONFDIR} -a ! -f ${DESTDIR}${SYSCONFDIR}/shorewall-init ]; then
 	install_file sysconfig ${DESTDIR}${SYSCONFDIR}/shorewall-init 0644
-    fi 
+    fi
+
+    [ $HOST = suse ] && IFUPDOWN=ifupdown.suse.sh || IFUPDOWN=ifupdown.fedora.sh
 fi
 
 #
 # Install the ifupdown script
 #
 
-cp ifupdown.sh ifupdown
+cp $IFUPDOWN ifupdown
 
 [ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ifupdown
 
@@ -383,11 +395,23 @@ case $HOST in
 	fi
 	;;
     redhat)
-	if [ -f ${DESTDIR}${SBINDIR}/ifup-local -o -f ${DESTDIR}${SBINDIR}/ifdown-local ]; then
-	    echo "WARNING: ${SBINDIR}/ifup-local and/or ${SBINDIR}/ifdown-local already exist; up/down events will not be handled"
-	elif [ -z "$DESTDIR" ]; then
-	    install_file ifupdown ${DESTDIR}${SBINDIR}/ifup-local 0544
-	    install_file ifupdown ${DESTDIR}${SBINDIR}/ifdown-local 0544
+	if [ -z "$DESTDIR" ]; then
+	    install_local=
+
+	    if [ -f ${SBINDIR}/ifup-local -o -f ${SBINDIR}/ifdown-local ]; then
+		if ! fgrep -q Shorewall-based ${SBINDIR}/ifup-local || ! fgrep -q Shorewall-based ${SBINDIR}/ifdown-local; then
+		    echo "WARNING: ${SBINDIR}/ifup-local and/or ${SBINDIR}/ifdown-local already exist; up/down events will not be handled"
+		else
+		    install_local=Yes
+		fi
+	    else
+		install_local=Yes
+	    fi
+
+	    if [ -n "$install_local" ]; then
+		install_file ifupdown ${DESTDIR}${SBINDIR}/ifup-local 0544
+		install_file ifupdown ${DESTDIR}${SBINDIR}/ifdown-local 0544
+	    fi
 	fi
 	;;
 esac
@@ -401,7 +425,7 @@ if [ -z "$DESTDIR" ]; then
 	    echo "Shorewall Init will start automatically at boot"
 	else
 	    if [ -n "$SYSTEMD" ]; then
-		if systemctl enable shorewall-init; then
+		if systemctl enable shorewall-init.service; then
 		    echo "Shorewall Init will start automatically at boot"
 		fi
 	    elif [ -x ${SBINDIR}/insserv -o -x /usr${SBINDIR}/insserv ]; then

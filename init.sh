@@ -58,16 +58,34 @@ fi
 #
 . /usr/share/shorewall/shorewallrc
 
+# Locate the current PRODUCT's statedir
+setstatedir() {
+    local statedir
+    if [ -f ${CONFDIR}/${PRODUCT}/vardir ]; then
+	statedir=$( . /${CONFDIR}/${PRODUCT}/vardir && echo $VARDIR )
+    fi
+
+    [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARDIR}/${PRODUCT}
+
+    if [ ! -x $STATEDIR/firewall ]; then
+	if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+	    ${SBINDIR}/$PRODUCT compile $STATEDIR/firewall
+	fi
+    fi
+}
+
 # Initialize the firewall
 shorewall_start () {
   local PRODUCT
-  local VARDIR
+  local STATEDIR
 
   echo -n "Initializing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
-      if [ -x ${VARDIR}/firewall ]; then
+      setstatedir
+
+      if [ -x ${STATEDIR}/firewall ]; then
 	  if ! ${SBIN}/$PRODUCT status > /dev/null 2>&1; then
-	      ${VARDIR}/firewall stop || echo_notdone
+	      ${STATEDIR}/firewall stop || echo_notdone
 	  fi
       fi
   done
@@ -86,6 +104,14 @@ shorewall_stop () {
 
   echo -n "Clearing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
+      setstatedir
+
+      if [ ! -x ${VARDIR}/firewall ]; then
+	  if [ $PRODUCT = shorewall -o $product = shorewall6 ]; then
+	      ${SBINDIR}/$PRODUCT compile
+	  fi
+      fi
+
       if [ -x ${VARDIR}/firewall ]; then
 	  ${VARDIR}/firewall clear || exit 1
       fi

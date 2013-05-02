@@ -1,5 +1,4 @@
-#!/bin/sh
-#
+#! /bin/bash
 #     The Shoreline Firewall (Shorewall) Packet Filtering Firewall - V4.5
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
@@ -23,20 +22,17 @@
 #       along with this program; if not, write to the Free Software
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
+#
 ### BEGIN INIT INFO
-# Provides:          shorewall-init
-# Required-Start:    $local_fs
-# X-Start-Before:    $network
-# Required-Stop:     $local_fs
-# X-Stop-After:      $network
-# Default-Start:     S
-# Default-Stop:      0 6
+# Provides: shorewall-init
+# Required-Start: $local_fs
+# Required-Stop:  $local_fs
+# Default-Start:  2 3 5
+# Default-Stop:   0 1 6
 # Short-Description: Initialize the firewall at boot time
-# Description:       Place the firewall in a safe state at boot time prior to
-#                    bringing up the network
+# Description:       Place the firewall in a safe state at boot time
+#                    prior to bringing up the network.  
 ### END INIT INFO
-
-export VERBOSITY=0
 
 if [ "$(id -u)" != "0" ]
 then
@@ -44,23 +40,22 @@ then
   exit 1
 fi
 
-echo_notdone () {
-  echo "not done."
-  exit 1
-}
-
-not_configured () {
-	echo "#### WARNING ####"
-	echo "the firewall won't be initialized unless it is configured"
-	if [ "$1" != "stop" ]
+# check if shorewall-init is configured or not
+if [ -f "/etc/sysconfig/shorewall-init" ]
+then
+	. /etc/sysconfig/shorewall-init
+	if [ -z "$PRODUCTS" ]
 	then
-		echo ""
-		echo "Please read about Debian specific customization in"
-		echo "/usr/share/doc/shorewall-init/README.Debian.gz."
+		exit 0
 	fi
-	echo "#################"
+else
 	exit 0
-}
+fi
+
+#
+# The installer may alter this
+#
+. /usr/share/shorewall/shorewallrc
 
 # set the STATEDIR variable
 setstatedir() {
@@ -78,25 +73,6 @@ setstatedir() {
     fi
 }
 
-#
-# The installer may alter this
-#
-. /usr/share/shorewall/shorewallrc
-
-vardir=$VARDIR
-
-# check if shorewall-init is configured or not
-if [ -f "$SYSCONFDIR/shorewall-init" ]
-then
-	. $SYSCONFDIR/shorewall-init
-	if [ -z "$PRODUCTS" ]
-	then
-		not_configured
-	fi
-else
-	not_configured
-fi
-
 # Initialize the firewall
 shorewall_start () {
   local PRODUCT
@@ -106,25 +82,16 @@ shorewall_start () {
   for PRODUCT in $PRODUCTS; do
       setstatedir
 
-      if [ ! -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-	      ${SBINDIR}/$PRODUCT compile
+      if [ -x $STATEDIR/firewall ]; then
+	  if ! ${SBIN}/$PRODUCT status > /dev/null 2>&1; then
+	      $STATEDIR/$PRODUCT/firewall stop || echo_notdone
 	  fi
-      fi
-
-      if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  #
-	  # Run in a sub-shell to avoid name collisions
-	  #
-	  ( 
-	      if ! ${VARDIR}/$PRODUCT/firewall status > /dev/null 2>&1; then
-		  ${VARDIR}/$PRODUCT/firewall stop || echo_notdone
-	      fi
-	  )
       fi
   done
 
-  echo "done."
+  if [ -n "$SAVE_IPSETS" -a -f "$SAVE_IPSETS" ]; then
+      ipset -R < "$SAVE_IPSETS"
+  fi
 
   return 0
 }
@@ -132,24 +99,23 @@ shorewall_start () {
 # Clear the firewall
 shorewall_stop () {
   local PRODUCT
-  local VARDIR
+  local STATEDIR
 
   echo -n "Clearing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
       setstatedir
 
-      if [ ! -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-	      ${SBINDIR}/$PRODUCT compile
-	  fi
-      fi
-
-      if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  ${VARDIR}/$PRODUCT/firewall clear || echo_notdone
+      if [ -x ${STATEDIR}/firewall ]; then
+	  ${STATEDIR}/firewall clear || exit 1
       fi
   done
 
-  echo "done."
+  if [ -n "$SAVE_IPSETS" ]; then
+      mkdir -p $(dirname "$SAVE_IPSETS")
+      if ipset -S > "${SAVE_IPSETS}.tmp"; then
+	  grep -qE -- '^(-N|create )' "${SAVE_IPSETS}.tmp" && mv -f "${SAVE_IPSETS}.tmp" "$SAVE_IPSETS"
+      fi
+  fi
 
   return 0
 }
@@ -161,10 +127,8 @@ case "$1" in
   stop)
      shorewall_stop
      ;;
-  reload|force-reload)
-     ;;
   *)
-     echo "Usage: /etc/init.d/shorewall-init {start|stop|reload|force-reload}"
+     echo "Usage: /etc/init.d/shorewall-init {start|stop}"
      exit 1
 esac
 
