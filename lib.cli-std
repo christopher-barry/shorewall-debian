@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 1999-2012 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2013 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -34,28 +34,33 @@ get_config() {
 
     ensure_config_path
 
-
-
     if [ "$1" = Yes ]; then
-	params=$(find_file params)
+	if [ "$(id -u)" -eq 0 ]; then 
+	    params=$(find_file params)
+	else
+	    params="$g_shorewalldir/params"
+	fi
 
 	if [ -f $params ]; then
 	    . $params
 	fi
     fi
 
-    config=$(find_file $g_program.conf)
+    if [ "$(id -u)" -eq 0 ]; then
+	config=$(find_file $g_program.conf)
+    else
+	[ -n "$g_shorewalldir" ] || fatal_error "Ordinary users may not $COMMAND the $CONFDIR/$g_program configuration"
+	config="$g_shorewalldir/$g_program.conf"
+    fi
 
     if [ -f $config ]; then
 	if [ -r $config ]; then
 	    . $config
 	else
-	    echo "Cannot read $config! (Hint: Are you root?)" >&2
-	    exit 1
+	    fatal_error "Cannot read $config! (Hint: Are you root?)"
 	fi
     else
-	echo "$config does not exist!" >&2
-	exit 2
+	fatal_error "$config does not exist!"
     fi
 
     ensure_config_path
@@ -71,8 +76,7 @@ get_config() {
 		elif [ -r $LOGFILE ]; then
 		    g_logread="tac $LOGFILE"
 		else
-		    echo "LOGFILE ($LOGFILE) does not exist!" >&2
-		    exit 2
+		    fatal_error "LOGFILE ($LOGFILE) does not exist!"
 		fi
 	    fi
 	fi
@@ -80,14 +84,12 @@ get_config() {
 	if [ $g_family -eq 4 ]; then
 	    if [ -n "$IPTABLES" ]; then
 		if [ ! -x "$IPTABLES" ]; then
-		    echo "   ERROR: The program specified in IPTABLES does not exist or is not executable" >&2
-		    exit 2
+		    fatal_error "The program specified in IPTABLES does not exist or is not executable"
 		fi
 	    else
 		IPTABLES=$(mywhich iptables 2> /dev/null)
 		if [ -z "$IPTABLES" ] ; then
-		    echo "   ERROR: Can't find iptables executable" >&2
-		    exit 2
+		    fatal_error "Can't find iptables executable"
 		fi
 	    fi
 
@@ -95,14 +97,12 @@ get_config() {
 	else
 	    if [ -n "$IP6TABLES" ]; then
 		if [ ! -x "$IP6TABLES" ]; then
-		    echo "   ERROR: The program specified in IP6TABLES does not exist or is not executable" >&2
-		    exit 2
+		    fatal_error "The program specified in IP6TABLES does not exist or is not executable"
 		fi
 	    else
 		IP6TABLES=$(mywhich ip6tables 2> /dev/null)
 		if [ -z "$IP6TABLES" ] ; then
-		    echo "   ERROR: Can't find ip6tables executable" >&2
-		    exit 2
+		    fatal_error "Can't find ip6tables executable"
 		fi
 	    fi
 
@@ -113,15 +113,13 @@ get_config() {
 	    case "$IP" in
 		*/*)
 		    if [ ! -x "$IP" ] ; then
-			echo "   ERROR: The program specified in IP ($IP) does not exist or is not executable" >&2
-			exit 2
+			fatal_error "The program specified in IP ($IP) does not exist or is not executable"
 		    fi
 		    ;;
 		*)
 		    prog="$(mywhich $IP 2> /dev/null)"
 		    if [ -z "$prog" ] ; then
-			echo "   ERROR: Can't find $IP executable" >&2
-			exit 2
+			fatal_error "Can't find $IP executable"
 		    fi
 		    IP=$prog
 		    ;;
@@ -134,36 +132,38 @@ get_config() {
 	    case "$IPSET" in
 		*/*)
 		    if [ ! -x "$IPSET" ] ; then
-			echo "   ERROR: The program specified in IPSET ($IPSET) does not exist or is not executable" >&2
-			exit 2
+			fatal_error "The program specified in IPSET ($IPSET) does not exist or is not executable"
 		    fi
+		    ;;
+		ipset)
+		    #
+		    # Old config files had this as default
+		    #
+		    IPSET=''
 		    ;;
 		*)
 		    prog="$(mywhich $IPSET 2> /dev/null)"
 		    if [ -z "$prog" ] ; then
-			echo "   ERROR: Can't find $IPSET executable" >&2
-			exit 2
+			fatal_error "Can't find $IPSET executable"
 		    fi
 		    IPSET=$prog
 		    ;;
 	    esac
 	else
-	    IPSET='ipset'
+	    IPSET=''
 	fi
 
 	if [ -n "$TC" ]; then
 	    case "$TC" in
 		*/*)
 		    if [ ! -x "$TC" ] ; then
-			echo "   ERROR: The program specified in TC ($TC) does not exist or is not executable" >&2
-			exit 2
+			fatal_error "The program specified in TC ($TC) does not exist or is not executable"
 		    fi
 		    ;;
 		*)
 		    prog="$(mywhich $TC 2> /dev/null)"
 		    if [ -z "$prog" ] ; then
-			echo "   ERROR: Can't find $TC executable" >&2
-			exit 2
+			fatal_error "Can't find $TC executable"
 		    fi
 		    TC=$prog
 		    ;;
@@ -181,14 +181,13 @@ get_config() {
 	if [ "$2" = Yes ]; then
 	    case $STARTUP_ENABLED in
 		No|no|NO)
-		    echo "   ERROR: $g_product startup is disabled. To enable startup, set STARTUP_ENABLED=Yes in ${CONFDIR}/${g_program}.conf" >&2
-		    exit 2
+		    fatal_error "$g_product startup is disabled. To enable startup, set STARTUP_ENABLED=Yes in ${g_confdir}/${g_program}.conf"
 		    ;;
 		Yes|yes|YES)
 		    ;;
 		*)
 		    if [ -n "$STARTUP_ENABLED" ]; then
-			echo "   ERROR: Invalid Value for STARTUP_ENABLED: $STARTUP_ENABLED" >&2
+			fatal_error "Invalid Value for STARTUP_ENABLED: $STARTUP_ENABLED"
 			exit 2
 		    fi
 		    ;;
@@ -202,8 +201,7 @@ get_config() {
 		echo "   WARNING: SHOREWALL_COMPILER=shell ignored. Shorewall-shell support has been removed in this release" >&2
 		;;
 	    *)
-		echo "   ERROR: Invalid value ($SHOREWALL_COMPILER) for SHOREWALL_COMPILER" >&2
-		exit 2
+		fatal_error "Invalid value ($SHOREWALL_COMPILER) for SHOREWALL_COMPILER"
 		;;
 	esac
 
@@ -225,8 +223,7 @@ get_config() {
 		    0|1|2)
 			;;
 		    *)
-		        echo "  ERROR: Invalid LOG_VERBOSITY ($LOG_VERBOSITY)" >&2
-			exit 2;
+		        fatal_error "Invalid LOG_VERBOSITY ($LOG_VERBOSITY)"
 			;;
 		esac
 	    else
@@ -253,8 +250,7 @@ get_config() {
 	    ;;
 	*)
 	    if [ -n "$VERBOSITY" ]; then
-		echo "   ERROR: Invalid VERBOSITY setting ($VERBOSITY)" >&2
-		exit 2
+		fatal_error "Invalid VERBOSITY setting ($VERBOSITY)"
 	    else
 		VERBOSITY=2
 	    fi
@@ -282,8 +278,7 @@ get_config() {
 	    ;;
 	*)
 	    if [ -n "$MANGLE_ENABLED" ]; then
-		echo "   ERROR: Invalid MANGLE_ENABLED setting ($MANGLE_ENABLED)" >&2
-		exit 2
+		fatal_error "Invalid MANGLE_ENABLED setting ($MANGLE_ENABLED)"
 	    fi
 	    ;;
     esac
@@ -296,8 +291,7 @@ get_config() {
 	    ;;
 	*)
 	    if [ -n "$AUTOMAKE" ]; then
-		echo "   ERROR: Invalid AUTOMAKE setting ($AUTOMAKE)" >&2
-		exit 1
+		fatal_error "Invalid AUTOMAKE setting ($AUTOMAKE)"
 	    fi
 	    ;;
     esac
@@ -310,8 +304,7 @@ get_config() {
 	    ;;
 	*)
 	    if [ -n "$LOAD_HELPERS_ONLY" ]; then
-		echo "   ERROR: Invalid LOAD_HELPERS_ONLY setting ($LOAD_HELPERS_ONLY)" >&2
-		exit 1
+		fatal_error "Invalid LOAD_HELPERS_ONLY setting ($LOAD_HELPERS_ONLY)"
 	    fi
 	    ;;
     esac
@@ -324,8 +317,7 @@ get_config() {
 	    ;;
 	*)
 	    if [ -n "$LEGACY_FASTSTART" ]; then
-		echo "   ERROR: Invalid LEGACY_FASTSTART setting ($LEGACY_FASTSTART)" >&2
-		exit 1
+		fatal_error "Invalid LEGACY_FASTSTART setting ($LEGACY_FASTSTART)"
 	    fi
 
 	    LEGACY_FASTSTART=Yes
@@ -363,22 +355,23 @@ uptodate() {
 compiler() {
     local pc
     local shorewallrc
+    local shorewallrc1
 
-    pc=$g_libexec/shorewall/compiler.pl
+    pc=${LIBEXECDIR}/shorewall/compiler.pl
 
     if [ $(id -u) -ne 0 ]; then
 	if [ -z "$g_shorewalldir" -o "$g_shorewalldir" = /etc/$g_program ]; then
-	    startup_error "Ordinary users may not compile the /etc/$g_program configuration"
+	    startup_error "Ordinary users may not $COMMAND the $CONFDIR/$g_program configuration"
 	fi
     fi
     #
     # We've now set g_shorewalldir so recalculate CONFIG_PATH
     #
-    ensure_config_path
+    [ -n "$g_haveconfig" ] || ensure_config_path
     #
     # Get the config from $g_shorewalldir
     #
-    [ -n "$g_shorewalldir" -a "$g_shorewalldir" != ${g_confdir} ] && get_config
+    get_config Yes
 
     case $COMMAND in
 	*start|try|refresh)
@@ -399,14 +392,15 @@ compiler() {
     [ "$1" = nolock ] && shift;
     shift
 
+    shorewallrc=${g_basedir}/shorewallrc
+
     if [ -n "$g_export" ]; then
-	shorewallrc=$(find_file shorewallrc)
-	[ -f "$shorewallrc" ] || fatal_error "Compiling for export requires a shorewallrc file"
-    else
-	shorewallrc="${g_basedir}/shorewallrc"
+	shorewallrc1=$(find_file shorewallrc)
+	[ -f "$shorewallrc1" ] || fatal_error "Compiling for export requires a shorewallrc file"
     fi
 
     options="--verbose=$VERBOSITY --family=$g_family --config_path=$CONFIG_PATH --shorewallrc=${shorewallrc}"
+    [ -n "$shorewallrc1" ] && options="$options --shorewallrc1=${shorewallrc1}"
     [ -n "$STARTUP_LOG" ] && options="$options --log=$STARTUP_LOG"
     [ -n "$LOG_VERBOSITY" ] && options="$options --log_verbosity=$LOG_VERBOSITY";
     [ -n "$g_export" ] && options="$options --export"
@@ -420,6 +414,7 @@ compiler() {
     [ -n "$g_update" ] && options="$options --update"
     [ -n "$g_convert" ] && options="$options --convert"
     [ -n "$g_annotate" ] && options="$options --annotate"
+    [ -n "$g_directives" ] && options="$options --directives"
 
     if [ -n "$PERL" ]; then
 	if [ ! -x "$PERL" ]; then
@@ -430,12 +425,27 @@ compiler() {
 	PERL=/usr/bin/perl
     fi
 
-    if [ $g_perllib = ${g_libexec}/shorewall ]; then
+    if [ ${PERLLIBDIR} = ${LIBEXECDIR}/shorewall ]; then
 	$PERL $debugflags $pc $options $@
     else
-	PERL5LIB=$g_perllib
+	PERL5LIB=${PERLLIBDIR}
 	export PERL5LIB
 	$PERL $debugflags $pc $options $@
+    fi
+}
+
+#
+# Run the postcompile user exit
+#
+run_postcompile() { # $1 is the compiled script
+    local script
+
+    script=$(find_file postcompile)
+
+    if [ -f $script ]; then
+	. $script $1
+    else
+	return 0
     fi
 }
 
@@ -459,6 +469,7 @@ start_command() {
 	    progress_message3 "Compiling..."
 
 	    if compiler $g_debugging $nolock compile ${VARDIR}/.start; then
+		run_postcompile ${VARDIR}/.start
 		[ -n "$nolock" ] || mutex_on
 		run_it ${VARDIR}/.start $g_debugging start
 		rc=$?
@@ -533,9 +544,9 @@ start_command() {
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
-		    echo "$1 is not a directory" >&2 && exit 2
+		    fatal_error "$1 is not a directory"
 		else
-		    echo "Directory $1 does not exist" >&2 && exit 2
+		    fatal_error "Directory $1 does not exist"
 		fi
 	    fi
 
@@ -603,6 +614,7 @@ compile_command() {
 		    case $option in
 			e*)
 			    g_export=Yes
+			    g_shorewalldir='.'
 			    option=${option#e}
 			    ;;
 			p*)
@@ -641,20 +653,20 @@ compile_command() {
 
     case $# in
 	0)
-	    file=${VARDIR}/firewall
+	    [ -n "$g_export" ] && file=firewall || file=${VARDIR}/firewall
 	    ;;
 	1)
 	    file=$1
-	    [ -d $file ] && echo "   ERROR: $file is a directory" >&2 && exit 2;
+	    [ -d $file ] && fatal_error "$file is a directory"
 	    ;;
 	2)
-	    [ -n "$g_shorewalldir" ] && usage 2
+	    [ -n "$g_shorewalldir" -a -z "$g_export" ] && usage 2
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
-		    echo "$1 is not a directory" >&2 && exit 2
+		    fatal_error "$1 is not a directory"
 		else
-		    echo "Directory $1 does not exist" >&2 && exit 2
+		    fatal_error "Directory $1 does not exist"
 		fi
 	    fi
 
@@ -668,7 +680,7 @@ compile_command() {
 
     [ "x$file" = x- ] || progress_message3 "Compiling..."
 
-    compiler $g_debugging compile $file
+    compiler $g_debugging compile $file && run_postcompile $file
 }
 
 #
@@ -692,6 +704,7 @@ check_command() {
 			    ;;
 			e*)
 			    g_export=Yes
+			    g_shorewalldir='.'
 			    option=${option#e}
 			    ;;
 			p*)
@@ -710,10 +723,6 @@ check_command() {
 			    g_confess=Yes
 			    option=${option#T}
 			    ;;
-			a*)
-			    g_annotate=Yes
-			    option=${option#a}
-			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -731,13 +740,13 @@ check_command() {
 	0)
 	    ;;
 	1)
-	    [ -n "$g_shorewalldir" ] && usage 2
+	    [ -n "$g_shorewalldir" -a -z "$g_export" ] && usage 2
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
-		    echo "$1 is not a directory" >&2 && exit 2
+		    fatal_error "$1 is not a directory"
 		else
-		    echo "Directory $1 does not exist" >&2 && exit 2
+		    fatal_error "Directory $1 does not exist"
 		fi
 	    fi
 
@@ -802,6 +811,10 @@ update_command() {
 			    g_convert=Yes
 			    option=${option#b}
 			    ;;
+			D*)
+			    g_directives=Yes
+			    option=${option#D}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -823,9 +836,9 @@ update_command() {
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
-		    echo "$1 is not a directory" >&2 && exit 2
+		    fatal_error "$1 is not a directory"
 		else
-		    echo "Directory $1 does not exist" >&2 && exit 2
+		    fatal_error "Directory $1 does not exist"
 		fi
 	    fi
 
@@ -909,9 +922,9 @@ restart_command() {
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
-		    echo "$1 is not a directory" >&2 && exit 2
+		    fatal_error "$1 is not a directory"
 		else
-		    echo "Directory $1 does not exist" >&2 && exit 2
+		    fatal_error "Directory $1 does not exist"
 		fi
 	    fi
 
@@ -934,6 +947,7 @@ restart_command() {
 	progress_message3 "Compiling..."
 
 	if compiler $g_debugging $nolock compile ${VARDIR}/.restart; then
+	    run_postcompile ${VARDIR}/.restart
 	    [ -n "$nolock" ] || mutex_on
 	    run_it ${VARDIR}/.restart $g_debugging restart
 	    rc=$?
@@ -990,7 +1004,7 @@ refresh_command() {
 				option=
 				shift
 			    else
-				fatal_error "ERROR: the -D option requires a directory name"
+				fatal_error "The -D option requires a directory name"
 			    fi
 			    ;;
 			*)
@@ -1025,6 +1039,7 @@ refresh_command() {
     progress_message3 "Compiling..."
 
     if compiler $g_debugging $nolock compile ${VARDIR}/.refresh; then
+	run_postcompile ${VARDIR}/.refresh
 	[ -n "$nolock" ] || mutex_on
 	run_it ${VARDIR}/.refresh $g_debugging refresh
 	rc=$?
@@ -1097,9 +1112,9 @@ safe_commands() {
 
 	    if [ ! -d $1 ]; then
 		if [ -e $1 ]; then
-		    echo "$1 is not a directory" >&2 && exit 2
+		    fatal_error "$1 is not a directory"
 		else
-		    echo "Directory $1 does not exist" >&2 && exit 2
+		    fatal_error "Directory $1 does not exist"
 		fi
 	    fi
 
@@ -1138,6 +1153,8 @@ safe_commands() {
 	status=$?
 	exit $status
     fi
+
+    run_postcompile ${VARDIR}/.$command
 
     case $command in
 	start)
@@ -1192,9 +1209,9 @@ try_command() {
 
 	if [ ! -d $1 ]; then
 	    if [ -e $1 ]; then
-		echo "$1 is not a directory" >&2 && exit 2
+		fatal_error "$1 is not a directory"
 	    else
-		echo "Directory $1 does not exist" >&2 && exit 2
+		fatal_error "Directory $1 does not exist"
 	    fi
 	fi
 
@@ -1270,6 +1287,8 @@ try_command() {
 	exit $status
     fi
 
+    run_postcompile ${VARDIR}/.restart
+
     case $command in
 	start)
 	    RESTOREFILE=NONE
@@ -1285,7 +1304,7 @@ try_command() {
 
     [ -n "$nolock" ] || mutex_on
 
-    if run_it ${VARDIR}/.$command $command && [ -n "$timeout" ]; then
+    if run_it ${VARDIR}/.$command $g_debugging $command && [ -n "$timeout" ]; then
 	sleep $timeout
 
 	if [ "$command" = "restart" ]; then
@@ -1329,20 +1348,21 @@ reload_command() # $* = original arguments less the command.
     local saveit
     saveit=
     local result
-    local directory
     local system
     local getcaps
     getcaps=
     local root
     root=root
     local libexec
-    libexec=/usr/share
+    libexec=${LIBEXECDIR}
     local confdir
-    confdir=/etc
+    confdir=${CONFDIR}
     local sbindir
-    sbindir=/sbin
+    sbindir=${SBINDIR}
+    local sharedir
+    sharedir=${SHAREDIR}
 
-    litedir=/var/lib/${g_program}-lite
+    litedir=${VARLIB}/${g_program}-lite
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -1389,11 +1409,11 @@ reload_command() # $* = original arguments less the command.
 
     case $# in
 	1)
-	    directory="."
+	    g_shorewalldir="."
 	    system=$1
 	    ;;
 	2)
-	    directory=$1
+	    g_shorewalldir=$1
 	    system=$2
 	    ;;
 	*)
@@ -1401,46 +1421,33 @@ reload_command() # $* = original arguments less the command.
 	    ;;
     esac
 
-    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^LITEDIR | sed 's/LITEDIR is //')
-
-    [ -n "$temp" ] && litedir="$temp"
-
-    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^LIBEXEC | sed 's/LIBEXEC is //')
-
-    if [ -n "$temp" ]; then
-	case $temp in
-	    /*)
-		libexec="$temp"
-		;;
-	    *)
-		libexec=/usr/$temp
-		;;
-	esac
+    if [ -f $g_shorewalldir/shorewallrc ]; then
+	. $g_shorewalldir/shorewallrc
+	sbindir="$SBINDIR"
+	confdir="$CONFDIR"
+	libexec="$LIBEXECDIR"
+	. $sharedir/shorewall/shorewallrc
+    else
+	error_message "   WARNING: $g_shorewalldir/shorewallrc does not exist; using settings from $SHAREDIR/shorewall" >&2
     fi
 
-    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^SBINDIR | sed 's/SBINDIR is //')
-
-    [ -n "$temp" ] && sbindir="$temp"
-
-    temp=$(rsh_command ${g_program}-lite show config 2> /dev/null | grep ^CONFDIR | sed 's/CONFDIR is //')
-
-    [ -n "$temp" ] && confdir="$temp"
-
-    if [ -z "$getcaps" ]; then
-	g_shorewalldir=$(resolve_file $directory)
-	ensure_config_path
-	capabilities=$(find_file capabilities)
-	[ -f $capabilities ] || getcaps=Yes
-    fi
-
-    if [ -f $directory/${g_program}.conf ]; then
-	if [ -f $directory/params ]; then
-	    . $directory/params
+    if [ -f $g_shorewalldir/${g_program}.conf ]; then
+	if [ -f $g_shorewalldir/params ]; then
+	    . $g_shorewalldir/params
 	fi
 
-	. $directory/$g_program.conf
-
 	ensure_config_path
+
+	get_config No
+
+	g_haveconfig=Yes
+    else
+	fatal_error "$g_shorewalldir/$g_program.conf does not exist"
+    fi
+
+    if [ -z "$getcaps" ]; then
+	capabilities=$(find_file capabilities)
+	[ -f $capabilities ] || getcaps=Yes
     fi
 
     if [ -n "$getcaps" ]; then
@@ -1448,21 +1455,21 @@ reload_command() # $* = original arguments less the command.
 
 	progress_message "Getting Capabilities on system $system..."
 	if [ $g_family -eq 4 ]; then
-	    if ! rsh_command "MODULESDIR=$MODULESDIR MODULE_SUFFIX=\"$MODULE_SUFFIX\" IPTABLES=$IPTABLES DONT_LOAD=\"$DONT_LOAD\" $libexec/shorewall-lite/shorecap" > $directory/capabilities; then
+	    if ! rsh_command "MODULESDIR=$MODULESDIR MODULE_SUFFIX=\"$MODULE_SUFFIX\" IPTABLES=$IPTABLES DONT_LOAD=\"$DONT_LOAD\" $libexec/shorewall-lite/shorecap" > $g_shorewalldir/capabilities; then
 	        fatal_error "Capturing capabilities on system $system failed"
 	    fi
-	elif ! rsh_command "MODULESDIR=$MODULESDIR MODULE_SUFFIX=\"$MODULE_SUFFIX\" IP6TABLES=$IP6TABLES DONT_LOAD=\"$DONT_LOAD\" $libexec/shorewall6-lite/shorecap" > $directory/capabilities; then
+	elif ! rsh_command "MODULESDIR=$MODULESDIR MODULE_SUFFIX=\"$MODULE_SUFFIX\" IP6TABLES=$IP6TABLES DONT_LOAD=\"$DONT_LOAD\" $libexec/shorewall6-lite/shorecap" > $g_shorewalldir/capabilities; then
 	    fatal_error "Capturing capabilities on system $system failed"
 	fi
     fi
 
-    file=$(resolve_file $directory/firewall)
+    file=$(resolve_file $g_shorewalldir/firewall)
 
-    [ -n "$g_timestamp" ] && timestamp='-t' || timestamp=
+    g_export=Yes
 
-    if $g_program $g_debugging $verbose $timestamp compile -e $directory $directory/firewall && \
+    if compiler $g_debugging compiler $g_shorewalldir/firewall && \
 	progress_message3 "Copying $file and ${file}.conf to ${system}:${litedir}..." && \
-	rcp_command "$directory/firewall $directory/firewall.conf" ${litedir}
+	rcp_command "$g_shorewalldir/firewall $g_shorewalldir/firewall.conf" ${litedir}
     then
 	save=$(find_file save);
 
@@ -1496,7 +1503,6 @@ export_command() # $* = original arguments less the command.
     file=
     local finished
     finished=0
-    local directory
     local target
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
@@ -1526,11 +1532,11 @@ export_command() # $* = original arguments less the command.
 
     case $# in
 	1)
-	    directory="."
+	    g_shorewalldir="."
 	    target=$1
 	    ;;
 	2)
-	    directory=$1
+	    g_shorewalldir=$1
 	    target=$2
 	    ;;
 	*)
@@ -1546,11 +1552,13 @@ export_command() # $* = original arguments less the command.
 	    ;;
     esac
 
-    file=$(resolve_file $directory/firewall)
+    file=$(resolve_file $g_shorewalldir/firewall)
 
-    if $g_program $g_debugging $verbose compile -e $directory $directory/firewall && \
+    g_export=Yes
+
+    if compiler $g_debugging compile $g_shorewalldir/firewall && \
 	echo "Copying $file and ${file}.conf to ${target#*@}..." && \
-	scp $directory/firewall $directory/firewall.conf $target
+	scp $g_shorewalldir/firewall $g_shorewalldir/firewall.conf $target
     then
 	save=$(find_file save);
 
@@ -1588,7 +1596,12 @@ usage() # $1 = exit status
 	echo "   iprange <address>-<address>"
     fi
 
-    echo "   iptrace <iptables match expression>"
+    if [ $g_family -eq 4 ]; then
+	echo "   iptrace <iptables match expression>"
+    else
+	echo "   iptrace <ip6tables match expression>"
+    fi
+
     echo "   load [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ <directory> ] <system>"
     echo "   logdrop <address> ..."
     echo "   logreject <address> ..."
@@ -1628,7 +1641,9 @@ usage() # $1 = exit status
     echo "   show macros"
     echo "   show marks"
     echo "   show [ -x ] mangle|nat|raw|rawpost|routing"
+    echo "   show nfacct"
     echo "   show policies"
+    echo "   show routing"
     echo "   show tc [ device ]"
     echo "   show vardir"
     echo "   show zones"
@@ -1636,7 +1651,7 @@ usage() # $1 = exit status
     echo "   status"
     echo "   stop"
     echo "   try <directory> [ <timeout> ]"
-    echo "   update [ -a ] [ -b ] [ -r ] [ -T ] [ <directory> ]"
+    echo "   update [ -a ] [ -b ] [ -r ] [ -T ] [ -D ] [ <directory> ]"
     echo "   version [ -a ]"
     echo
     exit $1
@@ -1646,7 +1661,6 @@ compiler_command() {
 
     case $COMMAND in
 	compile)
-	    get_config Yes
 	    shift
 	    compile_command $@
 	    ;;
@@ -1656,22 +1670,18 @@ compiler_command() {
 	    refresh_command $@
 	    ;;
 	check)
-	    get_config Yes
 	    shift
 	    check_command $@
 	    ;;
 	update)
-	    get_config Yes
 	    shift
 	    update_command $@
 	    ;;
 	load|reload)
-	    get_config Yes
 	    shift
 	    reload_command $@
 	    ;;
 	export)
-	    get_config Yes
 	    shift
 	    export_command $@
 	    ;;

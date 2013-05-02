@@ -30,7 +30,10 @@
 # 
 # The format is specified by a line as follows:
 # 
-#     FORMAT {1|2}
+#     [?]FORMAT {1|2}
+# 
+# The optional '?' was introduced in Shorewall 4.5.11 and ?FORMAT is the
+# preferred form; the form without the '?' is deprecated.
 # 
 # The columns in the file are as follows.
 # 
@@ -374,6 +377,14 @@
 #             then any interface through which the road-warrior might connect
 #             cannot specify routefilter.
 # 
+#     rpfilter
+# 
+#         Added in Shorewall 4.5.7. This is an anti-spoofing measure that
+#         requires the 'RPFilter Match' capability in your iptables and kernel.
+#         It provides a more efficient alternative to the sfilter option below.
+#         It performs a function similar to routefilter (see above) but works
+#         with Multi-ISP configurations that do now use balanced routes.
+# 
 #     sfilter=(net[,...])
 # 
 #         Added in Shorewall 4.4.20. This option provides an anti-spoofing
@@ -385,10 +396,10 @@
 #     sourceroute[={0|1}]
 # 
 #         If this option is not specified for an interface, then source-routed
-#         packets will not be accepted from that interface (sets /proc/sys/net/
-#         ipv4/conf/interface/accept_source_route to 1). Only set this option if
-#         you know what you are doing. This might represent a security risk and
-#         is usually unneeded.
+#         packets will not be accepted from that interface unless it has been
+#         explicitly enabled via sysconf. Only set this option to 1 (enable
+#         source routing) if you know what you are doing. This might represent a
+#         security risk and is usually unneeded.
 # 
 #         Only those interfaces with the sourceroute option will have their
 #         setting changed; the value assigned to the setting will be the value
@@ -474,5 +485,5 @@
 #     -       br0       routeback
 # 
 ###############################################################################
-FORMAT 2
+?FORMAT 2
 ###############################################################################

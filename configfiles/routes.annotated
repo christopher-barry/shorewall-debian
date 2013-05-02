@@ -14,6 +14,8 @@
 # PROVIDER
 # 
 #     The name or number of a provider defined in shorewall-providers (5).
+#     Beginning with Shorewall 4.5.14, you may also enter main in this column to
+#     add routes to the main routing table.
 # 
 # DEST
 # 
@@ -23,10 +25,18 @@
 # 
 #     If specified, gives the IP address of the gateway to the DEST.
 # 
+#     Beginning with Shorewall 4.5.14, you may specify blackhole in this column
+#     to create a blackhole route.
+# 
+#     Beginning with Shorewall 4.5.15, you may specify prohibit or unreachable in
+#     this column to create a prohibit or unreachable route respectively.
+# 
 # DEVICE (Optional)
 # 
 #     Specifies the device route. If neither DEVICE nor GATEWAY is given, then
-#     the INTERFACE specified for the PROVIDER in shorewall-providers (5).
+#     the INTERFACE specified for the PROVIDER in shorewall-providers (5). This
+#     column must be omitted if blackhole, prohibit or unreachable is specified
+#     in the GATEWAY column.
 # 
 ##############################################################################
 #PROVIDER		DEST			GATEWAY		DEVICE

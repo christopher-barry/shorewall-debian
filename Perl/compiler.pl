@@ -37,7 +37,8 @@
 #         --log_verbosity=<number>    # Log Verbosity range -1 to 2
 #         --family=<number>           # IP family; 4 = IPv4 (default), 6 = IPv6
 #         --preview                   # Preview the ruleset.
-#         --shorewallrc=<path>        # Path to shorewallrc file.
+#         --shorewallrc=<path>        # Path to global shorewallrc file.
+#         --shorewallrc1=<path>       # Path to export shorewallrc file.
 #         --config_path=<path-list>   # Search path for config files
 #
 use strict;
@@ -48,7 +49,9 @@ use Getopt::Long;
 
 sub usage( $ ) {
 
-    print STDERR 'usage: compiler.pl [ <option> ... ] [ <filename> ]
+    print STDERR << '_EOF_';
+
+usage: compiler.pl [ <option> ... ] [ <filename> ]
 
   options are:
     [ --export ]
@@ -66,9 +69,12 @@ sub usage( $ ) {
     [ --annotate ]
     [ --update ]
     [ --convert ]
+    [ --directives ]
     [ --shorewallrc=<pathname> ]
+    [ --shorewallrc1=<pathname> ]
     [ --config_path=<path-list> ]
-';
+
+_EOF_
 
     exit shift @_;
 }
@@ -92,8 +98,10 @@ my $preview       = 0;
 my $annotate      = 0;
 my $update        = 0;
 my $convert       = 0;
+my $directives    = 0;
 my $config_path   = '';
 my $shorewallrc   = '';
+my $shorewallrc1  = '';
 
 Getopt::Long::Configure ('bundling');
 
@@ -121,11 +129,14 @@ my $result = GetOptions('h'               => \$help,
 			'confess'         => \$confess,
 			'a'               => \$annotate,
 			'annotate'        => \$annotate,
+			'directives'      => \$directives,
+			'D'               => \$directives,
 			'u'               => \$update,
 			'update'          => \$update,
 			'convert'         => \$convert,
 			'config_path=s'   => \$config_path,
 			'shorewallrc=s'   => \$shorewallrc,
+			'shorewallrc1=s'  => \$shorewallrc1,
 		       );
 
 usage(1) unless $result && @ARGV < 2;
@@ -147,6 +158,8 @@ compiler( script          => $ARGV[0] || '',
 	  update          => $update,
 	  convert         => $convert,
 	  annotate        => $annotate,
+	  directives      => $directives,
 	  config_path     => $config_path,
-	  shorewallrc     => $shorewallrc
+	  shorewallrc     => $shorewallrc,
+	  shorewallrc1    => $shorewallrc1,
 	);

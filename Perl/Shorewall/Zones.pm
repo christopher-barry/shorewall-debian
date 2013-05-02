@@ -31,69 +31,72 @@ use Shorewall::IPAddrs;
 use strict;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( NOTHING
-		  NUMERIC
-		  NETWORK
-		  IPSECPROTO
-		  IPSECMODE
-		  FIREWALL
-		  VSERVER
-		  IP
-		  BPORT
-		  IPSEC
-		  NO_UPDOWN
-		  NO_SFILTER
+our @EXPORT = ( qw( NOTHING
+		    NUMERIC
+		    NETWORK
+		    IPSECPROTO
+		    IPSECMODE
+		    FIREWALL
+		    VSERVER
+		    IP
+		    BPORT
+		    IPSEC
+		    GROUP
+		    NO_UPDOWN
+		    NO_SFILTER
 
-		  determine_zones
-		  zone_report
-		  dump_zone_contents
-		  find_zone
-		  firewall_zone
-		  defined_zone
-		  zone_type
-		  zone_interfaces
-		  zone_mark
-		  all_zones
-		  all_parent_zones
-		  complex_zones
-		  vserver_zones
-		  off_firewall_zones
-		  non_firewall_zones
-		  single_interface
-		  chain_base
-		  validate_interfaces_file
-		  all_interfaces
-		  all_real_interfaces
-		  all_plain_interfaces
-		  all_bridges
-		  interface_number
-		  find_interface
-		  known_interface
-		  get_physical
-		  physical_name
-		  have_bridges
-		  port_to_bridge
-		  source_port_to_bridge
-		  interface_is_optional
-		  interface_is_required
-		  find_interfaces_by_option
-		  find_interfaces_by_option1
-		  get_interface_option
-		  interface_has_option
-		  set_interface_option
-		  set_interface_provider
-		  interface_zones
-		  verify_required_interfaces
-		  validate_hosts_file
-		  find_hosts_by_option
-		  find_zone_hosts_by_option
-		  find_zones_by_option
-		  all_ipsets
-		  have_ipsec
-		 );
+		    determine_zones
+		    zone_report
+		    dump_zone_contents
+		    find_zone
+		    firewall_zone
+		    defined_zone
+		    zone_type
+		    zone_interfaces
+		    zone_mark
+		    all_zones
+		    all_parent_zones
+		    complex_zones
+		    vserver_zones
+		    on_firewall_zones
+		    off_firewall_zones
+		    non_firewall_zones
+		    single_interface
+		    var_base
+		    validate_interfaces_file
+		    all_interfaces
+		    all_real_interfaces
+		    all_plain_interfaces
+		    all_bridges
+		    interface_number
+		    find_interface
+		    known_interface
+		    get_physical
+		    physical_name
+		    have_bridges
+		    port_to_bridge
+		    source_port_to_bridge
+		    interface_is_optional
+		    interface_is_required
+		    find_interfaces_by_option
+		    find_interfaces_by_option1
+		    get_interface_option
+		    interface_has_option
+		    set_interface_option
+		    set_interface_provider
+		    interface_zones
+		    verify_required_interfaces
+		    validate_hosts_file
+		    find_hosts_by_option
+		    find_zone_hosts_by_option
+		    find_zones_by_option
+		    all_ipsets
+		    have_ipsec
+		 ),
+	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_5';
+our $VERSION = '4.5_16';
 
 #
 # IPSEC Option types
@@ -117,7 +120,8 @@ use constant { IN_OUT     => 1,
 #
 #     @zones contains the ordered list of zones with sub-zones appearing before their parents.
 #
-#     %zones{<zone1> => {type =>       <zone type>       FIREWALL, IP, IPSEC, BPORT;
+#     %zones{<zone1> => {name =>       <name>,
+#                        type =>       <zone type>       FIREWALL, IP, IPSEC, BPORT;
 #                        complex =>    0|1
 #                        super   =>    0|1
 #                        options =>    { in_out  => < policy match string >
@@ -144,12 +148,12 @@ use constant { IN_OUT     => 1,
 #
 #     $firewall_zone names the firewall zone.
 #
-my @zones;
-my %zones;
-my %zonetypes;
-my $firewall_zone;
+our @zones;
+our %zones;
+our %zonetypes;
+our $firewall_zone;
 
-my  %reservedName = ( all => 1,
+our %reservedName = ( all => 1,
 		      any => 1,
 		      none => 1,
 		      SOURCE => 1,
@@ -169,7 +173,7 @@ my  %reservedName = ( all => 1,
 #                                     zone        => <zone name>
 #                                     multizone   => undef|1   #More than one zone interfaces through this interface
 #                                     nets        => <number of nets in interface/hosts records referring to this interface>
-#                                     bridge      => <bridge name>
+#                                     bridge      => <bridge name> # Same as ->{name} if not a bridge port.
 #                                     ports       => <number of port on this bridge>
 #                                     ipsec       => undef|1 # Has an ipsec host group
 #                                     broadcasts  => 'none', 'detect' or [ <addr1>, <addr2>, ... ]
@@ -184,22 +188,24 @@ my  %reservedName = ( all => 1,
 #    The purpose of the 'base' member is to ensure that the base names associated with the physical interfaces are assigned in
 #    the same order as the interfaces are encountered in the configuration files.
 #
-my @interfaces;
-my %interfaces;
-my %roots;
-my @bport_zones;
-my %ipsets;
-my %physical;
-my %basemap;
-my %mapbase;
-my $family;
-my $upgrade;
-my $have_ipsec;
-my $baseseq;
-my $minroot;
-my $zonemark;
-my $zonemarkincr;
-my $zonemarklimit;
+our @interfaces;
+our %interfaces;
+our %roots;
+our @bport_zones;
+our %ipsets;
+our %physical;
+our %basemap;
+our %basemap1;
+our %mapbase;
+our %mapbase1;
+our $family;
+our $upgrade;
+our $have_ipsec;
+our $baseseq;
+our $minroot;
+our $zonemark;
+our $zonemarkincr;
+our $zonemarklimit;
 
 use constant { FIREWALL => 1,
 	       IP       => 2,
@@ -226,32 +232,36 @@ use constant { SIMPLE_IF_OPTION   => 1,
 use constant { NO_UPDOWN   => 1, 
 	       NO_SFILTER  => 2 };
 
-my %validinterfaceoptions;
+our %validinterfaceoptions;
 
-my %defaultinterfaceoptions = ( routefilter => 1 , wait => 60 );
+our %defaultinterfaceoptions = ( routefilter => 1 , wait => 60, accept_ra => 1 );
 
-my %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 , ignore => NO_UPDOWN );
+our %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 , ignore => NO_UPDOWN, accept_ra => 2 );
 
-my %validhostoptions;
+our %validhostoptions;
 
-my %validzoneoptions = ( mss          => NUMERIC,
-			 nomark       => NOTHING,
-			 blacklist    => NOTHING,
-			 strict       => NOTHING,
-			 next         => NOTHING,
-			 reqid        => NUMERIC,
-			 spi          => NUMERIC,
-			 proto        => IPSECPROTO,
-			 mode         => IPSECMODE,
-			 "tunnel-src" => NETWORK,
-			 "tunnel-dst" => NETWORK,
+our %validzoneoptions = ( mss            => NUMERIC,
+			  nomark         => NOTHING,
+			  blacklist      => NOTHING,
+			  dynamic_shared => NOTHING,
+			  strict         => NOTHING,
+			  next           => NOTHING,
+			  reqid          => NUMERIC,
+			  spi            => NUMERIC,
+			  proto          => IPSECPROTO,
+			  mode           => IPSECMODE,
+			 "tunnel-src"   => NETWORK,
+			 "tunnel-dst"   => NETWORK,
 		       );
 
 use constant { UNRESTRICTED => 1, NOFW => 2 , COMPLEX => 8, IN_OUT_ONLY => 16 };
 #
 # Hash of options that have their own key in the returned hash.
 #
-my %zonekey = ( mss => UNRESTRICTED | COMPLEX , blacklist => NOFW, nomark => NOFW | IN_OUT_ONLY );
+our %zonekey = ( mss            => UNRESTRICTED | COMPLEX ,
+		 blacklist      => NOFW, 
+		 nomark         => NOFW | IN_OUT_ONLY,
+		 dynamic_shared => IN_OUT_ONLY );
 
 #
 # Rather than initializing globals in an INIT block or during declaration,
@@ -277,7 +287,9 @@ sub initialize( $$ ) {
     %ipsets = ();
     %physical = ();
     %basemap = ();
+    %basemap1 = ();
     %mapbase = ();
+    %mapbase1 = ();
     $baseseq = 0;
     $minroot = 0;
 
@@ -299,6 +311,7 @@ sub initialize( $$ ) {
 				  required    => SIMPLE_IF_OPTION,
 				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				  routefilter => NUMERIC_IF_OPTION ,
+				  rpfilter    => SIMPLE_IF_OPTION,
 				  sfilter     => IPLIST_IF_OPTION,
 				  sourceroute => BINARY_IF_OPTION,
 				  tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -321,7 +334,8 @@ sub initialize( $$ ) {
 			    );
 	%zonetypes = ( 1 => 'firewall', 2 => 'ipv4', 4 => 'bport4', 8 => 'ipsec4', 16 => 'vserver' );
     } else {
-	%validinterfaceoptions = (  blacklist   => SIMPLE_IF_OPTION + IF_OPTION_HOST,
+	%validinterfaceoptions = (  accept_ra   => NUMERIC_IF_OPTION,
+				    blacklist   => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    bridge      => SIMPLE_IF_OPTION,
 				    dhcp        => SIMPLE_IF_OPTION,
 				    ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
@@ -332,6 +346,7 @@ sub initialize( $$ ) {
 				    proxyndp    => BINARY_IF_OPTION,
 				    required    => SIMPLE_IF_OPTION,
 				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
+				    rpfilter    => SIMPLE_IF_OPTION,
 				    sfilter     => IPLIST_IF_OPTION,
 				    sourceroute => BINARY_IF_OPTION,
 				    tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -393,7 +408,7 @@ sub parse_zone_option_list($$\$$)
 
 	    if ( $key ) {
 		fatal_error "Option '$e' not permitted with this zone type " if $key & NOFW && ($zonetype & ( FIREWALL | VSERVER) );
-		fatal_error "Opeion '$e' is only permitted in the OPTIONS columns" if $key & IN_OUT_ONLY && $column != IN_OUT;
+		fatal_error "Option '$e' is only permitted in the OPTIONS columns" if $key & IN_OUT_ONLY && $column != IN_OUT;
 		$$complexref = 1 if $key & COMPLEX;
 		$h{$e} = $val || 1;
 	    } else {
@@ -529,12 +544,17 @@ sub process_zone( \$ ) {
     }
 
     if ( $zoneref->{options}{in_out}{blacklist} ) {
+	warning_message q(The 'blacklist' option is deprecated);
 	for ( qw/in out/ ) {
 	    unless ( $zoneref->{options}{$_}{blacklist} ) {
 		$zoneref->{options}{$_}{blacklist} = 1;
 	    } else {
 		warning_message( "Redundant 'blacklist' in " . uc( $_ ) . '_OPTIONS' );
 	    }
+	}
+    } else {
+	for ( qw/in out/ ) {
+	    warning_message q(The 'blacklist' option is deprecated), last if  $zoneref->{options}{$_}{blacklist};
 	}
     }
 
@@ -748,6 +768,13 @@ sub add_group_to_zone($$$$$)
 	    $new = \@exclusions;
 	}
 
+	if ( substr( $host, 0, 1 ) eq '+' ) {
+	    fatal_error "Invalid ipset name ($host)" unless $host =~ /^\+(6_)?[a-zA-Z][-\w]*$/;
+	    require_capability( 'IPSET_MATCH', 'Ipset names in host lists', '');
+	} else {
+	    $host = validate_host $host, 0;
+	}
+
 	unless ( $switched ) {
 	    if ( $type == $zonetype ) {
 		fatal_error "Duplicate Host Group ($interface:$host) in zone $zone" if $interfaces{$interface}{zone} eq $zone;
@@ -764,13 +791,6 @@ sub add_group_to_zone($$$$$)
 		    $allip = 1;
 		}
 	    }
-	}
-
-	if ( substr( $host, 0, 1 ) eq '+' ) {
-	    fatal_error "Invalid ipset name ($host)" unless $host =~ /^\+(6_)?[a-zA-Z]\w*$/;
-	    require_capability( 'IPSET_MATCH', 'Ipset names in host lists', '');
-	} else {
-	    validate_host $host, 0;
 	}
 
 	push @$new, $host;
@@ -836,6 +856,10 @@ sub all_zones() {
     @zones;
 }
 
+sub on_firewall_zones() {
+   grep ( ( $zones{$_}{type} & ( FIREWALL | VSERVER ) )  ,  @zones );
+}
+
 sub off_firewall_zones() {
    grep ( ! ( $zones{$_}{type} & ( FIREWALL | VSERVER ) )  ,  @zones );
 }
@@ -874,9 +898,9 @@ sub is_a_bridge( $ ) {
 #
 # Transform the passed interface name into a legal shell variable name.
 #
-sub chain_base($) {
-    my $chain = $_[0];
-    my $name  = $basemap{$chain};
+sub var_base($) {
+    my $var = $_[0];
+    my $name  = $basemap{$var};
     #
     # Return existing mapping, if any
     #
@@ -884,31 +908,31 @@ sub chain_base($) {
     #
     # Remember initial value
     #
-    my $key = $chain;
+    my $key = $var;
     #
     # Handle VLANs and wildcards
     #
-    $chain =~ s/\+$//;
-    $chain =~ tr/./_/;
+    $var =~ s/\+$/_plus/;
+    $var =~ tr/./_/;
 
-    if ( $chain eq '' || $chain =~ /^[0-9]/ || $chain =~ /[^\w]/ ) {
+    if ( $var eq '' || $var =~ /^[0-9]/ || $var =~ /[^\w]/ ) {
 	#
 	# Must map. Remove all illegal characters
 	#
-	$chain =~ s/[^\w]//g;
+	$var =~ s/[^\w]//g;
 	#
 	# Prefix with if_ if it begins with a digit
 	#
-	$chain = join( '' , 'if_', $chain ) if $chain =~ /^[0-9]/;
+	$var = join( '' , 'if_', $var ) if $var =~ /^[0-9]/;
 	#
 	# Create a new unique name
 	#
-	1 while $mapbase{$name = join ( '_', $chain, ++$baseseq )};
+	1 while $mapbase{$name = join ( '_', $var, ++$baseseq )};
     } else {
 	#
 	# We'll store the identity mapping if it is unique
 	#
-	$chain = join( '_', $key , ++$baseseq ) while $mapbase{$name = $chain};
+	$var = join( '_', $key , ++$baseseq ) while $mapbase{$name = $var};
     }
     #
     # Store the reverse mapping
@@ -921,6 +945,55 @@ sub chain_base($) {
 }
 
 #
+# This is a slightly relaxed version of the above that allows '-' in the generated name.
+#
+sub var_base1($) {
+    my $var = $_[0];
+    my $name  = $basemap1{$var};
+    #
+    # Return existing mapping, if any
+    #
+    return $name if $name;
+    #
+    # Remember initial value
+    #
+    my $key = $var;
+    #
+    # Handle VLANs and wildcards
+    #
+    $var =~ s/\+$//;
+    $var =~ tr/./_/;
+
+    if ( $var eq '' || $var =~ /^[0-9]/ || $var =~ /[^-\w]/ ) {
+	#
+	# Must map. Remove all illegal characters
+	#
+	$var =~ s/[^\w]//g;
+	#
+	# Prefix with if_ if it begins with a digit
+	#
+	$var = join( '' , 'if_', $var ) if $var =~ /^[0-9]/;
+	#
+	# Create a new unique name
+	#
+	1 while $mapbase1{$name = join ( '_', $var, ++$baseseq )};
+    } else {
+	#
+	# We'll store the identity mapping if it is unique
+	#
+	$var = join( '_', $key , ++$baseseq ) while $mapbase1{$name = $var};
+    }
+    #
+    # Store the reverse mapping
+    #
+    $mapbase1{$name} = $key;
+    #
+    # Store the mapping
+    #
+    $basemap1{$key} = $name;
+}
+
+#
 # Process a record in the interfaces file
 #
 sub process_interface( $$ ) {
@@ -930,22 +1003,12 @@ sub process_interface( $$ ) {
     my ($zone, $originalinterface, $bcasts, $options );
     my $zoneref;
     my $bridge = '';
-    our $format;
 
-    if ( $format == 1 ) {
-	($zone, $originalinterface, $bcasts, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, broadcast => 2, options => 3 }, { COMMENT => 0, FORMAT => 2 };
+    if ( $file_format == 1 ) {
+	($zone, $originalinterface, $bcasts, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, broadcast => 2, options => 3 };
     } else {
-	($zone, $originalinterface, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, options => 2 }, { COMMENT => 0, FORMAT => 2 };
+	($zone, $originalinterface, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, options => 2 };
 	$bcasts = '-';
-    }
-
-    if ( $zone eq 'FORMAT' ) {
-	if ( $originalinterface =~ /^([12])$/ ) {
-	    $format = $1;
-	    return;
-	}
-
-	fatal_error "Invalid FORMAT ($originalinterface)";
     }
 
     if ( $zone eq '-' ) {
@@ -1138,7 +1201,7 @@ sub process_interface( $$ ) {
 		    $hostoptions{broadcast} = 1;
 		} elsif ( $option eq 'sfilter' ) {
 		    $filterref = [ split_list $value, 'address' ];
-		    validate_net( $_, 1) for @{$filterref}
+		    validate_net( $_, 0) for @{$filterref}
 		} else {
 		    assert(0);
 		}
@@ -1160,10 +1223,17 @@ sub process_interface( $$ ) {
 	    }
 	}
 
-	fatal_error "Invalid combination of interface options"
+	fatal_error q(The 'required', 'optional' and 'ignore' options are mutually exclusive)
 	    if ( ( $options{required} && $options{optional} ) ||
 		 ( $options{required} && $options{ignore}   ) ||
 		 ( $options{optional} && $options{ignore}   ) );
+
+	if ( $options{rpfilter} ) {
+	    require_capability( 'RPFILTER_MATCH', q(The 'rpfilter' option), 's' ) ;
+	    fatal_error q(The 'routefilter', 'sfilter' and 'rpfilter' options are mutually exclusive) if $options{routefilter} || @$filterref;
+	} else {
+	    fatal_error q(The 'routefilter', 'sfilter' and 'rpfilter' options are mutually exclusive) if $options{routefilter} && @$filterref;
+	}
 
 	if ( supplied( my $ignore = $options{ignore} ) ) {
 	    fatal_error "Invalid value ignore=0" if ! $ignore;
@@ -1172,7 +1242,8 @@ sub process_interface( $$ ) {
 	}
 
 	if ( $netsref eq 'dynamic' ) {
-	    my $ipset = $family == F_IPV4 ? "${zone}_" . chain_base $physical : "6_${zone}_" . chain_base $physical;
+	    my $ipset = $family == F_IPV4 ? "${zone}" : "6_${zone}";
+	    $ipset = join( '_', $ipset, var_base1( $physical ) ) unless $zoneref->{options}{in_out}{dynamic_shared};	    
 	    $netsref = [ "+$ipset" ];
 	    $ipsets{$ipset} = 1;
 	}
@@ -1207,7 +1278,7 @@ sub process_interface( $$ ) {
 						       options    => \%options ,
 						       zone       => '',
 						       physical   => $physical ,
-						       base       => chain_base( $physical ),
+						       base       => var_base( $physical ),
 						       zones      => {},
 						     };
 
@@ -1231,12 +1302,11 @@ sub process_interface( $$ ) {
 #
 sub validate_interfaces_file( $ ) {
     my  $export = shift;
-    our $format = 1;
 
     my @ifaces;
     my $nextinum = 1;
 
-    if ( my $fn = open_file 'interfaces' ) {
+    if ( my $fn = open_file 'interfaces', 2 ) {
 	first_entry "$doing $fn...";
 	push @ifaces, process_interface( $nextinum++, $export ) while read_a_line( NORMAL_READ );
     } else {
@@ -1332,7 +1402,8 @@ sub known_interface($)
 						   name     => $i ,
 						   number   => $interfaceref->{number} ,
 						   physical => $physical ,
-						   base     => chain_base( $physical ) ,
+						   base     => var_base( $physical ) ,
+						   zones    => $interfaceref->{zones} ,
 						 };
 	    }
 	}
@@ -1427,9 +1498,10 @@ sub source_port_to_bridge( $ ) {
 # Returns a hash reference for the zones interface through the interface
 #
 sub interface_zones( $ ) {
-    my $interfaceref = $interfaces{(shift)};
+    my $interfaceref = known_interface( $_[0] );
 
-    $interfaceref->{zones};
+    fatal_error "Unknown interface(@_)" unless $interfaceref;
+    $interfaceref->{zones} || {};
 }
 
 #
@@ -1622,16 +1694,16 @@ sub verify_required_interfaces( $ ) {
 		my $physical = get_physical $interface;
 
 		if ( $physical =~ /\+$/ ) {
-		    my $base = uc chain_base $physical;
-
 		    $physical =~ s/\+$/*/;
 
-		    emit( 'for interface in $(find_all_interfaces); do',
+		    emit( "waittime=$wait",
+			  '',
+			  'for interface in $(find_all_interfaces); do',
 			  '    case $interface in',
 			  "        $physical)",
-			  "            waittime=$wait",
 			  '            while [ $waittime -gt 0 ]; do',
 			  '                interface_is_usable $interface && break',
+			  '                sleep 1',
 			  '                waittime=$(($waittime - 1))',
 			  '            done',
 			  '            ;;',
@@ -1644,8 +1716,8 @@ sub verify_required_interfaces( $ ) {
 		    emit qq(    waittime=$wait);
 		    emit  '';
 		    emit  q(    while [ $waittime -gt 0 ]; do);
-		    emit qq(        interface_is_usable $physical && break);
 		    emit  q(        sleep 1);
+		    emit qq(        interface_is_usable $physical && break);
 		    emit   '        waittime=$(($waittime - 1))';
 		    emit  q(    done);
 		    emit  q(fi);
@@ -1679,7 +1751,7 @@ sub verify_required_interfaces( $ ) {
 	    my $physical = get_physical $interface;
 
 	    if ( $physical =~ /\+$/ ) {
-		my $base = uc chain_base $physical;
+		my $base = uc var_base $physical;
 
 		$physical =~ s/\+$/*/;
 
@@ -1742,9 +1814,10 @@ sub process_host( ) {
 	} else {
 	    fatal_error "Invalid HOST(S) column contents: $hosts";
 	}
-    } elsif ( $hosts =~ /^([\w.@%-]+\+?):<(.*)>$/   ||
-	      $hosts =~ /^([\w.@%-]+\+?):\[(.*)\]$/ ||
-	      $hosts =~ /^([\w.@%-]+\+?):(!?\+.*)$/   ||
+    } elsif ( $hosts =~ /^([\w.@%-]+\+?):<(.*)>$/               ||
+	      $hosts =~ /^([\w.@%-]+\+?)\[(.*)\]$/              ||
+	      $hosts =~ /^([\w.@%-]+\+?):(!?\[.+\](?:\/\d+)?)$/ ||
+	      $hosts =~ /^([\w.@%-]+\+?):(!?\+.*)$/             ||
 	      $hosts =~ /^([\w.@%-]+\+?):(dynamic)$/ ) {
 	$interface = $1;
 	$hosts = $2;
@@ -1755,9 +1828,9 @@ sub process_host( ) {
     }
 
     if ( $hosts =~ /^!?\+/ ) {
-	$zoneref->{complex} = 1;
-	fatal_error "ipset name qualification is disallowed in this file" if $hosts =~ /[\[\]]/;
-	fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^!?\+[a-zA-Z][-\w]*$/;
+       $zoneref->{complex} = 1;
+       fatal_error "ipset name qualification is disallowed in this file" if $hosts =~ /[\[\]]/;
+       fatal_error "Invalid ipset name ($hosts)" unless $hosts =~ /^!?\+[a-zA-Z][-\w]*$/;
     }
 
     if ( $type & BPORT ) {
@@ -1784,6 +1857,7 @@ sub process_host( ) {
 	    } elsif ( $option eq 'norfc1918' ) {
 		warning_message "The 'norfc1918' host option is no longer supported"
 	    } elsif ( $option eq 'blacklist' ) {
+		warning_message "The 'blacklist' option is deprecated";
 		$zoneref->{options}{in}{blacklist} = 1;
 	    } elsif ( $option =~ /^mss=(\d+)$/ ) {
 		fatal_error "Invalid mss ($1)" unless $1 >= 500;
@@ -1820,8 +1894,14 @@ sub process_host( ) {
     if ( $hosts eq 'dynamic' ) {
 	fatal_error "Vserver zones may not be dynamic" if $type & VSERVER;
 	require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
-	my $physical = chain_base( physical_name $interface );
-	my $set      = $family == F_IPV4 ? "${zone}_${physical}" : "6_${zone}_${physical}";
+
+	my $set = $family == F_IPV4 ? "${zone}" : "6_${zone}";
+	
+	unless ( $zoneref->{options}{in_out}{dynamic_shared} ) {
+	    my $physical = var_base1( physical_name $interface );
+	    $set = join( '_', $set, $physical );
+	}
+
 	$hosts = "+$set";
 	$optionsref->{dynamic} = 1;
 	$ipsets{$set} = 1;

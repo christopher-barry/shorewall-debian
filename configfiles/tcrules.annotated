@@ -37,7 +37,10 @@
 # 
 # The format is specified by a line as follows:
 # 
-#     FORMAT {1|2}
+#     [?]FORMAT {1|2}
+# 
+# The optional '?' was introduced in Shorewall 4.5.11 and ?FORMAT is the
+# preferred form; the form without the '?' is deprecated.
 # 
 # The columns in the file are as follows (where the column name is followed by a
 # different name in parentheses, the different name is used in the alternate
@@ -81,8 +84,11 @@
 #         mark the connection rather than the packet.
 # 
 #         The mark value may be optionally followed by "/" and a mask value (used
-#         to determine those bits of the connection mark to actually be set). The
-#         mark and optional mask are then followed by one of:
+#         to determine those bits of the connection mark to actually be set).
+#         When a mask is specified, the result of logically ANDing the mark value
+#         with the mask must be the same as the mark value.
+# 
+#         The mark and optional mask are then followed by one of:
 # 
 #         C
 # 
@@ -107,22 +113,69 @@
 #             completeness and has no applicability to traffic shaping or policy
 #             routing.
 # 
-#         Special considerations for If HIGH_ROUTE_MARKS=Yes in shorewall.conf(5
-#         ).
+#      2. A mark range which is a pair of integers separated by a dash ("-").
+#         Added in Shorewall 4.5.9.
 # 
-#         If HIGH_ROUTE_MARKS=Yes, then you may also specify a value in the range
-#         0x0100-0xFF00 with the low-order byte being zero. Such values may only
-#         be used in the PREROUTING chain (value followed by :P or you have set
-#         MARK_IN_FORWARD_CHAIN=No in shorewall.conf(5) and have not followed the
-#         value with :F) or the OUTPUT chain (SOURCE is $FW). With
-#         HIGH_ROUTE_MARKS=Yes, non-zero mark values less that 256 are not
-#         permitted. Shorewall prohibits non-zero mark values less that 256 in
-#         the OUTPUT chain when HIGH_ROUTE_MARKS=Yes. While earlier versions
-#         allow such values in the OUTPUT chain, it is strongly recommended that
-#         with HIGH_ROUTE_MARKS=Yes, you use the POSTROUTING chain to apply
-#         traffic shaping marks/classification.
+#         May be optionally followed by a slash ("/") and a mask and requires the
+#         Statistics Match capability in iptables and kernel. Marks in the
+#         specified range are assigned to packets on a round-robin fashion.
 # 
-#      2. A classification Id (classid) of the form major:minor where major and
+#         When a mask is specified, the result of logically ANDing each mark
+#         value with the mask must be the same as the mark value. The least
+#         significant bit in the mask is used as an increment. For example, if
+#         '0x200-0x400/0xff00' is specified, then the assigned mark values are
+#         0x200, 0x300 and 0x400 in equal proportions. If no mask is specified,
+#         then ( 2 ** MASK_BITS ) - 1 is assumed (MASK_BITS is set in
+#         shorewall.conf(5)).
+# 
+#         May optionally be followed by :P, :F,:T or :I where :P indicates that
+#         marking should occur in the PREROUTING chain, :F indicates that marking
+#         should occur in the FORWARD chain, :I indicates that marking should
+#         occur in the INPUT chain (added in Shorewall 4.4.13), and :T indicates
+#         that marking should occur in the POSTROUTING chain. If neither :P, :F
+#         nor :T follow the mark value then the chain is determined as follows:
+# 
+#         - If the SOURCE is $FW[:address-or-range[,address-or-range]...], then
+#         the rule is inserted into the OUTPUT chain. When HIGH_ROUTE_MARKS=Yes,
+#         only high mark values may be assigned there. Packet marking rules for
+#         traffic shaping of packets originating on the firewall must be coded in
+#         the POSTROUTING chain (see below).
+# 
+#         - Otherwise, the chain is determined by the setting of
+#         MARK_IN_FORWARD_CHAIN in shorewall.conf(5).
+# 
+#         Please note that :I is included for completeness and affects neither
+#         traffic shaping nor policy routing.
+# 
+#         If your kernel and iptables include CONNMARK support then you can also
+#         mark the connection rather than the packet.
+# 
+#         The mark range and optional mask can then followed by one of:
+# 
+#         C
+# 
+#             Mark the connection in the chain determined by the setting of
+#             MARK_IN_FORWARD_CHAIN
+# 
+#         CF
+# 
+#             Mark the connection in the FORWARD chain
+# 
+#         CP
+# 
+#             Mark the connection in the PREROUTING chain.
+# 
+#         CT
+# 
+#             Mark the connecdtion in the POSTROUTING chain
+# 
+#         CI
+# 
+#             Mark the connection in the INPUT chain. This option is included for
+#             completeness and has no applicability to traffic shaping or policy
+#             routing.
+# 
+#      3. A classification Id (classid) of the form major:minor where major and
 #         minor are integers. Corresponds to the 'class' specification in these
 #         traffic shaping modules:
 # 
@@ -157,63 +210,96 @@
 # 
 #             POSTROUTING chain (default).
 # 
-#      3. RESTORE[/mask] -- restore the packet's mark from the connection's mark
-#         using the supplied mask if any. Your kernel and iptables must include
-#         CONNMARK support.
+#      4. CHECKSUM
 # 
-#         As in 1) above, may be followed by :P or :F
+#         Added in Shorewall 4.5.9. Compute and fill in the checksum in a packet
+#         that lacks a checksum. This is particularly useful if you need to work
+#         around old applications, such as dhcp clients, that do not work well
+#         with checksum offloads, but you don't want to disable checksum offload
+#         in your device.
 # 
-#      4. SAVE[/mask] -- save the packet's mark to the connection's mark using
-#         the supplied mask if any. Your kernel and iptables must include
-#         CONNMARK support.
+#         Requires 'Checksum Target' support in your kernel and iptables.
 # 
-#         As in 1) above, may be followed by :P or :F
-# 
-#      5. CONTINUE Don't process any more marking rules ‒in the table.
-# 
-#         As in 1) above, may be followed by :P or :F. Currently, CONTINUE may
-#         not be used with exclusion (see the SOURCE and DEST columns below);
-#         that restriction will be removed when iptables/Netfilter provides the
-#         necessary support.
-# 
-#      6. SAME Some websites run applications that require multiple connections
-#         from a client browser. Where multiple 'balanced' providers are
-#         configured, this can lead to problems when some of the connections are
-#         routed through one provider and some through another. The SAME target
-#         allows you to work around that problem. SAME may be used in the
-#         PREROUTING and OUTPUT chains. When used in PREROUTING, it causes
-#         matching connections from an individual local system to all use the
-#         same provider. For example:
-# 
-#         #ACTION           SOURCE         DEST         PROTO      DEST
-#         #                                                        PORT(S)
-#         SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443
-# 
-#         If a host in 192.168.1.0/24 attempts a connection on TCP port 80 or 443
-#         and it has sent a packet on either of those ports in the last five
-#         minutes then the new connection will use the same provider as the
-#         connection over which that last packet was sent.
-# 
-#         When used in the OUTPUT chain, it causes all matching connections to an
-#         individual remote system to all use the same provider. For example:
-# 
-#         #ACTION           SOURCE         DEST         PROTO      DEST
-#         #                                                        PORT(S)
-#         SAME              $FW            0.0.0.0/0    tcp        80,443
-# 
-#         If the firewall attempts a connection on TCP port 80 or 443 and it has
-#         sent a packet on either of those ports in the last five minutes to the
-#         same remote system then the new connection will use the same provider
-#         as the connection over which that last packet was sent.
-# 
-#      7. COMMENT -- the rest of the line will be attached as a comment to the
+#      5. [?]COMMENT -- the rest of the line will be attached as a comment to the
 #         Netfilter rule(s) generated by the following entries. The comment will
 #         appear delimited by "/* ... */" in the output of shorewall show mangle
 # 
 #         To stop the comment from being attached to further rules, simply
 #         include COMMENT on a line by itself.
 # 
-#      8. IPMARK ‒ Assigns a mark to each matching packet based on the either the
+#         Note
+# 
+#         Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and
+#         is preferred.
+# 
+#      6. CONTINUE Don't process any more marking rules ‒in the table.
+# 
+#         As in 1) above, may be followed by :P or :F. Currently, CONTINUE may
+#         not be used with exclusion (see the SOURCE and DEST columns below);
+#         that restriction will be removed when iptables/Netfilter provides the
+#         necessary support.
+# 
+#      7. DIVERT
+# 
+#         Added in Shorewall 4.5.4 and only available when FORMAT is 2. Two
+#         DIVERT rule should preceed the TPROXY rule and should select DEST PORT
+#         tcp 80 and SOURCE PORT tcp 80 respectively (assuming that tcp port 80
+#         is being proxied). DIVERT avoids sending packets to the TPROXY target
+#         once a socket connection to Squid3 has been established by TPROXY.
+#         DIVERT marks the packet with a unique mark and exempts it from any
+#         rules that follow.
+# 
+#      8. DSCP(dscp)
+# 
+#         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
+#         field in the IP header. The dscp value may be given as an even number
+#         (hex or decimal) or as the name of a DSCP class. Valid class names and
+#         their associated hex numeric values are:
+# 
+#             CS0  => 0x00
+#             CS1  => 0x08
+#             CS2  => 0x10
+#             CS3  => 0x18
+#             CS4  => 0x20
+#             CS5  => 0x28
+#             CS6  => 0x30
+#             CS7  => 0x38
+#             BE   => 0x00
+#             AF11 => 0x0a
+#             AF12 => 0x0c
+#             AF13 => 0x0e
+#             AF21 => 0x12
+#             AF22 => 0x14
+#             AF23 => 0x16
+#             AF31 => 0x1a
+#             AF32 => 0x1c
+#             AF33 => 0x1e
+#             AF41 => 0x22
+#             AF42 => 0x24
+#             AF43 => 0x26
+#             EF   => 0x2e
+# 
+#         To indicate more than one class, add their hex values together and
+#         specify the result.
+# 
+#         May be optionally followed by ':' and a capital letter designating the
+#         chain where classification is to occur.
+# 
+#         F
+# 
+#             FORWARD chain.
+# 
+#         T
+# 
+#             POSTROUTING chain (default).
+# 
+#      9. IMQ(number)
+# 
+#         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
+#         the IMQ identified by number. Requires IMQ Target support in your
+#         kernel and iptables.
+# 
+#     10. IPMARK ‒ Assigns a mark to each matching packet based on the either the
 #         source or destination IP address. By default, it assigns a mark value
 #         equal to the low-order 8 bits of the source address. Default values
 #         are:
@@ -282,104 +368,52 @@
 #         as in the example above so that all of your minor classes will have a
 #         value > 256.
 # 
-#      9. DIVERT
+#     11. RESTORE[/mask] -- restore the packet's mark from the connection's mark
+#         using the supplied mask if any. Your kernel and iptables must include
+#         CONNMARK support.
 # 
-#         Added in Shorewall 4.5.4 and only available when FORMAT is 2. Two
-#         DIVERT rule should preceed the TPROXY rule and should select DEST PORT
-#         tcp 80 and SOURCE PORT tcp 80 respectively (assuming that tcp port 80
-#         is being proxied). DIVERT avoids sending packets to the TPROXY target
-#         once a socket connection to Squid3 has been established by TPROXY.
-#         DIVERT marks the packet with a unique mark and exempts it from any
-#         rules that follow.
+#         As in 1) above, may be followed by :P or :F
 # 
-#     10. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
+#     12. SAME Some websites run applications that require multiple connections
+#         from a client browser. Where multiple 'balanced' providers are
+#         configured, this can lead to problems when some of the connections are
+#         routed through one provider and some through another. The SAME target
+#         allows you to work around that problem. SAME may be used in the
+#         PREROUTING and OUTPUT chains. When used in PREROUTING, it causes
+#         matching connections from an individual local system to all use the
+#         same provider. For example:
 # 
-#         Transparently redirects a packet without altering the IP header.
-#         Requires a local provider to be defined in shorewall-providers(5).
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
+#         SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443
 # 
-#         There are three parameters to TPROXY - only the first (mark) is
-#         required:
+#         If a host in 192.168.1.0/24 attempts a connection on TCP port 80 or 443
+#         and it has sent a packet on either of those ports in the last five
+#         minutes then the new connection will use the same provider as the
+#         connection over which that last packet was sent.
 # 
-#           ● mark - the MARK value corresponding to the local provider in
-#             shorewall-providers(5).
+#         When used in the OUTPUT chain, it causes all matching connections to an
+#         individual remote system to all use the same provider. For example:
 # 
-#           ● port - the port on which the proxy server is listening. If omitted,
-#             the original destination port.
+#         #ACTION           SOURCE         DEST         PROTO      DEST
+#         #                                                        PORT(S)
+#         SAME              $FW            0.0.0.0/0    tcp        80,443
 # 
-#           ● address - a local (to the firewall) IP address on which the proxy
-#             server is listening. If omitted, the IP address of the interface on
-#             which the request arrives.
+#         If the firewall attempts a connection on TCP port 80 or 443 and it has
+#         sent a packet on either of those ports in the last five minutes to the
+#         same remote system then the new connection will use the same provider
+#         as the connection over which that last packet was sent.
 # 
-#     11. TPROXY([port][,address]) -- FORMAT 2
+#     13. SAVE[/mask] -- save the packet's mark to the connection's mark using
+#         the supplied mask if any. Your kernel and iptables must include
+#         CONNMARK support.
 # 
-#         Transparently redirects a packet without altering the IP header.
-#         Requires a tproxy provider to be defined in shorewall-providers(5).
+#         As in 1) above, may be followed by :P or :F
 # 
-#         There are three parameters to TPROXY - neither is required:
+#     14. STATE {NEW|RELATED|ESTABLISHED|INVALID} [,...]
 # 
-#           ● port - the port on which the proxy server is listening. If omitted,
-#             the original destination port.
-# 
-#           ● address - a local (to the firewall) IP address on which the proxy
-#             server is listening. If omitted, the IP address of the interface on
-#             which the request arrives.
-# 
-#     12. TTL([-|+]number)
-# 
-#         Added in Shorewall 4.4.24. May be option followed by :F but the
-#         resulting rule is always added to the FORWARD chain. If + is included,
-#         packets matching the rule will have their TTL incremented by number.
-#         Similarly, if - is included, matching packets have their TTL
-#         decremented by number. If neither + nor - is given, the TTL of matching
-#         packets is set to number. The valid range of values for number is
-#         1-255.
-# 
-#     13. IMQ(number)
-# 
-#         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
-#         the IMQ identified by number. Requires IMQ Target support in your
-#         kernel and iptables.
-# 
-#     14. DSCP(dscp)
-# 
-#         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
-#         field in the IP header. The dscp value may be given as an even number
-#         (hex or decimal) or as the name of a DSCP class. Valid class names and
-#         their associated hex numeric values are:
-# 
-#             CS0  => 0x00
-#             CS1  => 0x08
-#             CS2  => 0x10
-#             CS3  => 0x18
-#             CS4  => 0x20
-#             CS5  => 0x28
-#             CS6  => 0x30
-#             CS7  => 0x38
-#             BE   => 0x00
-#             AF11 => 0x0a
-#             AF12 => 0x0c
-#             AF13 => 0x0e
-#             AF21 => 0x12
-#             AF22 => 0x14
-#             AF23 => 0x16
-#             AF31 => 0x1a
-#             AF32 => 0x1c
-#             AF33 => 0x1e
-#             AF41 => 0x22
-#             AF42 => 0x24
-#             AF43 => 0x26
-#             EF   => 0x2e
-# 
-#         May be optionally followed by ':' and a capital letter designating the
-#         chain where classification is to occur.
-# 
-#         F
-# 
-#             FORWARD chain.
-# 
-#         T
-# 
-#             POSTROUTING chain (default).
+#         Added in Shorewall 4.5.9. The rule will only match if the packet's
+#         connection is in one of the listed states.
 # 
 #     15. TOS(tos[/mask])
 # 
@@ -393,6 +427,9 @@
 #         Maximize-Reliability => 0x04,
 #         Minimize-Cost        => 0x02,
 #         Normal-Service       => 0x00
+# 
+#         To indicate more than one class, add their hex values together and
+#         specify the result.
 # 
 #         When tos is given as a number, it may be optionally followed by '/' and
 #         a mask. When no mask is given, the value 0xff is assumed. When tos is
@@ -411,6 +448,53 @@
 #         T
 # 
 #             POSTROUTING chain.
+# 
+#     16. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
+# 
+#         Transparently redirects a packet without altering the IP header.
+#         Requires a local provider to be defined in shorewall-providers(5).
+# 
+#         There are three parameters to TPROXY - only the first (mark) is
+#         required:
+# 
+#           ● mark - the MARK value corresponding to the local provider in
+#             shorewall-providers(5).
+# 
+#           ● port - the port on which the proxy server is listening. If omitted,
+#             the original destination port.
+# 
+#           ● address - a local (to the firewall) IP address on which the proxy
+#             server is listening. If omitted, the IP address of the interface on
+#             which the request arrives.
+# 
+#     17. TPROXY([port][,address]) -- FORMAT 2
+# 
+#         Transparently redirects a packet without altering the IP header.
+#         Requires a tproxy provider to be defined in shorewall-providers(5).
+# 
+#         There are three parameters to TPROXY - neither is required:
+# 
+#           ● port - the port on which the proxy server is listening. If omitted,
+#             the original destination port.
+# 
+#           ● address - a local (to the firewall) IP address on which the proxy
+#             server is listening. If omitted, the IP address of the interface on
+#             which the request arrives.
+# 
+#     18. TTL([-|+]number)
+# 
+#         Added in Shorewall 4.4.24.
+# 
+#         Prior to Shorewall 4.5.7.2, may be optionally followed by :F but the
+#         resulting rule is always added to the FORWARD chain. Beginning with
+#         Shorewall 4.5.7.s, it may be optionally followed by :P, in which case
+#         the rule is added to the PREROUTING chain.
+# 
+#         If + is included, packets matching the rule will have their TTL
+#         incremented by number. Similarly, if - is included, matching packets
+#         have their TTL decremented by number. If neither + nor - is given, the
+#         TTL of matching packets is set to number. The valid range of values for
+#         number is 1-255.
 # 
 # SOURCE - {-|{interface|$FW}|[{interface|$FW}:]address-or-range[,
 #     address-or-range]...}[exclusion]
@@ -470,9 +554,13 @@
 #     You may exclude certain hosts from the set already defined through use of
 #     an exclusion (see shorewall-exclusion(5)).
 # 
-# PROTO - {-|tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|protocol-name|all}
+# PROTO - {-|{tcp:syn|ipp2p|ipp2p:udp|ipp2p:all|protocol-number|protocol-name|
+#     all}[,...]}
 # 
 #     Protocol - ipp2p requires ipp2p match support in your kernel and iptables.
+# 
+#     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
+#     list of protocols.
 # 
 # PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
 # 
@@ -501,6 +589,12 @@
 #     An entry in this field requires that the PROTO column specify tcp (6), udp
 #     (17), sctp (132) or udplite (136). Use '-' if any of the following fields
 #     is supplied.
+# 
+#     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
+#     that the DEST PORT(S) column is non-empty. This causes the rule to match
+#     when either the source port or the destination port in a packet matches one
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     match in your iptables and kernel.
 # 
 # USER - [!][user-name-or-number][:group-name-or-number][+program-name]
 # 
@@ -561,12 +655,12 @@
 # 
 # LENGTH - [length|[min]:[max]]
 # 
-#     Optional - packet Length. This field, if present allow you to match the
-#     length of a packet against a specific value or range of values. You must
-#     have iptables length support for this to work. A range is specified in the
-#     form min:max where either min or max (but not both) may be omitted. If min
-#     is omitted, then 0 is assumed; if max is omitted, than any packet that is
-#     min or longer will match.
+#     Optional - packet payload length. This field, if present allow you to match
+#     the length of a packet payload (Layer 4 data ) against a specific value or
+#     range of values. You must have iptables length support for this to work. A
+#     range is specified in the form min:max where either min or max (but not
+#     both) may be omitted. If min is omitted, then 0 is assumed; if max is
+#     omitted, than any packet that is min or longer will match.
 # 
 # TOS - tos
 # 
@@ -611,9 +705,7 @@
 # HELPER - helper
 # 
 #     Names a Netfiler protocol helper module such as ftp, sip, amanda, etc. A
-#     packet will match if it was accepted by the named helper module. You can
-#     also append "-" and a port number to the helper module name (e.g., ftp-21)
-#     to specify the port number that the original connection was made on.
+#     packet will match if it was accepted by the named helper module.
 # 
 #     Example: Mark all FTP data connections with mark 4:
 # 
@@ -689,6 +781,25 @@
 #     packet is P2P, set the packet mark to 4. If the packet mark has been set,
 #     save it to the connection mark.
 # 
+# Example 2:
+# 
+#     SNAT outgoing connections on eth0 from 192.168.1.0/24 in round-robin
+#     fashion between addresses 1.1.1.1, 1.1.1.3, and 1.1.1.9 (Shorewall 4.5.9
+#     and later).
+# 
+#     /etc/shorewall/tcrules:
+# 
+#            #ACTION   SOURCE         DEST         PROTO   PORT(S)       SOURCE  USER    TEST
+#            #                                                           PORT(S)
+#            1-3:CF    192.168.1.0/24 eth0 ; state=NEW
+# 
+#     /etc/shorewall/masq:
+# 
+#            #INTERFACE SOURCE         ADDRESS     ...
+#            eth0       192.168.1.0/24 1.1.1.1 ; mark=1:C
+#            eth0       192.168.1.0/24 1.1.1.3 ; mark=2:C
+#            eth0       192.168.1.0/24 1.1.1.4 ; mark=3:C
+# 
 ##########################################################################################################################################
-FORMAT 2
+?FORMAT 2
 ##########################################################################################################################################

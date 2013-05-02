@@ -5,7 +5,7 @@
 #
 # See http://shorewall.net/traffic_shaping.htm for additional information.
 #
-##############################################################################################
+########################################################################################################
 # 
 # Entries in this file cause packets to be classified for traffic shaping.
 # 
@@ -49,9 +49,12 @@
 #     You may exclude certain hosts from the set already defined through use of
 #     an exclusion (see shorewall-exclusion(5)).
 # 
-# PROTO - {-|protocol-number|protocol-name|all}
+# PROTO - {-|{protocol-number|protocol-name|all}[,...]}
 # 
 #     Protocol.
+# 
+#     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
+#     list of protocols.
 # 
 # DEST PORT (dport) - [-|port-name-or-number]
 # 
@@ -90,6 +93,38 @@
 #     a total length that is strictly less than the specified number will match
 #     the rule.
 # 
+# PRIORITY - [-|priority]
+# 
+#     Added in Shorewall 4.5.8. Specifies the rule priority. The priority value
+#     must be > 0 and <= 65535.
+# 
+#     When a priority is not given:
+# 
+#       ● For Shorewall versions prior to 4.5.8 - all filters have priority 10.
+# 
+#       ● For Shorewall 4.5.8 and later - for each device, the compiler maintains
+#         a high-water priority with an initial value of 0. When a filter has no
+#         priority, the high-water priority is incremented by 1 and assigned to
+#         the filter. When a priority greater than the high-water priority is
+#         entered in this column, the high-water priority is set to the specified
+#         priority. An attempt to assign a priority value greater than 65535
+#         (explicitly or implicitly) raises an error.
+# 
+#     The default priority values used by other Shorewall-generated filters are
+#     as follows:
+# 
+#       ● Classify by packet mark - ( class priority << 8 ) | 20.
+# 
+#       ● Ingress policing - 10
+# 
+#       ● Simple TC ACK packets - 1
+# 
+#       ● Complex TC ACK packets - ( class priority << 8 ) | 10.
+# 
+#       ● Classify by TOS - ( class priority << 8 ) | 15.
+# 
+#       ● Class with 'occurs' - 65535
+# 
 # Example
 # 
 # Example 1:
@@ -110,6 +145,18 @@
 #            1:10      ::/0      ::/0         icmp6   echo-request
 #            1:10      ::/0      ::/0         icmp6   echo-reply
 # 
-##############################################################################################
-#INTERFACE:	SOURCE		DEST		PROTO	DEST	SOURCE   TOS		LENGTH
+# Example 2:
+# 
+#     Add two filters with priority 10 (Shorewall 4.5.8 or later).
+# 
+#            #CLASS    SOURCE    DEST         PROTO   DEST            PRIORITY
+#            #                                        PORT
+# 
+#            IPV4
+# 
+#            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-request    10
+#            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-reply      10
+# 
+########################################################################################################
+#INTERFACE:	SOURCE		DEST		PROTO	DEST	SOURCE   TOS		LENGTH	PRIORITY
 #CLASS							PORT(S)	PORT(S)

@@ -1,0 +1,186 @@
+#
+# Shorewall version 4 - arprules File
+#
+# For information about entries in this file, type "man shorewall-arprules"
+#
+##############################################################################################################
+# 
+# This file was added in Shorwall 4.5.12 and is used to describe low-level rules
+# managed by arptables (8). These rules only affect Address Resolution Protocol
+# (ARP), Reverse Address Resolution Protocol (RARP) and Dynamic Reverse Address
+# Resolution Protocol (DRARP) frames.
+# 
+# The columns in the file are as shown below. MAC addresses are specified
+# normally (6 hexidecimal numbers separated by colons).
+# 
+# ACTION
+# 
+#     Describes the action to take when a frame matches the criteria in the other
+#     columns. Possible values are:
+# 
+#     ACCEPT
+# 
+#         This is the default action if no rules matches a frame; it lets the
+#         frame go through.
+# 
+#     DROP
+# 
+#         Causes the frame to be dropped.
+# 
+#     SNAT:ip-address
+# 
+#         Modifies the source IP address to the specified ip-address.
+# 
+#     DNAT:ip-address
+# 
+#         Modifies the destination IP address to the specified ip-address.
+# 
+#     SMAT:mac-address
+# 
+#         Modifies the source MAC address to the specified mac-address.
+# 
+#     DMAT:mac-address
+# 
+#         Modifies the destination MAC address to the specified mac-address.
+# 
+#     SNATC:ip-address
+# 
+#         Like SNAT except that the frame is then passed to the next rule.
+# 
+#     DNATC:ip-address
+# 
+#         Like DNAT except that the frame is then passed to the next rule.
+# 
+#     SMATC:mac-address
+# 
+#         Like SMAT except that the frame is then passed to the next rule.
+# 
+#     DMATC:mac-address
+# 
+#         Like DMAT except that the frame is then passed to the next rule.
+# 
+# SOURCE - [interface[:[!]ipaddress[/ipmask][:[!]macaddress[/macmask]]]]
+# 
+#     Where
+# 
+#     interface
+# 
+#         Is an interface defined in shorewall-interfaces(5).
+# 
+#     ipaddress
+# 
+#         is an IPv4 address. DNS names are not allowed.
+# 
+#     ipmask
+# 
+#         specifies a mask to be applied to ipaddress.
+# 
+#     macaddress
+# 
+#         The source MAC address.
+# 
+#     macmask
+# 
+#         Mask for MAC address; must be specified as 6 hexidecimal numbers
+#         separated by colons.
+# 
+#     When '!' is specified, the test is inverted.
+# 
+#     If not specified, matches only frames originating on the firewall itself.
+# 
+#     Caution
+# 
+#     Either SOURCE or DEST must be specified.
+# 
+# DEST - [interface[:[!]ipaddress[/ipmask][:[!]macaddress[/macmask]]]]
+# 
+#     Where
+# 
+#     interface
+# 
+#         Is an interface defined in shorewall-interfaces(5).
+# 
+#     ipaddress
+# 
+#         is an IPv4 address. DNS Names are not allowed.
+# 
+#     ipmask
+# 
+#         specifies a mask to be applied to frame addresses.
+# 
+#     macaddress
+# 
+#         The destination MAC address.
+# 
+#     macmask
+# 
+#         Mask for MAC address; must be specified as 6 hexidecimal numbers
+#         separated by colons.
+# 
+#     When '!' is specified, the test is inverted and the rule matches frames
+#     which do not match the specified address/mask.
+# 
+#     If not specified, matches only frames originating on the firewall itself.
+# 
+#     If both SOURCE and DEST are specified, then both interfaces must be bridge
+#     ports on the same bridge.
+# 
+#     Caution
+# 
+#     Either SOURCE or DEST must be specified.
+# 
+# ARP OPCODE - [[!]opcode]
+# 
+#     Optional. Describes the type of frame. Possible opcode values are:
+# 
+#     1
+# 
+#         ARP Request
+# 
+#     2
+# 
+#         ARP Reply
+# 
+#     3
+# 
+#         RARP Request
+# 
+#     4
+# 
+#         RARP Reply
+# 
+#     5
+# 
+#         Dynamic RARP Request
+# 
+#     6
+# 
+#         Dynamic RARP Reply
+# 
+#     7
+# 
+#         Dynamic RARP Error
+# 
+#     8
+# 
+#         InARP Request
+# 
+#     9
+# 
+#         ARP NAK
+# 
+#     When '!' is specified, the test is inverted and the rule matches frames
+#     which do not match the specifed opcode.
+# 
+# Example
+# 
+# The eth1 interface has both a pubiic IP address and a private address
+# (10.1.10.11/24). When sending ARP requests to 10.1.10.0/24, use the private
+# address as the IP source:
+# 
+# #ACTION                SOURCE                  DEST                ARP OPCODE
+# SNAT:10.1.10.11        -                       eth1:10.1.10.0/24   1
+# 
+##############################################################################################################
+#ACTION				SOURCE				DEST				ARP
+#												OPCODE

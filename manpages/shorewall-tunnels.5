@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tunnels
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/28/2012
+.\"      Date: 05/01/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TUNNELS" "5" "06/28/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TUNNELS" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -40,7 +40,7 @@ for details\&.
 .PP
 The columns in the file are as follows\&.
 .PP
-\fBTYPE\fR \- {\fBipsec\fR[\fB:{noah\fR|ah}]|\fBipsecnat\fR|\fBipip\fR|\fBgre\fR|l2tp|\fBpptpclient\fR|\fBpptpserver\fR|COMMENT|{\fBopenvpn\fR|\fBopenvpnclient\fR|\fBopenvpnserver\fR}[:{\fBtcp\fR|\fBudp\fR}]\fB[\fR:\fIport\fR]|\fBgeneric\fR\fB:\fR\fIprotocol\fR[\fB:\fR\fIport\fR]}
+\fBTYPE\fR \- {\fBipsec\fR[\fB:{noah\fR|ah}]|\fBipsecnat\fR|\fBipip\fR|\fBgre\fR|l2tp|\fBpptpclient\fR|\fBpptpserver\fR|[?]COMMENT|{\fBopenvpn\fR|\fBopenvpnclient\fR|\fBopenvpnserver\fR}[:{\fBtcp\fR|\fBudp\fR}]\fB[\fR:\fIport\fR]|\fBgeneric\fR\fB:\fR\fIprotocol\fR[\fB:\fR\fIport\fR]}
 .RS 4
 Types are as follows:
 .sp
@@ -105,6 +105,21 @@ or
 (6 or 17), then it may optionally be followed by ":" and a port number\&.
 .sp
 Comments may be attached to Netfilter rules generated from entries in this file through the use of COMMENT lines\&. These lines begin with the word COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
+.sp .5v
+.RE
 .RE
 .PP
 \fBZONE\fR \- \fIzone\fR

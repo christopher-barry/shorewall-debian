@@ -38,10 +38,11 @@ our @EXPORT = qw(
 		 setup_route_filtering
 		 setup_martian_logging
 		 setup_source_routing
+		 setup_accept_ra
 		 setup_forwarding
 		 );
 our @EXPORT_OK = qw( setup_interface_proc );
-our $VERSION = '4.5_0';
+our $VERSION = '4.5_16';
 
 #
 # ARP Filtering
@@ -214,35 +215,64 @@ sub setup_source_routing( $ ) {
     }
 }
 
+#
+# Source Routing
+#
+sub setup_accept_ra() {
+
+    my $interfaces = find_interfaces_by_option 'accept_ra';
+
+    if ( @$interfaces ) {
+	progress_message2 "$doing Accept Routing Advertisements...";
+
+	save_progress_message 'Setting up Accept Routing Advertisements...';
+
+	for my $interface ( @$interfaces ) {
+	    my $value = get_interface_option $interface, 'accept_ra';
+	    my $optional = interface_is_optional $interface;
+
+	    $interface = get_physical $interface;
+
+	    my $file = "/proc/sys/net/ipv6/conf/$interface/accept_ra";
+
+	    emit ( "if [ -f $file ]; then" ,
+		   "    echo $value > $file" );
+	    emit ( 'else' ,
+		   "    error_message \"WARNING: Cannot set Accept Source Routing on $interface\"" ) unless $optional;
+	    emit   "fi\n";
+	}
+    }
+}
+
 sub setup_forwarding( $$ ) {
     my ( $family, $first ) = @_;
 
     if ( $family == F_IPV4 ) {
 	if ( $config{IP_FORWARDING} eq 'on' ) {
-	    emit '        echo 1 > /proc/sys/net/ipv4/ip_forward';
-	    emit '        progress_message2 IPv4 Forwarding Enabled';
+	    emit 'echo 1 > /proc/sys/net/ipv4/ip_forward';
+	    emit 'progress_message2 IPv4 Forwarding Enabled';
 	} elsif ( $config{IP_FORWARDING} eq 'off' ) {
-	    emit '        echo 0 > /proc/sys/net/ipv4/ip_forward';
-	    emit '        progress_message2 IPv4 Forwarding Disabled!';
+	    emit 'echo 0 > /proc/sys/net/ipv4/ip_forward';
+	    emit 'progress_message2 IPv4 Forwarding Disabled!';
 	}
 
 	emit '';
 
-	emit ( '        echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables' ,
+	emit ( 'echo 1 > /proc/sys/net/bridge/bridge-nf-call-iptables' ,
 	       ''
 	     ) if have_bridges;
     } else {
 	if ( $config{IP_FORWARDING} eq 'on' ) {
-	    emit '        echo 1 > /proc/sys/net/ipv6/conf/all/forwarding';
-	    emit '        progress_message2 IPv6 Forwarding Enabled';
+	    emit 'echo 1 > /proc/sys/net/ipv6/conf/all/forwarding';
+	    emit 'progress_message2 IPv6 Forwarding Enabled';
 	} elsif ( $config{IP_FORWARDING} eq 'off' ) {
-	    emit '        echo 0 > /proc/sys/net/ipv6/conf/all/forwarding';
-	    emit '        progress_message2 IPv6 Forwarding Disabled!';
+	    emit 'echo 0 > /proc/sys/net/ipv6/conf/all/forwarding';
+	    emit 'progress_message2 IPv6 Forwarding Disabled!';
 	}
 
 	emit '';
 
-	emit ( '        echo 1 > /proc/sys/net/bridge/bridge-nf-call-ip6tables' ,
+	emit ( 'echo 1 > /proc/sys/net/bridge/bridge-nf-call-ip6tables' ,
 	       ''
 	     ) if have_bridges;
 
@@ -250,9 +280,6 @@ sub setup_forwarding( $$ ) {
 
 	if ( @$interfaces ) {
 	    progress_message2 "$doing Interface forwarding..." if $first;
-
-	    push_indent;
-	    push_indent;
 
 	    save_progress_message 'Setting up IPv6 Interface Forwarding...';
 
@@ -270,9 +297,6 @@ sub setup_forwarding( $$ ) {
 		       "    error_message \"WARNING: Cannot set IPv6 forwarding on $interface\"" ) unless $optional;
 		emit   "fi\n";
 	    }
-
-	    pop_indent;
-	    pop_indent;
 	}
     }
 }
@@ -303,10 +327,16 @@ sub setup_interface_proc( $ ) {
 	push @emitted, "echo $value > /proc/sys/net/ipv4/conf/$physical/accept_source_route";
     }
 
-    if ( interface_has_option( $interface, 'sourceroute' , $value ) ) {
-	push @emitted, "echo $value > /proc/sys/net/ipv4/conf/$physical/accept_source_route";
+    if ( interface_has_option( $interface, 'forward' , $value ) ) {
+	push @emitted, "echo $value > /proc/sys/net/ipv6/conf/$physical/forwarding";
     }
 
+    if ( interface_has_option( $interface, 'accept_ra' , $value ) ) {
+	push @emitted, "if [ -f /proc/sys/net/ipv6/conf/$physical/accept_ra ]; then";
+	push @emitted, "    echo $value > /proc/sys/net/ipv6/conf/$physical/accept_ra";
+	push @emitted, 'fi';
+    }
+	
     if ( @emitted ) {
 	emit( 'if [ $COMMAND = enable ]; then' );
 	push_indent;

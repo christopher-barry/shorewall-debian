@@ -1,0 +1,297 @@
+#
+# Shorewall version 4 - conntrack File
+#
+# For information about entries in this file, type "man shorewall-conntrack"
+#
+##############################################################################################################
+# 
+# The original intent of the notrack file was to exempt certain traffic from
+# Netfilter connection tracking. Traffic matching entries in the file were not to
+# be tracked.
+# 
+# The role of the file was expanded in Shorewall 4.4.27 to include all rules that
+# can be added in the Netfilter raw table. In 4.5.7, the file's name was changed
+# to conntrack.
+# 
+# The file supports two different column layouts: FORMAT 1, FORMAT 2, and FORMAT
+# 3, FORMAT 1 being the default. The three differ as follows:
+# 
+#   ● in FORMAT 2 and 3, there is an additional leading ACTION column.
+# 
+#   ● in FORMAT 3, the SOURCE column accepts no zone name; rather the ACTION
+#     column allows a SUFFIX that determines the chain(s) that the generated rule
+#     will be added to.
+# 
+# When an entry in the following form is encountered, the format of the following
+# entries are assumed to be of the specified format.
+# 
+# [?]FORMAT format
+# 
+# where format is either 1,2 or 3.
+# 
+# Format 3 was introduced in Shorewall 4.5.10. The optional '?' was introduced in
+# Shorewall 4.5.11 and ?FORMAT is the preferred form; the form without the '?' is
+# deprecated.
+# 
+# Comments may be attached to Netfilter rules generated from entries in this file
+# through the use of COMMENT lines. These lines begin with the word COMMENT; the
+# remainder of the line is treated as a comment which is attached to subsequent
+# rules until another COMMENT line is found or until the end of the file is
+# reached. To stop adding comments to rules, use a line with only the word
+# COMMENT.
+# 
+# Note
+# 
+# Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and is
+# preferred.
+# 
+# The columns in the file are as follows (where the column name is followed by a
+# different name in parentheses, the different name is used in the alternate
+# specification syntax).
+# 
+# ACTION - {NOTRACK|CT:helper:name[(arg=val[,...])|CT:notrack|DROP}[:
+#     chain-designator]
+# 
+#     This column is only present when FORMAT >= 2. Values other than NOTRACK or
+#     DROP require CT Target support in your iptables and kernel.
+# 
+#       ● NOTRACK or CT:notrack
+# 
+#         Disables connection tracking for this packet.
+# 
+#       ● DROP
+# 
+#         Added in Shorewall 4.5.10. Silently discard the packet.
+# 
+#       ● helper:name
+# 
+#         Attach the helper identified by the name to this connection. This is
+#         more flexible than loading the conntrack helper with preset ports.
+# 
+#         At this writing, the available helpers are:
+# 
+#         amanda
+# 
+#             Requires that the amanda netfilter helper is present.
+# 
+#         ftp
+# 
+#             Requires that the FTP netfilter helper is present.
+# 
+#         irc
+# 
+#             Requires that the IRC netfilter helper is present.
+# 
+#         netbios-ns
+# 
+#             Requires that the netbios_ns (sic) helper is present.
+# 
+#         RAS and Q.931
+# 
+#             These require that the H323 netfilter helper is present.
+# 
+#         pptp
+# 
+#             Requires that the pptp netfilter helper is present.
+# 
+#         sane
+# 
+#             Requires that the SANE netfilter helper is present.
+# 
+#         sip
+# 
+#             Requires that the SIP netfilter helper is present.
+# 
+#         snmp
+# 
+#             Requires that the SNMP netfilter helper is present.
+# 
+#         tftp
+# 
+#             Requires that the TFTP netfilter helper is present.
+# 
+#         May be followed by an option list of arg=val pairs in parentheses:
+# 
+#           ○ ctevents=event[,...]
+# 
+#             Only generate the specified conntrack events for this connection.
+#             Possible event types are: new, related, destroy, reply, assured,
+#             protoinfo, helper, mark (this is connection mark, not packet mark),
+#             natseqinfo, and secmark. If more than one event is listed, the
+#             event list must be enclosed in parentheses (e.g., ctevents=
+#             (new,related)).
+# 
+#           ○ expevents=new
+# 
+#             Only generate a new expectation events for this connection.
+# 
+#     When FORMAT = 1, this column is not present and the rule is processed as if
+#     NOTRACK had been entered in this column.
+# 
+#     Beginning with Shorewall 4.5.10, when FORMAT = 3, this column can end with
+#     a colon followed by a chain-designator. The chain-designator can be one of
+#     the following:
+# 
+#     P
+# 
+#         The rule is added to the raw table PREROUTING chain. This is the
+#         default if no chain-designator is present.
+# 
+#     O
+# 
+#         The rule is added to the raw table OUTPUT chain.
+# 
+#     PO or OP
+# 
+#         The rule is added to the raw table PREROUTING and OUTPUT chains.
+# 
+# SOURCE (formats 1 and 2) ‒ {zone[:interface][:address-list]|COMMENT}
+# 
+#     where zone is the name of a zone, interface is an interface to that zone,
+#     and address-list is a comma-separated list of addresses (may contain
+#     exclusion - see shorewall-exclusion (5)).
+# 
+#     Beginning with Shorewall 4.5.7, all can be used as the zone name to mean
+#     all zones.
+# 
+#     Beginning with Shorewall 4.5.10, all- can be used as the zone name to mean
+#     all off-firewall zones.
+# 
+# SOURCE (format 3) ‒ {-|interface[:address-list]|address-list}
+# 
+#     Where interface is an interface to that zone, and address-list is a
+#     comma-separated list of addresses (may contain exclusion - see
+#     shorewall-exclusion (5)).
+# 
+#     COMMENT is only allowed in format 1; the remainder of the line is treated
+#     as a comment that will be associated with the generated rule(s).
+# 
+# DEST ‒ {-|interface[:address-list]|address-list}
+# 
+#     where address-list is a comma-separated list of addresses (may contain
+#     exclusion - see shorewall6-exclusion (5)).
+# 
+# PROTO ‒ protocol-name-or-number[,...]
+# 
+#     A protocol name from /etc/protocols or a protocol number.
+# 
+#     Beginning with Shorewall 4.5.12, this column is labeled PROTOS and can
+#     accept a comma-separated list of protocols. Either proto or protos is
+#     accepted in the alternate input format.
+# 
+# DEST PORT(S) (dport) - port-number/service-name-list
+# 
+#     A comma-separated list of port numbers and/or service names from /etc/
+#     services. May also include port ranges of the form low-port:high-port if
+#     your kernel and iptables include port range support.
+# 
+# SOURCE PORT(S) (sport) - port-number/service-name-list
+# 
+#     A comma-separated list of port numbers and/or service names from /etc/
+#     services. May also include port ranges of the form low-port:high-port if
+#     your kernel and iptables include port range support.
+# 
+#     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
+#     that the DEST PORT(S) column is non-empty. This causes the rule to match
+#     when either the source port or the destination port in a packet matches one
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     match in your iptables and kernel.
+# 
+# USER/GROUP (user) ‒ [user][:group]
+# 
+#     May only be specified if the SOURCE zone is $FW. Specifies the effective
+#     user id and or group id of the process sending the traffic.
+# 
+# SWITCH - [!]switch-name[={0|1}]
+# 
+#     Added in Shorewall 4.5.10 and allows enabling and disabling the rule
+#     without requiring shorewall restart.
+# 
+#     The rule is enabled if the value stored in /proc/net/nf_condition/
+#     switch-name is 1. The rule is disabled if that file contains 0 (the
+#     default). If '!' is supplied, the test is inverted such that the rule is
+#     enabled if the file contains 0.
+# 
+#     Within the switch-name, '@0' and '@{0}' are replaced by the name of the
+#     chain to which the rule is a added. The switch-name (after '...' expansion)
+#     must begin with a letter and be composed of letters, decimal digits,
+#     underscores or hyphens. Switch names must be 30 characters or less in
+#     length.
+# 
+#     Switches are normally off. To turn a switch on:
+# 
+#     echo 1 > /proc/net/nf_condition/switch-name
+# 
+#     To turn it off again:
+# 
+#     echo 0 > /proc/net/nf_condition/switch-name
+# 
+#     Switch settings are retained over shorewall restart.
+# 
+#     When the switch-name is followed by =0 or =1, then the switch is
+#     initialized to off or on respectively by the start command. Other commands
+#     do not affect the switch setting.
+# 
+# EXAMPLE
+# 
+# Example 1:
+# 
+# #ACTION                       SOURCE            DEST               PROTO            DEST              SOURCE              USER/GROUP
+# #                                                                                   PORT(S)           PORT(S)
+# CT:helper:ftp(expevents=new)  fw                -                  tcp              21
+# 
+# Example 2 (Shorewall 4.5.10 or later):
+# 
+# Drop traffic to/from all zones to IP address 1.2.3.4
+# 
+# FORMAT 2
+# #ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
+# #                                                                                   PORT(S)           PORT(S)
+# DROP                          all-:1.2.3.4       -
+# DROP                          all                1.2.3.4
+# 
+# or
+# 
+# FORMAT 3
+# #ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
+# #                                                                                   PORT(S)           PORT(S)
+# DROP:P                        1.2.3.4            -
+# DROP:PO                       -                  1.2.3.4
+# 
+##############################################################################################################
+?FORMAT 3
+#ACTION			SOURCE		DESTINATION	PROTO	DEST		SOURCE	USER/		SWITCH
+#								PORT(S)		PORT(S)	GROUP
+?if $AUTOHELPERS && __CT_TARGET
+?if __AMANDA_HELPER
+CT:helper:amanda:PO	-		-		udp	10080
+?endif
+?if __FTP_HELPER
+CT:helper:ftp:PO	-		-		tcp	21
+?endif
+?if __H323_HELPER
+CT:helper:RAS:PO	-		-		udp	1719
+CT:helper:Q.931:PO	-		-		tcp	1720
+?endif
+?if __IRC_HELPER
+CT:helper:irc:PO	-		-		tcp	6667
+?endif
+?if __NETBIOS_NS_HELPER
+CT:helper:netbios-ns:PO	-		-		udp	137
+?endif
+?if __PPTP_HELPER
+CT:helper:pptp:PO	-		-		tcp	1723
+?endif
+?if __SANE_HELPER
+CT:helper:sane:PO	-		-		tcp	6566
+?endif
+?if __SIP_HELPER
+CT:helper:sip:PO	-		-		udp	5060
+?endif
+?if __SNMP_HELPER
+CT:helper:snmp:PO	-		-		udp	161
+?endif
+?if __TFTP_HELPER
+CT:helper:tftp:PO	-		-		udp	69
+?endif
+?endif

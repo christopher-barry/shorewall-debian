@@ -4,7 +4,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -34,31 +34,33 @@ use Shorewall::Accounting;
 use Shorewall::Rules;
 use Shorewall::Proc;
 use Shorewall::Proxyarp;
-use Shorewall::IPAddrs;
 use Shorewall::Raw;
 use Shorewall::Misc;
+use Shorewall::ARP;
 
 use strict;
 
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.5_4';
+our $VERSION = '4.5_16';
 
-my $export;
+our $export;
 
-my $test;
+our $test;
 
-my $family;
+our $family;
+
+our $have_arptables;
 
 #
 # Initilize the package-globals in the other modules
 #
-sub initialize_package_globals( $$ ) {
-    Shorewall::Config::initialize($family, $_[1]);
+sub initialize_package_globals( $$$ ) {
+    Shorewall::Config::initialize($family, $_[1], $_[2]);
     Shorewall::Chains::initialize ($family, 1, $export );
     Shorewall::Zones::initialize ($family, $_[0]);
-    Shorewall::Nat::initialize;
+    Shorewall::Nat::initialize($family);
     Shorewall::Providers::initialize($family);
     Shorewall::Tc::initialize($family);
     Shorewall::Accounting::initialize;
@@ -158,7 +160,7 @@ sub generate_script_2() {
 
     push_indent;
 
-    if ( $shorewallrc{TEMPDIR} ) {
+    if ( $shorewallrc1{TEMPDIR} ) {
 	emit( '',
 	      qq(TMPDIR="$shorewallrc{TEMPDIR}") ,
 	      q(export TMPDIR) );
@@ -168,14 +170,14 @@ sub generate_script_2() {
 	emit( 'g_family=4' );
 
 	if ( $export ) {
-	    emit ( qq(g_confdir=$shorewallrc{CONFDIR}/shorewall-lite),
+	    emit ( qq(g_confdir=$shorewallrc1{CONFDIR}/shorewall-lite),
 		   'g_product="Shorewall Lite"',
 		   'g_program=shorewall-lite',
 		   'g_basedir=/usr/share/shorewall-lite',
-		   qq(CONFIG_PATH="$shorewallrc{CONFDIR}/shorewall-lite:$shorewallrc{SHAREDIR}/shorewall-lite") ,
+		   qq(CONFIG_PATH="$shorewallrc1{CONFDIR}/shorewall-lite:$shorewallrc1{SHAREDIR}/shorewall-lite") ,
 		 );
 	} else {
-	    emit ( qq(g_confdir=$shorewallrc{CONFDIR}/shorewall),
+	    emit ( qq(g_confdir=$shorewallrc1{CONFDIR}/shorewall),
 		   'g_product=Shorewall',
 		   'g_program=shorewall',
 		   'g_basedir=/usr/share/shorewall',
@@ -186,14 +188,14 @@ sub generate_script_2() {
 	emit( 'g_family=6' );
 
 	if ( $export ) {
-	    emit ( qq(g_confdir=$shorewallrc{CONFDIR}/shorewall6-lite),
+	    emit ( qq(g_confdir=$shorewallrc1{CONFDIR}/shorewall6-lite),
 		   'g_product="Shorewall6 Lite"',
 		   'g_program=shorewall6-lite',
 		   'g_basedir=/usr/share/shorewall6',
-		   qq(CONFIG_PATH="$shorewallrc{CONFDIR}/shorewall6-lite:$shorewallrc{SHAREDIR}/shorewall6-lite") ,
+		   qq(CONFIG_PATH="$shorewallrc1{CONFDIR}/shorewall6-lite:$shorewallrc{SHAREDIR}/shorewall6-lite") ,
 		 );
 	} else {
-	    emit ( qq(g_confdir=$shorewallrc{CONFDIR}/shorewall6),
+	    emit ( qq(g_confdir=$shorewallrc1{CONFDIR}/shorewall6),
 		   'g_product=Shorewall6',
 		   'g_program=shorewall6',
 		   'g_basedir=/usr/share/shorewall',
@@ -202,21 +204,9 @@ sub generate_script_2() {
 	}
     }
 
-    emit( '[ -f ${g_confdir}/vardir ] && . ${g_confdir}/vardir' );
-
-    if ( $family == F_IPV4 ) {
-	if ( $export ) {
-	    emit ( '[ -n "${VARDIR:=' . $shorewallrc{VARDIR} . '/shorewall-lite}" ]' );
-	} else {
-	    emit ( '[ -n "${VARDIR:=' . $shorewallrc{VARDIR} . '/shorewall}" ]' );
-	}
-    } else {
-	if ( $export ) {
-	    emit ( '[ -n "${VARDIR:=' . $shorewallrc{VARDIR} . '/shorewall6-lite}" ]' );
-	} else {
-	    emit ( '[ -n "${VARDIR:=' . $shorewallrc{VARDIR} . '/shorewall6}" ]' );
-	}
-    }
+    emit (   '[ -f ${g_confdir}/vardir ] && . ${g_confdir}/vardir' );
+    emit ( qq([ -n "\${VARDIR:=$shorewallrc1{VARDIR}}" ]) );
+    emit ( qq([ -n "\${VARLIB:=$shorewallrc1{VARLIB}}" ]) );
 
     emit 'TEMPFILE=';
 
@@ -238,6 +228,22 @@ sub generate_script_2() {
 	   );
 
     set_chain_variables;
+
+    my $need_arptables = $have_arptables || $config{SAVE_ARPTABLES};
+
+    if ( my $arptables = $config{ARPTABLES} ) {
+	emit( qq(ARPTABLES="$arptables"),
+	      '[ -x "$ARPTABLES" ] || startup_error "ARPTABLES=$ARPTABLES does not exist or is not executable"',
+	    );
+    } elsif ( $need_arptables ) {
+	emit( '[ -z "$ARPTABLES" ] && ARPTABLES=$(mywhich arptables)',
+	      '[ -n "$ARPTABLES" -a -x "$ARPTABLES" ] || startup_error "Can\'t find arptables executable"' );
+    }
+
+    if ( $need_arptables ) {
+	emit( 'ARPTABLES_RESTORE=${ARPTABLES}-restore',
+	      '[ -x "$ARPTABLES_RESTORE" ] || startup_error "$ARPTABLES_RESTORE does not exist or is not executable"' );
+    }
 
     if ( $config{EXPORTPARAMS} ) {
 	append_file 'params';
@@ -336,6 +342,7 @@ sub generate_script_3($) {
     }
 
     create_netfilter_load( $test );
+    create_arptables_load( $test ) if $have_arptables;
     create_chainlist_reload( $_[0] );
 
     emit "#\n# Start/Restart the Firewall\n#";
@@ -368,6 +375,7 @@ sub generate_script_3($) {
     emit '';
 
     load_ipsets;
+    create_nfobjects;
 
     if ( $family == F_IPV4 ) {
 	emit ( 'if [ "$COMMAND" = refresh ]; then' ,
@@ -377,8 +385,8 @@ sub generate_script_3($) {
 	       'fi',
 	       '' );
 
+	verify_address_variables;
 	save_dynamic_chains;
-
 	mark_firewall_not_started;
 
 	emit ( '',
@@ -406,6 +414,7 @@ sub generate_script_3($) {
 	       'fi',
 	       '' );
 
+	verify_address_variables;
 	save_dynamic_chains;
 	mark_firewall_not_started;
 
@@ -461,59 +470,76 @@ sub generate_script_3($) {
 	  '    if [ -f $iptables_save_file ]; then' );
 
     if ( $family == F_IPV4 ) {
-	emit '        cat $iptables_save_file | $IPTABLES_RESTORE # Use this nonsensical form to appease SELinux'
+	emit( '        cat $iptables_save_file | $IPTABLES_RESTORE # Use this nonsensical form to appease SELinux' );
+
+	emit( '',
+	      '        arptables_save_file=${VARDIR}/$(basename $0)-arptables',
+	      '        if [ -f $arptables_save_file ]; then',
+	      '            cat $arptables_save_file | $ARPTABLES_RESTORE',
+	      '        fi')
+	    if $config{SAVE_ARPTABLES};
+
     } else {
 	emit '        cat $iptables_save_file | $IP6TABLES_RESTORE # Use this nonsensical form to appease SELinux'
     }
 
-    emit<<'EOF';
-    else
-        fatal_error "$iptables_save_file does not exist"
-    fi
-EOF
-    pop_indent;
+    emit( '    else',
+	  '       fatal_error "$iptables_save_file does not exist"',
+	  '    fi',
+	  ''
+	);
+
+    push_indent;
     setup_load_distribution;
     setup_forwarding( $family , 1 );
-    push_indent;
+    pop_indent;
 
     my $config_dir = $globals{CONFIGDIR};
 
     emit<<"EOF";
     set_state Started $config_dir
     run_restored_exit
-else
-    if [ \$COMMAND = refresh ]; then
-        chainlist_reload
+elif [ \$COMMAND = refresh ]; then
+    chainlist_reload
 EOF
+    push_indent;
     setup_load_distribution;
     setup_forwarding( $family , 0 );
-
-    emit( '        run_refreshed_exit' ,
-	  '        do_iptables -N shorewall' ,
-	  "        set_state Started $config_dir" ,
-	  '    else' ,
-	  '        setup_netfilter' );
-
+    pop_indent;
+    #
+    # Use a parameter list rather than 'here documents' to avoid an extra blank line
+    #
+    emit(
+'    run_refreshed_exit',
+'    do_iptables -N shorewall',
+"    set_state Started $config_dir",
+'    [ $0 = ${VARDIR}/firewall ] || cp -f $(my_pathname) ${VARDIR}/firewall',
+'else',
+'    setup_netfilter'
+	);
+    push_indent;
+    emit 'setup_arptables' if $have_arptables;
     setup_load_distribution;
+    pop_indent;
 
-    emit<<"EOF";
-        conditionally_flush_conntrack
+    emit<<'EOF';
+    conditionally_flush_conntrack
 EOF
+    push_indent;
+    initialize_switches;
     setup_forwarding( $family , 0 );
+    pop_indent;
 
     emit<<"EOF";
-        run_start_exit
-        do_iptables -N shorewall
-        set_state Started $config_dir
-        run_started_exit
-    fi
-
+    run_start_exit
+    do_iptables -N shorewall
+    set_state Started $config_dir
+    [ \$0 = \${VARDIR}/firewall ] || cp -f \$(my_pathname) \${VARDIR}/firewall
+    run_started_exit
+fi
 EOF
 
     emit<<'EOF';
-    [ $0 = ${VARDIR}/firewall ] || cp -f $(my_pathname) ${VARDIR}/firewall
-fi
-
 date > ${VARDIR}/restarted
 
 case $COMMAND in
@@ -545,11 +571,12 @@ EOF
 #
 sub compiler {
 
-    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate , $convert, $config_path, $shorewallrc ) =
-       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        , 0       , ''          , '');
+    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate , $convert, $config_path, $shorewallrc                      , $shorewallrc1 , $directives ) =
+       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        , 0       , ''          , '/usr/share/shorewall/shorewallrc', ''            , 0 );
 
-    $export = 0;
-    $test   = 0;
+    $export         = 0;
+    $test           = 0;
+    $have_arptables = 0;
 
     sub validate_boolean( $ ) {
 	 my $val = numeric_value( shift );
@@ -583,8 +610,10 @@ sub compiler {
 		  update        => { store => \$update,        validate=> \&validate_boolean    } ,
 		  convert       => { store => \$convert,       validate=> \&validate_boolean    } ,
 		  annotate      => { store => \$annotate,      validate=> \&validate_boolean    } ,
+		  directives    => { store => \$directives,    validate=> \&validate_boolean    } ,
 		  config_path   => { store => \$config_path } ,
 		  shorewallrc   => { store => \$shorewallrc } ,
+		  shorewallrc1  => { store => \$shorewallrc1 } ,
 		);
     #
     #                               P A R A M E T E R    P R O C E S S I N G
@@ -602,7 +631,7 @@ sub compiler {
     #
     # Now that we know the address family (IPv4/IPv6), we can initialize the other modules' globals
     #
-    initialize_package_globals( $update, $shorewallrc );
+    initialize_package_globals( $update, $shorewallrc, $shorewallrc1 );
 
     set_config_path( $config_path ) if $config_path;
 
@@ -620,7 +649,7 @@ sub compiler {
     #
     #                      S H O R E W A L L . C O N F  A N D  C A P A B I L I T I E S
     #
-    get_configuration( $export , $update , $annotate );
+    get_configuration( $export , $update , $annotate , $directives );
     #
     # Create a temp file to hold the script
     #
@@ -665,11 +694,6 @@ sub compiler {
     #                           (Produces no output to the compiled script)
     #
     process_policies;
-    #
-    #                                       N O T R A C K
-    #                           (Produces no output to the compiled script)
-    #
-    setup_notrack;
 
     enable_script;
 
@@ -708,6 +732,16 @@ sub compiler {
     # Proxy Arp/Ndp
     #
     setup_proxy_arp;
+
+    emit( "#\n# Disable automatic helper association on kernel 3.5.0 and later\n#" ,
+	  'if [ -f /proc/sys/net/netfilter/nf_conntrack_helper ]; then' ,
+	  '    progress_message "Disabling Kernel Automatic Helper Association"',
+	  "    echo 0 > /proc/sys/net/netfilter/nf_conntrack_helper",
+	  'fi',
+	  ''
+	);
+
+    setup_accept_ra if $family == F_IPV6;
 
     if ( $scriptfilename || $debug ) {
 	emit 'return 0';
@@ -753,28 +787,26 @@ sub compiler {
 	emit "}\n"; # End of setup_routing_and_traffic_shaping()
     }
 
+    $have_arptables = process_arprules if $family == F_IPV4;
+
     disable_script;
     #
     #                                       N E T F I L T E R
     #       (Produces no output to the compiled script -- rules are stored in the chain table)
     #
     process_tos;
-
-    if ( $family == F_IPV4 ) {
-	#
-	# ECN
-	#
-	setup_ecn if have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
-	#
-	# Setup Masquerading/SNAT
-	#
-	setup_masq;
-	#
-	# Setup Nat
-	#
-	setup_nat;
-    }
-
+    #
+    # ECN
+    #
+    setup_ecn if $family == F_IPV4 && have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
+    #
+    # Setup Masquerading/SNAT
+    #
+    setup_masq;
+    #
+    # Setup Nat
+    #
+    setup_nat if $family == F_IPV4;
     #
     # Setup NETMAP
     #
@@ -787,6 +819,10 @@ sub compiler {
     # Process the rules file.
     #
     process_rules( $convert );
+    #
+    # Process the conntrack file
+    #
+    setup_conntrack;
     #
     # Add Tunnel rules.
     #
@@ -832,7 +868,7 @@ sub compiler {
 	generate_script_2;
 	#
 	#                          N E T F I L T E R   L O A D
-	#    (Produces setup_netfilter(), chainlist_reload() and define_firewall() )
+	#    (Produces setup_netfilter(), setup_arptables(), chainlist_reload() and define_firewall() )
 	#
 	generate_script_3( $chains );
 	#
@@ -845,7 +881,7 @@ sub compiler {
 	#                           S T O P _ F I R E W A L L
 	#         (Writes the stop_firewall() function to the compiled script)
 	#
-	compile_stop_firewall( $test, $export );
+	compile_stop_firewall( $test, $export , $have_arptables );
 	#
 	#                               U P D O W N
 	#               (Writes the updown() function to the compiled script)
@@ -865,6 +901,10 @@ sub compiler {
 	# And generate the auxilary config file
 	#
 	enable_script, generate_aux_config if $export;
+	#
+	# Report used/required capabilities
+	#
+	report_used_capabilities;
     } else {
 	#
 	# Just checking the configuration
@@ -877,7 +917,7 @@ sub compiler {
 
 	    optimize_level0;
 
-	    if ( ( my $optimize = $config{OPTIMIZE} & OPTIMIZE_MASK ) ) {
+	    if ( ( my $optimize = $config{OPTIMIZE} ) & 0x1e ) {
 		progress_message2 'Optimizing Ruleset...';
 		#
 		# Optimize Policy Chains
@@ -893,7 +933,10 @@ sub compiler {
 
 	    generate_script_2 if $debug;
 
-	    preview_netfilter_load if $preview;
+	    if ( $preview ) {
+		preview_netfilter_load;
+		preview_arptables_load if $have_arptables;
+	    }
 	}
 	#
 	# Re-initialize the chain table so that process_routestopped() has the same
@@ -903,7 +946,7 @@ sub compiler {
 	initialize_chain_table(0);
 
 	if ( $debug ) {
-	    compile_stop_firewall( $test, $export );
+	    compile_stop_firewall( $test, $export, $have_arptables );
 	    disable_script;
 	} else {
 	    #
@@ -911,7 +954,12 @@ sub compiler {
 	    # call that function during normal 'check', we must validate routestopped here.
 	    #
 	    process_routestopped;
+	    process_stoppedrules;
 	}
+	#
+	# Report used/required capabilities
+	#
+	report_used_capabilities;
 
 	if ( $family == F_IPV4 ) {
 	    progress_message3 "Shorewall configuration verified";

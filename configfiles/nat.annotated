@@ -19,7 +19,7 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# EXTERNAL - {address|COMMENT}
+# EXTERNAL - {address|[?]COMMENT}
 # 
 #     External IP Address - this should NOT be the primary IP address of the
 #     interface named in the next column and must not be a DNS Name.
@@ -31,6 +31,11 @@
 # 
 #     To stop the comment from being attached to further rules, simply include
 #     COMMENT on a line by itself.
+# 
+#     Note
+# 
+#     Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and is
+#     preferred.
 # 
 # INTERFACE - interfacelist[:[digit]]
 # 
