@@ -103,7 +103,7 @@
 #     vserver
 # 
 #         Added in Shorewall 4.4.11 Beta 2 - A zone composed of Linux-vserver
-#         guests. The zone contents must be defined in shorewall-hosts (5).
+#         guests. The zone contents must be defined in shorewall6-hosts (5).
 # 
 #         Vserver zones are implicitly handled as subzones of the firewall zone.
 # 
@@ -126,6 +126,13 @@
 # 
 #         Specifying this option in the OPTIONS column is equivalent to entering
 #         it in both of the IN_OPTIONS and OUT_OPTIONS column.
+# 
+#     dynamic_shared
+# 
+#         Added in Shorewall 4.5.9. May only be specified in the OPTIONS column
+#         and indicates that only a single ipset should be created for this zone
+#         if it has multiple dynamic entries in shorewall6-hosts(5). Without this
+#         option, a separate ipset is created for each interface.
 # 
 #     reqid=number
 # 

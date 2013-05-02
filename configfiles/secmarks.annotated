@@ -18,7 +18,7 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# SECMARK - {SAVE|RESTORE|context|COMMENT comment}
+# SECMARK - {SAVE|RESTORE|context|[?]COMMENT comment}
 # 
 #     SAVE
 # 
@@ -36,14 +36,22 @@
 # 
 #         An SELinux context.
 # 
-#     COMMENT
+#     [?]COMMENT
 # 
 #         The remainder of the line is treated as a comment which is attached to
 #         subsequent rules until another COMMENT line is found or until the end
 #         of the file is reached. To stop adding comments to rules, use a line
 #         with only the word COMMENT.
 # 
-# CHAIN - {P|I|F|O|T}[:{N|I|NI|E|ER}]
+#         Note
+# 
+#         Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and
+#         is preferred.
+# 
+# CHAIN:STATE (chain) - {P|I|F|O|T}[:{N|I|U|IU|NI|NU|NIU|NUI:E|ER}]
+# 
+#     This column determines the CHAIN where the SElinux context is to be
+#     applied:
 # 
 #     P - PREROUTING
 #     I - INPUT
@@ -56,9 +64,17 @@
 # 
 #     :N - NEW connection
 #     :I - INVALID connection
-#     :NI - New or INVALID connection
+#     :NI - NEW or INVALID connection
 #     :E - ESTABLISHED connection
 #     :ER - ESTABLISHED or RELATED connection
+# 
+#     Beginning with Shorewall 4.5.10, the following additional options are
+#     available
+# 
+#     :U - UNTRACKED connection
+#     :IU - INVALID or UNTRACKED connection
+#     :NU - NEW or UNTRACKED connection
+#     :NIU - NEW, INVALID or UNTRACKED connection.
 # 
 # SOURCE - {-interface|[interface:]address-or-range[,address-or-range]...}[
 #     exclusion]
@@ -102,6 +118,9 @@
 # 
 #     Protocol - ipp2p requires ipp2p match support in your kernel and iptables.
 # 
+#     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
+#     list of protocols.
+# 
 # PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
 # 
 #     Optional destination Ports. A comma-separated list of Port names (from
@@ -125,6 +144,12 @@
 #     Optional source port(s). If omitted, any source port is acceptable.
 #     Specified as a comma-separated list of port names, port numbers or port
 #     ranges.
+# 
+#     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
+#     that the DEST PORT(S) column is non-empty. This causes the rule to match
+#     when either the source port or the destination port in a packet matches one
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     match in your iptables and kernel.
 # 
 # USER - [!][user-name-or-number][:group-name-or-number]
 # 

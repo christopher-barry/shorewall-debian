@@ -1,0 +1,288 @@
+#
+# Shorewall6 version 4 - MASQUERADE/SNAT file
+#
+# For information about entries in this file, type "man shorewall6-masq"
+#
+# The manpage is also online at
+# http://www.shorewall.net/manpages6/shorewall6-masq.html
+#
+########################################################################################################################
+# 
+# Use this file to define Source NAT (SNAT). Requires Shorewall 4.5.14 or later.
+# 
+# Warning
+# 
+# The entries in this file are order-sensitive. The first entry that matches a
+# particular connection will be the one that is used.
+# 
+# Warning
+# 
+# If you have more than one ISP link, adding entries to this file will not force
+# connections to go out through a particular link. You must use entries in
+# shorewall6-rtrules(5) or PREROUTING entries in shorewall-tcrules(5) to do that.
+# 
+# The columns in the file are as follows.
+# 
+# INTERFACE:DEST - {[+]interfacelist|[:[dest-address[,dest-address]...[exclusion
+#     ]]|[?]COMMENT}
+# 
+#     Outgoing interfacelist. This may be a comma-separated list of interface
+#     names. This is usually your internet interface.
+# 
+#     Each interface must match an entry in shorewall6-interfaces(5). Shorewall
+#     allows loose matches to wildcard entries in shorewall6-interfaces(5). For
+#     example, ppp0 in this file will match a shorewall6-interfaces(5) entry that
+#     defines ppp+.
+# 
+#     Where more that one internet provider share a single interface, the
+#     provider is specified by including the provider name or number in
+#     parentheses:
+# 
+#             eth0(Avvanta)
+# 
+#     In that case, you will want to specify the interfaces's address for that
+#     provider in the ADDRESS column.
+# 
+#     The interface may be qualified by adding the character ":" followed by a
+#     comma-separated list of destination host or subnet addresses to indicate
+#     that you only want to change the source IP address for packets being sent
+#     to those particular destinations. Exclusion is allowed (see
+#     shorewall6-exclusion(5)) as are ipset names preceded by a plus sign '+'.
+# 
+#     Comments may be attached to Netfilter rules generated from entries in this
+#     file through the use of COMMENT lines. These lines begin with the word
+#     COMMENT; the remainder of the line is treated as a comment which is
+#     attached to subsequent rules until another COMMENT line is found or until
+#     the end of the file is reached. To stop adding comments to rules, use a
+#     line with only the word COMMENT.
+# 
+#     Note
+# 
+#     Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and is
+#     preferred.
+# 
+# SOURCE - {interface|address[,address][exclusion]}
+# 
+#     Set of hosts that you wish to SNAT; one or more host or network addresses
+#     separated by comma. You may use ipset names preceded by a plus sign (+) to
+#     specify a set of hosts.
+# 
+# ADDRESS (Optional) - [-|NONAT|[address-or-address-range[,
+#     address-or-address-range]...][:lowport-highport][:random][:persistent]|
+#     detect|random]
+# 
+#     If you do not specify an address or address range, masquerading will be
+#     performed. This requires Masquerade Target support in your kernel and
+#     ip6tables.
+# 
+#     If you specify an address here, SNAT will be used and this will be the
+#     source address.
+# 
+#     You may also specify a range of up to 256 IP addresses if you want the SNAT
+#     address to be assigned from that range in a round-robin fashion by
+#     connection. The range is specified by first.ip.in.range-last.ip.in.range.
+#     You may follow the port range with:random in which case assignment of ports
+#     from the list will be random. random may also be specified by itself in
+#     this column in which case random local port assignments are made for the
+#     outgoing connections.
+# 
+#     Example: [2001:470:a:227::2]-[2001:470:a:227::10]:1000-1010
+# 
+#     You may follow the port range (or :random) with :persistent. This is only
+#     useful when an address range is specified and causes a client to be given
+#     the same source/destination IP pair.
+# 
+#     This column may not contain DNS Names.
+# 
+#     Normally, Netfilter will attempt to retain the source port number. You may
+#     cause netfilter to remap the source port by following an address or range
+#     (if any) by ":" and a port range with the format lowport-highport. If this
+#     is done, you must specify "tcp" or "udp" in the PROTO column.
+# 
+#     Examples:
+# 
+#             [2001:470:a:787::2]:5000-6000
+# 
+#     If you simply place NONAT in this column, no rewriting of the source IP
+#     address or port number will be performed. This is useful if you want
+#     particular traffic to be exempt from the entries that follow in the file.
+# 
+# PROTO (Optional) - {-|[!]{protocol-name|protocol-number}[,...]}
+# 
+#     If you wish to restrict this entry to a particular protocol then enter the
+#     protocol name (from protocols(5)) or number here.
+# 
+#     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
+#     list of protocols.
+# 
+# PORT(S) (Optional) - [[!]port-name-or-number[,port-name-or-number]...]
+# 
+#     If the PROTO column specifies TCP (6), UDP (17), DCCP (33), SCTP (132) or
+#     UDPLITE (136) then you may list one or more port numbers (or names from
+#     services(5)) or port ranges separated by commas.
+# 
+#     Port ranges are of the form lowport:highport.
+# 
+# IPSEC (Optional) - [option[,option]...]
+# 
+#     If you specify a value other than "-" in this column, you must be running
+#     kernel 2.6 and your kernel and iptables must include policy match support.
+# 
+#     Comma-separated list of options from the following. Only packets that will
+#     be encrypted via an SA that matches these options will have their source
+#     address changed.
+# 
+#     reqid=number
+# 
+#         where number is specified using setkey(8) using the 'unique:number
+#         option for the SPD level.
+# 
+#     spi=<number>
+# 
+#         where number is the SPI of the SA used to encrypt/decrypt packets.
+# 
+#     proto=ah|esp|ipcomp
+# 
+#         IPSEC Encapsulation Protocol
+# 
+#     mss=number
+# 
+#         sets the MSS field in TCP packets
+# 
+#     mode=transport|tunnel
+# 
+#         IPSEC mode
+# 
+#     tunnel-src=address[/mask]
+# 
+#         only available with mode=tunnel
+# 
+#     tunnel-dst=address[/mask]
+# 
+#         only available with mode=tunnel
+# 
+#     strict
+# 
+#         Means that packets must match all rules.
+# 
+#     next
+# 
+#         Separates rules; can only be used with strict
+# 
+#     yes
+# 
+#         When used by itself, causes all traffic that will be encrypted/
+#         encapsulated to match the rule.
+# 
+# MARK - [!]value[/mask][:C]
+# 
+#     Defines a test on the existing packet or connection mark. The rule will
+#     match only if the test returns true.
+# 
+#     If you don't want to define a test but need to specify anything in the
+#     following columns, place a "-" in this field.
+# 
+#     !
+# 
+#         Inverts the test (not equal)
+# 
+#     value
+# 
+#         Value of the packet or connection mark.
+# 
+#     mask
+# 
+#         A mask to be applied to the mark before testing.
+# 
+#     :C
+# 
+#         Designates a connection mark. If omitted, the packet mark's value is
+#         tested.
+# 
+# USER/GROUP (Optional) - [!][user-name-or-number][:group-name-or-number][+
+#     program-name]
+# 
+#     Only locally-generated connections will match if this column is non-empty.
+# 
+#     When this column is non-empty, the rule matches only if the program
+#     generating the output is running under the effective user and/or group
+#     specified (or is NOT running under that id if "!" is given).
+# 
+#     Examples:
+# 
+#     joe
+# 
+#         program must be run by joe
+# 
+#     :kids
+# 
+#         program must be run by a member of the 'kids' group
+# 
+#     !:kids
+# 
+#         program must not be run by a member of the 'kids' group
+# 
+#     +upnpd
+# 
+#         #program named upnpd
+# 
+#         Important
+# 
+#         The ability to specify a program name was removed from Netfilter in
+#         kernel version 2.6.14.
+# 
+# SWITCH - [!]switch-name[={0|1}]
+# 
+#     Added in Shorewall 4.5.1 and allows enabling and disabling the rule without
+#     requiring shorewall restart.
+# 
+#     The rule is enabled if the value stored in /proc/net/nf_condition/
+#     switch-name is 1. The rule is disabled if that file contains 0 (the
+#     default). If '!' is supplied, the test is inverted such that the rule is
+#     enabled if the file contains 0.
+# 
+#     Within the switch-name, '@0' and '@{0}' are replaced by the name of the
+#     chain to which the rule is a added. The switch-name (after '@...'
+#     expansion) must begin with a letter and be composed of letters, decimal
+#     digits, underscores or hyphens. Switch names must be 30 characters or less
+#     in length.
+# 
+#     Switches are normally off. To turn a switch on:
+# 
+#     echo 1 > /proc/net/nf_condition/switch-name
+# 
+#     To turn it off again:
+# 
+#     echo 0 > /proc/net/nf_condition/switch-name
+# 
+#     Switch settings are retained over shorewall restart.
+# 
+#     Beginning with Shoreawll 4.5.10, when the switch-name is followed by =0 or
+#     =1, then the switch is initialized to off or on respectively by the start
+#     command. Other commands do not affect the switch setting.
+# 
+# ORIGINAL DEST (origdest) - [-|address[,address]...[exclusion]|exclusion]
+# 
+#     (Optional) This column may be included and may contain one or more
+#     addresses (host or network) separated by commas. Address ranges are not
+#     allowed. When this column is supplied, rules are generated that require
+#     that the original destination address matches one of the listed addresses.
+#     It is useful for specifying that SNAT should occur only for connections
+#     that were acted on by a DNAT when they entered the firewall.
+# 
+# Examples
+# 
+# Example 1:
+# 
+#     You have a simple 'masquerading' setup where eth0 connects to a DSL or
+#     cable modem and eth1 connects to your local network with subnet
+#     2001:470:b:787::0/64
+# 
+#     Your entry in the file will be:
+# 
+#             #INTERFACE   SOURCE                  ADDRESS
+#             eth0         2001:470:b:787::0/64    -
+# 
+########################################################################################################################
+#INTERFACE	SOURCE			ADDRESS			PROTO	PORT(S)	IPSEC	MARK	USER/	SWITCH	ORIGINAL
+#												GROUP		DEST

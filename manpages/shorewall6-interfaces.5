@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/28/2012
+.\"      Date: 05/01/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "06/28/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-INTERFAC" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -50,7 +50,9 @@ The BROADCAST column is omitted\&.
 .PP
 The format is specified by a line as follows:
 .PP
-\fBFORMAT {1|2}\fR
+\fB[?]FORMAT {1|2}\fR
+.PP
+The optional \*(Aq?\*(Aq was introduced in Shorewall 4\&.5\&.11 and ?FORMAT is the preferred form; the form without the \*(Aq?\*(Aq is deprecated\&.
 .PP
 The columns in the file are as follows\&.
 .PP
@@ -115,6 +117,28 @@ in this column\&. It is here for compatibility between Shorewall6 and Shorewall 
 \fBOPTIONS\fR (Optional) \- [\fIoption\fR[\fB,\fR\fIoption\fR]\&.\&.\&.]
 .RS 4
 A comma\-separated list of options from the following list\&. The order in which you list the options is not significant but the list should have no embedded white space\&.
+.PP
+\fBaccept_ra\fR[={0|1|2}]
+.RS 4
+Added in Shorewall 4\&.5\&.16\&. Values are:
+.PP
+0
+.RS 4
+Do not accept Router Advertisements\&.
+.RE
+.PP
+1
+.RS 4
+Accept Route Advertisements if forwarding is disabled\&.
+.RE
+.PP
+2
+.RS 4
+Overrule forwarding behavior\&. Accept Route Advertisements even if forwarding is enabled\&.
+.RE
+.sp
+If the option is specified without a value, then the value 1 is assumed\&.
+.RE
 .PP
 \fBblacklist\fR
 .RS 4
@@ -323,18 +347,27 @@ Added in Shorewall 4\&.4\&.10\&. When specified, the firewall will fail to start
 .RS 4
 If specified, indicates that shorewall6 should include rules that allow traffic arriving on this interface to be routed back out that same interface\&. This option is also required when you have used a wildcard in the INTERFACE column if you want to allow traffic between the interfaces that match the wildcard\&.
 .sp
-Beginning with Shorewall 4\&.4\&.20, if you specify this option, then you should also specify
+If you specify this option, then you should also specify
+\fBrpfilter\fR
+(see below) if you are running Shorewall 4\&.5\&.7 or later; otherwise, you should specify
 \fBsfilter\fR
 (see below)\&.
 .RE
 .PP
+\fBrpfilter\fR
+.RS 4
+Added in Shorewall 4\&.5\&.7\&. This is an anti\-spoofing measure that requires the \*(AqRPFilter Match\*(Aq capability in your iptables and kernel\&. It provides a more efficient alternative to the
+\fBsfilter\fR
+option below\&.
+.RE
+.PP
 \fBsourceroute[={0|1}]\fR
 .RS 4
-If this option is not specified for an interface, then source\-routed packets will not be accepted from that interface (sets /proc/sys/net/ipv6/conf/\fIinterface\fR/accept_source_route to 1)\&. Only set this option if you know what you are doing\&. This might represent a security risk and is not usually needed\&.
+If this option is not specified for an interface, then source\-routed packets will not be accepted from that interface unless explicitly enabled via sysconf\&. Only set this option to 1 (enable source routing) if you know what you are doing\&. This might represent a security risk and is not usually needed\&.
 .sp
 Only those interfaces with the
 \fBsourceroute\fR
-option will have their setting changes; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
+option will have their setting changed; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
 .if n \{\
 .sp
 .\}
@@ -354,7 +387,7 @@ name (e\&.g\&., eth0\&.+) in the INTERFACE column\&.
 .RE
 .RE
 .PP
-sfilter=(\fInet\fR[,\&.\&.\&.])
+\fBsfilter=(\fR\fB\fInet\fR\fR\fB[,\&.\&.\&.])\fR
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. At this writing (spring 2011), Linux does not support reverse path filtering (RFC3704) for IPv6\&. In its absence,
 \fBsfilter\fR

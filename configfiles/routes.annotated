@@ -14,6 +14,8 @@
 # PROVIDER
 # 
 #     The name or number of a provider defined in shorewall6-providers (5).
+#     Beginning with Shorewall 4.5.14, you may also enter main in this column to
+#     add routes to the main routing table.
 # 
 # DEST
 # 
@@ -23,10 +25,34 @@
 # 
 #     If specified, gives the IP address of the gateway to the DEST.
 # 
+#     Beginning with Shorewall 4.5.14, you may specify blackhole in this column
+#     to create a blackhole route.
+# 
+#     Beginning with Shorewall 4.5.15, you may specify prohibit or unreachable in
+#     this column to create a prohibit or unreachable route respectively.
+# 
 # DEVICE (Optional)
 # 
 #     Specifies the device route. If neither DEVICE nor GATEWAY is given, then
-#     the INTERFACE specified for the PROVIDER in shorewall6-providers (5).
+#     the INTERFACE specified for the PROVIDER in shorewall6-providers (5).This
+#     column must be omitted if blackhole, prohibit or unreachable is specified
+#     in the GATEWAY column.
+# 
+# Files
+# 
+# /etc/shorewall6/routes
+# 
+# See ALSO
+# 
+# http://shorewall.net/configuration_file_basics.htm#Pairs
+# 
+# shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
+# shorewall6-hosts(5), shorewall6-interfaces(5), shorewall6-maclist(5),
+# shoewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
+# shorewall6-providers(5), shorewall6-rtrules(5), shorewall6-routestopped(5),
+# shorewall6-rules(5), shorewall6.conf(5), shorewall6-secmarks(5),
+# shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-tcrules(5),
+# shorewall6-tos(5), shorewall6-tunnels(5), shorewall6-zones(5)
 # 
 ##############################################################################
 #PROVIDER		DEST			GATEWAY		DEVICE

@@ -101,15 +101,34 @@
 #     define the tc classes in shorewall6-tcclasses(5). Outgoing traffic above
 #     this rate will be dropped.
 # 
-# OPTIONS - {-|{classify|hfsc} ,...}
+# OPTIONS - {-|{classify|htb|hfsc|linklayer={ethernet|atm|adsl}|tsize=tsize|mtu=
+#     mtu|mpu=mpu|overhead=overhead} ,...}
 # 
 #     classify ― When specified, Shorewall will not generate tc or Netfilter
 #     rules to classify traffic based on packet marks. You must do all
 #     classification using CLASSIFY rules in shorewall-tcrules(5).
 # 
+#     htb - Use the Hierarchical Token Bucket queuing discipline. This is the
+#     default.
+# 
 #     hfsc - Shorewall normally uses the Hierarchical Token Bucket queuing
 #     discipline. When hfsc is specified, the Hierarchical Fair Service Curves
-#     discipline is used instead.
+#     discipline is used instead(see tc-hfsc (7)).
+# 
+#     linklayer - Added in Shorewall 4.5.6. Type of link (ethernet, atm, adsl).
+#     When specified, causes scheduler packet size manipulation as described in
+#     tc-stab (8). When this option is given, the following options may also be
+#     given after it:
+# 
+#         mtu=mtu - The device MTU; default 2048 (will be rounded up to a power
+#         of two)
+# 
+#         mpu=mpubytes - Minimum packet size used in calculations. Smaller
+#         packets will be rounded up to this size
+# 
+#         tsize=tablesize - Size table entries; default is 512
+# 
+#         overhead=overheadbytes - Number of overhead bytes per packet.
 # 
 # REDIRECTED INTERFACES (redirect) - [interface[,interface]...]
 # 

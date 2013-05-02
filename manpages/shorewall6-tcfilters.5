@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcfilters
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/28/2012
+.\"      Date: 05/01/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCFILTER" "5" "06/28/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCFILTER" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -78,9 +78,11 @@ Destination of the packet\&. May be a host or network
 \fIaddress\fR\&. DNS names are not allowed\&.
 .RE
 .PP
-\fBPROTO\fR \- {\fB\-\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
+\fBPROTO\fR \- {\fB\-\fR|{\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR[,\&.\&.\&.]}
 .RS 4
 Protocol\&.
+.sp
+Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated list of protocols\&.
 .RE
 .PP
 \fBDEST PORT\fR (dport) \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
@@ -188,6 +190,117 @@ Optional\&. Must be a power of 2 between 32 and 8192 inclusive\&. Packets with a
 \fInumber\fR
 will match the rule\&.
 .RE
+.PP
+\fBPRIORITY\fR \- [\fB\-\fR|\fInumber\fR]
+.RS 4
+Added in Shorewall 4\&.5\&.8\&. Specifies the rule priority\&. The priority value must be > 0 and <= 65535\&.
+.sp
+When a
+\fIpriority\fR
+is not given:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+For Shorewall versions prior to 4\&.5\&.8 \- all filters have priority 11\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+For Shorewall 4\&.5\&.8 and later \- for each device, the compiler maintains a
+high\-water priority
+with an initial value of 0\&. When a filter has no
+\fIpriority\fR, the high\-water priority is incremented by 1 and assigned to the filter\&. When a
+\fIpriority\fR
+greater than the high\-water priority is entered in this column, the high\-water priority is set to the specified
+\fIpriority\fR\&. An attempt to assign a priority value greater than 65535 (explicitly or implicitly) raises an error\&.
+.RE
+.sp
+The default priority values used by other Shorewall\-generated filters are as follows:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Classify by packet mark \- (
+\fIclass priority\fR
+<< 8 ) | 20\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Ingress policing \- 10
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Simple TC ACK packets \- 1
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Complex TC ACK packets \- (
+\fIclass priority\fR
+<< 8 ) | 20\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Classify by TOS \- (
+\fIclass priority\fR
+<< 8 ) | 15\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Class with \*(Aqoccurs\*(Aq \- 65535
+.RE
+.RE
 .SH "EXAMPLE"
 .PP
 Example 1:
@@ -198,7 +311,7 @@ Place all \*(Aqping\*(Aq traffic on interface 1 in class 10\&. Note that ALL can
 .RS 4
 .\}
 .nf
-        #CLASS    SOURCE    DEST         PROTO   DEST
+       #CLASS    SOURCE    DEST         PROTO   DEST
        #                                        PORT
 
        IPV4
@@ -210,6 +323,27 @@ Place all \*(Aqping\*(Aq traffic on interface 1 in class 10\&. Note that ALL can
 
        1:10      ::/0      ::/0         icmp6   echo\-request
        1:10      ::/0      ::/0         icmp6   echo\-reply
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+Example 2:
+.RS 4
+Add two filters with priority 10 (Shorewall 4\&.5\&.8 or later)\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+       #CLASS    SOURCE    DEST         PROTO   DEST            PRIORITY
+       #                                        PORT
+
+       IPV6
+
+       1:10      ::/0      ::/0         icmp    echo\-request    10
+       1:10      ::/0      ::/0         icmp    echo\-reply      10
 .fi
 .if n \{\
 .RE
