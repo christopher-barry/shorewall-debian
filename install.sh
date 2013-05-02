@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.5.3
+VERSION=4.5.16.1
 
 usage() # $1 = exit status
 {
@@ -171,7 +171,14 @@ else
     usage 1
 fi
 
-for var in SHAREDIR LIBEXECDIRDIRDIR CONFDIR SBINDIR VARDIR; do
+if [ -z "${VARLIB}" ]; then
+    VARLIB=${VARDIR}
+    VARDIR=${VARLIB}/${PRODUCT}
+elif [ -z "${VARDIR}" ]; then
+    VARDIR=${VARLIB}/${PRODUCT}
+fi
+
+for var in SHAREDIR LIBEXECDIRDIRDIR CONFDIR SBINDIR VARLIB VARDIR; do
     require $var
 done
 
@@ -182,7 +189,6 @@ PATH=${SBINDIR}:/bin:/usr${SBINDIR}:/usr/bin:/usr/local/bin:/usr/local${SBINDIR}
 #
 cygwin=
 INSTALLD='-D'
-INITFILE=$PRODUCT
 T='-T'
 
 if [ -z "$BUILD" ]; then
@@ -253,7 +259,10 @@ case "$HOST" in
     archlinux)
 	echo "Installing ArchLinux-specific configuration..."
 	;;
-    linux|suse)
+    suse)
+	echo "Installing Suse-specific configuration..."
+	;;
+    linux)
 	;;
     *)
 	echo "ERROR: Unknown HOST \"$HOST\"" >&2
@@ -271,20 +280,10 @@ if [ -n "$DESTDIR" ]; then
 
     install -d $OWNERSHIP -m 755 ${DESTDIR}/${SBINDIR}
     install -d $OWNERSHIP -m 755 ${DESTDIR}${INITDIR}
-
-    if [ -n "$SYSTEMD" ]; then
-	mkdir -p ${DESTDIR}/lib/systemd/system
-	INITFILE=
-    fi
 else
     if [ ! -f /usr/share/shorewall/coreversion ]; then
 	echo "$PRODUCT $VERSION requires Shorewall Core which does not appear to be installed" >&2
 	exit 1
-    fi
-
-    if [ -f /lib/systemd/system ]; then
-	SYSTEMD=Yes
-	INITFILE=
     fi
 fi
 
@@ -303,8 +302,8 @@ if [ -z "$DESTDIR" -a -d ${CONFDIR}/$PRODUCT ]; then
 	mv -f ${CONFDIR}/$PRODUCT/shorewall.conf ${CONFDIR}/$PRODUCT/$PRODUCT.conf
 else
     rm -rf ${DESTDIR}${CONFDIR}/$PRODUCT
-    rm -rf ${DESTDIR}/usr/share/$PRODUCT
-    rm -rf ${DESTDIR}/var/lib/$PRODUCT
+    rm -rf ${DESTDIR}${SHAREDIR}/$PRODUCT
+    rm -rf ${DESTDIR}${VARDIR}
     [ "$LIBEXECDIR" = /usr/share ] || rm -rf ${DESTDIR}/usr/share/$PRODUCT/wait4ifup ${DESTDIR}/usr/share/$PRODUCT/shorecap
 fi
 
@@ -327,9 +326,9 @@ echo "$Product control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 # Create ${CONFDIR}/$PRODUCT, /usr/share/$PRODUCT and /var/lib/$PRODUCT if needed
 #
 mkdir -p ${DESTDIR}${CONFDIR}/$PRODUCT
-mkdir -p ${DESTDIR}/usr/share/$PRODUCT
+mkdir -p ${DESTDIR}${SHAREDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${LIBEXECDIR}/$PRODUCT
-mkdir -p ${DESTDIR}/var/lib/$PRODUCT
+mkdir -p ${DESTDIR}${VARDIR}
 
 chmod 755 ${DESTDIR}${CONFDIR}/$PRODUCT
 chmod 755 ${DESTDIR}/usr/share/$PRODUCT
@@ -354,7 +353,9 @@ fi
 # Install the .service file
 #
 if [ -n "$SYSTEMD" ]; then
+    mkdir -p ${DESTDIR}${SYSTEMD}
     run_install $OWNERSHIP -m 600 $PRODUCT.service ${DESTDIR}/${SYSTEMD}/$PRODUCT.service
+    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     echo "Service file installed as ${DESTDIR}/lib/systemd/system/$PRODUCT.service"
 fi
 
@@ -499,7 +500,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
 	perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/${PRODUCT}/${PRODUCT}.conf
 	update-rc.d $PRODUCT enable defaults
     elif [ -n "$SYSTEMD" ]; then
-	if systemctl enable $PRODUCT; then
+	if systemctl enable ${PRODUCT}.service; then
 	    echo "$Product will start automatically at boot"
 	fi
     elif mywhich insserv; then
