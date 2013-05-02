@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/28/2012
+.\"      Date: 05/01/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "06/28/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-RULES" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -61,7 +61,25 @@ Packets in the RELATED state are processed by rules in this section\&.
 .sp
 The only ACTIONs allowed in this section are ACCEPT, DROP, REJECT, LOG and QUEUE
 .sp
-There is an implicit ACCEPT rule inserted at the end of this section\&.
+There is an implicit rule added at the end of this section that invokes the RELATED_DISPOSITION (\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5))\&.
+.RE
+.PP
+\fBINVALID\fR
+.RS 4
+Added in Shorewall 4\&.5\&.13\&. Packets in the INVALID state are processed by rules in this section\&.
+.sp
+The only Actions allowed in this section are ACCEPT, DROP, REJECT, LOG and QUEUE\&.
+.sp
+There is an implicit rule added at the end of this section that invokes the INVALID_DISPOSITION (\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5))\&.
+.RE
+.PP
+\fBUNTRACKED\fR
+.RS 4
+Added in Shorewall 4\&.5\&.13\&. Packets in the UNTRACKED state are processed by rules in this section\&.
+.sp
+The only Actions allowed in this section are ACCEPT, DROP, REJECT, LOG and QUEUE\&.
+.sp
+There is an implicit rule added at the end of this section that invokes the UNTRACKED_DISPOSITION (\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5))\&.
 .RE
 .PP
 \fBNEW\fR
@@ -116,13 +134,22 @@ You may omit any section that you don\*(Aqt need\&. If no Section Headers appear
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBACTION\fR \- {\fBACCEPT\fR[\fB\fB+\fR\fR\fB|\fR\fB\fB!\fR\fR]|\fBDROP[\fR\fB\fB!\fR\fR\fB]\fR|\fBREJECT\fR[\fB!\fR]|\fBDNAT\fR[\fB\-\fR]|\fBSAME\fR[\fB\-\fR]|\fBCONTINUE\fR[\fB!\fR]|\fBLOG\fR|\fBQUEUE\fR[\fB!\fR]|\fBNFQUEUE\fR[\fB(\fR\fIqueuenumber\fR\fB)\fR]\fB|COMMENT\fR|\fIaction\fR|\fImacro\fR[\fB(\fR\fItarget\fR\fB)\fR]}\fB[:\fR{\fIlog\-level\fR|\fBnone\fR}[\fB\fB!\fR\fR][\fB:\fR\fItag\fR]]
+\fBACTION\fR \- \fB\fItarget\fR\fR\fB[:\fR{\fIlog\-level\fR|\fBnone\fR}[\fB\fB!\fR\fR][\fB:\fR\fItag\fR]]
 .RS 4
-Specifies the action to be taken if the connection request matches the rule\&. Must be one of the following\&.
+Specifies the action to be taken if the connection request matches the rule\&.
+\fItarget\fR
+must be one of the following\&.
 .PP
 \fBACCEPT\fR
 .RS 4
 Allow the connection request\&.
+.RE
+.PP
+\fBACCEPT+\fR
+.RS 4
+like ACCEPT but also excludes the connection from any subsequent matching
+\fBDNAT\fR[\fB\-\fR] or
+\fBREDIRECT\fR[\fB\-\fR] rules\&. Requires Shorewall 4\&.5\&.14 or later\&.
 .RE
 .PP
 \fBACCEPT!\fR
@@ -131,9 +158,122 @@ like ACCEPT but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-A_ACCEPT and A_ACCEPT!
+\fIaction\fR
 .RS 4
-Added in Shorewall 4\&.4\&.20\&. Audited versions of ACCEPT and ACCEPT! respectively\&. Require AUDIT_TARGET support in the kernel and ip6tables\&.
+The name of an
+\fIaction\fR
+declared in
+\m[blue]\fBshorewall6\-actions\fR\m[]\&\s-2\u[3]\d\s+2(5) or in /usr/share/shorewall/actions\&.std\&.
+.RE
+.PP
+\fBADD(\fR\fB\fIipset\fR\fR\fB:\fR\fB\fIflags\fR\fR\fB)\fR
+.RS 4
+Added in Shorewall 4\&.4\&.12\&. Causes addresses and/or port numbers to be added to the named
+\fIipset\fR\&. The
+\fIflags\fR
+specify the address or tupple to be added to the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be added using
+\fIflags\fR
+\fBsrc\fR
+or
+\fBdst\fR
+respectively (see the \-A command in ipset (8))\&.
+.sp
+ADD is non\-terminating\&. Even if a packet matches the rule, it is passed on to the next rule\&.
+.RE
+.PP
+AUDIT[(accept|drop|reject)]
+.RS 4
+Added in Shorewall 4\&.5\&.10\&. Audits the packet with the specified type; if the type is omitted, then
+\fBdrop\fR
+is assumed\&. Require AUDIT_TARGET support in the kernel and iptables\&.
+.RE
+.PP
+A_ACCEPT, and A_ACCEPT!
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. Audited versions of ACCEPT and ACCEPT! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
+.RE
+.PP
+A_DROP and A_DROP!
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. Audited versions of DROP and DROP! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
+.RE
+.PP
+A_REJECT AND A_REJECT!
+.RS 4
+Added in Shorewall 4\&.4\&.20\&. Audited versions of REJECT and REJECT! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
+.RE
+.PP
+\fB[?]COMMENT\fR
+.RS 4
+the rest of the line will be attached as a comment to the Netfilter rule(s) generated by the following entries\&. The comment will appear delimited by "/* \&.\&.\&. */" in the output of "shorewall show <chain>"\&. To stop the comment from being attached to further rules, simply include COMMENT on a line by itself\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
+.sp .5v
+.RE
+.RE
+.PP
+\fBCONTINUE\fR
+.RS 4
+For experts only\&.
+.sp
+Do not process any of the following rules for this (source zone,destination zone)\&. If the source and/or destination IP address falls into a zone defined later in
+\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[4]\d\s+2(5) or in a parent zone of the source or destination zones, then this connection request will be passed to the rules defined for that (those) zone(s)\&. See
+\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[5]\d\s+2(5) for additional information\&.
+.RE
+.PP
+\fBCONTINUE!\fR
+.RS 4
+like CONTINUE but exempts the rule from being suppressed by OPTIMIZE=1 in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.RE
+.PP
+\fBCOUNT\fR
+.RS 4
+Simply increment the rule\*(Aqs packet and byte count and pass the packet to the next rule\&.
+.RE
+.PP
+\fBDEL(\fR\fB\fIipset\fR\fR\fB:\fR\fB\fIflags\fR\fR\fB)\fR
+.RS 4
+Added in Shorewall 4\&.4\&.12\&. Causes an entry to be deleted from the named
+\fIipset\fR\&. The
+\fIflags\fR
+specify the address or tupple to be deleted from the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be deletec using
+\fIflags\fR
+\fBsrc\fR
+or
+\fBdst\fR
+respectively (see the \-D command in ipset (8))\&.
+.sp
+DEL is non\-terminating\&. Even if a packet matches the rule, it is passed on to the next rule\&.
+.RE
+.PP
+\fBDNAT\fR
+.RS 4
+Forward the request to another system (and optionally another port)\&. Requires Shorewall 4\&.5\&.14 or later\&.
+.RE
+.PP
+\fBDNAT\-\fR
+.RS 4
+Advanced users only\&.
+.sp
+Like
+\fBDNAT\fR
+but only generates the
+\fBDNAT\fR
+iptables rule and not the companion
+\fBACCEPT\fR
+rule\&. Requires Shorewall 4\&.5\&.14 or later\&.
 .RE
 .PP
 \fBDROP\fR
@@ -147,45 +287,95 @@ like DROP but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-A_DROP and A_DROP!
+HELPER
 .RS 4
-Added in Shorewall 4\&.4\&.20\&. Audited versions of DROP and DROP! respectively\&. Require AUDIT_TARGET support in the kernel and ip6tables\&.
+Added in Shorewall 4\&.5\&.7\&. This action requires that the HELPER column contains the name of the Netfilter helper to be associated with connections matching this connection\&. May only be specified in the NEW section and is useful for being able to specify a helper when the applicable policy is ACCEPT\&. No destination zone should be specified in HELPER rules\&.
 .RE
 .PP
-\fBREJECT\fR
+\fBINLINE\fR[(\fIaction\fR)]
 .RS 4
-disallow the request and return an icmp\-unreachable or an RST packet\&.
-.RE
-.PP
-\fBREJECT!\fR
-.RS 4
-like REJECT but exempts the rule from being suppressed by OPTIMIZE=1 in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
-.RE
-.PP
-A_REJECT AND A_REJECT!
-.RS 4
-Added in Shorewall 4\&.4\&.20\&. Audited versions of REJECT and REJECT! respectively\&. Require AUDIT_TARGET support in the kernel and ip6tables\&.
-.RE
-.PP
-\fBCONTINUE\fR
-.RS 4
-For experts only\&.
+Added in Shorewall 4\&.5\&.16\&. This action allows you to construct most of the rule yourself using ip6tables syntax\&. The part that you specify must follow a semicolon (\*(Aq;\*(Aq) and is completely free\-form\&. If the target of the rule (the part following \*(Aqj\*(Aq) is something that Shorewall supports in the ACTION column, then you may enclose it in parentheses (e\&.g\&., INLINE(ACCEPT))\&. Otherwise, you can include it after the semicolon\&. In this case, you must declare the target as a builtin action in
+\m[blue]\fBshorewall6\-actions\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
 .sp
-Do not process any of the following rules for this (source zone,destination zone)\&. If the source and/or destination IP address falls into a zone defined later in
-\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[3]\d\s+2(5) or in a parent zone of the source or destination zones, then this connection request will be passed to the rules defined for that (those) zone(s)\&. See
-\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[4]\d\s+2(5) for additional information\&.
-.RE
-.PP
-\fBCONTINUE!\fR
+Some considerations when using INLINE:
+.sp
 .RS 4
-like CONTINUE but exempts the rule from being suppressed by OPTIMIZE=1 in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The
+\fBp\fR,
+\fBs\fR,
+\fBd\fR,
+\fBi\fR,
+\fBo\fR,
+\fBpolicy\fR, and state match (\fBstate\fR
+or
+\fBconntrack \-\-ctstate\fR) matches will always appear in the front of the rule in that order\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+When multiple matches are specified, the compiler will keep them in the order in which they appear (excluding the above listed ones), but they will not necessarily be at the end of the generated rule\&. For example, if addresses are specified in the SOURCE and/or DEST columns, their generated matches will appear after those specified using \*(Aq;\*(Aq\&.
+.RE
 .RE
 .PP
-\fBLOG\fR
+\fBLOG:\fR\fB\fIlevel\fR\fR
 .RS 4
 Simply log the packet and continue with the next rule\&.
+.RE
+.PP
+\fImacro\fR\fB[(\fR\fB\fImacrotarget\fR\fR\fB)]\fR
+.RS 4
+The name of a macro defined in a file named macro\&.\fImacro\fR\&. If the macro accepts an action parameter (Look at the macro source to see if it has PARAM in the TARGET column) then the
+\fImacro\fR
+name is followed by the parenthesized
+\fImacrotarget\fR
+(\fBACCEPT\fR,
+\fBDROP\fR,
+\fBREJECT\fR, \&.\&.\&.) to be substituted for the parameter\&.
+.sp
+Example: FTP(ACCEPT)\&.
+.sp
+The older syntax where the macro name and the target are separated by a slash (e\&.g\&. FTP/ACCEPT) is still allowed but is deprecated\&.
+.RE
+.PP
+\fBNFLOG\fR[(\fInflog\-parameters\fR)]
+.RS 4
+Added in Shorewall 4\&.5\&.9\&.3\&. Queues matching packets to a backend logging daemon via a netlink socket then continues to the next rule\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[6]\d\s+2\&.
+.sp
+Similar to\fB LOG:NFLOG\fR[(\fInflog\-parameters\fR)], except that the log level is not changed when this ACTION is used in an action or macro and the invocation of that action or macro specifies a log level\&.
+.RE
+.PP
+\fBNFQUEUE\fR[(\fIqueuenumber\fR)]
+.RS 4
+Queues the packet to a user\-space application using the nfnetlink_queue mechanism\&. If a
+\fIqueuenumber\fR
+is not specified, queue zero (0) is assumed\&.
+.RE
+.PP
+\fBNFQUEUE![(\fR\fB\fIqueuenumber\fR\fR\fB)]\fR
+.RS 4
+like NFQUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.RE
+.PP
+\fBNONAT\fR
+.RS 4
+Excludes the connection from any subsequent
+\fBDNAT\fR[\-] or
+\fBREDIRECT\fR[\-] rules but doesn\*(Aqt generate a rule to accept the traffic\&. Requires Shorewall 4\&.5\&.14 or later\&.
 .RE
 .PP
 \fBQUEUE\fR
@@ -199,63 +389,49 @@ like QUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-\fBNFLOG\fR[(\fInflog\-parameters\fR)]
+\fBREDIRECT\fR
 .RS 4
-queues matching packets to a backend logging daemon via a netlink socket then continues to the next rule\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[5]\d\s+2\&.
+Redirect the request to a server running on the firewall\&. Requires Shorewall 4\&.5\&.14 or later\&.
 .RE
 .PP
-\fBNFQUEUE\fR
+\fBREDIRECT\-\fR
 .RS 4
-Queues the packet to a user\-space application using the nfnetlink_queue mechanism\&. If a
-\fIqueuenumber\fR
-is not specified, queue zero (0) is assumed\&.
+Advanced users only\&.
+.sp
+Like
+\fBREDIRECT\fR
+but only generates the
+\fBREDIRECT\fR
+iptables rule and not the companion
+\fBACCEPT\fR
+rule\&. Requires Shorewall 4\&.5\&.14 or later\&.
 .RE
 .PP
-\fBNFQUEUE!\fR
+\fBREJECT\fR
 .RS 4
-like NFQUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
+disallow the request and return an icmp\-unreachable or an RST packet\&.
+.RE
+.PP
+\fBREJECT!\fR
+.RS 4
+like REJECT but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
-.RE
-.PP
-\fBCOMMENT\fR
-.RS 4
-the rest of the line will be attached as a comment to the Netfilter rule(s) generated by the following entries\&. The comment will appear delimited by "/* \&.\&.\&. */" in the output of "shorewall6 show <chain>"\&. To stop the comment from being attached to further rules, simply include COMMENT on a line by itself\&.
-.RE
-.PP
-\fIaction\fR
-.RS 4
-The name of an
-\fIaction\fR
-declared in
-\m[blue]\fBshorewall6\-actions\fR\m[]\&\s-2\u[6]\d\s+2(5) or in /usr/share/shorewall6/actions\&.std\&.
-.RE
-.PP
-\fImacro\fR
-.RS 4
-The name of a macro defined in a file named macro\&.\fImacro\fR\&. If the macro accepts an action parameter (Look at the macro source to see if it has PARAM in the TARGET column) then the
-\fImacro\fR
-name is followed by the parenthesized
-\fItarget\fR
-(\fBACCEPT\fR,
-\fBDROP\fR,
-\fBREJECT\fR, \&.\&.\&.) to be substituted for the parameter\&.
-.sp
-Example: FTP(ACCEPT)\&.
-.sp
-The older syntax where the macro name and the target are separated by a slash (e\&.g\&. FTP/ACCEPT) is still allowed but is deprecated\&.
 .RE
 .sp
 The
+\fItarget\fR
+may optionally be followed by ":" and a syslog log level (e\&.g, REJECT:info or Web(ACCEPT):debug)\&. This causes the packet to be logged at the specified level\&. Note that if the
 \fBACTION\fR
-may optionally be followed by ":" and a syslog log level (e\&.g, REJECT:info or Web(ACCEPT):debug)\&. This causes the packet to be logged at the specified level\&.
+involves destination network address translation (DNAT, REDIRECT, etc\&.) then the packet is logged
+\fBbefore\fR
+the destination address is rewritten\&.
 .sp
 If the
 \fBACTION\fR
 names an
 \fIaction\fR
 declared in
-\m[blue]\fBshorewall6\-actions\fR\m[]\&\s-2\u[6]\d\s+2(5) or in /usr/share/shorewall6/actions\&.std then:
+\m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[7]\d\s+2(5) or in /usr/share/shorewall/actions\&.std then:
 .sp
 .RS 4
 .ie n \{\
@@ -293,11 +469,13 @@ suppresses logging by the action\&.
 .RE
 .sp
 You may also specify
+\fBULOG\fR
+or
 \fBNFLOG\fR
-(must be in upper case) as a log level\&.This will log to the NFLOG target for routing to a separate log through use of ulogd (\m[blue]\fBhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR\m[])\&.
+(must be in upper case) as a log level\&.This will log to the ULOG or NFLOG target for routing to a separate log through use of ulogd (\m[blue]\fBhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR\m[])\&.
 .sp
 Actions specifying logging may be followed by a log tag (a string of alphanumeric characters) which is appended to the string generated by the LOGPREFIX (in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5))\&.
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[8]\d\s+2(5))\&.
 .sp
 Example: ACCEPT:info:ftp would include \*(Aqftp \*(Aq at the end of the log prefix generated by the LOGPREFIX setting\&.
 .RE
@@ -316,7 +494,7 @@ or
 .sp
 Beginning with Shorewall 4\&.4\&.13, you may use a
 \fIzone\-list \fRwhich consists of a comma\-separated list of zones declared in
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&. Ths
 \fIzone\-list\fR
 may be optionally followed by "+" to indicate that the rule is to apply to intra\-zone traffic as well as inter\-zone traffic\&.
@@ -339,7 +517,7 @@ or
 \fBDEST\fR
 column intra\-zone traffic is not affected\&. When
 \fBall+\fR[\fB\-\fR] is "used, intra\-zone traffic is affected\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported \-\- see see
-\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[10]\d\s+2(5)\&.
 .sp
 Except when
 \fBall\fR[\fB+\fR][\fB\-\fR] or
@@ -358,7 +536,7 @@ Hosts may also be specified as an IP address range using the syntax
 \fIlowaddress\fR\-\fIhighaddress\fR\&. This requires that your kernel and ip6tables contain iprange match support\&. If your kernel and ip6tables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of source bindings to be matched\&.
 .sp
 Beginning with Shorewall6 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logican name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[11]\d\s+2
 (5)\&.
 .sp
 Beginning with Shorewall 4\&.5\&.4, A
@@ -377,7 +555,7 @@ is not specified, you may omit the angled brackets (\*(Aq<\*(Aq and \*(Aq>\*(Aq)
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5))\&.
+\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[10]\d\s+2(5))\&.
 .sp
 Examples:
 .PP
@@ -426,10 +604,10 @@ originating from eth1
 .RE
 .RE
 .PP
-\fB\fBDEST\fR\fR\fB \- {\fR\fB\fIzone|zone\-list\fR\fR\fB[+]|\fR\fB\fBall\fR\fR\fB[\fR\fB\fB+\fR\fR\fB][\fR\fB\fB\-\fR\fR\fB]}\fR\fB\fB[:\fR\fR\fB\fIinterface\fR\fR\fB][\fR\fB\fB:\fR\fB\fB<\fR\fR\fR\fB{\fR\fB\fIaddress\-or\-range\fR\fR\fB[,\fR\fB\fIaddress\-or\-range\fR\fR\fB]\&.\&.\&.[\fR\fB\fIexclusion\fR\fR\fB]\fR\fB\fB>\fR\fR\fB|\fR\fB\fIexclusion\fR\fR\fB|\fR\fB\fB+\fR\fR\fB\fIipset\fR\fR\fB|^\fR\fB\fIcountrycode\-list\fR\fR\fB}\fR
+\fB\fBDEST\fR\fR\fB \- {\fR\fB\fIzone|zone\-list\fR\fR\fB[+]|\fR\fB\fBall\fR\fR\fB[\fR\fB\fB+\fR\fR\fB][\fR\fB\fB\-\fR\fR\fB]}\fR\fB\fB[:\fR\fR\fB\fIinterface\fR\fR\fB][\fR\fB\fB:\fR\fB\fB<\fR\fR\fR\fB{\fR\fB\fIaddress\-or\-range\fR\fR\fB[,\fR\fB\fIaddress\-or\-range\fR\fR\fB]\&.\&.\&.[\fR\fB\fIexclusion\fR\fR\fB]\fR\fB\fB>\fR\fR\fB|\fR\fB\fIexclusion\fR\fR\fB|\fR\fB\fB+\fR\fR\fB\fIipset\fR\fR\fB|^\fR\fB\fIcountrycode\-list\fR\fR\fB}[\fR\fB\fB:\fR\fR\fB\fIport\fR\fR\fB[:\fR\fB\fBrandom\fR\fR\fB]]\fR
 .RS 4
 Location of Server\&. May be a zone declared in
-\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[3]\d\s+2(5), $\fBFW\fR
+\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[4]\d\s+2(5), $\fBFW\fR
 to indicate the firewall itself,
 \fBall\fR\&.
 \fBall+\fR
@@ -438,14 +616,14 @@ or
 .sp
 Beginning with Shorewall 4\&.4\&.13, you may use a
 \fIzone\-list \fRwhich consists of a comma\-separated list of zones declared in
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&. Ths
 \fIzone\-list\fR
 may be optionally followed by "+" to indicate that the rule is to apply to intra\-zone traffic as well as inter\-zone traffic\&. Beginning with Shorewall\-4\&.4\&.13, exclusion is supported \-\- see see
-\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[10]\d\s+2(5)\&.
 .sp
 Beginning with Shorewall6 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logican name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[11]\d\s+2
 (5)\&.
 .sp
 Beginning with Shorewall 4\&.5\&.4, A
@@ -517,7 +695,6 @@ the SOURCE
 must be an ipv4 zone that is associated with only the same bridge\&.
 .RE
 .sp
-
 Except when
 \fBall\fR[\fB+]|[\-\fR] is specified, the server may be further restricted to a particular network, host or interface by appending ":" and the network, host or interface\&. See
 \fBSOURCE\fR
@@ -526,17 +703,56 @@ above\&.
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5))\&.
+\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[10]\d\s+2(5))\&.
 .sp
-Restrictions:
-.sp
-1\&. MAC addresses are not allowed (this is a Netfilter restriction)\&.
+Restriction: MAC addresses are not allowed (this is a Netfilter restriction)\&.
 .sp
 If you kernel and ip6tables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of destination bindings to be matched\&. Only one of the
 \fBSOURCE\fR
 and
 \fBDEST\fR
 columns may specify an ipset name\&.
+.sp
+The
+\fIport\fR
+that the server is listening on may be included and separated from the server\*(Aqs IP address by ":"\&. If omitted, the firewall will not modifiy the destination port\&. A destination port may only be included if the
+\fBACTION\fR
+is
+\fBDNAT\fR
+or
+\fBREDIRECT\fR\&.
+.PP
+Example 1:
+.RS 4
+\fBloc:[2001:470:b:227::44]:3128\fR
+specifies a local server at IP address 2001:470:b:227::44 and listening on port 3128\&.
+.RE
+.PP
+Example 2:
+.RS 4
+\fBloc:[]:3128\fR
+specifies that the destination port should be changed to 3128 but the IP address should remain the same\&.
+.RE
+.sp
+The
+\fIport\fR
+may be specified as a service name\&. You may specify a port range in the form
+\fIlowport\-highport\fR
+to cause connections to be assigned to ports in the range in round\-robin fashion\&. When a port range is specified,
+\fIlowport\fR
+and
+\fIhighport\fR
+must be given as integers; service names are not permitted\&. Additionally, the port range may be optionally followed by
+\fB:random\fR
+which causes assignment to ports in the list to be random\&.
+.sp
+If the
+\fBACTION\fR
+is
+\fBREDIRECT\fR
+or
+\fBREDIRECT\-\fR, this column needs only to contain the port number on the firewall that the request should be redirected to\&. That is equivalent to specifying
+\fB$FW\fR::\fIport\fR\&.
 .RE
 .PP
 \fBPROTO\fR \- {\fB\-\fR|\fBtcp:syn\fR|\fBipp2p\fR|\fBipp2p:udp\fR|\fBipp2p:all\fR|\fIprotocol\-number\fR|\fIprotocol\-name\fR|\fBall}\fR
@@ -586,6 +802,8 @@ list below:
 \fBSOURCE PORT(S)\fR (sport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
 Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
+.sp
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
 .if n \{\
 .sp
 .\}
@@ -644,7 +862,7 @@ may be chosen by the user and specifies a hash table to be used to count matchin
 (where N is a unique integer) is assumed\&. Where more than one POLICY specifies the same name, the connections counts for the rules are aggregated and the individual rates apply to the aggregated count\&.
 .RE
 .PP
-\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
+\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\-or\-range\fR][\fB:\fR\fIgroup\-name\-or\-number\-or\-range\fR]
 .RS 4
 This optional column may only be non\-empty if the SOURCE is the firewall itself\&.
 .sp
@@ -653,6 +871,8 @@ When this column is non\-empty, the rule applies only if the program generating 
 and/or
 \fIgroup\fR
 specified (or is NOT running under that id if "!" is given)\&.
+.sp
+Beginning with Shorewall 4\&.5\&.8, multiple user or group names/ids separated by commas may be specified\&.
 .sp
 Examples:
 .PP
@@ -669,6 +889,11 @@ program must be run by a member of the \*(Aqkids\*(Aq group
 !:kids
 .RS 4
 program must not be run by a member of the \*(Aqkids\*(Aq group
+.RE
+.PP
+2001\-2099
+.RS 4
+UIDs 2001 through 2099 (Shorewall 4\&.5\&.6 and later)
 .RE
 .RE
 .PP
@@ -836,16 +1061,19 @@ is entered, the rule will match those packets which would not be matched when
 is omitted\&.
 .RE
 .PP
-\fBSWITCH \- [!]\fR\fB\fIswitch\-name\fR\fR
+\fBSWITCH \- [!]\fR\fB\fIswitch\-name\fR\fR\fB[={0|1}]\fR
 .RS 4
 Added in Shorewall6 4\&.4\&.24 and allows enabling and disabling the rule without requiring
 \fBshorewall6 restart\fR\&.
 .sp
 Enables the rule if the value stored in
 /proc/net/nf_condition/\fIswitch\-name\fR
-is 1\&. Disables the rule if that file contains 0 (the default)\&. If \*(Aq!\*(Aq is supplied, the test is inverted such that the rule is enabled if the file contains 0\&. The
+is 1\&. Disables the rule if that file contains 0 (the default)\&. If \*(Aq!\*(Aq is supplied, the test is inverted such that the rule is enabled if the file contains 0\&.
+.sp
+Within the
+\fIswitch\-name\fR, \*(Aq@0\*(Aq and \*(Aq@{0}\*(Aq are replaced by the name of the chain to which the rule is a added\&. The
 \fIswitch\-name\fR
-must begin with a letter and be composed of letters, decimal digits, underscores or hyphens\&. Switch names must be 30 characters or less in length\&.
+(after \*(Aq@\&.\&.\&.\*(Aq expansion) must begin with a letter and be composed of letters, decimal digits, underscores or hyphens\&. Switch names must be 30 characters or less in length\&.
 .sp
 Switches are normally
 \fBoff\fR\&. To turn a switch
@@ -863,6 +1091,67 @@ again:
 .RE
 Switch settings are retained over
 \fBshorewall6 restart\fR\&.
+.sp
+Beginning with Shoreawll 4\&.5\&.10, when the
+\fIswitch\-name\fR
+is followed by
+\fB=0\fR
+or
+\fB=1\fR, then the switch is initialized to off or on respectively by the
+\fBstart\fR
+command\&. Other commands do not affect the switch setting\&.
+.RE
+.PP
+\fBHELPER\fR \- [helper]
+.RS 4
+Added in Shorewall 4\&.5\&.7\&.
+.sp
+In the NEW section, causes the named conntrack
+\fIhelper\fR
+to be associated with this connection; the contents of this column are ignored unless ACTION is ACCEPT*, DNAT* or REDIRECT*\&.
+.sp
+In the RELATED section, will only match if the related connection has the named
+\fIhelper\fR
+associated with it\&.
+.sp
+The
+\fIhelper\fR
+may be one of:
+.RS 4
+\fBamanda\fR
+.RE
+.RS 4
+\fBftp\fR
+.RE
+.RS 4
+\fBirc\fR
+.RE
+.RS 4
+\fBnetbios\-ns\fR
+.RE
+.RS 4
+\fBpptp\fR
+.RE
+.RS 4
+\fBQ\&.931\fR
+.RE
+.RS 4
+\fBRAS\fR
+.RE
+.RS 4
+\fBsane\fR
+.RE
+.RS 4
+\fBsip\fR
+.RE
+.RS 4
+\fBsnmp\fR
+.RE
+.RS 4
+\fBtftp\fR
+.RE
+If the HELPERS option is specified in
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[8]\d\s+2(5), then any module specified in this column must be listed in the HELPERS setting\&.
 .RE
 .SH "EXAMPLE"
 .PP
@@ -945,7 +1234,50 @@ Drop all email from IP addresses in the country whose ISO\-3661 country code is 
 .nf
         #ACTION                       SOURCE           DEST           PROTO       DEST
         #                                                                         PORT(S)
-        DROP                          net:^ZZ          fw             tcp         22
+        DROP                          net:^ZZ          fw             tcp         25
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+Example 8:
+.RS 4
+You want to generate your own rule involving ip6tables targets and matches not supported by Shorewall\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #ACTION                       SOURCE           DEST           PROTO       DEST
+        #                                                                         PORT(S)
+        INLINE                        $FW              net ; \-p 6 \-m mickey\-mouse \-\-name test \-m set \-\-match\-set set1 src \-m mickey\-mouse \-\-name test2 \-j SECCTX \-\-name test3
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+The above will generate the following ip6tables\-restore input:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        \-A fw2net \-p 6 \-m mickey\-mouse \-\-name test \-m set \-\-match\-set set1 src \-m mickey\-mouse \-\-name test2 \-j SECCTX \-\-name test3
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+Note that SECCTX must be defined as a builtin action in
+\m[blue]\fBshorewall6\-actions\fR\m[]\&\s-2\u[3]\d\s+2(5):
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #ACTION            OPTIONS
+        SECCTX             builtin
 .fi
 .if n \{\
 .RE
@@ -973,36 +1305,46 @@ shorewall6.conf
 \%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
 .IP " 3." 4
-shorewall6-zones
-.RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-zones.html
-.RE
-.IP " 4." 4
-shorewall6-nesting
-.RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
-.RE
-.IP " 5." 4
-http://www.shorewall.net/shorewall_logging.html
-.RS 4
-\%http://www.shorewall.net/shorewall.logging.html
-.RE
-.IP " 6." 4
 shorewall6-actions
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall6-actions.html
 .RE
+.IP " 4." 4
+shorewall6-zones
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-zones.html
+.RE
+.IP " 5." 4
+shorewall6-nesting
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
+.RE
+.IP " 6." 4
+http://www.shorewall.net/shorewall_logging.html
+.RS 4
+\%http://www.shorewall.net/shorewall.logging.html
+.RE
 .IP " 7." 4
+shorewall-actions
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall-actions.html
+.RE
+.IP " 8." 4
+shorewall.conf
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall.conf.html
+.RE
+.IP " 9." 4
 shorewall-zones
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall-zones.html
 .RE
-.IP " 8." 4
+.IP "10." 4
 shorewall6-exclusion
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall6-exclusion.html
 .RE
-.IP " 9." 4
+.IP "11." 4
 shorewall6-interfaces
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall-interfaces.html

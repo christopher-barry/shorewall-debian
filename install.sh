@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.5.3
+VERSION=4.5.16.1
 
 #
 # Change to the directory containing this script
@@ -102,9 +102,6 @@ require()
 
 cd "$(dirname $0)"
 
-#
-# Load packager's settings if any
-#
 if [ -f shorewall ]; then
     PRODUCT=shorewall
     Product=Shorewall
@@ -193,7 +190,14 @@ else
     usage 1
 fi
 
-for var in SHAREDIR LIBEXECDIR PERLLIBDIR CONFDIR SBINDIR VARDIR; do
+if [ -z "${VARLIB}" ]; then
+    VARLIB=${VARDIR}
+    VARDIR=${VARLIB}/${PRODUCT}
+elif [ -z "${VARDIR}" ]; then
+    VARDIR=${VARLIB}/${PRODUCT}
+fi
+
+for var in SHAREDIR LIBEXECDIR PERLLIBDIR CONFDIR SBINDIR VARLIB VARDIR; do
     require $var
 done
 
@@ -371,7 +375,7 @@ mkdir -p ${DESTDIR}/${CONFDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${LIBEXECDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${PERLLIBDIR}/Shorewall
 mkdir -p ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
-mkdir -p ${DESTDIR}/var/lib/$PRODUCT
+mkdir -p ${DESTDIR}${VARDIR}
 
 chmod 755 ${DESTDIR}${CONFDIR}/$PRODUCT
 chmod 755 ${DESTDIR}${SHAREDIR}/$PRODUCT
@@ -388,6 +392,7 @@ fi
 if [ -n "$SYSTEMD" ]; then
     mkdir -p ${DESTDIR}${SYSTEMD}
     run_install $OWNERSHIP -m 600 $PRODUCT.service ${DESTDIR}${SYSTEMD}/$PRODUCT.service
+    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     echo "Service file installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
 fi
 
@@ -601,14 +606,14 @@ else
     fi
 fi
 #
-# Install the Stopped Routing file
+# Install the Stopped Rules file
 #
-run_install $OWNERSHIP -m 0644 routestopped           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
-run_install $OWNERSHIP -m 0644 routestopped.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
+run_install $OWNERSHIP -m 0644 stoppedrules           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
+run_install $OWNERSHIP -m 0644 stoppedrules.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
-if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/routestopped ]; then
-    run_install $OWNERSHIP -m 0600 routestopped${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/routestopped
-    echo "Stopped Routing file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/routestopped"
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/stoppedrules ]; then
+    run_install $OWNERSHIP -m 0600 stoppedrules${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/stoppedrules
+    echo "Stopped Rules file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/stoppedrules"
 fi
 #
 # Install the Mac List file
@@ -633,15 +638,28 @@ if [ -f masq ]; then
 	echo "Masquerade file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/masq"
     fi
 fi
-#
-# Install the Notrack file
-#
-run_install $OWNERSHIP -m 0644 notrack           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
-run_install $OWNERSHIP -m 0644 notrack.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
 
-if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/notrack ]; then
-    run_install $OWNERSHIP -m 0600 notrack${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/notrack
-    echo "Notrack file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/notrack"
+if [ -f arprules ]; then
+    #
+    # Install the ARP rules file
+    #
+    run_install $OWNERSHIP -m 0644 arprules           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+    run_install $OWNERSHIP -m 0644 arprules.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+
+    if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/arprules ]; then
+	run_install $OWNERSHIP -m 0600 arprules${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/arprules
+	echo "ARP rules file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/arprules"
+    fi
+fi
+#
+# Install the Conntrack file
+#
+run_install $OWNERSHIP -m 0644 conntrack           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+run_install $OWNERSHIP -m 0644 conntrack.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+
+if [ ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/conntrack ]; then
+    run_install $OWNERSHIP -m 0600 conntrack${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/conntrack
+    echo "Conntrack file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/conntrack"
 fi
 
 #
@@ -698,10 +716,6 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/tunnels ]; then
     echo "Tunnels file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/tunnels"
 fi
 
-if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/blacklist ]; then
-    run_install $OWNERSHIP -m 0600 blacklist${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/blacklist
-    echo "Blacklist file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/blacklist"
-fi
 #
 # Install the blacklist rules file
 #
@@ -724,16 +738,6 @@ if [ -f findgw ]; then
 	echo "Find GW file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/findgw"
     fi
 fi
-
-#
-# Delete the Routes file
-#
-delete_file ${DESTDIR}${CONFDIR}/$PRODUCT/routes
-#
-# Delete the tcstart file
-#
-
-delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/tcstart
 
 #
 # Delete the Limits Files
@@ -972,13 +976,18 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/actions ]; then
     echo "Actions file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/actions"
 fi
 
-cd ..
+#
+# Install the Routes file
+#
+run_install $OWNERSHIP -m 0644 routes           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
+run_install $OWNERSHIP -m 0644 routes.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
-#
-# Install the Standard Actions file
-#
-install_file actions.std ${DESTDIR}${SHAREDIR}/$PRODUCT/actions.std 0644
-echo "Standard actions file installed as ${DESTDIR}${SHAREDIR}d/$PRODUCT/actions.std"
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/routes ]; then
+    run_install $OWNERSHIP -m 0644 routes${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/routes
+    echo "Routes file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/routes"
+fi
+
+cd ..
 
 #
 # Install the  Makefiles
@@ -1131,7 +1140,7 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
 	perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/$PRODUCT/$PRODUCT.conf
 	update-rc.d $PRODUCT enable
     elif [ -n "$SYSTEMD" ]; then
-	if systemctl enable $PRODUCT; then
+	if systemctl enable ${PRODUCT}.service; then
 	    echo "$Product will start automatically at boot"
 	fi
     elif mywhich insserv; then

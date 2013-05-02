@@ -77,17 +77,25 @@ VERBOSITY=1
 ###############################################################################
 #			       L O G G I N G
 ###############################################################################
-BLACKLIST_LOGLEVEL=
+BLACKLIST_LOG_LEVEL=
 #
-# BLACKLIST_LOGLEVEL=[log-level]
+# BLACKLIST_LOG_LEVEL=[log-level]
 # 
-#     This parameter determines if packets from blacklisted hosts are logged and
-#     it determines the syslog level that they are to be logged at. Its value is
-#     a syslog level (Example: BLACKLIST_LOGLEVEL=debug). If you do not assign a
-#     value or if you assign an empty value then packets from blacklisted hosts
-#     are not logged. The BLACKLIST_LOGLEVEL setting has no effect on entries in
-#     the BLACKLIST section of shorewall6-rules (5). It determines the log level
-#     of packets sent to the blacklog target of shorewall6-blrules(5).
+#     Formerly named BLACKLIST_LOGLEVEL. This parameter determines if packets
+#     from blacklisted hosts are logged and it determines the syslog level that
+#     they are to be logged at. Its value is a syslog level (Example:
+#     BLACKLIST_LOG_LEVEL=debug). If you do not assign a value or if you assign
+#     an empty value then packets from blacklisted hosts are not logged. The
+#     setting determines the log level of packets sent to the blacklog target of
+#     shorewall6-blrules(5).
+# 
+INVALID_LOG_LEVEL=
+#
+# INVALID_LOG_LEVEL=log-level
+# 
+#     Added in Shorewall 4.5.13. Packets in the INVALID state that do not match
+#     any rule in the INVALID section of shorewall-rules (5) are logged at this
+#     level. The default value is empty which means no logging is performed.
 # 
 LOG_VERBOSITY=2
 #
@@ -188,6 +196,28 @@ LOGTAGONLY=No
 #     specified then the tag is included in the log prefix in place of the chain
 #     name.
 # 
+#     Beginning with Shorewall 4.5.12, when LOGTAGONLY=Yes, you have more control
+#     over the generated log prefix. Beginning with that release, the tag is
+#     interpreted as a chain name and a disposition separated by a comma. So this
+#     rule:
+# 
+#     #ACTION                                SOURCE         DEST
+#     LOG:info:foo,bar                 net                   fw
+# 
+#     would generate the following log prefix when using the default LOGFORMAT
+#     setting:
+# 
+#     Shorewall:foo:bar:
+# 
+#     Similarly,
+# 
+#     #ACTION                               SOURCE            DEST
+#     LOG:info:,bar                        net                    fw
+# 
+#     would generate
+# 
+#     Shorewall:net2fw:bar:
+# 
 MACLIST_LOG_LEVEL=info
 #
 # MACLIST_LOG_LEVEL=[log-level]
@@ -205,12 +235,19 @@ RELATED_LOG_LEVEL=
 #     any rule in the RELATED section of shorewall6-rules (5) are logged at this
 #     level. The default value is empty which means no logging is performed.
 # 
+RPFILTER_LOG_LEVEL=info
+#
+# RPFILTER_LOG_LEVEL=log-level
+# 
+#     Added in shorewall 4.5.7. Determines the logging of packets disposed via
+#     the RPFILTER_DISPOSITION. The default value is info.
+# 
 SFILTER_LOG_LEVEL=info
 #
 # SFILTER_LOG_LEVEL=log-level
 # 
 #     Added on Shorewall 4.4.20. Determines the logging of packets matching the
-#     filter option (see shorewall6-interfaces(5)) and of hairpin packets on
+#     sfilter option (see shorewall6-interfaces(5)) and of hairpin packets on
 #     interfaces without the routeback option.^[2] interfaces without the
 #     routeback option. The default is info. If you don't wish for these packets
 #     to be logged, use SFILTER_LOG_LEVEL=none.
@@ -240,6 +277,14 @@ TCP_FLAGS_LOG_LEVEL=info
 #     log level. If you don't want to log these packets, set to the empty value
 #     (e.g., TCP_FLAGS_LOG_LEVEL="").
 # 
+UNTRACKED_LOG_LEVEL=
+#
+# UNTRACKED_LOG_LEVEL=log-level
+# 
+#     Added in Shorewall 4.5.13. Packets in the UNTRACKED state that do not match
+#     any rule in the UNTRACKED section of shorewall-rules (5) are logged at this
+#     level. The default value is empty which means no logging is performed.
+# 
 ###############################################################################
 #	L O C A T I O N	  O F	F I L E S   A N D   D I R E C T O R I E S
 ###############################################################################
@@ -259,15 +304,12 @@ CONFIG_PATH="${CONFDIR}/shorewall6:/usr/share/shorewall6:${SHAREDIR}/shorewall"
 #       ● Next, each directory in the CONFIG_PATH setting is searched in
 #         sequence.
 # 
-#         If CONFIG_PATH is not given or if it is set to the empty value then the
-#         contents of /usr/share/shorewall6/configpath are used. As released from
-#         shorewall.net, that file sets the CONFIG_PATH to /etc/shorewall6:/usr/
-#         share/shorewall6:/usr/share/shorewall but your particular distribution
-#         may set it differently. See the output of shorewall6 show config for
-#         the default on your system.
-# 
-#         Note that the setting in /usr/share/shorewall6/configpath is always
-#         used to locate shorewall6.conf.
+#     If CONFIG_PATH is not given or if it is set to the empty value then the
+#     contents of /usr/share/shorewall6/configpath are used. As released from
+#     shorewall.net, that file sets the CONFIG_PATH to /etc/shorewall6:/usr/share
+#     /shorewall6:/usr/share/shorewall but your particular distribution may set
+#     it differently. See the output of shorewall6 show config for the default on
+#     your system.
 # 
 GEOIPDIR=/usr/share/xt_geoip/LE
 #
@@ -275,7 +317,7 @@ GEOIPDIR=/usr/share/xt_geoip/LE
 # 
 #     Added in Shorewall 4.5.4. Specifies the pathname of the directory
 #     containing the GeoIP Match database. See http://www.shorewall.net/
-#     ISOCODES.html. If not specified, the default value is /usr/share/xt_geoip/
+#     ISO-3661.html. If not specified, the default value is /usr/share/xt_geoip/
 #     LE which is the default location of the little-endian database.
 # 
 IP6TABLES=
@@ -325,6 +367,13 @@ MODULESDIR=
 #     will supply "/lib/modules/`uname -r`/kernel/net/ipv4/netfilter:/lib/modules
 #     /`uname -r`/kernel/net/ipv4/netfilter".
 # 
+NFACCT=
+#
+# NFACCT=[pathname]
+# 
+#     Added in Shorewall 4.5.7. Specifies the pathname of the nfacct utiliity. If
+#     not specified, Shorewall will use the PATH settting to find the program.
+# 
 PERL=/usr/bin/perl
 #
 # PERL=pathname
@@ -358,7 +407,7 @@ SHOREWALL_SHELL=/bin/sh
 #     is assumed. Using a light-weight shell such as ash or dash can
 #     significantly improve performance.
 # 
-SUBSYSLOCK=/var/lock/subsys/shorewall
+SUBSYSLOCK=/var/lock/subsys/shorewall6
 #
 # SUBSYSLOCK=[pathname]
 # 
@@ -382,27 +431,23 @@ TC=
 ###############################################################################
 ACCEPT_DEFAULT=none
 #
-# ACCEPT_DEFAULT={action|none}
+# ACCEPT_DEFAULT={action[(parameters)][:level]|none}
 # 
 DROP_DEFAULT=Drop
 #
-# DROP_DEFAULT={action|none}
+# DROP_DEFAULT={action[(parameters)][:level]|none}
 # 
 NFQUEUE_DEFAULT=none
 #
-# NFQUEUE_DEFAULT={action|none}
+# NFQUEUE_DEFAULT={action[(parameters)][:level]|none}
 # 
 QUEUE_DEFAULT=none
 #
-# QUEUE_DEFAULT={action|none}
+# QUEUE_DEFAULT={action[(parameters)][:level]|none}
 # 
 REJECT_DEFAULT=Reject
 #
-# REJECT_DEFAULT={action|none}
-# 
-#     To allow for default rules to be applied when USE_ACTIONS=No, the
-#     DROP_DEFAULT, REJECT_DEFAULT, ACCEPT_DEFAULT, QUEUE_DEFAULT and
-#     NFQUEUE_DEFAULT options have been added.
+# REJECT_DEFAULT={action[(parameters)][:level]|none}
 # 
 #     DROP_DEFAULT describes the rules to be applied before a connection request
 #     is dropped by a DROP policy; REJECT_DEFAULT describes the rules to be
@@ -411,8 +456,9 @@ REJECT_DEFAULT=Reject
 # 
 #     The value applied to these may be:
 # 
-#     a) The name of an action.
-#     b) The name of a macro (Shorewall6-shell only)
+#     a) The name of an action. The name may optionally be followed by a
+#     comma-separated list of parameters enclosed in parentheses if the specified
+#     action accepts parameters (e.g., 'Drop(audit)').
 #     c) None or none
 # 
 #     The default values are:
@@ -423,13 +469,16 @@ REJECT_DEFAULT=Reject
 #     QUEUE_DEFAULT="none"
 #     NFQUEUE_DEFAULT="None"
 # 
-#     If USE_ACTIONS=Yes, then these values refer to action.Drop and
-#     action.Reject respectively. If USE_ACTIONS=No, then these values refer to
-#     macro.Drop and macro.Reject.
-# 
 #     If you set the value of either option to "None" then no default action will
 #     be used and the default action or macro must be specified in
 #     shorewall6-policy(5).
+# 
+#     You can pass parameters to the specified action or macro (e.g., myaction
+#     (audit,DROP)).
+# 
+#     Beginning with Shorewall 4.5.10, the action name can be followed optionally
+#     by a colon and a log level. The level will be applied to each rule in the
+#     action or macro body that does not already have a log level.
 # 
 ###############################################################################
 #                        R S H / R C P  C O M M A N D S
@@ -501,13 +550,47 @@ ADMINISABSENTMINDED=Yes
 #     itself are allowed. If this variable is not set or is given the empty value
 #     then ADMINISABSENTMINDED=No is assumed.
 # 
-AUTO_COMMENT=Yes
+IGNOREUNKNOWNVARIABLES=No
 #
-# AUTO_COMMENT=[Yes|No]
+# IGNOREUNKNOWNVARIABLES=[Yes|No]
 # 
-#     If set, if there is not a current comment when a macro is invoked, the
-#     behavior is as if the first line of the macro file was "COMMENT <macro
-#     name>". The AUTO_COMMENT option has a default value of 'Yes'.
+#     Added in Shorewall 4.5.11. Normally, if an unknown shell variable is
+#     encountered in a configuration file (except in ?IF and ?ELSIF directives),
+#     the compiler raises a fatal error. If IGNOREUNKNOWNVARIABLES is set to Yes,
+#     then such variables simply expand to an empty string. Default is No.
+# 
+AUTOCOMMENT=Yes
+#
+# AUTOCOMMENT=[Yes|No]
+# 
+#     Formerly named AUTO_COMMENT. If set, if there is not a current comment when
+#     a macro is invoked, the behavior is as if the first line of the macro file
+#     was "COMMENT <macro name>". The AUTO_COMMENT option has a default value of
+#     'Yes'.
+# 
+AUTOHELPERS=Yes
+#
+# AUTOHELPERS=[Yes|No]
+# 
+#     Added in Shorewall 4.5.7. When set to Yes (the default), the generated
+#     ruleset will automatically associate helpers with applications that require
+#     them (FTP, IRC, etc.). When configuring your firewall on systems running
+#     kernel 3.5 or later, it is recommended that you:
+# 
+#      1. Set AUTOHELPERS=No.
+# 
+#      2. Either:
+# 
+#          a. Modify shorewall6-conntrack (5) to only apply helpers where they
+#             are required; or
+# 
+#          b. Specify the appropriate helper in the HELPER column in
+#             shorewall6-rules (5).
+# 
+#             Note
+# 
+#             The macros for those applications requiring a helper automatically
+#             specify the appropriate HELPER where required.
 # 
 AUTOMAKE=No
 #
@@ -523,22 +606,33 @@ AUTOMAKE=No
 #     command includes a directory name (e.g., shorewall6 restart /etc/
 #     shorewall.new).
 # 
-BLACKLISTNEWONLY=Yes
+BLACKLIST="NEW,INVALID,UNTRACKED"
 #
-# BLACKLISTNEWONLY={Yes|No}
+# BLACKLIST=[{ALL|state[,...]}]
 # 
-#     When set to Yes or yes, blacklists are only consulted for new connections.
-#     This includes entries in the shorewall-blrules (5) file and in the
-#     BLACKLIST section of shorewall6-rules (5).
+#     where state is one of NEW, ESTABLISHED, RELATED, INVALID,or UNTRACKED.
 # 
-#     When set to No or no, blacklists are consulted for every packet (will slow
-#     down your firewall noticably if you have large blacklists). If the
-#     BLACKLISTNEWONLY option is not set or is set to the empty value then
-#     BLACKLISTNEWONLY=No is assumed.
+#     Added in Shorewall 4.5.13 to replace the BLACKLISTNEWONLY option below.
+#     Specifies the connection tracking states that are to be subject to
+#     blacklist screening. If neither BLACKLIST nor BLACKLISTNEWONLY are
+#     specified then the states subject to blacklisting are
+#     NEW,ESTABLISHED,INVALID,UNTRACKED.
 # 
-#     Note
+#     Note: The ESTABLISHED state may not be specified if FASTACCEPT is
+#     specified.
 # 
-#     BLACKLISTNEWONLY=No is incompatible with FASTACCEPT=Yes.
+CHAIN_SCRIPTS=Yes
+#
+# CHAIN_SCRIPTS={Yes|No}
+# 
+#     Added in Shorewall 4.5.16. Prior to the availability of BEGIN PERL....END
+#     PERL in configuration files, the only way to execute a chain-specific
+#     script was to create a script file with the same name as the chain and
+#     place it in a directory on the CONFIG_PATH. That facility has the drawback
+#     that the compiler will attempt to run a non-script file just because it has
+#     the same name as a chain. To disable this facility, set CHAIN_SCRIPTS=No.
+#     If not specified or specified as the empty value, CHAIN_SCRIPTS=Yes is
+#     assumed.
 # 
 CLAMPMSS=No
 #
@@ -589,6 +683,20 @@ COMPLETE=No
 #       ● That interface is assigned to a zone.
 # 
 #       ● You have no CONTINUE policies or rules.
+# 
+DEFER_DNS_RESOLUTION=Yes
+#
+# DEFER_DNS_RESOLUTION=[Yes|No]
+# 
+#     Added in Shorewall 4.5.12. When set to 'Yes' (the default), DNS names are
+#     validated in the compiler and then passed on to the generated script where
+#     they are resolved by ip6tables-restore. This is an advantage if you use
+#     AUTOMAKE=Yes and the IP address associated with the DNS name is subject to
+#     change. When DEFER_DNS_RESOLUTION=No, DNS names are converted into IP
+#     addresses by the compiler. This has the advantage that when AUTOMAKE=Yes
+#     the start and restart commands will succeed even if no DNS server is
+#     reachable (assuming that the configuration hasn't changed since the
+#     compiled script was last generated).
 # 
 DELETE_THEN_ADD=Yes
 #
@@ -674,6 +782,45 @@ FORWARD_CLEAR_MARK=Yes
 #     maintained with the default setting of this option (FORWARD_CLEAR_MARK=
 #     Yes). If FORWARD_CLEAR_MARK is set to 'No', packet marks set in the mangle
 #     PREROUTING chain are retained in the FORWARD chains.
+# 
+HELPERS=
+#
+# HELPERS=[helper[,helper...]]
+# 
+#     Added in Shorewall 4.5.7. This option lists the Netfilter application helps
+#     that are to be enabled. If not specified, the default is to enable all
+#     helpers.
+# 
+#     Possible values for helper are:
+# 
+#       ● amanda
+# 
+#       ● ftp
+# 
+#       ● h323
+# 
+#       ● irc
+# 
+#       ● netbios-ns
+# 
+#       ● none - This special value was added in Shorewall 4.5.16 and indicates
+#         that no helpers are to be enabled. It also prevents the compiler for
+#         probing for helper support; such probing generates messages on the
+#         system log of the form "xt_CT: No such helper XXX" where XXX is the
+#         helper name. When used, none must be the only helper specified.
+# 
+#       ● pptp
+# 
+#       ● sane
+# 
+#       ● sip
+# 
+#       ● snmp
+# 
+#       ● tftp
+# 
+#     When HELPERS is specified on a system running Kernel 3.5.0 or later,
+#     automatic association of helpers to connections is disabled.
 # 
 IMPLICIT_CONTINUE=No
 #
@@ -940,6 +1087,10 @@ OPTIMIZE=1
 #         of combined comments are replaced by 'Others and'. Empty comments at
 #         the end of a group of combined comments are replaced by 'and others'.
 # 
+#         Beginning in Shorewall 4.5.10, this option also suppresses duplicate
+#         adjacent rules and duplicate non-adjacent rules that don't include mark
+#         , connmark, dscp, ecn, set, tos or u32 matches.
+# 
 #         Example 1:
 # 
 #             Rules with comments "FOO", <empty> and "BAR" would result in the
@@ -968,6 +1119,17 @@ REQUIRE_INTERFACE=No
 #     Added in Shorewall 4.4.10. The default is No. If set to Yes, at least one
 #     optional interface must be up in order for the firewall to be in the
 #     started state. Intended to be used with the Shorewall Init Package.
+# 
+RESTORE_ROUTEMARKS=Yes
+#
+# RESTORE_ROUTEMARKS=[Yes|No]
+# 
+#     Added in Shorewall 4.5.9. When set to Yes (the default), provider marks are
+#     restored unconditionally at the top of the mangle OUTPUT and PREROUTING
+#     chains, even if the saved mark is zero. When this option is set to No, the
+#     mark is restored even when it is zero. If you have problems with IPSEC ESP
+#     packets not being routed correctly on output, try setting this option to No
+#     .
 # 
 TC_ENABLED=No
 #
@@ -1092,6 +1254,37 @@ USE_PHYSICAL_NAMES=No
 #     interface would be 'OAKLAND_in'. If this option is set to Yes, then the
 #     physical name of the interface will be used the base of the chain name.
 # 
+USE_RT_NAMES=No
+#
+# USE_RT_NAMES=[Yes|No]
+# 
+#     Added in Shorewall 4.5.15. When set to 'Yes', Shorewall will use routing
+#     table (provider) names in the generated script rather than table numbers.
+#     When set to 'No' (the default), routing table numbers will be used.
+# 
+#     Caution
+# 
+#     If you set USE_RT_NAMES=Yes and KEEP_RT_TABLES=Yes, then you must insure
+#     that all of your providers have entries in /etc/iproute2/rt_tables as well
+#     as the following entries:
+# 
+#     255 local
+#     254 main
+#     253 default
+#     250 balance
+#     0 unspec
+# 
+#     Without these entries, the firewall will fail to start.
+# 
+WARNOLDCAPVERSION=Yes
+#
+# WARNOLDCAPVERSION=[Yes|No]
+# 
+#     Added in Shorewall 4.5.12. When set to Yes (the default), the compiler
+#     issues a warning when it finds a capabilities file that doesn't specify all
+#     of the capabilities supported by the compiler. When WARNOLDCAPVERSION is
+#     set to No, no warning is issued.
+# 
 ZONE2ZONE=2
 #
 # ZONE2ZONE={2|-}
@@ -1111,10 +1304,18 @@ BLACKLIST_DISPOSITION=DROP
 #     hosts. It may have the value DROP if the packets are to be dropped or
 #     REJECT if the packets are to be replied with an ICMP port unreachable reply
 #     or a TCP RST (tcp only). If you do not assign a value or if you assign an
-#     empty value then DROP is assumed. The BLACKLIST_DISPOSITION setting has no
-#     effect on entries in the BLACKLIST section of shorewall6-rules (5). It
-#     determines the disposition of packets sent to the blacklog target of
-#     shorewall6-blrules(5).
+#     empty value then DROP is assumed. The setting determines the disposition of
+#     packets sent to the blacklog target of shorewall6-blrules(5).
+# 
+INVALID_DISPOSITION=CONTINUE
+#
+# INVALID_DISPOSITION=[A_DROP|A_REJECT|DROP|REJECT|CONTINUE]
+# 
+#     Added in Shorewall 4.5.13. Shorewall has traditionally passed INVALID
+#     packets through the NEW section of shorewall-rules (5). When a packet in
+#     INVALID state fails to match any rule in the INVALID section, the packet is
+#     disposed of based on this setting. The default value is CONTINUE for
+#     compatibility with earlier versions.
 # 
 MACLIST_DISPOSITION=REJECT
 #
@@ -1132,7 +1333,7 @@ MACLIST_DISPOSITION=REJECT
 # 
 RELATED_DISPOSITION=ACCEPT
 #
-# RELATED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT]
+# RELATED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]
 # 
 #     Added in Shorewall 4.4.27. Shorewall has traditionally ACCEPTed RELATED
 #     packets that don't match any rule in the RELATED section of
@@ -1147,9 +1348,18 @@ SFILTER_DISPOSITION=DROP
 # SFILTER_DISPOSITION=[DROP|REJECT|A_DROP|A_REJECT]
 # 
 #     Added in Shorewall 4.4.20. Determines the disposition of packets matching
-#     the filter option (see shorewall6-interfaces(5)) and of hairpin packets on
+#     the sfilter option (see shorewall6-interfaces(5)) and of hairpin packets on
 #     interfaces without the routeback option.^[1] interfaces without the
 #     routeback option.
+# 
+RPFILTER_DISPOSITION=DROP
+#
+# RPFILTER_DISPOSITION=[DROP|REJECT|A_DROP|A_REJECT]
+# 
+#     Added in Shorewall 4.5.7. Determines the disposition of packets entering
+#     from interfaces with the rpfilter option (see shorewall-interfaces(5)).
+#     Packets disposed of by this option are those whose response packets would
+#     not be sent through the same interface receiving the packet.
 # 
 SMURF_DISPOSITION=DROP
 #
@@ -1169,6 +1379,16 @@ TCP_FLAGS_DISPOSITION=DROP
 #     a value of ACCEPT (accept the packet), REJECT (send an RST response) or
 #     DROP (ignore the packet). If not set or if set to the empty value (e.g.,
 #     TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed.
+# 
+UNTRACKED_DISPOSITION=CONTINUE
+#
+# UNTRACKED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]
+# 
+#     Added in Shorewall 4.5.13. Shorewall has traditionally passed UNTRACKED
+#     packets through the NEW section of shorewall6-rules (5). When a packet in
+#     UNTRACKED state fails to match any rule in the UNTRACKED section, the
+#     packet is disposed of based on this setting. The default value is CONTINUE
+#     for compatibility with earlier versions.
 # 
 ################################################################################
 #			P A C K E T  M A R K  L A Y O U T

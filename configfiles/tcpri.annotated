@@ -44,9 +44,12 @@
 #     traffic queued and Priority 3 traffic will be deferred so long as there is
 #     Priority 1 or Priority 2 traffic to send.
 # 
-# PROTO - protocol
+# PROTO - protocol[,...]
 # 
 #     Optional. The name or number of an IPv4 protocol.
+# 
+#     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
+#     list of protocols.
 # 
 # PORT(S) - port [,...]
 # 

@@ -114,4 +114,4 @@
 #     The remaining options are defaulted by tc(8).
 # 
 ###############################################################################
-#INTERFACE		TYPE	IN-BANDWIDTH
+#INTERFACE		TYPE	IN-BANDWIDTH		OUT-INTERFACE

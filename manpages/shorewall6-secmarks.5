@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-secmarks
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 06/28/2012
+.\"      Date: 05/01/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-SECMARKS" "5" "06/28/2012" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-SECMARKS" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -55,7 +55,7 @@ The secmarks file is used to associate an SELinux context with packets\&. It was
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBSECMARK \- {SAVE|RESTORE|\fR\fB\fIcontext\fR\fR\fB|COMMENT \fR\fB\fIcomment\fR\fR\fB}\fR
+\fBSECMARK \- {SAVE|RESTORE|\fR\fB\fIcontext\fR\fR\fB|[?]COMMENT \fR\fB\fIcomment\fR\fR\fB}\fR
 .RS 4
 .PP
 \fBSAVE\fR
@@ -73,14 +73,30 @@ If an SELinux context is not currently associated with the packet, then the save
 An SELinux context\&.
 .RE
 .PP
-COMMENT
+[?]COMMENT
 .RS 4
 The remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
+.sp .5v
+.RE
 .RE
 .RE
 .PP
-\fBCHAIN \- {P|I|F|O|T}[:{N|I|NI|E|ER}]\fR
+\fBCHAIN:STATE (chain) \- {P|I|F|O|T}[:{N|I|U|IU|NI|NU|NIU|NUI:E|ER}]\fR
 .RS 4
+This column determines the CHAIN where the SElinux context is to be applied:
 .RS 4
 P \- PREROUTING
 .RE
@@ -104,13 +120,26 @@ It may be optionally followed by a colon and an indication of the Netfilter conn
 :I \- INVALID connection
 .RE
 .RS 4
-:NI \- New or INVALID connection
+:NI \- NEW or INVALID connection
 .RE
 .RS 4
 :E \- ESTABLISHED connection
 .RE
 .RS 4
 :ER \- ESTABLISHED or RELATED connection
+.RE
+Beginning with Shorewall 4\&.5\&.10, the following additional options are available
+.RS 4
+:U \- UNTRACKED connection
+.RE
+.RS 4
+:IU \- INVALID or UNTRACKED connection
+.RE
+.RS 4
+:NU \- NEW or UNTRACKED connection
+.RE
+.RS 4
+:NIU \- NEW, INVALID or UNTRACKED connection\&.
 .RE
 .RE
 .PP
@@ -198,6 +227,8 @@ You may exclude certain hosts from the set already defined through use of an
 Protocol \-
 \fBipp2p\fR
 requires ipp2p match support in your kernel and iptables\&.
+.sp
+Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated list of protocols\&.
 .RE
 .PP
 \fBPORT(S)\fR (dport) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
@@ -221,6 +252,8 @@ This column is ignored if PROTOCOL = all but must be entered if any of the follo
 \fBSOURCE PORT(S)\fR (sport) \- [\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.]
 .RS 4
 Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
+.sp
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
 .RE
 .PP
 \fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]

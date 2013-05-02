@@ -48,6 +48,9 @@
 #             tos-minimize-cost (2)
 #             tos-normal-service (0)
 # 
+#     To specify more than one flag, add their values together and specify the
+#     numeric result.
+# 
 # MARK - [!]value[/mask][:C]
 # 
 #     If you don't want to define a test but need to specify anything in the

@@ -10,8 +10,8 @@
 # See the file README.txt for further details.
 #------------------------------------------------------------------------------
 # For information about entries in this file, type "man shorewall6-rules"
-###########################################################################################################################################################################
-#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME       HEADERS   SWITCH
+######################################################################################################################################################################################################
+#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME		HEADERS		SWITCH		HELPER
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
 #SECTION ALL
 #SECTION ESTABLISHED
@@ -20,7 +20,7 @@ SECTION NEW
 
 #       Don't allow connection pickup from the net
 #
-Invalid(DROP)	net		all
+Invalid(DROP)	net		all		tcp
 #
 #	Accept DNS connections from the firewall to the network
 #
