@@ -7,17 +7,66 @@
 #
 # Please see http://shorewall.net/Actions.html for additional information.
 #
-###############################################################################
+########################################################################################
 # 
 # This file allows you to define new ACTIONS for use in rules (see
 # shorewall-rules(5)). You define the iptables rules to be performed in an ACTION
 # in /etc/shorewall/action.action-name.
 # 
-# ACTION names should begin with an upper-case letter to distinguish them from
-# Shorewall-generated chain names and be composed of letters, digits or numbers.
-# If you intend to log from the action then the name must be no longer than 11
-# characters in length if you use the standard LOGFORMAT.
+# Columns are:
 # 
-###############################################################################
-#ACTION             COMMENT (place '# ' below the 'C' in comment followed by
-#                           a comment describing the action)
+# NAME
+# 
+#     The name of the action. ACTION names should begin with an upper-case letter
+#     to distinguish them from Shorewall-generated chain names and be composed of
+#     letters, digits or numbers. If you intend to log from the action then the
+#     name must be no longer than 11 characters in length if you use the standard
+#     LOGFORMAT.
+# 
+# OPTIONS
+# 
+#     Added in Shorewall 4.5.10. Available options are:
+# 
+#     builtin
+# 
+#         Added in Shorewall 4.5.16. Defines the action as a rule target that is
+#         supported by your iptables but is not directly supported by Shorewall.
+#         The action may be used as the rule target in an INLINE rule in
+#         shorewall-rules(5).
+# 
+#     inline
+# 
+#         Causes the action body (defined in action.action-name) to be expanded
+#         in-line like a macro rather than in its own chain. You can list
+#         Shorewall Standard Actions in this file to specify the inline option.
+# 
+#         Caution
+# 
+#         Some of the Shorewall standard actions cannot be used in-line and will
+#         generate a warning and the compiler will ignore inline if you try to
+#         use them that way:
+# 
+#         Broadcast
+#         DropSmurfs
+#         Invalid (Prior to Shorewall 4.5.13)
+#         NotSyn (Prior to Shorewall 4.5.13)
+#         RST (Prior to Shorewall 4.5.13)
+#         TCPFlags
+# 
+#     noinline
+# 
+#         Causes any later inline option for the same action to be ignored with a
+#         warning.
+# 
+#     nolog
+# 
+#         Added in Shorewall 4.5.11. When this option is specified, the compiler
+#         does not automatically apply the log level and/or tag from the
+#         invocation of the action to all rules inside of the action. Rather, it
+#         simply sets the $_loglevel and $_logtag shell variables which can be
+#         used within the action body to apply those logging options only to a
+#         subset of the rules.
+# 
+########################################################################################
+#ACTION    OPTIONS		COMMENT (place '# ' below the 'C' in comment followed by
+#                        	v        a comment describing the action)

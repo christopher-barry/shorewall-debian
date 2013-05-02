@@ -34,7 +34,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.5_4';
+our $VERSION = '4.5_11';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -61,7 +61,7 @@ sub setup_tunnels() {
 	    }
 	}
 
-	my @options = $globals{UNTRACKED} ? state_imatch 'NEW,UNTRACKED' : state_imatch 'NEW';
+	my @options = have_capability( 'RAW_TABLE' ) ? state_imatch 'NEW,UNTRACKED' : state_imatch 'NEW';
 
 	add_tunnel_rule $inchainref,  p => 50, @$source;
 	add_tunnel_rule $outchainref, p => 50, @$dest;
@@ -285,25 +285,19 @@ sub setup_tunnels() {
     #
     # Setup_Tunnels() Starts Here
     #
-    if ( my $fn = open_file 'tunnels' ) {
+    if ( my $fn = open_file( 'tunnels', 1, 1 ) ) {
 
 	first_entry "$doing $fn...";
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 , gateway_zones => 3 }, undef, 4;
+	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 , gateway_zones => 3 }, {}, 4;
 
 	    fatal_error 'TYPE must be specified' if $kind eq '-';
 
-	    if ( $kind eq 'COMMENT' ) {
-		process_comment;
-	    } else {
-		fatal_error 'ZONE must be specified' if $zone eq '-';
-		setup_one_tunnel $kind, $zone, $gateway, $gatewayzones;
-	    }
+	    fatal_error 'ZONE must be specified' if $zone eq '-';
+	    setup_one_tunnel $kind, $zone, $gateway, $gatewayzones;
 	}
-
-	clear_comment;
     }
 }
 

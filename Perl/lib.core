@@ -216,8 +216,8 @@ get_routed_networks() # $1 = interface name, $2-n = Fatal error message
 delete_tc1()
 {
     clear_one_tc() {
-        $TC qdisc del dev $1 root 2> /dev/null
-        $TC qdisc del dev $1 ingress 2> /dev/null
+        $TC qdisc del dev ${1%@*} root 2> /dev/null
+        $TC qdisc del dev ${1%@*} ingress 2> /dev/null
 
     }
 
@@ -344,7 +344,7 @@ replace_default_route() # $1 = USE_DEFAULT_RT
 #
 delete_default_routes() # $1 = table number
 {
-    $IP -$g_family -o route ls table $1 | fgrep default | fgrep -v metric | while read route; do
+    $IP -$g_family route ls table $1 | fgrep default | fgrep -v metric | while read route; do
 	qt $IP -$g_family route del $route
     done
 } 
@@ -430,7 +430,7 @@ run_iptables()
     local status
 
     while [ 1 ]; do
-	$g_tool $@
+	eval $g_tool $@
 	status=$?
 	[ $status -ne 4 ] && break
     done
@@ -626,7 +626,7 @@ EOF
     fi
 }
 
-?IF __IPV4
+?if __IPV4
 #################################################################################
 #                        IPv4-specific Functions
 #################################################################################
@@ -838,13 +838,13 @@ detect_dynamic_gateway() { # $1 = interface
 	gateway=$( find_peer $($IP addr list $interface ) )
     fi
 
-    if [ -z "$gateway" -a -f /var/lib/dhcpcd/dhcpcd-${1}.info ]; then
-	eval $(grep ^GATEWAYS=  /var/lib/dhcpcd/dhcpcd-${1}.info 2> /dev/null)
+    if [ -z "$gateway" -a -f ${VARLIB}/dhcpcd/dhcpcd-${1}.info ]; then
+	eval $(grep ^GATEWAYS=  ${VARLIB}/dhcpcd/dhcpcd-${1}.info 2> /dev/null)
 	[ -n "$GATEWAYS" ] && GATEWAYS=${GATEWAYS%,*} && gateway=$GATEWAYS
     fi
 
-    if [ -z "$gateway" -a -f /var/lib/dhcp/dhclient-${1}.lease ]; then
-	gateway=$(grep 'option routers' /var/lib/dhcp/dhclient-${1}.lease | tail -n 1 | while read j1 j2 gateway; do echo $gateway ; return 0; done)
+    if [ -z "$gateway" -a -f ${VARLIB}/dhcp/dhclient-${1}.lease ]; then
+	gateway=$(grep 'option routers' ${VARLIB}/dhcp/dhclient-${1}.lease | tail -n 1 | while read j1 j2 gateway; do echo $gateway ; return 0; done)
     fi
 
     [ -n "$gateway" ] && echo $gateway
@@ -916,7 +916,12 @@ add_gateway() # $1 = Delta $2 = Table Number
 	delta=$1
 
 	if ! echo $route | fgrep -q ' nexthop '; then
-	    route=`echo $route | sed 's/via/nexthop via/'`
+	    if echo $route | fgrep -q via; then
+		route=`echo $route | sed 's/via/nexthop via/'`
+	    else
+		route="nexthop $route"
+	    fi
+
 	    dev=$(find_device $route)
 	    if [ -f ${VARDIR}/${dev}_weight ]; then
 		weight=`cat ${VARDIR}/${dev}_weight`
@@ -1027,7 +1032,7 @@ get_all_bcasts()
     $IP -f inet addr show 2> /dev/null | grep 'inet.*brd' | grep -v '/32 ' | sed 's/inet.*brd //; s/scope.*//;' | sort -u
 }
 
-?ELSE
+?else
 #################################################################################
 #                        IPv6-specific Functions
 #################################################################################
@@ -1319,4 +1324,4 @@ clear_firewall() {
     logger -p kern.info "$g_product Cleared"
 }
 
-?ENDIF
+?endif # IPv6-specific functions.

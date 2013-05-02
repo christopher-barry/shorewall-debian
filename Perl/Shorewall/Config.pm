@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011,2012 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -47,6 +47,7 @@ our @EXPORT = qw(
 		 warning_message
 		 fatal_error
 		 assert
+		 currentlineinfo
 
 		 progress_message
 		 progress_message_nocompress
@@ -58,10 +59,16 @@ our @EXPORT = qw(
 
 		 get_action_params
 		 get_action_chain
+		 get_action_chain_name
+		 get_action_logging
+		 get_action_disposition
 		 set_action_param
+		 get_inline_matches
 
 		 have_capability
 		 require_capability
+		 report_used_capabilities
+		 kernel_version
                 );
 
 our @EXPORT_OK = qw( $shorewall_dir initialize shorewall);
@@ -103,6 +110,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       find_file
 				       split_list
 				       split_list1
+				       split_list2
 				       split_line
 				       split_line1
 				       first_entry
@@ -128,6 +136,12 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       run_user_exit1
 				       run_user_exit2
 				       generate_aux_config
+				       format_warning
+				       process_comment
+				       no_comment
+				       macro_comment
+				       push_comment
+				       pop_comment
 				       dump_mark_layout
 
 				       $product
@@ -139,15 +153,33 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $currentline
 				       $currentfilename
 				       $debug
+				       $file_format
+				       $comment
+
 				       %config
 				       %globals
 				       %config_files
 				       %shorewallrc
+				       %shorewallrc1
 
-				       @auditoptions
+				       %helpers
+				       %helpers_map
+				       %helpers_enabled
+				       %helpers_aliases
 
+				       %actparms
+				       
 		                       F_IPV4
 		                       F_IPV6
+
+				       TCP
+				       UDP
+				       UDPLITE
+				       ICMP
+				       DCCP
+				       IPv6_ICMP
+				       SCTP
+				       GRE
 
 				       MIN_VERBOSITY
 				       MAX_VERBOSITY
@@ -160,11 +192,22 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       CONFIG_CONTINUATION
 				       DO_INCLUDE
 				       NORMAL_READ
-				     ) ] );
+				     ) , ] ,
+		   protocols => [ qw (
+				       TCP
+				       UDP
+				       UDPLITE
+				       ICMP
+				       DCCP
+				       IPv6_ICMP
+				       SCTP
+				       GRE
+				    ) , ],
+		   );
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_5';
+our $VERSION = '4.5_16';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -173,51 +216,51 @@ our ($command, $doing, $done );
 #
 # VERBOSITY
 #
-my $verbosity;
+our $verbosity;
 #
 # Logging
 #
-my ( $log, $log_verbosity );
+our ( $log, $log_verbosity );
 #
 # Timestamp each progress message, if true.
 #
-my $timestamp;
+our $timestamp;
 #
 # Script (output) file handle
 #
-my $script;
+our $script;
 #
 # When 'true', writes to the script are enabled. Used to catch code emission between functions
 #
-my $script_enabled;
+our $script_enabled;
 #
 # True, if last line emitted is blank
 #
-my $lastlineblank;
+our $lastlineblank;
 #
 # Tabs to indent the output
 #
-my $indent1;
+our $indent1;
 #
 # Characters to indent the output
 #
-my $indent2;
+our $indent2;
 #
 # Total indentation
 #
-my $indent;
+our $indent;
 #
 # Script's Directory and File
 #
-my ( $dir, $file );
+our ( $dir, $file );
 #
 # Temporary output file's name
 #
-my $tempfile;
+our $tempfile;
 #
 # Fully qualified name of the configuration file
 #
-my $configfile;
+our $configfile;
 #
 # Misc Globals exported to other modules
 #
@@ -227,20 +270,25 @@ our %globals;
 #
 our %config;
 #
+# Entries in shorewall.conf that have been renamed
+#
+our %renamed = ( AUTO_COMMENT => 'AUTOCOMMENT', BLACKLIST_LOGLEVEL => 'BLACKLIST_LOG_LEVEL' );
+#
 # Config options and global settings that are to be copied to output script
 #
-my @propagateconfig = qw/ DISABLE_IPV6 MODULESDIR MODULE_SUFFIX LOAD_HELPERS_ONLY SUBSYSLOCK LOG_VERBOSITY/;
+our @propagateconfig = qw/ DISABLE_IPV6 MODULESDIR MODULE_SUFFIX LOAD_HELPERS_ONLY SUBSYSLOCK LOG_VERBOSITY/;
 #
 # From parsing the capabilities file or detecting capabilities
 #
-my %capabilities;
+our %capabilities;
 #
 # Capabilities
 #
-my  %capdesc = ( NAT_ENABLED     => 'NAT',
+our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 MANGLE_ENABLED  => 'Packet Mangling',
 		 MULTIPORT       => 'Multi-port Match' ,
 		 XMULTIPORT      => 'Extended Multi-port Match',
+		 EMULTIPORT      => 'Enhanced Multi-port Match',
 		 CONNTRACK_MATCH => 'Connection Tracking Match',
 		 OLD_CONNTRACK_MATCH =>
 		                    'Old conntrack match syntax',
@@ -308,6 +356,30 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 DSCP_MATCH      => 'DSCP Match',
 		 DSCP_TARGET     => 'DSCP Target',
 		 GEOIP_MATCH     => 'GeoIP Match' ,
+		 RPFILTER_MATCH  => 'RPFilter Match',
+		 NFACCT_MATCH    => 'NFAcct Match',
+		 CHECKSUM_TARGET => 'Checksum Target',
+		 ARPTABLESJF     => 'Arptables JF',
+		 MASQUERADE_TGT  => 'MASQUERADE Target',
+		 UDPLITEREDIRECT => 'UDPLITE Port Redirection',
+		 NEW_TOS_MATCH   => 'New tos Match',
+
+		 AMANDA_HELPER   => 'Amanda Helper',
+		 FTP_HELPER      => 'FTP Helper',
+		 FTP0_HELPER     => 'FTP-0 Helper',
+		 H323_HELPER     => 'H323 Helpers',
+		 IRC_HELPER      => 'IRC Helper',
+		 IRC0_HELPER     => 'IRC-0 Helper',
+		 NETBIOS_NS_HELPER =>
+                                    'Netbios-ns Helper',
+		 PPTP_HELPER     => 'PPTP Helper',
+		 SANE_HELPER     => 'SANE Helper',
+		 SANE0_HELPER    => 'SANE-0 Helper',
+		 SIP_HELPER      => 'SIP Helper',
+		 SIP0_HELPER     => 'SIP-0 Helper',
+		 SNMP_HELPER     => 'SNMP Helper',
+		 TFTP_HELPER     => 'TFTP Helper',
+		 TFTP0_HELPER     => 'TFTP-0 Helper',
 		 #
 		 # Constants
 		 #
@@ -316,10 +388,45 @@ my  %capdesc = ( NAT_ENABLED     => 'NAT',
 		 KERNELVERSION   => 'Kernel Version',
 	       );
 
+our %used;
+
+use constant {
+	       ICMP                => 1,
+	       TCP                 => 6,
+	       UDP                 => 17,
+	       DCCP                => 33,
+	       GRE                 => 47,
+	       IPv6_ICMP           => 58,
+	       SCTP                => 132,
+	       UDPLITE             => 136,
+	     };
+
+our %helpers = ( amanda          => UDP,
+		 ftp             => TCP,
+		 irc             => TCP,
+		 'netbios-ns'    => UDP,
+		 pptp            => TCP,
+		 'Q.931'         => TCP,
+		 RAS             => UDP,
+		 sane            => TCP,
+		 sip             => UDP,
+		 snmp            => UDP,
+		 tftp            => UDP,
+	       );
+
+our %helpers_map;
+
+our %helpers_names;
+
+our %helpers_aliases;
+
+our %helpers_enabled;
+
 our %config_files = ( #accounting      => 1,
 		      actions          => 1,
 		      blacklist        => 1,
 		      clear            => 1,
+		      conntrack        => 1,
 		      ecn              => 1,
 		      findgw           => 1,
 		      hosts            => 1,
@@ -343,6 +450,7 @@ our %config_files = ( #accounting      => 1,
 		      route_rules      => 1,
 		      routes           => 1,
 		      routestopped     => 1,
+		      rtrules          => 1,
 		      rules            => 1,
 		      scfilter         => 1,
 		      secmarks         => 1,
@@ -350,6 +458,7 @@ our %config_files = ( #accounting      => 1,
 		      started          => 1,
 		      stop             => 1,
 		      stopped          => 1,
+		      stoppedrules     => 1,
 		      tcclasses        => 1,
 		      tcclear          => 1,
 		      tcdevices        => 1,
@@ -367,56 +476,66 @@ our @auditoptions = qw( BLACKLIST_DISPOSITION MACLIST_DISPOSITION TCP_FLAGS_DISP
 #
 # Directories to search for configuration files
 #
-my @config_path;
+our @config_path;
 #
 # Stash away file references here when we encounter INCLUDE
 #
-my @includestack;
+our @includestack;
 #
 # Allow nested opens
 #
-my @openstack;
+our @openstack;
 #
 # From the params file
 #
-my %params;
+our %params;
 #
 # Entries that the compiler adds to %params
 #
-my %compiler_params;
+our %compiler_params;
 #
 # Action parameters
 #
-my @actparms;
+our %actparms;
+our $parmsmodified;
+our $inline_matches;
 
 our $currentline;            # Current config file line image
-my  $currentfile;            # File handle reference
+our $currentfile;            # File handle reference
 our $currentfilename;        # File NAME
-my  $currentlinenumber;      # Line number
-my  $perlscript;             # File Handle Reference to current temporary file being written by an in-line Perl script
-my  $perlscriptname;         # Name of that file.
-my  $embedded;               # True if we're in an embedded perl script
-my  @tempfiles;              # Files that need unlinking at END
-my  $first_entry;            # Message to output or function to call on first non-blank line of a file
+our $currentlinenumber;      # Line number
+our $perlscript;             # File Handle Reference to current temporary file being written by an in-line Perl script
+our $perlscriptname;         # Name of that file.
+our $embedded;               # True if we're in an embedded perl script
+our @tempfiles;              # Files that need unlinking at END
+our $first_entry;            # Message to output or function to call on first non-blank line of a file
+our $file_format;            # Format of configuration file.
+our $max_format;             # Max format value
+our $comment;                # Current COMMENT
+our $comments_allowed;       # True if [?]COMMENT is allowed in the current file
+our $nocomment;              # When true, ignore [?]COMMENT in the current file
+our $warningcount;           # Used to suppress duplicate warnings about missing COMMENT support
+our $warningcount1;          # Used to suppress duplicate warnings about COMMENT being deprecated
+our $warningcount2;          # Used to suppress duplicate warnings about FORMAT being deprecated
 
-my $shorewall_dir;           # Shorewall Directory; if non-empty, search here first for files.
+our $shorewall_dir;          # Shorewall Directory; if non-empty, search here first for files.
 
 our $debug;                  # Global debugging flag
-my  $confess;                # If true, use Carp to report errors with stack trace.
+our $confess;                # If true, use Carp to report errors with stack trace.
 
 our $family;                 # Protocol family (4 or 6)
 our $toolname;               # Name of the tool to use (iptables or iptables6)
-my  $toolNAME;               # Tool name in CAPS
+our $toolNAME;               # Tool name in CAPS
 our $product;                # Name of product that will run the generated script
 our $Product;                # $product with initial cap.
 
 our $sillyname;              # Name of temporary filter chains for testing capabilities
 our $sillyname1;
-my $iptables;                # Path to iptables/ip6tables
-my $tc;                      # Path to tc
-my $ip;                      # Path to ip
+our $iptables;               # Path to iptables/ip6tables
+our $tc;                     # Path to tc
+our $ip;                     # Path to ip
 
-my $shell;                   # Type of shell that processed the params file
+our $shell;                  # Type of shell that processed the params file
 
 use constant { BASH    => 1,
 	       OLDBASH => 2,
@@ -428,32 +547,41 @@ use constant { MIN_VERBOSITY => -1,
 	       F_IPV6 => 6,
 	     };
 
-my %validlevels;             # Valid log levels.
+our %validlevels;            # Valid log levels.
 
 #
 # Deprecated options with their default values
 #
-my %deprecated = ( LOGRATE            => '' ,
-		   LOGBURST           => '' ,
-		   EXPORTPARAMS       => 'no',
-		   WIDE_TC_MARKS      => 'no',
-		   HIGH_ROUTE_MARKS   => 'no'
-		 );
+our %deprecated = ( LOGRATE            => '' ,
+		    LOGBURST           => '' ,
+		    EXPORTPARAMS       => 'no',
+		    WIDE_TC_MARKS      => 'no',
+		    HIGH_ROUTE_MARKS   => 'no',
+		    BLACKLISTNEWONLY   => 'yes',
+		  );
 #
 # Deprecated options that are eliminated via update
 #
-my %converted = ( WIDE_TC_MARKS => 1,
-		  HIGH_ROUTE_MARKS => 1 );
+our %converted = ( WIDE_TC_MARKS => 1,
+		   HIGH_ROUTE_MARKS => 1,
+		   BLACKLISTNEWONLY => 1,
+		 );
 #
 # Variables involved in ?IF, ?ELSE ?ENDIF processing
 #
-my $omitting;
-my @ifstack;
-my $ifstack;
+our $omitting;
+our @ifstack;
+our $ifstack;
+#
+# Entries on the ifstack are a 4-tuple:
+#
+#    [0] - Keyword (IF, ELSEIF, ELSE or ENDIF)
+#    [1] - True if the outermost IF evaluated to false
+#    [2] - True if the the last unterminated IF evaluated to false
 #
 # From .shorewallrc
 #
-our %shorewallrc;
+our ( %shorewallrc, %shorewallrc1 );
 #
 # read_a_line options
 #
@@ -469,7 +597,10 @@ use constant { PLAIN_READ          => 0,     # No read_a_line options
                NORMAL_READ         => -1     # All options
 	   };
 
-sub process_shorewallrc($);
+our %variables; # Symbol table for expanding shell variables
+
+sub process_shorewallrc($$);
+sub add_variables( \% );
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -480,8 +611,8 @@ sub process_shorewallrc($);
 #   2. The compiler can run multiple times in the same process so it has to be
 #      able to re-initialize its dependent modules' state.
 #
-sub initialize( $;$ ) {
-    ( $family, my $shorewallrc ) = @_;
+sub initialize( $;$$) {
+    ( $family, my ( $shorewallrc, $shorewallrc1 ) ) = @_;
 
     if ( $family == F_IPV4 ) {
 	( $product, $Product, $toolname, $toolNAME ) = qw( shorewall  Shorewall iptables  IPTABLES );
@@ -508,19 +639,25 @@ sub initialize( $;$ ) {
     @ifstack        = ();
     $embedded       = 0;
     #
+    # Contents of last COMMENT line.
+    #
+    $comment       = '';
+    $warningcount  = 0;
+    $warningcount1 = 0;
+    $warningcount2 = 0;
+    #
     # Misc Globals
     #
-    %globals  =   ( SHAREDIRPL => '' ,
-		    CONFDIR    => '',         # Run-time configuration directory
-		    CONFIGDIR  => '',         # Compile-time configuration directory (location of $product.conf)
-		    LOGPARMS   => '',
-		    TC_SCRIPT  => '',
-		    EXPORT     => 0,
-		    KLUDGEFREE => '',
-		    STATEMATCH => '-m state --state',
-		    UNTRACKED  => 0,
-		    VERSION    => "4.5.5.3",
-		    CAPVERSION => 40504 ,
+    %globals  =   ( SHAREDIRPL              => '' ,
+		    CONFIGDIR               => '',         # Compile-time configuration directory (location of $product.conf)
+		    ESTABLISHED_DISPOSITION => 'ACCEPT',
+		    LOGPARMS                => '',
+		    TC_SCRIPT               => '',
+		    EXPORT                  => 0,
+		    KLUDGEFREE              => '',
+		    STATEMATCH              => '-m state --state',
+		    VERSION                 => "4.5.16.1",
+		    CAPVERSION              => 40515 ,
 		  );
     #
     # From shorewall.conf file
@@ -538,7 +675,7 @@ sub initialize( $;$ ) {
 	  LOGRATE => undef,
 	  LOGBURST => undef,
 	  LOGALLNEW => undef,
-	  BLACKLIST_LOGLEVEL => undef,
+	  BLACKLIST_LOG_LEVEL => undef,
 	  RELATED_LOG_LEVEL => undef,
 	  RFC1918_LOG_LEVEL => undef,
 	  MACLIST_LOG_LEVEL => undef,
@@ -548,6 +685,9 @@ sub initialize( $;$ ) {
 	  LOG_VERBOSITY => undef,
 	  STARTUP_LOG => undef,
 	  SFILTER_LOG_LEVEL => undef,
+	  RPFILTER_LOG_LEVEL => undef,
+	  INVALID_LOG_LEVEL => undef,
+	  UNTRACKED_LOG_LEVEL => undef,
 	  #
 	  # Location of Files
 	  #
@@ -564,6 +704,7 @@ sub initialize( $;$ ) {
 	  IPSECFILE => undef,
 	  LOCKFILE => undef,
 	  GEOIPDIR => undef,
+	  NFACCT => undef,
 	  #
 	  # Default Actions/Macros
 	  #
@@ -595,6 +736,7 @@ sub initialize( $;$ ) {
 	  DETECT_DNAT_IPADDRS => undef,
 	  MUTEX_TIMEOUT => undef,
 	  ADMINISABSENTMINDED => undef,
+	  BLACKLIST => undef,
 	  BLACKLISTNEWONLY => undef,
 	  DELAYBLACKLISTLOAD => undef,
 	  MODULE_SUFFIX => undef,
@@ -604,6 +746,7 @@ sub initialize( $;$ ) {
 	  MACLIST_TABLE => undef,
 	  MACLIST_TTL => undef,
 	  SAVE_IPSETS => undef,
+	  SAVE_ARPTABLES => undef,
 	  MAPOLDACTIONS => undef,
 	  FASTACCEPT => undef,
 	  IMPLICIT_CONTINUE => undef,
@@ -618,7 +761,7 @@ sub initialize( $;$ ) {
 	  DELETE_THEN_ADD => undef,
 	  MULTICAST => undef,
 	  DONT_LOAD => '',
-	  AUTO_COMMENT => undef ,
+	  AUTOCOMMENT => undef ,
 	  MANGLE_ENABLED => undef ,
 	  RFC1918_STRICT => undef ,
 	  NULL_ROUTE_RFC1918 => undef ,
@@ -640,6 +783,14 @@ sub initialize( $;$ ) {
 	  EXPORTMODULES => undef,
 	  LEGACY_FASTSTART => undef,
 	  USE_PHYSICAL_NAMES => undef,
+	  HELPERS => undef,
+	  AUTOHELPERS => undef,
+	  RESTORE_ROUTEMARKS => undef,
+	  IGNOREUNKNOWNVARIABLES => undef,
+	  WARNOLDCAPVERSION => undef,
+	  DEFER_DNS_RESOLUTION => undef,
+	  USE_RT_NAMES => undef,
+	  CHAIN_SCRIPTS => undef,
 	  #
 	  # Packet Disposition
 	  #
@@ -648,7 +799,10 @@ sub initialize( $;$ ) {
 	  BLACKLIST_DISPOSITION => undef,
 	  SMURF_DISPOSITION => undef,
 	  SFILTER_DISPOSITION => undef,
+	  RPFILTER_DISPOSITION => undef,
 	  RELATED_DISPOSITION => undef,
+	  INVALID_DISPOSITION => undef,
+	  UNTRACKED_DISPOSITION => undef,
 	  #
 	  # Mark Geometry
 	  #
@@ -690,6 +844,7 @@ sub initialize( $;$ ) {
 	       MANGLE_ENABLED => undef,
 	       MULTIPORT => undef,
 	       XMULTIPORT => undef,
+	       EMULTIPORT => undef,
 	       CONNTRACK_MATCH => undef,
 	       NEW_CONNTRACK_MATCH => undef,
 	       OLD_CONNTRACK_MATCH => undef,
@@ -753,6 +908,30 @@ sub initialize( $;$ ) {
 	       DSCP_MATCH => undef,
 	       DSCP_TARGET => undef,
 	       GEOIP_MATCH => undef,
+	       RPFILTER_MATCH => undef,
+	       NFACCT_MATCH => undef,
+	       CHECKSUM_TARGET => undef,
+	       ARPTABLESJF => undef,
+	       MASQUERADE_TGT => undef,
+	       UDPLITEREDIRECT => undef,
+	       NEW_TOS_MATCH => undef,
+
+	       AMANDA_HELPER => undef,
+	       FTP_HELPER => undef,
+	       FTP0_HELPER => undef,
+	       H323_HELPER => undef,
+	       IRC_HELPER => undef,
+	       IRC0_HELPER => undef,
+	       NETBIOS_NS_HELPER => undef,
+	       PPTP_HELPER => undef,
+	       SANE_HELPER => undef,
+	       SANE0_HELPER => undef,
+	       SIP_HELPER => undef,
+	       SIP0_HELPER => undef,
+	       SNMP_HELPER => undef,
+	       TFTP_HELPER => undef,
+	       TFTP0_HELPER => undef,
+
 	       CAPVERSION => undef,
 	       LOG_OPTIONS => 1,
 	       KERNELVERSION => undef,
@@ -775,6 +954,9 @@ sub initialize( $;$ ) {
     $currentfilename = '';    # File NAME
     $currentlinenumber = 0;   # Line number
     $first_entry = 0;         # Message to output or function to call on first non-blank file entry
+    $max_format  = 1;
+    $comments_allowed = 0;
+    $nocomment = 0;
 
     $shorewall_dir = '';      #Shorewall Directory
 
@@ -785,29 +967,101 @@ sub initialize( $;$ ) {
 
     %compiler_params = ();
 
-    @actparms = ();
+    %actparms = ( 0 => 0, loglevel => '', logtag => '', chain => '', disposition => '', caller => ''  );
+    $parmsmodified = 0;
+
+    %helpers_enabled = (
+			amanda       => 1,
+			ftp          => 1,
+			'ftp-0'      => 1,
+			h323         => 1,
+			irc          => 1,
+			'irc-0'      => 1,
+			'netbios-ns' => 1,
+			pptp         => 1,
+			sane         => 1,
+			'sane-0'     => 1,
+			sip          => 1,
+			'sip-0'      => 1,
+			snmp         => 1,
+			tftp         => 1,
+			'tftp-0'     => 1,
+		       );
+
+    %helpers_map = ( amanda          => 'AMANDA_HELPER',
+		     ftp             => 'FTP_HELPER',
+		     irc             => 'IRC_HELPER',
+		     'netbios-ns'    => 'NETBIOS_NS_HELPER',
+		     pptp            => 'PPTP_HELPER',
+		     'Q.931'         => 'H323_HELPER',
+		     RAS             => 'H323_HELPER',
+		     sane            => 'SANE_HELPER',
+		     sip             => 'SIP_HELPER',
+		     snmp            => 'SNMP_HELPER',
+		     tftp            => 'TFTP_HELPER',
+		   );
+
+    %helpers_aliases = ( amanda       => 'amanda',
+			 ftp          => 'ftp',
+			 irc          => 'irc',
+			 'netbios-ns' => 'netbios-ns',
+			 pptp         => 'pptp',
+			 'Q.931'      => 'Q.931',
+			 RAS          => 'RAS',
+			 sane         => 'sane',
+			 sip          => 'sip',
+			 snmp         => 'snmp',
+			 tftp         => 'tftp',
+		       );
 
     %shorewallrc = (
 		    SHAREDIR => '/usr/share/',
 		    CONFDIR  => '/etc/',
 		    );
 
-    process_shorewallrc( $shorewallrc ) if $shorewallrc;
+    %variables = %ENV;
+    #
+    # If we are compiling for export, process the shorewallrc from the remote system
+    #
+    if ( $shorewallrc1 ) {
+	process_shorewallrc( $shorewallrc1,
+			     $family == F_IPV4 ? 'shorewall-lite' : 'shorewall6-lite'
+			   );
+
+	%shorewallrc1 = %shorewallrc;
+
+	%shorewallrc = (
+			SHAREDIR => '/usr/share/',
+			CONFDIR  => '/etc/',
+		       );
+    }
+    #
+    # Process the global shorewallrc file
+    #
+    #   Note: The build file executes this function passing only the protocol family
+    #
+    process_shorewallrc( $shorewallrc,
+			 $family == F_IPV4 ? 'shorewall' : 'shorewall6'
+		       ) if defined $shorewallrc;
 
     $globals{SHAREDIRPL} = "$shorewallrc{SHAREDIR}/shorewall/";
 
     if ( $family == F_IPV4 ) {
 	$globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall";
-	$globals{CONFDIR}       = "$shorewallrc{CONFDIR}/shorewall";
 	$globals{PRODUCT}       = 'shorewall';
 	$config{IPTABLES}       = undef;
+	$config{ARPTABLES}      = undef;
 	$validlevels{ULOG}      = 'ULOG';
     } else {
 	$globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall6";
-	$globals{CONFDIR}       = "$shorewallrc{CONFDIR}/shorewall6";
 	$globals{PRODUCT}       = 'shorewall6';
 	$config{IP6TABLES}      = undef;
+	delete $config{ARPTABLES};
     }
+
+    %shorewallrc1 = %shorewallrc unless $shorewallrc1;
+
+    add_variables %shorewallrc1;
 }
 
 my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
@@ -853,6 +1107,8 @@ sub currentlineinfo() {
     }
 }
 
+sub handle_first_entry();
+
 #
 # Issue a Warning Message
 #
@@ -860,6 +1116,8 @@ sub warning_message
 {
     my $currentlineinfo = currentlineinfo;
     our @localtime;
+
+    handle_first_entry if $first_entry;
 
     $| = 1; #Reset output buffering (flush any partially filled buffers).
 
@@ -905,8 +1163,8 @@ sub cleanup() {
 	for ( my $i = @openstack - 1; $i >= 0; $i-- ) {
 	    my $istack = $openstack[$i];
 	    for ( my $j = ( @$istack - 1 ); $j >= 0; $j-- ) {
-		my $info = $istack->[$j];
-		close $info->[0];
+		my $info = $istack->[$j][0];
+		close $info if $info;
 	    }
 	}
     }
@@ -927,8 +1185,24 @@ sub cleanup() {
 	qt1( "$iptables -X $sillyname" );
 	qt1( "$iptables -F $sillyname1" );
 	qt1( "$iptables -X $sillyname1" );
-	qt1( "$iptables -t mangle -F $sillyname" );
-	qt1( "$iptables -t mangle -X $sillyname" );
+
+	if ( $capabilities{MANGLE_ENABLED} ) {
+	    qt1( "$iptables -t mangle -F $sillyname" );
+	    qt1( "$iptables -t mangle -X $sillyname" );
+	}
+
+	if ( $capabilities{NAT_ENABLED} ) {
+	    qt1( "$iptables -t nat -F $sillyname" );
+	    qt1( "$iptables -t nat -X $sillyname" );
+	}
+
+	if ( $capabilities{RAW_TABLE} ) {
+	    qt1( "$iptables -t raw -F $sillyname" );
+	    qt1( "$iptables -t raw -X $sillyname" );
+	}
+
+	$sillyname = $sillyname1 = undef;
+
 	$sillyname = '';
     }
 }
@@ -938,6 +1212,8 @@ sub cleanup() {
 #
 sub fatal_error	{
     my $currentlineinfo = currentlineinfo;
+
+    handle_first_entry if $first_entry;
 
     $| = 1; #Reset output buffering (flush any partially filled buffers).
 
@@ -967,6 +1243,8 @@ sub fatal_error	{
 }
 
 sub fatal_error1 {
+    handle_first_entry if $first_entry;
+
     $| = 1;
 
     if ( $log ) {
@@ -1056,7 +1334,7 @@ sub in_hex2( $ ) {
 }
 
 sub in_hex3( $ ) {
-    sprintf '0x%03x', $_[0];
+    sprintf '%03x', $_[0];
 }
 
 sub in_hex4( $ ) {
@@ -1300,24 +1578,32 @@ sub progress_message3 {
 #
 # Push/Pop Indent
 #
-sub push_indent() {
-    if ( $indent2 ) {
-	$indent2 = '';
-	$indent = $indent1 = $indent1 . "\t";
-    } else {
-	$indent2 = '    ';
-	$indent = $indent1 . $indent2;
+sub push_indent(;$) {
+    my $times = shift || 1;
+
+    while ( $times-- ) {
+	if ( $indent2 ) {
+	    $indent2 = '';
+	    $indent = $indent1 = $indent1 . "\t";
+	} else {
+	    $indent2 = '    ';
+	    $indent = $indent1 . $indent2;
+	}
     }
 }
 
-sub pop_indent() {
-    if ( $indent2 ) {
-	$indent2 = '';
-	$indent = $indent1;
-    } else {
-	$indent1 = substr( $indent1 , 0, -1 );
-	$indent2 = '    ';
-	$indent = $indent1 . $indent2;
+sub pop_indent(;$) {
+    my $times = shift || 1;
+
+    while ( $times-- ) {
+	if ( $indent2 ) {
+	    $indent2 = '';
+	    $indent = $indent1;
+	} else {
+	    $indent1 = substr( $indent1 , 0, -1 );
+	    $indent2 = '    ';
+	    $indent = $indent1 . $indent2;
+	}
     }
 }
 
@@ -1455,8 +1741,8 @@ sub split_list( $$;$ ) {
     split /,/, $list;
 }
 
-sub split_list1( $$ ) {
-    my ($list, $type ) = @_;
+sub split_list1( $$;$ ) {
+    my ($list, $type, $keepparens ) = @_;
 
     fatal_error "Invalid $type list ($list)" if $list =~ /^,|,$|,,|!,|,!$/;
 
@@ -1469,17 +1755,17 @@ sub split_list1( $$ ) {
 
 	if ( ( $count = tr/(/(/ ) > 0 ) {
 	    fatal_error "Invalid $type list ($list)" if $element || $count > 1;
-	    s/\(//;
+	    s/\(// unless $keepparens;
 	    if ( ( $count = tr/)/)/ ) > 0 ) {
 		fatal_error "Invalid $type list ($list)" if $count > 1;
-		s/\)//;
+		s/\)// unless $keepparens;
 		push @list2 , $_;
 	    } else {
 		$element = $_;
 	    }
 	} elsif ( ( $count =  tr/)/)/ ) > 0 ) {
 	    fatal_error "Invalid $type list ($list)" unless $element && $count == 1;
-	    s/\)//;
+	    s/\)// unless $keepparens;
 	    push @list2, join ',', $element, $_;
 	    $element = '';
 	} elsif ( $element ) {
@@ -1487,6 +1773,120 @@ sub split_list1( $$ ) {
 	} else {
 	    push @list2 , $_;
 	}
+    }
+
+    @list2;
+}
+
+#
+# The next two functions split a list which contain arbitrarily deep paren nesting.
+# The first splits on ':' and the second on ','.
+#
+sub split_list2( $$ ) {
+    my ($list, $type ) = @_;
+
+    fatal_error "Invalid $type ($list)" if $list =~ /^:|::/;
+
+    my @list1 = split /:/, $list;
+    my @list2;
+    my $element   = '';
+    my $opencount = 0;
+
+
+    for ( @list1 ) {
+	my $count;
+
+	if ( ( $count = tr/(/(/ ) > 0 ) {
+	    $opencount += $count;
+	    if ( $element eq '' ) {
+		$element = $_;
+	    } else {
+		$element = join( ':', $element, $_ );
+	    }
+
+	    if ( ( $count = tr/)/)/ ) > 0 ) {
+		if ( ! ( $opencount -= $count ) ) {
+		     push @list2 , $element;
+		     $element = '';
+		} else {
+		    fatal_error "Invalid $type ($list)" if $opencount < 0;
+		}
+	    }
+	} elsif ( ( $count =  tr/)/)/ ) > 0 ) {
+	    fatal_error "Invalid $type ($list)" if $element eq '';
+	    $element = join (':', $element, $_ );
+	    if ( ! ( $opencount -= $count ) ) {
+		 push @list2 , $element;
+		 $element = '';
+	    } else {
+		fatal_error "Invalid $type ($list)" if $opencount < 0;
+	    }
+	} elsif ( $element eq '' ) {
+	    push @list2 , $_;
+	} else {
+	    $element = join ':', $element , $_;
+	}
+    }
+    
+    unless ( $opencount == 0 ) {
+	fatal_error "Invalid $type ($list)";
+    }
+
+    @list2;
+}
+
+sub split_list3( $$ ) {
+    my ($list, $type ) = @_;
+    #
+    # We allow omitted arguments in action invocations.
+    #
+    $list =~ s/^,/-,/;
+    $list =~ s/,$/,-/;
+    $list =~ s/,,/,-,/g;
+
+    my @list1 = split /,/, $list;
+    my @list2;
+    my $element   = '';
+    my $opencount = 0;
+
+
+    for ( @list1 ) {
+	my $count;
+
+	if ( ( $count = tr/(/(/ ) > 0 ) {
+	    $opencount += $count;
+	    if ( $element eq '' ) {
+		$element = $_;
+	    } else {
+		$element = join( ',', $element, $_ );
+	    }
+
+	    if ( ( $count = tr/)/)/ ) > 0 ) {
+		if ( ! ( $opencount -= $count ) ) {
+		     push @list2 , $element;
+		     $element = '';
+		} else {
+		    fatal_error "Invalid $type ($list)" if $opencount < 0;
+		}
+	    }
+	} elsif ( ( $count =  tr/)/)/ ) > 0 ) {
+	    fatal_error "Invalid $type ($list)" if $element eq '';
+	    $element = join (',', $element, $_ );
+	    if ( ! ( $opencount -= $count ) ) {
+		 push @list2 , $element;
+		 $element = '';
+	    } else {
+		fatal_error "Invalid $type ($list)" if $opencount < 0;
+	    }
+	} elsif ( $element eq '' ) {
+	    push @list2 , $_;
+	} else {
+	    $element = join ',', $element , $_;
+	}
+    }
+    
+    unless ( $opencount == 0 ) {
+	fatal_error "Invalid $type ($list)";
     }
 
     @list2;
@@ -1515,6 +1915,8 @@ sub split_line1( $$;$$ ) {
 	my @maxcolumns = ( keys %$columnsref );
 	$maxcolumns = @maxcolumns;
     }
+
+    $inline_matches = '';
     #
     # First see if there is a semicolon on the line; what follows will be column/value paris
     #
@@ -1525,7 +1927,21 @@ sub split_line1( $$;$$ ) {
 	# Found it -- be sure there wasn't more than one.
 	#
 	fatal_error "Only one semicolon (';') allowed on a line" if defined $rest;
-    } elsif ( $currentline =~ /(.*){(.*)}$/ ) {
+
+	if ( $currentline =~ /^\s*INLINE(?:\(.*\)|:.*)?\s/) {
+	    $inline_matches = $pairs;
+
+	    if ( $columns =~ /^(\s*|.*[^&@%]){(.*)}\s*$/ ) {
+		#
+		# Pairs are enclosed in curly brackets.
+		#
+		$columns = $1;
+		$pairs   = $2;
+	    } else {
+		$pairs = '';
+	    }
+	}
+    } elsif ( $currentline =~ /^(\s*|.*[^&@%]){(.*)}$/ ) {
 	#
 	# Pairs are enclosed in curly brackets.
 	#
@@ -1540,7 +1956,7 @@ sub split_line1( $$;$$ ) {
 
     my @line = split( ' ', $columns );
 
-    $nopad = { COMMENT => 0 } unless $nopad;
+    $nopad = {} unless $nopad;
 
     my $first     = supplied $line[0] ? $line[0] : '-';
     my $npcolumns = $nopad->{$first};
@@ -1587,6 +2003,65 @@ sub split_line($$) {
 }
 
 #
+# Generate a FORMAT warning
+#
+sub format_warning() {
+    warning_message "'FORMAT' is deprecated in favor of '?FORMAT' - consider running '$product update -D'" unless $warningcount2++; 
+}    
+
+#
+# Process a COMMENT line (in $currentline)
+#
+sub have_capability( $;$ );
+
+sub process_comment() {
+    if ( have_capability( 'COMMENTS' ) ) {
+	warning_message "'COMMENT' is deprecated in favor of '?COMMENT' - consider running '$product update -D'" unless $warningcount1++; 
+	( $comment = $currentline ) =~ s/^\s*COMMENT\s*//;
+	$comment =~ s/\s*$//;
+    } else {
+	warning_message "COMMENTs ignored -- require comment support in iptables/Netfilter" unless $warningcount++;
+    }
+}
+
+#
+# Returns True if there is a current COMMENT or if COMMENTS are not available.
+#
+sub no_comment() {
+    $comment ? 1 : ! have_capability( 'COMMENTS' );
+}
+
+#
+# Clear the $comment variable and the comment stack
+#
+sub clear_comment() {
+    $comment   = '';
+    $nocomment = 0;
+}
+
+#
+# Push and Pop comment stack
+#
+sub push_comment() {
+    my $return = $comment;
+    $comment   = '';
+    $return;
+}
+
+sub pop_comment( $ ) {
+    $comment = $_[0];
+}
+
+#
+# Set $comment to the passed unless there is a current comment
+#
+sub macro_comment( $ ) {
+    my $macro = $_[0];
+
+    $comment = $macro unless $comment || ! ( have_capability( 'COMMENTS' ) && $config{AUTOCOMMENT} );
+}
+
+#
 # Open a file, setting $currentfile. Returns the file's absolute pathname if the file
 # exists, is non-empty  and was successfully opened. Terminates with a fatal error
 # if the file exists, is non-empty, but the open fails.
@@ -1599,18 +2074,46 @@ sub do_open_file( $ ) {
     $currentfilename   = $fname;
 }
 
-sub open_file( $ ) {
-    my $fname = find_file $_[0];
+#
+# Arguments are:
+#
+# - file name
+# - Maximum value allowed in ?FORMAT directives
+# - ?COMMENT allowed in this file
+# - Ignore ?COMMENT in ths file
+#
+sub open_file( $;$$$ ) {
+    my ( $fname, $mf, $ca, $nc ) = @_;
+    
+    $fname = find_file $fname;
 
     assert( ! defined $currentfile );
 
     if ( -f $fname && -s _ ) {
-	$first_entry = 0;
+	$first_entry      = 0;
+	$file_format      = 1;
+	$max_format       = supplied $mf ? $mf : 1;
+	$comments_allowed = supplied $ca ? $ca : 0;
+	$nocomment        = $nc;
 	do_open_file $fname;;
     } else {
 	$ifstack = @ifstack;
 	'';
     }
+}
+
+#
+# Push open-specific globals onto the include stack
+#
+sub push_include() {
+    push @includestack, [ $currentfile,
+			  $currentfilename,
+			  $currentlinenumber,
+			  $ifstack,
+			  $file_format,
+			  $max_format,
+			  $comment,
+			  $nocomment ];
 }
 
 #
@@ -1626,10 +2129,18 @@ sub pop_include() {
     }
 
     if ( $arrayref ) {
-	( $currentfile, $currentfilename, $currentlinenumber, $ifstack ) = @$arrayref;
+	( $currentfile,
+	  $currentfilename,
+	  $currentlinenumber,
+	  $ifstack,
+	  $file_format,
+	  $max_format,
+	  $comment,
+	  $nocomment ) = @$arrayref;
     } else {
 	$currentfile       = undef;
 	$currentlinenumber = 'EOF';
+	clear_comment;
     }
 }
 
@@ -1645,79 +2156,275 @@ sub close_file() {
 
 	fatal_error "SHELL Script failed" unless $result;
 
-	$first_entry = 0;
-
+	$first_entry      = 0;
     }
 }
 
 #
-# Process an ?IF, ?ELSE or ?END directive
+# Process an ?IF, ?ELSIF, ?ELSE or ?END directive
 #
-sub have_capability( $ );
 
 #
-# Report an error from process_conditional() -- the first argument is the linenumber
+# Report an error or warning from process_compiler_directive()
 #
-sub cond_error( $$ ) {
-    $currentlinenumber = $_[0];
-    fatal_error $_[1];
+sub directive_error( $$$ ) {
+    $currentfilename   = $_[1];
+    $currentlinenumber = $_[2];
+    fatal_error $_[0];
 }
 
-sub process_conditional( $$$ ) {
-    my ( $omitting, $line, $linenumber ) = @_;
+sub directive_warning( $$$ ) {
+    my ( $savefilename, $savelineno ) = ( $currentfilename, $currentlinenumber );
+    ( my $warning, $currentfilename, $currentlinenumber ) = @_;
+    warning_message $warning;
+    ( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
+}
+
+#
+# Add quotes to the passed value if the passed 'first part' has an odd number of quotes
+# Return an expression that concatenates $first, $val and $rest
+#
+sub join_parts( $$$ ) {
+    my ( $first, $val, $rest ) = @_;
+
+    $val = '' unless defined $val;
+    $val = "'$val'" unless ( $val =~ /^-?\d+$/               ||    # Value is numeric
+			     ( ( ( $first =~ tr/"/"/ ) & 1 ) ||    # There are an odd number of double quotes preceding the value
+			       ( ( $first =~ tr/'/'/ ) & 1 ) ) );  # There are an odd number of single quotes preceding the value
+    join( '', $first, $val, $rest );
+}
+
+#
+# Evaluate an expression in an ?IF, ?ELSIF or ?SET directive
+#
+sub evaluate_expression( $$$ ) {
+    my ( $expression , $filename , $linenumber ) = @_;
+    my $val;
+    my $count = 0;
+    my $chain = $actparms{chain};
+    #                         $1      $2   $3                     -     $4
+    while ( $expression =~ m( ^(.*?) \$({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
+	my ( $first, $var, $rest ) = ( $1, $3, $4);
+
+	if ( $var =~ /^\d+$/ ) {
+	    fatal_error "Action parameters (\$$var) may only be referenced within the body of an action" unless $chain;
+	    $val = $var ? $actparms{$var} : $actparms{0}->{name};
+	} else {
+	    $val = ( exists $variables{$var} ? $variables{$var} :
+		     exists $capdesc{$var}   ? have_capability( $var ) : '' );
+	}
+
+	$expression = join_parts( $first, $val, $rest );
+	directive_error( "Variable Expansion Loop" , $filename, $linenumber ) if ++$count > 100;
+    }
+
+    if ( $chain ) {
+	#                         $1      $2   $3                     -     $4
+	while ( $expression =~ m( ^(.*?) \@({)? (\d+|[a-zA-Z]\w*) (?(2)}) (.*)$ )x ) {
+	    my ( $first, $var, $rest ) = ( $1, $3, $4);
+	    $var = numeric_value( $var ) if $var =~ /^\d/;
+	    $val = $var ? $actparms{$var} : $chain;
+	    $parmsmodified ||= $var eq 'caller';
+	    $expression = join_parts( $first, $val, $rest );
+	    directive_error( "Variable Expansion Loop" , $filename, $linenumber ) if ++$count > 100;
+	}
+    }
+
+    #                         $1      $2   $3      -     $4
+    while ( $expression =~ m( ^(.*?) __({)? (\w+) (?(2)}) (.*)$ )x ) {
+	my ( $first, $cap, $rest ) = ( $1, $3, $4);
+
+	if ( exists $capdesc{$cap} ) {
+	    $val = have_capability( $cap );
+	    if ( defined $val ) {
+		$val = "'$val'" unless $val =~ /^-?\d+$/;
+	    } else {
+		$val = 0;
+	    }
+	} elsif ( $cap =~ /^IPV([46])$/ ) {
+	    $val = ( $family == $1 ) || 0;
+	} else {
+	    directive_error "Unknown capability ($cap)", $filename, $linenumber;
+	}
+
+	$expression = join( '', $first, $val, $rest );
+    }
+
+    $expression =~ s/^\s*(.+)\s*$/$1/;
+
+    print "EXPR=> $expression\n" if $debug;
+
+    if ( $expression =~ /^\d+$/ ) {
+	$val = $expression
+    } else {
+	#
+	# Not a simple one-term expression -- compile it
+	#
+	$val = eval qq(package Shorewall::User;\nuse strict;\n# line $linenumber "$filename"\n$expression);
+
+	unless ( $val ) {
+	    directive_error( "Couldn't parse expression ($expression): $@" , $filename, $linenumber ) if $@;
+	    $val = '' unless defined $val;
+	}
+    }
+
+    $val;
+}
+
+#
+# Each entry in @ifstack consists of a 4-tupple
+#
+# [0] = The keyword (IF,ELSIF or ELSE)
+# [1] = True if we were already omitting at the last IF directive
+# [2] = True if we have included any block of the current IF...ELSEIF....ELSEIF... sequence.
+# [3] = The line number of the directive
+#
+sub process_compiler_directive( $$$$ ) {
+    my ( $omitting, $line, $filename, $linenumber ) = @_;
 
     print "CD===> $line\n" if $debug;
 
-    cond_error $linenumber, "Invalid compiler directive ($line)" unless $line =~ /^\s*\?(IF\s+|ELSE|ENDIF)(.*)$/;
+    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*)(.*)$/i;
 
-    my ($keyword, $rest) = ( $1, $2 );
+    my ($keyword, $expression) = ( uc $1, $2 );
 
-    if ( supplied $rest ) {
-	$rest =~ s/#.*//;
-	$rest =~ s/\s*$//;
+    $keyword =~ s/\s*$//;
+
+    if ( supplied $expression ) {
+	$expression =~ s/#.*//;
+	$expression =~ s/\s*$//;
     } else {
-	$rest = '';
+	$expression = '';
     }
 
-    my ( $lastkeyword, $prioromit, $lastomit, $lastlinenumber ) = @ifstack ? @{$ifstack[-1]} : ('', 0, 0, 0 );
+    my ( $lastkeyword, $prioromit, $included, $lastlinenumber ) = @ifstack ? @{$ifstack[-1]} : ('', 0, 0, 0 );
 
-    if ( $keyword =~ /^IF/ ) {
-	cond_error $linenumber, "Missing IF variable" unless $rest;
-	my $invert = $rest =~ s/^!\s*//;
-	cond_error $linenumber, "Invalid IF variable ($rest)" unless ($rest =~ s/^\$// || $rest =~ /^__/ ) && $rest =~ /^\w+$/;
+    my %directives = ( IF => sub() {
+			   directive_error( "Missing IF expression" , $filename, $linenumber ) unless supplied $expression;
+			   my $nextomitting = $omitting || ! evaluate_expression( $expression , $filename, $linenumber );
+			   push @ifstack, [ 'IF', $omitting, ! $nextomitting, $linenumber ];
+			   $omitting = $nextomitting;
+		       } ,
 
-	push @ifstack, [ 'IF', $omitting, $omitting, $linenumber ];
+		       ELSIF => sub() {
+			   directive_error( "?ELSIF has no matching ?IF" , $filename, $linenumber ) unless @ifstack > $ifstack && $lastkeyword =~ /IF/;
+			   directive_error( "Missing IF expression" , $filename, $linenumber ) unless $expression;
+			   if ( $omitting && ! $included ) {
+			       #
+			       # We can only change to including if we were previously omitting
+			       #
+			       $omitting = $prioromit || ! evaluate_expression( $expression , $filename, $linenumber );
+			       $included = ! $omitting;
+			   } else {
+			       #
+			       # We have already included -- so we don't want to include this part
+			       #
+			       $omitting = 1;
+			   }
+			   $ifstack[-1] = [ 'ELSIF', $prioromit, $included, $lastlinenumber ];
+		       } ,
 
-	$lastomit = $omitting;
+		       ELSE => sub() {
+			   directive_error( "Invalid ?ELSE" , $filename, $linenumber ) unless $expression eq '';
+			   directive_error( "?ELSE has no matching ?IF" , $filename, $linenumber ) unless @ifstack > $ifstack && $lastkeyword =~ /IF/;
+			   $omitting = $included || ! $omitting unless $prioromit;
+			   $ifstack[-1] = [ 'ELSE', $prioromit, 1, $lastlinenumber ];
+		       } ,
 
-	if ( $rest eq '__IPV6' ) {
-	    $omitting = $family == F_IPV4;
-	} elsif ( $rest eq '__IPV4' ) {
-	    $omitting = $family == F_IPV6;
-	} else {
-	    my $cap = $rest;
+		       ENDIF => sub() {
+			   directive_error( "Invalid ?ENDIF" , $filename, $linenumber ) unless $expression eq '';
+			   directive_error( q(Unexpected "?ENDIF" without matching ?IF or ?ELSE) , $filename, $linenumber ) if @ifstack <= $ifstack;
+			   $omitting = $prioromit;
+			   pop @ifstack;
+		       } ,
 
-	    $cap =~ s/^__//;
+		       SET => sub() {
+			   unless ( $omitting ) {
+			       directive_error( "Missing SET variable", $filename, $linenumber ) unless supplied $expression;
+			       ( my $var , $expression ) = split ' ', $expression, 2;
+			       directive_error( "Invalid SET variable ($var)", $filename, $linenumber) unless $var =~ /^(\$)?([a-zA-Z]\w*)$/ || $var =~ /^(@)(\d+|[a-zA-Z]\w*)/;
+			       directive_error( "Missing SET expression"     , $filename, $linenumber) unless supplied $expression;
 
-	    $omitting = ! ( exists $ENV{$rest}    ? $ENV{$rest}    :
-			    exists $params{$rest} ? $params{$rest} :
-			    exists $config{$rest} ? $config{$rest} :
-			    exists $capdesc{$cap} ? have_capability( $cap ) : 0 );
-	}
+			       if ( ( $1 || '' ) eq '@' ) {
+				   $var = $2;
+				   $var = numeric_value( $var ) if $var =~ /^\d/;
+				   $var = $2 || 'chain';
+				   directive_error( "Shorewall variables may only be SET in the body of an action", $filename, $linenumber ) unless $actparms{0};
+				   my $val = $actparms{$var} = evaluate_expression ( $expression,
+										     $filename,
+										     $linenumber );
+				   $parmsmodified = 1;
+			       } else {
+				   $variables{$2} = evaluate_expression( $expression,
+									 $filename,
+									 $linenumber );
+			       }
+			   }
+		       } ,
 
-	$omitting = ! $omitting if $invert;
+		       FORMAT => sub() {
+			   unless ( $omitting ) {
+			       directive_error( "?FORMAT is not allowed in this file",      $filename, $linenumber ) unless $max_format > 1;
+			       directive_error( "Missing format",                           $filename, $linenumber ) unless supplied $expression;
+			       directive_error( "Invalid format ($expression)",             $filename, $linenumber ) unless $expression =~ /^\d+$/;
+			       directive_error( "Format must be between 1 and $max_format", $filename, $linenumber ) unless $expression && $expression <= $max_format;
+			       $file_format = $expression;
+			   }
+		       } ,
 
-	$omitting ||= $lastomit; #?IF cannot transition from omitting -> not omitting
-    } elsif ( $keyword eq 'ELSE' ) {
-	cond_error $linenumber, "Invalid ?ELSE" unless $rest eq '';
-	cond_error $linenumber, "?ELSE has no matching ?IF" unless @ifstack > $ifstack && $lastkeyword eq 'IF';
-	$omitting = ! $omitting unless $lastomit;
-	$ifstack[-1] = [ 'ELSE', $prioromit, $omitting, $lastlinenumber ];
+		       RESET => sub() {
+			   unless ( $omitting ) {
+			       my $var = $expression;
+			       directive_error( "Missing RESET variable", $filename, $linenumber)        unless supplied $var;
+			       directive_error( "Invalid RESET variable ($var)", $filename, $linenumber) unless $var =~ /^(\$)?([a-zA-Z]\w*)$/ || $var =~ /^(@)(\d+|[a-zA-Z]\w*)/;
+
+			       if ( ( $1 || '' ) eq '@' ) {
+				   $var = numeric_value( $var ) if $var =~ /^\d/;
+				   $var = $2 || 'chain';
+				   directive_error( "Shorewall variables may only be RESET in the body of an action", $filename, $linenumber ) unless $actparms{0};
+				   if ( exists $actparms{$var} ) {
+				       if ( $var =~ /^loglevel|logtag|chain|disposition|caller$/ ) {
+					   $actparms{$var} = '';
+				       } else {
+					   delete $actparms{$var}
+				       }
+				   } else {
+				       directive_warning( "Shorewall variable $2 does not exist", $filename, $linenumber );
+				   }
+
+			       } else {
+				   if ( exists $variables{$2} ) {
+				       delete $variables{$2};
+				   } else {
+				       directive_warning( "Shell variable $2 does not exist", $filename, $linenumber );
+				   }
+			       }
+			   }
+		       } ,
+
+		       COMMENT => sub() {
+			   unless ( $omitting ) {
+			       if ( $comments_allowed ) {
+				   unless ( $nocomment ) {
+				       if ( have_capability( 'COMMENTS' ) ) {
+					   ( $comment = $line ) =~ s/^\s*\?COMMENT\s*//;
+					   $comment =~ s/\s*$//;
+				       } else {
+					   directive_warning( "COMMENTs ignored -- require comment support in iptables/Netfilter" , $filename, $linenumber ) unless $warningcount++;
+				       }
+				   }
+			       } else {
+				   directive_error ( "?COMMENT is not allowed in this file", $filename, $linenumber );
+			       }
+			   }
+		       }
+
+		     );
+
+    if ( my $function = $directives{$keyword} ) {
+	$function->();
     } else {
-	cond_error $linenumber, "Invalid ?ENDIF" unless $rest eq '';
-	cond_error $linenumber, q(Unexpected "?ENDIF" without matching ?IF or ?ELSE) if @ifstack <= $ifstack;
-	$omitting = $prioromit;
-	pop @ifstack;
+	assert( 0, $keyword );
     }
 
     $omitting;
@@ -1745,7 +2452,7 @@ sub copy( $ ) {
 	    $lineno++;
 
 	    if ( /^\s*\?/ ) {
-		$omitting = process_conditional( $omitting, $_, $lineno );
+		$omitting = process_compiler_directive( $omitting, $_, $file, $lineno );
 		next;
 	    }
 
@@ -1798,7 +2505,7 @@ sub copy1( $ ) {
 		chomp;
 
 		if ( /^\s*\?/ ) {
-		    $omitting = process_conditional( $omitting, $_, $currentlinenumber );
+		    $omitting = process_compiler_directive( $omitting, $_, $currentfilename, $currentlinenumber );
 		    next;
 		}
 
@@ -1853,7 +2560,7 @@ sub copy1( $ ) {
 			fatal_error "Directory ($filename) not allowed in INCLUDE" if -d _;
 
 			if ( -s _ ) {
-			    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber, $ifstack ];
+			    push_include;
 			    $currentfile = undef;
 			    do_open_file $filename;
 			} else {
@@ -1929,7 +2636,7 @@ EOF
 		chomp;
 
 		if ( /^\s*\?/ ) {
-		    $omitting = process_conditional( $omitting, $_, $lineno );
+		    $omitting = process_compiler_directive( $omitting, $_, $file, $lineno );
 		    next;
 		}
 
@@ -1989,15 +2696,14 @@ EOF
 # The following two functions allow module clients to nest opens. This happens frequently
 # in the Rules module.
 #
-sub push_open( $ ) {
-
-    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber, $ifstack ] if $currentfile;
+sub push_open( $;$$$ ) {
+    my ( $file, $max , $ca, $nc ) = @_;
+    push_include;
     my @a = @includestack;
     push @openstack, \@a;
     @includestack = ();
     $currentfile = undef;
-    open_file( $_[0] );
-
+    open_file( $file , $max, $comments_allowed || $ca, $nc );
 }
 
 sub pop_open() {
@@ -2042,7 +2748,7 @@ sub shorewall {
 # running scripts in the file before we'd even indicated that we are processing it.
 #
 sub first_entry( $ ) {
-    $first_entry = $_[0];
+    $first_entry = shift;
     my $reftype = reftype $first_entry;
     assert( $reftype eq 'CODE' ) if $reftype;
 }
@@ -2075,7 +2781,7 @@ sub embedded_shell( $ ) {
 
     $command .= q(');
 
-    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber, $ifstack ];
+    push_include;
     $currentfile = undef;
     open $currentfile , '-|', $command or fatal_error qq(Shell Command failed);
     $currentfilename = "SHELL\@$currentfilename:$currentlinenumber";
@@ -2137,7 +2843,7 @@ sub embedded_perl( $ ) {
 
 	$perlscript = undef;
 
-	push @includestack, [ $currentfile, $currentfilename, $currentlinenumber , $ifstack ];
+	push_include;
 	$currentfile = undef;
 
 	open $currentfile, '<', $perlscriptname or fatal_error "Unable to open Perl Script $perlscriptname";
@@ -2154,28 +2860,57 @@ sub embedded_perl( $ ) {
 }
 
 #
-# Push/pop action params
+# Return inline matches
 #
-sub push_action_params( $$ ) {
-    my @params = split /,/, $_[1];
-    my @oldparams = @actparms;
-
-    @actparms = ();
-
-    $actparms[0] = $_[0];
-
-    for ( my $i = 1; $i <= @params; $i++ ) {
-	my $val = $params[$i - 1];
-
-	$actparms[$i] = $val eq '-' ? '' : $val eq '--' ? '-' : $val;
-    }
-
-    \@oldparams;
+sub get_inline_matches() {
+    "$inline_matches ";
 }
 
+#
+# Push/pop acton params
+#
+sub push_action_params( $$$$$$ ) {
+    my ( $action, $chainref, $parms, $loglevel, $logtag, $caller ) = @_;
+    my @parms = ( undef , split_list3( $parms , 'parameter' ) );
+
+    $actparms{modified} = $parmsmodified;
+
+    my %oldparms = %actparms;
+
+    $parmsmodified = 0;
+
+    %actparms = ();
+
+    for ( my $i = 1; $i < @parms; $i++ ) {
+	my $val = $parms[$i];
+
+	$actparms{$i} = $val eq '-' ? '' : $val eq '--' ? '-' : $val;
+    }
+
+    $actparms{0}           = $chainref;
+    $actparms{action}      = $action;
+    $actparms{loglevel}    = $loglevel;
+    $actparms{logtag}      = $logtag;
+    $actparms{caller}      = $caller;
+    $actparms{disposition} = '' if $chainref->{action};
+    #
+    # The Shorewall variable '@chain' has the non-word charaters removed
+    #
+    ( $actparms{chain} = $chainref->{name} ) =~ s/[^\w]//g;
+
+    \%oldparms;
+}
+
+#
+# Pop the action parameters using the passed hash reference
+# Return true of the popped parameters were modified
+#
 sub pop_action_params( $ ) {
-    my $oldparms = shift;
-    @actparms = @$oldparms;
+    my $oldparms       = shift;
+    %actparms          = %$oldparms;
+    my $return         = $parmsmodified;
+    ( $parmsmodified ) = delete $actparms{modified};
+    $return;
 }
 
 sub default_action_params {
@@ -2184,11 +2919,11 @@ sub default_action_params {
 
     for ( $i = 1; 1; $i++ ) {
 	last unless defined ( $val = shift );
-	my $curval = $actparms[$i];
-	$actparms[$i] =$val unless supplied( $curval );
+	my $curval = $actparms{$i};
+	$actparms{$i} = $val unless supplied( $curval );
     }
 
-    fatal_error "Too Many arguments to action $action" if defined $actparms[$i];
+    fatal_error "Too Many arguments to action $action" if defined $actparms{$i};
 }
 
 sub get_action_params( $ ) {
@@ -2199,46 +2934,100 @@ sub get_action_params( $ ) {
     my @return;
 
     for ( my $i = 1; $i <= $num; $i++ ) {
-	my $val = $actparms[$i];
+	my $val = $actparms{$i};
 	push @return, defined $val ? $val eq '-' ? '' : $val eq '--' ? '-' : $val : $val;
     }
 
     @return;
 }
 
+#
+# Returns the Level and Tag for the current action chain
+#
+sub get_action_logging() {
+    @actparms{ 'loglevel', 'logtag' };
+}
+
 sub get_action_chain() {
-    $actparms[0];
+    $actparms{0};
+}
+
+sub get_action_chain_name() {
+    $actparms{chain};
+}
+
+sub get_action_disposition() {
+    $actparms{disposition};
 }
 
 sub set_action_param( $$ ) {
     my $i = shift;
 
     fatal_error "Parameter numbers must be numeric" unless $i =~ /^\d+$/ && $i > 0;
-    $actparms[$i] = shift;
+    $actparms{$i} = shift;
 }
 
 #
-# Expand Shell Variables in the passed buffer using @actparms, %params, %shorewallrc and %config, 
+# Expand Shell Variables in the passed buffer using %actparms, %params, %shorewallrc1 and %config, 
 #
 sub expand_variables( \$ ) {
     my ( $lineref, $count ) = ( $_[0], 0 );
-    #                         $1      $2   $3      -     $4
-    while ( $$lineref =~ m( ^(.*?) \$({)? (\w+) (?(2)}) (.*)$ )x ) {
+    my $chain = $actparms{chain};
+    #                         $1      $2   $3                   -     $4
+    while ( $$lineref =~ m( ^(.*?) \$({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
 
 	my ( $first, $var, $rest ) = ( $1, $3, $4);
 
 	my $val;
 
 	if ( $var =~ /^\d+$/ ) {
-	    fatal_error "Undefined parameter (\$$var)" unless $var > 0 && defined $actparms[$var];
-	    $val = $actparms[$var];
-	} elsif ( exists $params{$var} ) {
-	    $val = $params{$var};
-	} elsif ( exists $shorewallrc{$var} ) {
-	    $val = $shorewallrc{$var}
+	    fatal_error "Action parameters (\$$var) may only be referenced within the body of an action" unless $chain;
+
+	    if ( $config{IGNOREUNKNOWNVARIABLES} ) {
+		fatal_error "Invalid action parameter (\$$var)" if ( length( $var ) > 1 && $var =~ /^0/ );
+	    } else {
+		fatal_error "Undefined parameter (\$$var)" unless ( defined $actparms{$var} &&
+								    ( length( $var ) == 1 ||
+								      $var !~ /^0/ ) );
+	    }
+
+	    $val = $var ? $actparms{$var} : $actparms{0}->{name};
+	} elsif ( exists $variables{$var} ) {
+	    $val = $variables{$var};
+	} elsif ( exists $actparms{$var} ) { 
+	    $val = $actparms{$var};
 	} else {
-	    fatal_error "Undefined shell variable (\$$var)" unless exists $config{$var};
-	    $val = $config{$var};
+	    fatal_error "Undefined shell variable (\$$var)" unless $config{IGNOREUNKNOWNVARIABLES} || exists $config{$var};
+	}
+
+	$val = '' unless defined $val;
+	$$lineref = join( '', $first , $val , $rest );
+	fatal_error "Variable Expansion Loop" if ++$count > 100;
+    }
+
+    if ( $actparms{0} ) {
+	#                         $1      $2   $3                     -     $4
+	while ( $$lineref =~ m( ^(.*?) \@({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
+	    my ( $first, $var, $rest ) = ( $1, $3, $4);
+	    my $val = $var ? $actparms{$var} : $actparms{chain};
+	    $val = '' unless defined $val;
+	    $$lineref = join( '', $first , $val , $rest );
+	    fatal_error "Variable Expansion Loop" if ++$count > 100;
+	}
+    }
+}
+
+sub expand_shorewallrc_variables( \$ ) {
+    my ( $lineref, $count ) = ( $_[0], 0 );
+    #                         $1      $2   $3                  -     $4
+    while ( $$lineref =~ m( ^(.*?) \$({)? (\d+|[a-zA-Z]\w*) (?(2)}) (.*)$ )x ) {
+
+	my ( $first, $var, $rest ) = ( $1, $3, $4);
+
+	my $val;
+
+	if ( exists $shorewallrc{$var} ) {
+	    $val = $shorewallrc{$var}
 	}
 
 	$val = '' unless defined $val;
@@ -2255,8 +3044,11 @@ sub handle_first_entry() {
     # $first_entry can contain either a function reference or a message. If it
     # contains a reference, call the function -- otherwise issue the message
     #
-    reftype( $first_entry ) ? $first_entry->() : progress_message2( $first_entry );
+    my $entry = $first_entry;
+
     $first_entry = 0;
+
+    reftype( $entry ) ? $entry->() : progress_message2( $entry );
 }
 
 #
@@ -2284,8 +3076,8 @@ sub read_a_line($) {
 	    #
 	    # Handle conditionals
 	    #
-	    if ( /^\s*\?(?:IF|ELSE|ENDIF)/ ) {
-		$omitting = process_conditional( $omitting, $_, $. );
+	    if ( /^\s*\?(?:IF|ELSE|ELSIF|ENDIF|SET|RESET|FORMAT|COMMENT)/i ) {
+		$omitting = process_compiler_directive( $omitting, $_, $currentfilename, $. );
 		next;
 	    }
 
@@ -2339,12 +3131,31 @@ sub read_a_line($) {
 		#
 		$currentline =~ s/\s*$//;
 	    }
+
+	    if ( $comments_allowed && $currentline =~ /^\s*COMMENT\b/ ) {
+		process_comment unless $nocomment;
+		$currentline = '';
+		$currentlinenumber = 0;
+		next
+	    }
+
+	    if ( $max_format > 1 && $currentline =~ /^\s*FORMAT\s+(.+)/ ) {
+		format_warning;
+		my $format = $1;
+		fatal_error( "Invalid format ($format)" )                 unless $format =~ /\d+/;
+		fatal_error( "Format must be between 1 and $max_format" ) unless $format && $format <= $max_format;
+		$file_format = $format;
+		$currentline = '';
+		$currentlinenumber = 0;
+		next
+	    }
+
 	    #
 	    # Line not blank -- Handle any first-entry message/capabilities check
 	    #
 	    handle_first_entry if $first_entry;
 	    #
-	    # Expand Shell Variables using %params and @actparms
+	    # Expand Shell Variables using %params and %actparms
 	    #
 	    expand_variables( $currentline ) if $options & EXPAND_VARIABLES;
 
@@ -2361,7 +3172,7 @@ sub read_a_line($) {
 		fatal_error "Directory ($filename) not allowed in INCLUDE" if -d _;
 
 		if ( -s _ ) {
-		    push @includestack, [ $currentfile, $currentfilename, $currentlinenumber, $ifstack ];
+		    push_include;
 		    $currentfile = undef;
 		    do_open_file $filename;
 		} else {
@@ -2380,17 +3191,17 @@ sub read_a_line($) {
     }
 }
 
-sub process_shorewallrc( $ ) {
-    my $shorewallrc = shift;
+sub process_shorewallrc( $$ ) {
+    my ( $shorewallrc , $product ) = @_;
 
-    $shorewallrc{PRODUCT} = $family == F_IPV4 ? 'shorewall' : 'shorewall6';
+    $shorewallrc{PRODUCT} = $product;
 
     if ( open_file $shorewallrc ) {
 	while ( read_a_line( STRIP_COMMENTS | SUPPRESS_WHITESPACE | CHECK_GUNK ) ) {
 	    if ( $currentline =~ /^([a-zA-Z]\w*)=(.*)$/ ) {
 		my ($var, $val) = ($1, $2);
 		$val = $1 if $val =~ /^\"([^\"]*)\"$/;
-		expand_variables($val) if supplied $val;
+		expand_shorewallrc_variables($val) if supplied $val;
 		$shorewallrc{$var} = $val;
 	    } else {
 		fatal_error "Unrecognized shorewallrc entry";
@@ -2398,6 +3209,15 @@ sub process_shorewallrc( $ ) {
 	}
     } else {
 	fatal_error "Failed to open $shorewallrc: $!";
+    }
+
+    if ( supplied $shorewallrc{VARDIR} ) {
+	if ( ! supplied $shorewallrc{VARLIB} ) {
+	    $shorewallrc{VARLIB} =  $shorewallrc{VARDIR};
+	    $shorewallrc{VARDIR} = "$shorewallrc{VARLIB}/$product";
+	}
+    } elsif ( supplied $shorewallrc{VARLIB} ) {
+	$shorewallrc{VARDIR} = "$shorewallrc{VARLIB}/$product" unless supplied $shorewallrc{VARDIR};
     }
 }
 
@@ -2769,16 +3589,49 @@ sub determine_kernelversion() {
 # Capability Reporting and detection.
 #
 sub Nat_Enabled() {
-    $family == F_IPV4 ? qt1( "$iptables -t nat -L -n" ) : '';
+    qt1( "$iptables -t nat -L -n" );
 }
 
 sub Persistent_Snat() {
-    have_capability 'NAT_ENABLED' || return '';
+    have_capability( 'NAT_ENABLED' ) || return '';
 
     my $result = '';
+    my $address = $family == F_IPV4 ? '1.2.3.4' : '2001::1';
 
     if ( qt1( "$iptables -t nat -N $sillyname" ) ) {
-	$result = qt1( "$iptables -t nat -A $sillyname -j SNAT --to-source 1.2.3.4 --persistent" );
+	$result = qt1( "$iptables -t nat -A $sillyname -j SNAT --to-source $address --persistent" );
+	qt1( "$iptables -t nat -F $sillyname" );
+	qt1( "$iptables -t nat -X $sillyname" );
+
+    }
+
+    $result;
+}
+
+sub Masquerade_Tgt() {
+    have_capability( 'NAT_ENABLED' ) || return '';
+
+    my $result = '';
+    my $address = $family == F_IPV4 ? '1.2.3.4' : '2001::1';
+
+    if ( qt1( "$iptables -t nat -N $sillyname" ) ) {
+	$result = qt1( "$iptables -t nat -A $sillyname -j MASQUERADE" );
+	qt1( "$iptables -t nat -F $sillyname" );
+	qt1( "$iptables -t nat -X $sillyname" );
+
+    }
+
+    $result;
+}
+
+sub Udpliteredirect() {
+    have_capability( 'NAT_ENABLED' ) || return '';
+
+    my $result = '';
+    my $address = $family == F_IPV4 ? '1.2.3.4' : '2001::1';
+
+    if ( qt1( "$iptables -t nat -N $sillyname" ) ) {
+	$result = qt1( "$iptables -t nat -A $sillyname -p udplite -m multiport --dports 33 -j REDIRECT --to-port 22" );
 	qt1( "$iptables -t nat -F $sillyname" );
 	qt1( "$iptables -t nat -X $sillyname" );
 
@@ -2802,7 +3655,7 @@ sub Conntrack_Match() {
 }
 
 sub New_Conntrack_Match() {
-    have_capability 'CONNTRACK_MATCH' && qt1( "$iptables -A $sillyname -m conntrack -p tcp --ctorigdstport 22 -j ACCEPT" );
+    have_capability( 'CONNTRACK_MATCH' ) && qt1( "$iptables -A $sillyname -m conntrack -p tcp --ctorigdstport 22 -j ACCEPT" );
 }
 
 sub Old_Conntrack_Match() {
@@ -2814,11 +3667,11 @@ sub Multiport() {
 }
 
 sub Kludgefree1() {
-    have_capability 'MULTIPORT' && qt1( "$iptables -A $sillyname -p tcp -m multiport --sports 60 -m multiport --dports 99 -j ACCEPT" );
+    have_capability( 'MULTIPORT' ) && qt1( "$iptables -A $sillyname -p tcp -m multiport --sports 60 -m multiport --dports 99 -j ACCEPT" );
 }
 
 sub Kludgefree2() {
-    have_capability 'PHYSDEV_MATCH' && qt1( "$iptables -A $sillyname -m physdev --physdev-in eth0 -m physdev --physdev-out eth0 -j ACCEPT" );
+    have_capability( 'PHYSDEV_MATCH' ) && qt1( "$iptables -A $sillyname -m physdev --physdev-in eth0 -m physdev --physdev-out eth0 -j ACCEPT" );
 }
 
 sub Kludgefree3() {
@@ -2835,6 +3688,10 @@ sub Kludgefree() {
 
 sub Xmultiport() {
     qt1( "$iptables -A $sillyname -p tcp -m multiport --dports 21:22 -j ACCEPT" );
+}
+
+sub Emultiport() {
+    qt1( "$iptables -A $sillyname -p sctp -m multiport --dports 21,22 -j ACCEPT" );
 }
 
 sub Policy_Match() {
@@ -2876,7 +3733,7 @@ sub Connmark_Match() {
 }
 
 sub Xconnmark_Match() {
-    have_capability 'CONNMARK_MATCH' && qt1( "$iptables -A $sillyname -m connmark --mark 2/0xFF -j ACCEPT" );
+    have_capability( 'CONNMARK_MATCH' ) && qt1( "$iptables -A $sillyname -m connmark --mark 2/0xFF -j ACCEPT" );
 }
 
 sub Ipp2p_Match() {
@@ -2916,39 +3773,43 @@ sub Old_Hashlimit_Match() {
 }
 
 sub Mark() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j MARK --set-mark 1" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j MARK --set-mark 1" );
 }
 
 sub Xmark() {
-    have_capability 'MARK' && qt1( "$iptables -t mangle -A $sillyname -j MARK --and-mark 0xFF" );
+    have_capability( 'MARK' ) && qt1( "$iptables -t mangle -A $sillyname -j MARK --and-mark 0xFF" );
 }
 
 sub Exmark() {
-    have_capability 'MARK' && qt1( "$iptables -t mangle -A $sillyname -j MARK --set-mark 1/0xFF" );
+    have_capability( 'MARK' ) && qt1( "$iptables -t mangle -A $sillyname -j MARK --set-mark 1/0xFF" );
 }
 
 sub Connmark() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j CONNMARK --save-mark" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j CONNMARK --save-mark" );
 }
 
 sub Xconnmark() {
-    have_capability 'XCONNMARK_MATCH' && have_capability 'XMARK' && qt1( "$iptables -t mangle -A $sillyname -j CONNMARK --save-mark --mask 0xFF" );
+    have_capability( 'XCONNMARK_MATCH' ) && have_capability( 'XMARK' ) && qt1( "$iptables -t mangle -A $sillyname -j CONNMARK --save-mark --mask 0xFF" );
+}
+
+sub New_Tos_Match() {
+    qt1( "$iptables -t mangle -A $sillyname -m tos --tos 0x10/0xff" );
 }
 
 sub Classify_Target() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j CLASSIFY --set-class 1:1" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j CLASSIFY --set-class 1:1" );
 }
 
 sub IPMark_Target() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j IPMARK --addr src" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j IPMARK --addr src" );
 }
 
 sub Tproxy_Target() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -p tcp -j TPROXY --on-port 0 --tproxy-mark 1" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -p tcp -j TPROXY --on-port 0 --tproxy-mark 1" );
 }
 
 sub Mangle_Forward() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -L FORWARD -n" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -L FORWARD -n" );
 }
 
 sub Raw_Table() {
@@ -2970,7 +3831,7 @@ sub Old_IPSet_Match() {
 
 	if ( qt( "$ipset -N $sillyname iphash" ) ) {
 	    if ( qt1( "$iptables -A $sillyname -m set --set $sillyname src -j ACCEPT" ) ) {
-		qt1( "$iptables -D $sillyname -m set --set $sillyname src -j ACCEPT" );
+		qt1( "$iptables -F $sillyname" );
 		$result = $capabilities{IPSET_MATCH} = 1;
 	    }
 
@@ -2993,7 +3854,7 @@ sub IPSet_Match() {
 
 	if ( qt( "$ipset -N $sillyname iphash" ) || qt( "$ipset -N $sillyname hash:ip family $fam") ) {
 	    if ( qt1( "$iptables -A $sillyname -m set --match-set $sillyname src -j ACCEPT" ) ) {
-		qt1( "$iptables -D $sillyname -m set --match-set $sillyname src -j ACCEPT" );
+		qt1( "$iptables -F $sillyname" );
 		$result = ! ( $capabilities{OLD_IPSET_MATCH} = 0 );
 	    } else {
 		$result = have_capability 'OLD_IPSET_MATCH';
@@ -3045,7 +3906,79 @@ sub Realm_Match() {
 }
 
 sub Helper_Match() {
-    qt1( "$iptables -A $sillyname -m helper --helper \"ftp\"" );
+    qt1( "$iptables -A $sillyname -p tcp --dport 21 -m helper --helper ftp" );
+}
+
+sub have_helper( $$$ ) {
+    my ( $helper, $proto, $port ) = @_;
+
+    if ( $helpers_enabled{$helper} ) {
+	if ( have_capability 'CT_TARGET' ) {
+	    qt1( "$iptables -t raw -A $sillyname -p $proto --dport $port -j CT --helper $helper" );
+	} else {
+	    have_capability 'HELPER_MATCH';
+	}
+    }
+}
+
+sub Amanda_Helper() {
+    have_helper( 'amanda', 'udp', 10080 );
+}
+
+sub FTP0_Helper() {
+    have_helper( 'ftp-0', 'tcp', 21 ) and $helpers_aliases{ftp} = 'ftp-0';
+}
+
+sub FTP_Helper() {
+    have_helper( 'ftp', 'tcp', 21 ) || have_capability 'FTP0_HELPER';
+}
+
+sub H323_Helpers() {
+    have_helper( 'RAS', 'udp', 1719 );
+}
+
+sub IRC0_Helper() {
+    have_helper( 'irc-0', 'tcp', 6667 ) and $helpers_aliases{irc} = 'irc-0';
+}
+
+sub IRC_Helper() {
+    have_helper( 'irc', 'tcp', 6667 ) || IRC0_Helper;
+}
+
+sub Netbios_ns_Helper() {
+    have_helper( 'netbios-ns', 'udp', 137 );
+}
+
+sub PPTP_Helper() {
+    have_helper( 'pptp', 'tcp', 1729 );
+}
+
+sub SANE0_Helper() {
+    have_helper( 'sane-0', 'tcp', 6566 ) and $helpers_aliases{sane} = 'sane-0';
+}
+
+sub SANE_Helper() {
+    have_helper( 'sane', 'tcp', 6566 ) || have_capability 'SANE0_HELPER';
+}
+
+sub SIP0_Helper() {
+    have_helper( 'sip-0', 'udp', 5060 ) and $helpers_aliases{sip} = 'sip-0';
+}
+
+sub SIP_Helper() {
+    have_helper( 'sip', 'udp', 5060 ) || have_capability 'SIP0_HELPER';
+}
+
+sub SNMP_Helper() {
+    have_helper( 'snmp', 'udp', 161 );
+}
+
+sub TFTP0_Helper() {
+    have_helper( 'tftp-0', 'udp', 69 ) and $helpers_aliases{tftp} = 'tftp-0';
+}
+
+sub TFTP_Helper() {
+    have_helper( 'tftp', 'udp', 69 ) || have_capability 'TFTP0_HELPER';
 }
 
 sub Connlimit_Match() {
@@ -3122,8 +4055,6 @@ sub Ct_Target() {
     if ( have_capability 'RAW_TABLE' ) {
 	qt1( "$iptables -t raw -N $sillyname" );
 	$ct_target = qt1( "$iptables -t raw -A $sillyname -j CT --notrack" );
-	qt1( "$iptables -t raw -F $sillyname" );
-	qt1( "$iptables -t raw -X $sillyname" );
     }
 
     $ct_target;
@@ -3133,27 +4064,62 @@ sub Statistic_Match() {
     qt1( "$iptables -A $sillyname -m statistic --mode nth --every 2 --packet 1" );
 }
 
+
 sub Imq_Target() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j IMQ --todev 0" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j IMQ --todev 0" );
 }
 
 sub Dscp_Match() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -m dscp --dscp 0" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -m dscp --dscp 0" );
 }
 
 sub Dscp_Target() {
-    have_capability 'MANGLE_ENABLED' && qt1( "$iptables -t mangle -A $sillyname -j DSCP --set-dscp 0" );
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j DSCP --set-dscp 0" );
+}
+
+sub RPFilter_Match() {
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -m rpfilter" );
+}
+
+sub NFAcct_Match() {
+    my $result;
+
+    if ( qt1( "nfacct add $sillyname" ) ) {
+	$result = qt1( "$iptables -A $sillyname -m nfacct --nfacct-name $sillyname" );
+	qt( "$iptables -D $sillyname -m nfacct --nfacct-name $sillyname" );
+	qt( "nfacct del $sillyname" );
+    }
+
+    $result;
 }
 
 sub GeoIP_Match() {
     qt1( "$iptables -A $sillyname -m geoip --src-cc US" );
 }
 
+sub Checksum_Target() {
+    have_capability( 'MANGLE_ENABLED' ) && qt1( "$iptables -t mangle -A $sillyname -j CHECKSUM --checksum-fill" );
+}
+
+sub Arptables_JF() {
+    my $arptables = $config{ARPTABLES};
+
+    $arptables = which( 'arptables' ) unless supplied $arptables;
+
+    if ( $arptables && -f $arptables && -x _ ) {
+	$config{ARPTABLES} = $arptables;
+	qt( "$arptables -L OUT" );
+    }
+}
+
 our %detect_capability =
     ( ACCOUNT_TARGET =>\&Account_Target,
+      AMANDA_HELPER => \&Amanda_Helper,
+      ARPTABLESJF => \&Arptables_JF,
       AUDIT_TARGET => \&Audit_Target,
       ADDRTYPE => \&Addrtype,
       BASIC_FILTER => \&Basic_Filter,
+      CHECKSUM_TARGET => \&Checksum_Target,
       CLASSIFY_TARGET => \&Classify_Target,
       CONDITION_MATCH => \&Condition_Match,
       COMMENTS => \&Comments,
@@ -3165,11 +4131,15 @@ our %detect_capability =
       DSCP_MATCH => \&Dscp_Match,
       DSCP_TARGET => \&Dscp_Target,
       ENHANCED_REJECT => \&Enhanced_Reject,
+      EMULTIPORT => \&Emultiport,
       EXMARK => \&Exmark,
       FLOW_FILTER => \&Flow_Filter,
+      FTP_HELPER => \&FTP_Helper,
+      FTP0_HELPER => \&FTP0_Helper,
       FWMARK_RT_MASK => \&Fwmark_Rt_Mask,
       GEOIP_MATCH => \&GeoIP_Match,
       GOTO_TARGET => \&Goto_Target,
+      H323_HELPER => \&H323_Helpers,
       HASHLIMIT_MATCH => \&Hashlimit_Match,
       HEADER_MATCH => \&Header_Match,
       HELPER_MATCH => \&Helper_Match,
@@ -3178,6 +4148,8 @@ our %detect_capability =
       IPP2P_MATCH => \&Ipp2p_Match,
       IPRANGE_MATCH => \&IPRange_Match,
       IPSET_MATCH => \&IPSet_Match,
+      IRC_HELPER => \&IRC_Helper,
+      IRC0_HELPER => \&IRC0_Helper,
       OLD_IPSET_MATCH => \&Old_IPSet_Match,
       IPSET_V5 => \&IPSET_V5,
       IPTABLES_S => \&Iptables_S,
@@ -3191,27 +4163,41 @@ our %detect_capability =
       MANGLE_FORWARD => \&Mangle_Forward,
       MARK => \&Mark,
       MARK_ANYWHERE => \&Mark_Anywhere,
+      MASQUERADE_TGT => \&Masquerade_Tgt,
       MULTIPORT => \&Multiport,
       NAT_ENABLED => \&Nat_Enabled,
+      NETBIOS_NS_HELPER => \&Netbios_ns_Helper,
       NEW_CONNTRACK_MATCH => \&New_Conntrack_Match,
+      NFACCT_MATCH => \&NFAcct_Match,
       NFQUEUE_TARGET => \&Nfqueue_Target,
       OLD_CONNTRACK_MATCH => \&Old_Conntrack_Match,
       OLD_HL_MATCH => \&Old_Hashlimit_Match,
       OLD_IPP2P_MATCH => \&Old_Ipp2p_Match,
+      NEW_TOS_MATCH => \&New_Tos_Match,
       OWNER_MATCH => \&Owner_Match,
       OWNER_NAME_MATCH => \&Owner_Name_Match,
       PERSISTENT_SNAT => \&Persistent_Snat,
       PHYSDEV_BRIDGE => \&Physdev_Bridge,
       PHYSDEV_MATCH => \&Physdev_Match,
       POLICY_MATCH => \&Policy_Match,
+      PPTP_HELPER => \&PPTP_Helper,
       RAW_TABLE => \&Raw_Table,
       RAWPOST_TABLE => \&Rawpost_Table,
       REALM_MATCH => \&Realm_Match,
       RECENT_MATCH => \&Recent_Match,
+      RPFILTER_MATCH => \&RPFilter_Match,
+      SANE_HELPER => \&SANE_Helper,
+      SANE0_HELPER => \&SANE0_Helper,
+      SIP_HELPER => \&SIP_Helper,
+      SIP0_HELPER => \&SIP0_Helper,
+      SNMP_HELPER => \&SNMP_Helper,
       STATISTIC_MATCH => \&Statistic_Match,
       TCPMSS_MATCH => \&Tcpmss_Match,
+      TFTP_HELPER => \&TFTP_Helper,
+      TFTP0_HELPER => \&TFTP0_Helper,
       TIME_MATCH => \&Time_Match,
       TPROXY_TARGET => \&Tproxy_Target,
+      UDPLITEREDIRECT => \&Udpliteredirect,
       USEPKTTYPE => \&Usepkttype,
       XCONNMARK_MATCH => \&Xconnmark_Match,
       XCONNMARK => \&Xconnmark,
@@ -3230,13 +4216,15 @@ sub detect_capability( $ ) {
 #
 # Report the passed capability
 #
-sub have_capability( $ ) {
-    my $capability = shift;
+sub have_capability( $;$ ) {
+    my ( $capability, $required ) = @_;
     our %detect_capability;
 
     my $setting = $capabilities{ $capability };
 
     $setting = $capabilities{ $capability } = detect_capability( $capability ) unless defined $setting;
+
+    $used{$capability} = $required ? 2 : 1 if $setting;
 
     $setting;
 }
@@ -3284,6 +4272,7 @@ sub determine_capabilities() {
 
 	$capabilities{ MULTIPORT } = detect_capability( 'MULTIPORT' );
 	$capabilities{XMULTIPORT}   = detect_capability( 'XMULTIPORT' );
+	$capabilities{EMULTIPORT}   = detect_capability( 'EMULTIPORT' );
 	$capabilities{POLICY_MATCH} = detect_capability( 'POLICY_MATCH' );
 
 	if ( $capabilities{PHYSDEV_MATCH} = detect_capability( 'PHYSDEV_MATCH' ) ) {
@@ -3314,7 +4303,6 @@ sub determine_capabilities() {
 	$capabilities{CLASSIFY_TARGET} = detect_capability( 'CLASSIFY_TARGET' );
 	$capabilities{IPMARK_TARGET}   = detect_capability( 'IPMARK_TARGET' );
 	$capabilities{TPROXY_TARGET}   = detect_capability( 'TPROXY_TARGET' );
-
 	$capabilities{MANGLE_FORWARD}  = detect_capability( 'MANGLE_FORWARD' );
 	$capabilities{RAW_TABLE}       = detect_capability( 'RAW_TABLE' );
 	$capabilities{RAWPOST_TABLE}   = detect_capability( 'RAWPOST_TABLE' );
@@ -3324,7 +4312,6 @@ sub determine_capabilities() {
 	$capabilities{TCPMSS_MATCH}    = detect_capability( 'TCPMSS_MATCH' );
 	$capabilities{NFQUEUE_TARGET}  = detect_capability( 'NFQUEUE_TARGET' );
 	$capabilities{REALM_MATCH}     = detect_capability( 'REALM_MATCH' );
-	$capabilities{HELPER_MATCH}    = detect_capability( 'HELPER_MATCH' );
 	$capabilities{CONNLIMIT_MATCH} = detect_capability( 'CONNLIMIT_MATCH' );
 	$capabilities{TIME_MATCH}      = detect_capability( 'TIME_MATCH' );
 	$capabilities{GOTO_TARGET}     = detect_capability( 'GOTO_TARGET' );
@@ -3347,23 +4334,17 @@ sub determine_capabilities() {
 	$capabilities{DSCP_MATCH}      = detect_capability( 'DSCP_MATCH' );
 	$capabilities{DSCP_TARGET}     = detect_capability( 'DSCP_TARGET' );
 	$capabilities{GEOIP_MATCH}     = detect_capability( 'GEOIP_MATCH' );
-
-	qt1( "$iptables -F $sillyname" );
-	qt1( "$iptables -X $sillyname" );
-	qt1( "$iptables -F $sillyname1" );
-	qt1( "$iptables -X $sillyname1" );
-
-	if ( $capabilities{MANGLE_ENABLED} ) {
-	    qt1( "$iptables -t mangle -F $sillyname" );
-	    qt1( "$iptables -t mangle -X $sillyname" );
+	$capabilities{RPFILTER_MATCH}  = detect_capability( 'RPFILTER_MATCH' );
+	$capabilities{NFACCT_MATCH}    = detect_capability( 'NFACCT_MATCH' );
+	$capabilities{CHECKSUM_TARGET} = detect_capability( 'CHECKSUM_TARGET' );
+	$capabilities{MASQUERADE_TGT}  = detect_capability( 'MASQUERADE_TGT' );
+	$capabilities{UDPLITEREDIRECT} = detect_capability( 'UDPLITEREDIRECT' );
+	$capabilities{NEW_TOS_MATCH}   = detect_capability( 'NEW_TOS_MATCH' );
+	
+	unless ( have_capability 'CT_TARGET' ) {
+	    $capabilities{HELPER_MATCH} = detect_capability 'HELPER_MATCH';
 	}
 
-	if ( $capabilities{NAT_ENABLED} ) {
-	    qt1( "$iptables -t nat -F $sillyname" );
-	    qt1( "$iptables -t nat -X $sillyname" );
-	}
-
-	$sillyname = $sillyname1 = undef;
     }
 }
 
@@ -3373,7 +4354,14 @@ sub determine_capabilities() {
 sub require_capability( $$$ ) {
     my ( $capability, $description, $singular ) = @_;
 
-    fatal_error "$description require${singular} $capdesc{$capability} in your kernel and iptables" unless have_capability $capability;
+    fatal_error "$description require${singular} $capdesc{$capability} in your kernel and iptables" unless have_capability $capability, 1;
+}
+
+#
+# Return Kernel Version
+#
+sub kernel_version() {
+    $capabilities{KERNELVERSION}
 }
 
 #
@@ -3383,14 +4371,10 @@ sub ensure_config_path() {
 
     my $f = "$globals{SHAREDIR}/configpath";
 
-    $globals{CONFDIR} = "$shorewallrc{SHAREDIR}/$product/configfiles/" if $> != 0;
-
     unless ( $config{CONFIG_PATH} ) {
 	fatal_error "$f does not exist" unless -f $f;
 
 	open_file $f;
-
-	add_param( CONFDIR => $globals{CONFDIR} );
 
 	while ( read_a_line( NORMAL_READ ) ) {
 	    if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
@@ -3558,10 +4542,10 @@ EOF
 	if ( system( "diff -q $configfile $configfile.bak > /dev/null" ) ) {
 	    progress_message3 "Configuration file $configfile updated - old file renamed $configfile.bak";
 	} else {
-	    if ( unlink "$configfile.bak" ) {
+	    if ( rename "$configfile.bak", $configfile ) {
 		progress_message3 "No update required to configuration file $configfile; $configfile.bak not saved";
 	    } else {
-		warning_message "Unable to unlink $configfile.bak";
+		warning_message "Unable to rename $configfile.bak to $configfile";
 		progress_message3 "No update required to configuration file $configfile";
 	    }
 
@@ -3594,7 +4578,14 @@ sub process_shorewall_conf( $$ ) {
 		if ( $currentline =~ /^\s*([a-zA-Z]\w*)=(.*?)\s*$/ ) {
 		    my ($var, $val) = ($1, $2);
 
-		    warning_message "Unknown configuration option ($var) ignored", next unless exists $config{$var};
+		    unless ( exists $config{$var} ) {
+			if ( exists $renamed{$var} ) {
+			    $var = $renamed{$var};
+			} else {
+			    warning_message "Unknown configuration option ($var) ignored";
+			    next ;
+			}
+		    }
 
 		    $config{$var} = ( $val =~ /\"([^\"]*)\"$/ ? $1 : $val );
 
@@ -3638,17 +4629,12 @@ sub read_capabilities() {
 		next;
 	    }
 
-	    $capabilities{$var} = $val =~ /^\"([^\"]*)\"$/ ? $1 : $val;
+	    $val = $val =~ /^\"([^\"]*)\"$/ ? $1 : $val;
+	    
+	    $capabilities{$var} = $var =~ /VERSION$/ ? $val :  $val ne '';
 	} else {
 	    fatal_error "Unrecognized capabilities entry";
 	}
-    }
-
-    if ( $capabilities{CAPVERSION} ) {
-	warning_message "Your capabilities file is out of date -- it does not contain all of the capabilities defined by $Product version $globals{VERSION}"
-	    unless $capabilities{CAPVERSION} >= $globals{CAPVERSION};
-    } else {
-	warning_message "Your capabilities file may not contain all of the capabilities defined by $Product version $globals{VERSION}";
     }
 
     unless ( $capabilities{KERNELVERSION} ) {
@@ -3656,17 +4642,25 @@ sub read_capabilities() {
 	$capabilities{KERNELVERSION} = 20630;
     }
 
+    $helpers_aliases{ftp}  = 'ftp-0',  $capabilities{FTP_HELPER}  = 1 if $capabilities{FTP0_HELPER};
+    $helpers_aliases{irc}  = 'irc-0',  $capabilities{IRC_HELPER}  = 1 if $capabilities{IRC0_HELPER};
+    $helpers_aliases{sane} = 'sane-0', $capabilities{SANE_HELPER} = 1 if $capabilities{SANE0_HELPER};
+    $helpers_aliases{sip}  = 'sip-0',  $capabilities{SIP_HELPER}  = 1 if $capabilities{SIP0_HELPER};
+    $helpers_aliases{tftp} = 'tftp-0', $capabilities{TFTP_HELPER} = 1 if $capabilities{TFTP0_HELPER};
+
     for ( keys %capabilities ) {
 	$capabilities{$_} = '' unless defined $capabilities{$_};
     }
 
     $globals{KLUDGEFREE} = $capabilities{KLUDGEFREE};
+
 }
 
 #
 # Get the system's capabilities, either by probing or by reading a capabilities file
 #
-sub get_capabilities( $ ) {
+sub get_capabilities( $ ) 
+{
     my $export = $_[0];
 
     if ( ! $export && $> == 0 ) { # $> == $EUID
@@ -3790,7 +4784,7 @@ sub get_params() {
 	    #
 	    # - Variable names preceded by 'export '
 	    # - Variable values are delimited by double quotes
-	    # - Embedded single quotes are escaped with '\'
+	    # - Embedded double quotes are escaped with '\'
 	    # - Valueless variables ( e.g., 'export foo') are supported
 	    #
 	    $shell = OLDBASH;
@@ -3856,16 +4850,29 @@ sub get_params() {
 	    }
 	}
     }
+
+    add_variables %params;
 }
 
 #
-# Add an entry to %params and to %compiler_params
+# Add an entry to %param, %variabless and to %compiler_params
 #
 sub add_param( $$ ) {
     my ( $param, $value ) = @_;
 
-    $params{$param} = $value;
+    $params{$param}    = $value;
+    $variables{$param} = $value;
     $compiler_params{$param} = 1;
+}
+
+#
+# Add variables from a hash
+#
+
+sub add_variables( \% ) {
+    while ( my ( $var, $val ) = each %{$_[0]} ) {
+	$variables{$var} = $val;
+    }
 }
 
 #
@@ -3913,14 +4920,73 @@ sub export_params() {
 }
 
 #
+# Walk the CONFIG_PATH converting FORMAT and COMMENT lines to compiler directives
+#
+sub convert_to_directives() {
+    my $sharedir = $shorewallrc{SHAREDIR};
+    #
+    # Make a copy of @config_path so that the for-loop below doesn't clobber that list
+    #
+    my @path = @config_path;
+
+    $sharedir =~ s|/+$||;
+
+    my $dirtest = qr|^$sharedir/+shorewall6?(?:/.*)?$|;
+
+    progress_message3 "Converting 'FORMAT' and 'COMMENT' lines to compiler directives...";
+
+    for my $dir ( @path ) {
+	unless ( $dir =~ /$dirtest/ || ! -w $dir ) {
+	    $dir =~ s|/+$||;
+
+	    opendir( my $dirhandle, $dir ) || fatal_error "Cannot open directory $dir for reading:$!";
+
+	    while ( my $file = readdir( $dirhandle ) ) {
+		unless ( $file eq 'capabilities'       ||
+			 $file eq 'params'             ||
+			 $file =~ /^shorewall6?.conf$/ ||
+			 $file =~ /\.bak$/ ) {
+		    $file = "$dir/$file";
+		
+		    if ( -f $file && -w _ ) {
+			#
+			# writeable regular file
+			#
+			my $result = system << "EOF";
+perl -pi.bak -e '/^\\s*FORMAT\\s*/ && s/FORMAT/?FORMAT/;
+                 if ( /^\\s*COMMENT\\s+/ ) {
+                     s/COMMENT/?COMMENT/;
+                 } elsif ( /^\\s*COMMENT\\s*\$/ ) {
+                     s/COMMENT/?COMMENT/;
+                 }' $file
+EOF
+			if ( $result == 0 ) {
+			    if ( system( "diff -q $file ${file}.bak > /dev/null" ) ) {
+				progress_message3 "   File $file updated - old file renamed ${file}.bak";
+			    } elsif ( ! rename "${file}.bak" , $file ) {
+				warning message "Unable to rename ${file}.bak to $file:$!";
+			    }
+			} else {
+			    warning_message ("Unable to update file ${file}.bak:$!" );
+			}
+		    }
+		}
+	    }
+
+	    closedir $dirhandle;
+	}
+    }
+}
+
+#
 # - Process the params file
 # - Read the shorewall.conf file
 # - Read the capabilities file, if any
 # - establish global hashes %params, %config , %globals and %capabilities
 #
-sub get_configuration( $$$ ) {
+sub get_configuration( $$$$ ) {
 
-    my ( $export, $update, $annotate ) = @_;
+    my ( $export, $update, $annotate, $directives ) = @_;
 
     $globals{EXPORT} = $export;
 
@@ -3949,7 +5015,71 @@ sub get_configuration( $$$ ) {
 
     get_capabilities( $export );
 
-    $globals{STATEMATCH} = '-m conntrack --ctstate' if have_capability 'CONNTRACK_MATCH';
+    my ( $val, $all );
+
+    if ( supplied ( $val = $config{HELPERS} ) ) {
+	if ( $val eq 'none' ) {
+	    $val = '';
+	}
+    }  else {
+	$val = join( ',', grep $_ !~ /-0$/, keys %helpers_enabled );
+	$all = 1;
+    }
+
+    if ( supplied $val ) {
+	my %helpers_temp = %helpers_enabled;
+
+	$helpers_temp{$_} = 0 for keys %helpers_temp;
+
+	my @helpers = split_list ( $val, 'helper' );
+
+	for ( @helpers ) {
+	    my $name = $_;
+	    if ( exists $helpers_enabled{$name} ) {
+		s/-/_/;
+
+		if ( $all ) {
+		    $helpers_temp{$name} = 1 if have_capability uc( $_ ) . '_HELPER' , 1;
+		} else {
+		    require_capability( uc( $_ ) . '_HELPER' , "The $name helper", 's' );
+		    $helpers_temp{$name} = 1;
+		}
+	    } else {
+		fatal_error "Unknown Helper ($_)";
+	    }
+	}
+
+	%helpers_enabled = %helpers_temp;
+
+	while ( my ( $helper, $enabled ) = each %helpers_enabled ) {
+	    $helper =~ s/-0/0/;
+	    $helper =~ s/-/_/;
+	    $capabilities{uc($helper) . '_HELPER'} = 0 unless $enabled; 
+	}
+    } elsif ( have_capability 'CT_TARGET' ) {
+	$helpers_enabled{$_} = 0 for keys %helpers_enabled;
+	$capabilities{$_}    = 0 for grep /_HELPER/ , keys %capabilities;
+    }
+
+    report_capabilities unless $config{LOAD_HELPERS_ONLY};
+
+    #
+    # Now initialize the used capabilities hash
+    #
+    %used     = ();
+
+    if ( have_capability 'CONNTRACK_MATCH') {
+	$globals{STATEMATCH} = '-m conntrack --ctstate';
+	$used{CONNTRACK_MATCH} = 2;
+    } else {
+	$used{STATE_MATCH} = 2;
+    }
+    #
+    # The following is not documented as it is not likely useful to the user base in general 
+    # Going forward, it allows me to create a configuration that will work on multiple
+    # Shorewall versions.        TME
+    #
+    $config{VERSION} = sprintf "%d%02d%02d", $1, $2, $3 if $globals{VERSION} =~ /^(\d+)\.(\d+)\.(\d+)/;
 
     if ( my $rate = $config{LOGLIMIT} ) {
 	my $limit;
@@ -4022,8 +5152,6 @@ sub get_configuration( $$$ ) {
 
     check_trivalue ( 'IP_FORWARDING', 'on' );
 
-    my $val;
-
     if ( have_capability( 'KERNELVERSION' ) < 20631 ) {
 	check_trivalue ( 'ROUTE_FILTER',  '' );
     } else {
@@ -4089,7 +5217,6 @@ sub get_configuration( $$$ ) {
     }
 
     default_yes_no 'ADMINISABSENTMINDED'        , '';
-    default_yes_no 'BLACKLISTNEWONLY'           , '';
     default_yes_no 'DISABLE_IPV6'               , '';
 
     unsupported_yes_no_warning 'DYNAMIC_ZONES';
@@ -4097,6 +5224,7 @@ sub get_configuration( $$$ ) {
     unsupported_yes_no_warning 'RFC1918_STRICT';
 
     default_yes_no 'SAVE_IPSETS'                , '';
+    default_yes_no 'SAVE_ARPTABLES'             , '';
     default_yes_no 'STARTUP_ENABLED'            , 'Yes';
     default_yes_no 'DELAYBLACKLISTLOAD'         , '';
     default_yes_no 'MAPOLDACTIONS'              , 'Yes';
@@ -4107,7 +5235,47 @@ sub get_configuration( $$$ ) {
 
     default_yes_no 'FASTACCEPT'                 , '';
 
-    fatal_error "BLACKLISTNEWONLY=No may not be specified with FASTACCEPT=Yes" if $config{FASTACCEPT} && ! $config{BLACKLISTNEWONLY};
+    if ( supplied( $val = $config{BLACKLIST} ) ) {
+	my %states;
+
+	if ( $val eq 'ALL' ) {
+	    $globals{BLACKLIST_STATES} = 'ALL';
+	} else {
+	    for ( split_list $val, 'BLACKLIST' ) {
+		fatal_error "Invalid BLACKLIST state ($_)" unless /^(?:NEW|RELATED|ESTABLISHED|INVALID|UNTRACKED)$/;
+		fatal_error "Duplicate BLACKLIST state($_)" if $states{$_};
+		$states{$_} = 1;
+	    }
+
+	    fatal_error "ESTABLISHED state may not be specified when FASTACCEPT=Yes" if $config{FASTACCEPT} && $states{ESTABLISHED};
+	    require_capability 'RAW_TABLE', 'UNTRACKED state', 's' if $states{UNTRACKED};
+	    #
+	    # Place the states in a predictable order
+	    #
+	    my @states;
+
+	    for ( qw( NEW ESTABLISHED RELATED INVALID UNTRACKED ) ) {
+		push @states, $_ if $states{$_};
+	    }
+
+	    $globals{BLACKLIST_STATES} = join ',', @states;
+	}
+    } elsif ( supplied $config{BLACKLISTNEWONLY} ) {
+	default_yes_no 'BLACKLISTNEWONLY'           , '';
+	fatal_error "BLACKLISTNEWONLY=No may not be specified with FASTACCEPT=Yes" if $config{FASTACCEPT} && ! $config{BLACKLISTNEWONLY};
+
+	if ( have_capability 'RAW_TABLE' ) {
+	    $globals{BLACKLIST_STATES} = $config{BLACKLISTNEWONLY} ? 'NEW,INVALID,UNTRACKED' : 'NEW,ESTABLISHED,INVALID,UNTRACKED';
+	} else {
+	    $globals{BLACKLIST_STATES} = $config{BLACKLISTNEWONLY} ? 'NEW,INVALID' : 'NEW,ESTABLISHED,INVALID';
+	}
+    } else {
+	if ( have_capability 'RAW_TABLE' ) {
+	    $globals{BLACKLIST_STATES} = $config{FASTACCEPT} ? 'NEW,INVALID,UNTRACKED' : 'NEW,ESTABLISHED,INVALID,UNTRACKED';
+	} else {
+	    $globals{BLACKLIST_STATES} = $config{FASTACCEPT} ? 'NEW,INVALID' : 'NEW,INVALID,ESTABLISHED';
+	}
+    }
 
     default_yes_no 'IMPLICIT_CONTINUE'          , '';
     default_yes_no 'HIGH_ROUTE_MARKS'           , '';
@@ -4119,17 +5287,24 @@ sub get_configuration( $$$ ) {
     default_yes_no 'EXPORTPARAMS'               , '';
     default_yes_no 'EXPAND_POLICIES'            , '';
     default_yes_no 'KEEP_RT_TABLES'             , '';
+    default_yes_no 'USE_RT_NAMES'               , '';
     default_yes_no 'DELETE_THEN_ADD'            , 'Yes';
-    default_yes_no 'AUTO_COMMENT'               , 'Yes';
+    default_yes_no 'AUTOCOMMENT'                , 'Yes';
     default_yes_no 'MULTICAST'                  , '';
     default_yes_no 'MARK_IN_FORWARD_CHAIN'      , '';
-    default_yes_no 'MANGLE_ENABLED'             , have_capability 'MANGLE_ENABLED' ? 'Yes' : '';
-    default_yes_no 'NULL_ROUTE_RFC1918'         , '';
+    default_yes_no 'CHAIN_SCRIPTS'              , 'Yes';
+
+    default_yes_no 'MANGLE_ENABLED'             , have_capability( 'MANGLE_ENABLED' ) ? 'Yes' : '';
     default_yes_no 'USE_DEFAULT_RT'             , '';
     default_yes_no 'RESTORE_DEFAULT_ROUTE'      , 'Yes';
     default_yes_no 'AUTOMAKE'                   , '';
     default_yes_no 'WIDE_TC_MARKS'              , '';
     default_yes_no 'TRACK_PROVIDERS'            , '';
+
+    unless ( ( $config{NULL_ROUTE_RFC1918} || '' ) =~ /^(?:blackhole|unreachable|prohibit)$/ ) {
+	default_yes_no( 'NULL_ROUTE_RFC1918', '' );
+	$config{NULL_ROUTE_RFC1918} = 'blackhole' if $config{NULL_ROUTE_RFC1918};
+    }
 
     default_yes_no 'ACCOUNTING'                 , 'Yes';
     default_yes_no 'OPTIMIZE_ACCOUNTING'        , '';
@@ -4143,12 +5318,19 @@ sub get_configuration( $$$ ) {
 
     default_yes_no 'DYNAMIC_BLACKLIST'          , 'Yes';
     default_yes_no 'REQUIRE_INTERFACE'          , '';
-    default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability 'MARK' ? 'Yes' : '';
+    default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability( 'MARK' ) ? 'Yes' : '';
     default_yes_no 'COMPLETE'                   , '';
     default_yes_no 'EXPORTMODULES'              , '';
     default_yes_no 'LEGACY_FASTSTART'           , 'Yes';
     default_yes_no 'USE_PHYSICAL_NAMES'         , '';
     default_yes_no 'IPSET_WARNINGS'             , 'Yes';
+    default_yes_no 'AUTOHELPERS'                , 'Yes';
+    default_yes_no 'RESTORE_ROUTEMARKS'         , 'Yes';
+    default_yes_no 'IGNOREUNKNOWNVARIABLES'     , 'Yes';
+    default_yes_no 'WARNOLDCAPVERSION'          , 'Yes';
+    default_yes_no 'DEFER_DNS_RESOLUTION'       , 'Yes';
+
+    $config{IPSET} = '' if supplied $config{IPSET} && $config{IPSET} eq 'ipset'; 
 
     require_capability 'MARK' , 'FORWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 
@@ -4214,11 +5396,13 @@ sub get_configuration( $$$ ) {
 
     require_capability 'AUDIT_TARGET', "SMURF_DISPOSITION=$val", 's' if $val =~ /^A_/;
 
-    default_log_level 'BLACKLIST_LOGLEVEL',  '';
-    default_log_level 'MACLIST_LOG_LEVEL',   '';
-    default_log_level 'TCP_FLAGS_LOG_LEVEL', '';
-    default_log_level 'RFC1918_LOG_LEVEL',   '';
-    default_log_level 'RELATED_LOG_LEVEL',   '';
+    default_log_level 'BLACKLIST_LOG_LEVEL',  '';
+    default_log_level 'MACLIST_LOG_LEVEL',    '';
+    default_log_level 'TCP_FLAGS_LOG_LEVEL',  '';
+    default_log_level 'RFC1918_LOG_LEVEL',    '';
+    default_log_level 'RELATED_LOG_LEVEL',    '';
+    default_log_level 'INVALID_LOG_LEVEL',    '';
+    default_log_level 'UNTRACKED_LOG_LEVEL',  '';
 
     warning_message "RFC1918_LOG_LEVEL=$config{RFC1918_LOG_LEVEL} ignored. The 'norfc1918' interface/host option is no longer supported" if $config{RFC1918_LOG_LEVEL};
 
@@ -4232,6 +5416,15 @@ sub get_configuration( $$$ ) {
 	require_capability 'AUDIT_TARGET' , "SFILTER_DISPOSITION=$val", 's' if $1;
     } else {
 	$config{SFILTER_DISPOSITION} = 'DROP';
+    }
+
+    default_log_level 'RPFILTER_LOG_LEVEL', 'info';
+
+    if ( $val = $config{RPFILTER_DISPOSITION} ) {
+	fatal_error "Invalid RPFILTER_DISPOSITION setting ($val)" unless $val =~ /^(A_)?(DROP|REJECT)$/;
+	require_capability 'AUDIT_TARGET' , "RPFILTER_DISPOSITION=$val", 's' if $1;
+    } else {
+	$config{RPFILTER_DISPOSITION} = 'DROP';
     }
 
     if ( $val = $config{MACLIST_DISPOSITION} ) {
@@ -4260,14 +5453,54 @@ sub get_configuration( $$$ ) {
 	    $globals{RELATED_TARGET} = 'reject';
 	} elsif ( $val eq 'A_REJECT' ) {
 	    $globals{RELATED_TARGET} = $val;
+	} elsif ( $val eq 'CONTINUE' ) {
+	    $globals{RELATED_TARGET} = '';
 	} else {
 	    fatal_error "Invalid value ($config{RELATED_DISPOSITION}) for RELATED_DISPOSITION"
 	}
 
-	require_capability 'AUDIT_TARGET' , "MACLIST_DISPOSITION=$val", 's' if $val =~ /^A_/;
+	require_capability 'AUDIT_TARGET' , "RELATED_DISPOSITION=$val", 's' if $val =~ /^A_/;
     } else {
 	$config{RELATED_DISPOSITION}  =
 	$globals{RELATED_TARGET}      = 'ACCEPT';
+    }
+
+    if ( $val = $config{INVALID_DISPOSITION} ) {
+	if ( $val =~ /^(?:A_)?DROP$/ ) {
+	    $globals{INVALID_TARGET} = $val;
+	} elsif ( $val eq 'REJECT' ) {
+	    $globals{INVALID_TARGET} = 'reject';
+	} elsif ( $val eq 'A_REJECT' ) {
+	    $globals{INVALID_TARGET} = $val;
+	} elsif ( $val eq 'CONTINUE' ) {
+	    $globals{INVALID_TARGET} = '';
+	} else {
+	    fatal_error "Invalid value ($config{INVALID_DISPOSITION}) for INVALID_DISPOSITION"
+	}
+
+	require_capability 'AUDIT_TARGET' , "INVALID_DISPOSITION=$val", 's' if $val =~ /^A_/;
+    } else {
+	$config{INVALID_DISPOSITION}  = 'CONTINUE';
+	$globals{INVALID_TARGET}      = '';
+    }
+
+    if ( $val = $config{UNTRACKED_DISPOSITION} ) {
+	if ( $val =~ /^(?:A_)?(?:DROP|ACCEPT)$/ ) {
+	    $globals{UNTRACKED_TARGET} = $val;
+	} elsif ( $val eq 'REJECT' ) {
+	    $globals{UNTRACKED_TARGET} = 'reject';
+	} elsif ( $val eq 'A_REJECT' ) {
+	    $globals{UNTRACKED_TARGET} = $val;
+	} elsif ( $val eq 'CONTINUE' ) {
+	    $globals{UNTRACKED_TARGET} = '';
+	} else {
+	    fatal_error "Invalid value ($config{UNTRACKED_DISPOSITION}) for UNTRACKED_DISPOSITION"
+	}
+
+	require_capability 'AUDIT_TARGET' , "UNTRACKED_DISPOSITION=$val", 's' if $val =~ /^A_/;
+    } else {
+	$config{UNTRACKED_DISPOSITION}  = 'CONTINUE';
+	$globals{UNTRACKED_TARGET}        = '';
     }
 
     if ( $val = $config{MACLIST_TABLE} ) {
@@ -4286,7 +5519,6 @@ sub get_configuration( $$$ ) {
     } else {
 	$val = $config{TCP_FLAGS_DISPOSITION} = 'DROP';
     }
-
 
     default 'TC_ENABLED' , $family == F_IPV4 ? 'Internal' : 'no';
 
@@ -4385,12 +5617,27 @@ sub get_configuration( $$$ ) {
 	$config{LOCKFILE} = '';
     }
 
-    report_capabilities unless $config{LOAD_HELPERS_ONLY};
-
     require_capability( 'MULTIPORT'       , "Shorewall $globals{VERSION}" , 's' );
     require_capability( 'RECENT_MATCH'    , 'MACLIST_TTL' , 's' )           if $config{MACLIST_TTL};
     require_capability( 'XCONNMARK'       , 'HIGH_ROUTE_MARKS=Yes' , 's' )  if $config{PROVIDER_OFFSET} > 0;
     require_capability( 'MANGLE_ENABLED'  , 'Traffic Shaping' , 's'      )  if $config{TC_ENABLED};
+
+    if ( $config{WARNOLDCAPVERSION} ) {
+	if ( $capabilities{CAPVERSION} ) {
+	    warning_message "Your capabilities file is out of date -- it does not contain all of the capabilities defined by $Product version $globals{VERSION}"
+		unless $capabilities{CAPVERSION} >= $globals{CAPVERSION};
+	} else {
+	    warning_message "Your capabilities file may not contain all of the capabilities defined by $Product version $globals{VERSION}";
+	}
+    }
+
+    add_variables %config;
+
+    while ( my ($var, $val ) = each %renamed ) {
+	$variables{$var} = $config{$val};
+    }
+
+    convert_to_directives if $directives;
 }
 
 #
@@ -4447,7 +5694,7 @@ sub run_user_exit( $ ) {
     my $chainref = $_[0];
     my $file = find_file $chainref->{name};
 
-    if ( -f $file ) {
+    if ( $config{CHAIN_SCRIPTS} && -f $file ) {
 	progress_message2 "Running $file...";
 
 	my $command = qq(package Shorewall::User;\nno strict;\n# line 1 "$file"\n) . `cat $file`;
@@ -4500,7 +5747,7 @@ sub run_user_exit1( $ ) {
 sub run_user_exit2( $$ ) {
     my ($file, $chainref) = ( find_file $_[0], $_[1] );
 
-    if ( -f $file ) {
+    if ( $config{CHAIN_SCRIPTS} && -f $file ) {
 	progress_message2 "Running $file...";
 	#
 	# File may be empty -- in which case eval would fail
@@ -4554,7 +5801,7 @@ sub generate_aux_config() {
 
     emit "#\n# Shorewall auxiliary configuration file created by Shorewall version $globals{VERSION} - $date\n#";
 
-    for my $option ( qw(VERBOSITY LOGFILE LOGFORMAT IPTABLES IP6TABLES IP TC IPSET PATH SHOREWALL_SHELL SUBSYSLOCK LOCKFILE RESTOREFILE) ) {
+    for my $option ( qw(VERBOSITY LOGFILE LOGFORMAT ARPTABLES IPTABLES IP6TABLES IP TC IPSET PATH SHOREWALL_SHELL SUBSYSLOCK LOCKFILE RESTOREFILE) ) {
 	conditionally_add_option $option;
     }
 
@@ -4635,6 +5882,20 @@ sub dump_mark_layout() {
 	     $globals{TPROXY_MARK},
 	     $globals{TPROXY_MARK},
 	     $globals{TPROXY_MARK} );
+}
+
+sub report_used_capabilities() {
+    if ( $verbosity > 1 ) {
+	progress_message2 "Configuration uses these capabilities ('*' denotes required):";
+
+	for ( sort grep $_ ne 'KERNELVERSION', keys %used ) {
+	    if ( $used{$_} > 1 ) {
+		progress_message2 "   $_*";
+	    } else { 
+		progress_message2 "   $_";
+	    }
+	}
+    }
 }
 
 END {

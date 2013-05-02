@@ -1,7 +1,7 @@
 #
-# Shorewall version 4 - Drop Smurfs Action
+# Shorewall version 4 - Drop TCPFlags Action
 #
-# /usr/share/shorewall/action.DropSmurfs
+# /usr/share/shorewall/action.TCPFlags
 #
 #   Accepts a single optional parameter:
 #
@@ -9,50 +9,30 @@
 #          audit = Audit dropped packets.
 #
 #################################################################################
-FORMAT 2
+?FORMAT 2
 
-DEFAULTS DROP,-
+DEFAULTS -
 
 ?BEGIN PERL;
 use strict;
 use Shorewall::Config qw(:DEFAULT F_IPV4 F_IPV6);
 use Shorewall::Chains;
+use Shorewall::Rules;
 
-my ( $disposition, $audit ) = get_action_params( 2 );
+my $action = 'DROP';
 
-my $chainref        = get_action_chain;
-my ( $level, $tag ) = get_action_logging;
+my ( $audit ) = get_action_params( 1 );
 
-fatal_error q(The first argument to 'TCPFlags' must be ACCEPT, REJECT, or DROP) unless $disposition =~ /^(ACCEPT|REJECT|DROP)$/;
+if ( supplied $audit ) {
+     fatal_error "Invalid parameter ($audit) to action TCPFlags" if $audit ne 'audit';
+     $action = "A_DROP";
+}    
 
-if ( $level ne '-' || $audit ne '-' ) {
-    my $logchainref = ensure_filter_chain newlogchain( $chainref->{table} ), 0;
-
-    log_rule_limit( $level,
-		    $logchainref,
-		    $chainref->{name},
-		    $disposition,
-		    '',
-		    $tag,
-		    'add',
-		    '' ) if $level;
-
-    if ( supplied $audit ) {
-	fatal_error "Invalid argument ($audit) to TCPFlags" if $audit ne 'audit';
-	require_capability 'AUDIT_TARGET', q(Passing 'audit' to the TCPFlags action), 's';
-	add_ijump( $logchainref, j => 'AUDIT --type ' . lc $disposition );
-    }
-
-    add_ijump( $logchainref, g => $disposition );
-
-    $disposition = $logchainref;
-}
-
-add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ALL FIN,URG,PSH';
-add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ALL NONE';
-add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags SYN,RST SYN,RST';
-add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags SYN,FIN SYN,FIN';
-add_ijump $chainref , g => $disposition, p => 'tcp --syn --sport 0';
+perl_action_tcp_helper( $action, '-p tcp --tcp-flags ALL FIN,URG,PSH' );
+perl_action_tcp_helper( $action, '-p tcp --tcp-flags ALL NONE' );
+perl_action_tcp_helper( $action, '-p tcp --tcp-flags SYN,RST SYN,RST' );
+perl_action_tcp_helper( $action, '-p tcp --tcp-flags SYN,FIN SYN,FIN' );
+perl_action_tcp_helper( $action, '-p tcp --syn --sport 0' );
 
 ?END PERL;
 

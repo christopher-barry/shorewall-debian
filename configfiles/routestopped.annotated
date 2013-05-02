@@ -1,6 +1,8 @@
 #
 # Shorewall version 4 - Routestopped File
 #
+# This file is deprecated in favor of the stoppedrules file
+#
 # For information about entries in this file, type "man shorewall-routestopped"
 #
 # The manpage is also online at
@@ -10,6 +12,8 @@
 # information.
 #
 ###############################################################################
+# 
+# This file is deprecated in favor of the shorewall-stoppedrules(5) file.
 # 
 # This file is used to define the hosts that are accessible when the firewall is
 # stopped or is being stopped.
@@ -80,6 +84,12 @@
 #     Optional. A comma-separated list of port numbers and/or service names from
 #     /etc/services. May also include port ranges of the form low-port:high-port
 #     if your kernel and iptables include port range support.
+# 
+#     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
+#     that the DEST PORT(S) column is non-empty. This causes the rule to match
+#     when either the source port or the destination port in a packet matches one
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     match in your iptables and kernel.
 # 
 # Note
 # 

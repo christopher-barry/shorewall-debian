@@ -42,13 +42,16 @@
 # 
 # TOS - tos
 # 
-#     Must be one of the following;
+#     Must may one of the following;
 # 
 #             tos-minimize-delay (16)
 #             tos-maximize-throughput (8)
 #             tos-maximize-reliability (4)
 #             tos-minimize-cost (2)
 #             tos-normal-service (0)
+# 
+#     To specify more than one flag, add their values together and specify the
+#     numeric result.
 # 
 # MARK - [!]value[/mask][:C]
 # 

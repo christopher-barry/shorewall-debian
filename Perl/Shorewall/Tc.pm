@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
 #
 #     Traffic Control is from tc4shorewall Version 0.5
 #     (c) 2005 Arne Bernin <arne@ucbering.de>
@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.5_4';
+our $VERSION = '4.5_16';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -86,7 +86,7 @@ use constant { NOMARK    => 0 ,
 	       HIGHMARK  => 2
 	       };
 
-my  %flow_keys = ( 'src'            => 1,
+our %flow_keys = ( 'src'            => 1,
 		   'dst'            => 1,
 		   'proto'          => 1,
 		   'proto-src'      => 1,
@@ -104,15 +104,15 @@ my  %flow_keys = ( 'src'            => 1,
 		   'sk-gid'         => 1,
 		   'vlan-tag'       => 1 );
 
-my %designator = ( F => 'tcfor' ,
-		   T => 'tcpost' );
+our %designator = ( F => 'tcfor' ,
+		    T => 'tcpost' );
 
-my  %tosoptions = ( 'tos-minimize-delay'       => '0x10/0x10' ,
+our %tosoptions = ( 'tos-minimize-delay'       => '0x10/0x10' ,
 		    'tos-maximize-throughput'  => '0x08/0x08' ,
 		    'tos-maximize-reliability' => '0x04/0x04' ,
 		    'tos-minimize-cost'        => '0x02/0x02' ,
 		    'tos-normal-service'       => '0x00/0x1e' );
-my  %classids;
+our %classids;
 
 #
 # Perl version of Arn Bernin's 'tc4shorewall'.
@@ -133,12 +133,12 @@ my  %classids;
 #                              name          => <interface>
 #                                               }
 #
-my  @tcdevices;
-my  %tcdevices;
-my  @devnums;
-my  $devnum;
-my  $sticky;
-my  $ipp2p;
+our @tcdevices;
+our %tcdevices;
+our @devnums;
+our $devnum;
+our $sticky;
+our $ipp2p;
 
 #
 # TCClasses Table
@@ -159,10 +159,10 @@ my  $ipp2p;
 #                                                }
 #                                     }
 #             }
-my  @tcclasses;
-my  %tcclasses;
+our @tcclasses;
+our %tcclasses;
 
-my  %restrictions = ( tcpre      => PREROUTE_RESTRICT ,
+our %restrictions = ( tcpre      => PREROUTE_RESTRICT ,
 		      PREROUTING => PREROUTE_RESTRICT ,
 		      tcpost     => POSTROUTE_RESTRICT ,
 		      tcfor      => NO_RESTRICT ,
@@ -170,10 +170,16 @@ my  %restrictions = ( tcpre      => PREROUTE_RESTRICT ,
 		      tcout      => OUTPUT_RESTRICT ,
 		    );
 
-my $family;
+our $family;
 
-my $divertref; # DIVERT chain
+our $divertref; # DIVERT chain
 
+our %validstates = ( NEW                => 0,
+		     RELATED            => 0,
+		     ESTABLISHED        => 0,
+		     UNTRACKED          => 0,
+		     INVALID            => 0,
+		   );
 #
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
@@ -198,36 +204,111 @@ sub initialize( $ ) {
     $divertref = 0;
 }
 
-sub process_tc_rule( ) {
-    my ( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp );
-    if ( $family == F_IPV4 ) {
-	( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp ) =
-	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, probability => 12 , dscp => 13 }, { COMMENT => 0, FORMAT => 2 } , 14;
-	$headers = '-';
-    } else {
-	( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp ) =
-	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, headers => 12, probability => 13 , dscp => 14 },  { COMMENT => 0, FORMAT => 2 }, 15;
+sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
+    my ( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state ) = @_;
+
+our  %tccmd;
+
+    unless ( %tccmd ) {
+	%tccmd = ( SAVE =>     { match     => sub ( $ ) { $_[0] eq 'SAVE' } ,
+				 target    => 'CONNMARK --save-mark --mask' ,
+				 mark      => $config{TC_EXPERT} ? HIGHMARK : SMALLMARK,
+				 mask      => in_hex( $globals{TC_MASK} ) ,
+				 connmark  => 1
+			       } ,
+		   RESTORE =>  { match     => sub ( $ ) { $_[0] eq 'RESTORE' },
+				 target    => 'CONNMARK --restore-mark --mask' ,
+				 mark      => $config{TC_EXPERT} ? HIGHMARK : SMALLMARK ,
+				 mask      => in_hex( $globals{TC_MASK} ) ,
+				 connmark  => 1
+			       } ,
+		   CONTINUE => { match     => sub ( $ ) { $_[0] eq 'CONTINUE' },
+				 target    => 'RETURN' ,
+				 mark      => NOMARK ,
+				 mask      => '' ,
+				 connmark  => 0
+			       } ,
+		   SAME =>     { match     => sub ( $ ) { $_[0] eq 'SAME' },
+				 target    => 'sticky' ,
+				 mark      => NOMARK ,
+				 mask      => '' ,
+				 connmark  => 0
+			       } ,
+		   IPMARK =>   { match     => sub ( $ ) { $_[0] =~ /^IPMARK/ },
+				 target    => 'IPMARK' ,
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       } ,
+		   '|' =>      { match     => sub ( $ ) { $_[0] =~ '\|.*'} ,
+				 target    => 'MARK --or-mark' ,
+				 mark      => HIGHMARK ,
+				 mask      => ''
+			       } ,
+		   '&' =>      { match     => sub ( $ ) { $_[0] =~ '&.*' },
+				 target    => 'MARK --and-mark' ,
+				 mark      => HIGHMARK ,
+				 mask      => '' ,
+				 connmark  => 0
+			       } ,
+		   TPROXY =>   { match     => sub ( $ ) { $_[0] =~ /^TPROXY/ },
+				 target    => 'TPROXY',
+				 mark      => HIGHMARK,
+				 mask      => '',
+				 connmark  => ''
+			       },
+		   DIVERT =>   { match     => sub( $ ) { $_[0] =~ /^DIVERT/ },
+				 target    => 'DIVERT',
+				 mark      => HIGHMARK,
+				 mask      => '',
+				 connmark  => ''
+			       },
+		   TTL =>      { match     => sub( $ ) { $_[0] =~ /^TTL/ },
+				 target    => 'TTL',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       },
+		   HL =>       { match     => sub( $ ) { $_[0] =~ /^HL/ },
+				 target    => 'HL',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       },
+		   IMQ =>      { match     => sub( $ ) { $_[0] =~ /^IMQ\(\d+\)$/ },
+				 target    => 'IMQ',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       },
+		   DSCP =>     { match     => sub( $ ) { $_[0] =~ /^DSCP\(\w+\)$/ },
+				 target    => 'DSCP',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       },
+		   TOS =>      { match     => sub( $ ) { $_[0] =~ /^TOS\(.+\)$/ },
+				 target    => 'TOS',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       },
+		   CHECKSUM => { match     => sub( $ ) { $_[0] eq 'CHECKSUM' },
+				 target    => 'CHECKSUM' ,
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0,
+			       },
+		   INLINE   => { match     => sub( $ ) { $_[0] eq 'INLINE' },
+				 target    => 'INLINE',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0,
+			       }
+		 );
     }
-
-    our @tccmd;
-
-    our $format;
 
     fatal_error 'MARK must be specified' if $originalmark eq '-';
-
-    if ( $originalmark eq 'COMMENT' ) {
-	process_comment;
-	return;
-    }
-
-    if ( $originalmark eq 'FORMAT' ) {
-	if ( $source =~ /^([12])$/ ) {
-	    $format = $1;
-	    return;
-	}
-
-	fatal_error "Invalid FORMAT ($source)";
-    }
 
     my ( $mark, $designator, $remainder ) = split( /:/, $originalmark, 3 );
 
@@ -259,6 +340,8 @@ sub process_tc_rule( ) {
     my $cmd;
     my $rest;
     my $matches = '';
+    my $mark1;
+    my $exceptionrule = '';
 
     my %processtcc = ( sticky => sub() {
 			                  if ( $chain eq 'tcout' ) {
@@ -312,7 +395,7 @@ sub process_tc_rule( ) {
 					  $target = "IPMARK --addr $srcdst --and-mask $mask1 --or-mask $mask2 --shift $shift";
 				      },
 		       DIVERT => sub() {
-			                  fatal_error "Invalid MARK ($originalmark)"               unless $format == 2;
+			                  fatal_error "Invalid MARK ($originalmark)"               unless $file_format == 2;
 			                  fatal_error "Invalid DIVERT specification( $cmd/$rest )" if $rest;
 
 					  $chain = 'PREROUTING';
@@ -341,7 +424,7 @@ sub process_tc_rule( ) {
 					  my $params = $1;
 					  my ( $port, $ip, $bad );
 
-					  if ( $format == 1 ) {
+					  if ( $file_format == 1 ) {
 					      fatal_error "Invalid TPROXY specification( $cmd )" unless defined $params;
 
 					      ( $mark, $port, $ip, $bad ) = split_list $params, 'Parameter';
@@ -372,7 +455,11 @@ sub process_tc_rule( ) {
 
 					  if ( supplied $ip ) {
 					      if ( $family == F_IPV6 ) {
-						  $ip = $1 if $ip =~ /^\[(.+)\]$/ || $ip =~ /^<(.+)>$/;
+						  if ( $ip =~ /^\[(.+)\]$/ || $ip =~ /^<(.+)>$/ ) {
+						      $ip = $1;
+						  } elsif ( $ip =~ /^\[(.+)\]\/(\d+)$/ ) {
+						      $ip = join( $1, $2 );
+						  }
 					      }
 
 					      validate_address $ip, 1;
@@ -380,19 +467,27 @@ sub process_tc_rule( ) {
 					  }
 
 					  $target .= ' --tproxy-mark';
+
+					  $exceptionrule = '-p tcp ';
 				      },
 		       TTL => sub() {
 			                  fatal_error "TTL is not supported in IPv6 - use HL instead" if $family == F_IPV6;
 					  fatal_error "Invalid TTL specification( $cmd/$rest )" if $rest;
-					  fatal_error "Chain designator $designator not allowed with TTL" if $designator && ! ( $designator eq 'F' );
-
 					  $chain = 'tcfor';
 
-					  $cmd =~ /^TTL\(([-+]?\d+)\)$/;
+					  if ( $designator ) {
+					      if ( $designator eq 'P' ) {
+						  $chain = 'tcpre';
+					      } else {
+						  fatal_error "Chain designator $designator not allowed with TTL" if $designator ne 'F';
+					      }
+					  }
+
+					  $cmd =~ /^TTL\(([-+]?(\d+))\)$/;
 
 					  my $param =  $1;
 
-					  fatal_error "Invalid TTL specification( $cmd )" unless $param && ( $param = abs $param ) < 256;
+					  fatal_error "Invalid TTL specification( $cmd )" unless supplied( $1 ) && ( $1 eq $2 || $2 != 0 ) && ( $param = abs $param ) < 256;
 
 					  if ( $1 =~ /^\+/ ) {
 					      $target .= " --ttl-inc $param";
@@ -405,15 +500,22 @@ sub process_tc_rule( ) {
 		       HL => sub() {
 			                  fatal_error "HL is not supported in IPv4 - use TTL instead" if $family == F_IPV4;
 					  fatal_error "Invalid HL specification( $cmd/$rest )" if $rest;
-					  fatal_error "Chain designator $designator not allowed with HL" if $designator && ! ( $designator eq 'F' );
-
 					  $chain = 'tcfor';
 
-					  $cmd =~ /^HL\(([-+]?\d+)\)$/;
+
+					  if ( $designator ) {
+					      if ( $designator eq 'P' ) {
+						  $chain = 'tcpre';
+					      } else {
+						  fatal_error "Chain designator $designator not allowed with HL" if $designator ne 'F';
+					      }
+					  }
+
+					  $cmd =~ /^HL\(([-+]?(\d+))\)$/;
 
 					  my $param =  $1;
 
-					  fatal_error "Invalid HL specification( $cmd )" unless $param && ( $param = abs $param ) < 256;
+					  fatal_error "Invalid HL specification( $cmd )" unless supplied( $1 ) && ( $1 eq $2 || $2 != 0 ) && ( $param = abs $param ) < 256;
 
 					  if ( $1 =~ /^\+/ ) {
 					      $target .= " --hl-inc $param";
@@ -440,6 +542,22 @@ sub process_tc_rule( ) {
 			                  assert( $cmd =~ /^TOS\((.+)\)$/ );
 					  $target .= decode_tos( $1 , 2 );
 				      },
+		       CHECKSUM => sub()
+		                        {  require_capability 'CHECKSUM_TARGET', 'The CHECKSUM action', 's';
+					   $target .= ' --checksum-fill';
+				       },
+		       INLINE   => sub()
+		                       {
+					   assert ( $cmd eq 'INLINE' );
+					   $matches = get_inline_matches;
+
+					   if ( $matches =~ /^(.*\s+)-j\s+(.+)$/ ) {
+					       $matches = $1;
+					       $target  = $2;
+					   }
+
+					   $cmd = '';
+				       }
 		     );
 
     if ( $source ) {
@@ -480,13 +598,13 @@ sub process_tc_rule( ) {
 
 	    $chain    = $tcsref->{chain}                       if $tcsref->{chain};
 	    $target   = $tcsref->{target}                      if $tcsref->{target};
-	    $mark     = "$mark/" . in_hex( $globals{TC_MASK} ) if $connmark = $tcsref->{connmark};
+	    $mark     = "$mark/" . in_hex( $globals{TC_MASK} ) if $connmark = $tcsref->{connmark} && $mark !~ m'/';
 
 	    require_capability ('CONNMARK' , "CONNMARK Rules", '' ) if $connmark;
 
 	} else {
 	    unless ( $classid ) {
-		fatal_error "Invalid MARK ($originalmark)" unless $mark =~ /^([0-9a-fA-F]+)$/ and $designator =~ /^([0-9a-fA-F]+)$/;
+		fatal_error "Invalid ACTION ($originalmark)" unless $mark =~ /^([0-9a-fA-F]+)$/ and $designator =~ /^([0-9a-fA-F]+)$/;
 		fatal_error 'A CLASSIFY rule may not have $FW as the DEST' if $chain eq 'tcin';
 		$chain = 'tcpost';
 		$mark  = $originalmark;
@@ -524,10 +642,10 @@ sub process_tc_rule( ) {
     $list = '';
 
     unless ( $classid ) {
-      MARK:
 	{
-	    for my $tccmd ( @tccmd ) {
-		if ( $tccmd->{match}($cmd) ) {
+	    if ( $cmd =~ /^([[A-Z!&]+)/ ) {
+		if ( my $tccmd = $tccmd{$1} ) {
+		    fatal_error "Invalid $1 ACTION ($originalmark)" unless $tccmd->{match}($cmd); 
 		    fatal_error "$mark not valid with :C[FPT]" if $connmark;
 
 		    require_capability ('CONNMARK' , "SAVE/RESTORE Rules", '' ) if $tccmd->{connmark};
@@ -546,7 +664,7 @@ sub process_tc_rule( ) {
 		    }
 
 		    if ( $rest ) {
-			fatal_error "Invalid MARK ($originalmark)" if $marktype == NOMARK;
+			fatal_error "Invalid COMMAND ($originalmark)" if $marktype == NOMARK;
 
 			$mark = $rest if $tccmd->{mask};
 
@@ -558,20 +676,26 @@ sub process_tc_rule( ) {
 		    } elsif ( $tccmd->{mask} ) {
 			$mark = $tccmd->{mask};
 		    }
-
-		    last MARK;
+		} else {
+		    fatal_error "Invalid ACTION ($originalmark)";
 		}
-	    }
+	    } elsif ( $mark =~ /-/ ) {
+		( $mark, $mark1 ) = split /-/, $mark, 2;
+		validate_mark $mark;
+		fatal_error "Invalid mark range ($mark-$mark1)" if $mark =~ m'/';
+		validate_mark $mark1;
+		require_capability 'STATISTIC_MATCH', 'A mark range', 's';
+	    }  else {
+		validate_mark $mark;
 
-	    validate_mark $mark;
-
-	    if ( $config{PROVIDER_OFFSET} ) {
-		my $val = numeric_value( $cmd );
-		fatal_error "Invalid MARK/CLASSIFY ($cmd)" unless defined $val;
-		my $limit = $globals{TC_MASK};
-		unless ( have_capability 'FWMARK_RT_MASK' ) {
-		    fatal_error "Marks <= $limit may not be set in the PREROUTING or OUTPUT chains when HIGH_ROUTE_MARKS=Yes"
-			if $cmd && ( $chain eq 'tcpre' || $chain eq 'tcout' ) && $val <= $limit;
+		if ( $config{PROVIDER_OFFSET} ) {
+		    my $val = numeric_value( $cmd );
+		    fatal_error "Invalid MARK/CLASSIFY ($cmd)" unless defined $val;
+		    my $limit = $globals{TC_MASK};
+		    unless ( have_capability 'FWMARK_RT_MASK' ) {
+			fatal_error "Marks <= $limit may not be set in the PREROUTING or OUTPUT chains when HIGH_ROUTE_MARKS=Yes"
+			    if $cmd && ( $chain eq 'tcpre' || $chain eq 'tcout' ) && $val <= $limit;
+		    }
 		}
 	    }
 	}
@@ -579,26 +703,91 @@ sub process_tc_rule( ) {
 
     fatal_error "USER/GROUP only allowed in the OUTPUT chain" unless ( $user eq '-' || ( $chain eq 'tcout' || $chain eq 'tcpost' ) );
 
-    if ( ( my $result = expand_rule( ensure_chain( 'mangle' , $chain ) ,
-				     $restrictions{$chain} | $restriction,
-				     do_proto( $proto, $ports, $sports) . $matches .
-				     do_user( $user ) .
-				     do_test( $testval, $globals{TC_MASK} ) .
-				     do_length( $length ) .
-				     do_tos( $tos ) .
-				     do_connbytes( $connbytes ) .
-				     do_helper( $helper ) .
-				     do_headers( $headers ) .
-				     do_probability( $probability ) .
-				     do_dscp( $dscp ) ,
-				     $source ,
-				     $dest ,
-				     '' ,
-				     $mark ? "$target $mark" : $target,
-				     '' ,
-				     $target ,
-				     '' ) )
-	  && $device ) {
+    if ( $state ne '-' ) {
+	my @state = split_list( $state, 'state' );
+	my %state = %validstates;
+
+	for ( @state ) {
+	    fatal_error "Invalid STATE ($_)"   unless exists $state{$_};
+	    fatal_error "Duplicate STATE ($_)" if $state{$_};
+	}
+    } else {
+	$state = 'ALL';
+    }
+
+    if ( $mark1 ) {
+	#
+	# A Mark Range
+	#
+	my $chainref = ensure_chain( 'mangle', $chain );
+
+	( $mark1, my $mask ) = split( '/', $mark1 );
+
+	my ( $markval, $mark1val ) = ( numeric_value $mark, numeric_value $mark1 );
+
+	fatal_error "Invalid mark range ($mark-$mark1)" unless $markval < $mark1val;
+
+	$mask = $globals{TC_MASK} unless supplied $mask;
+
+	$mask = numeric_value $mask;
+
+	my $increment = 1;
+	my $shift     = 0;
+
+	$increment <<= 1, $shift++ until $increment & $mask;
+
+	$mask = in_hex $mask;
+
+	my $marks = ( ( $mark1val - $markval ) >> $shift ) + 1;
+
+	for ( my $packet = 0; $packet < $marks; $packet++, $markval += $increment ) {
+	    my $match = "-m statistic --mode nth --every $marks --packet $packet ";
+
+	    expand_rule( $chainref,
+			 $restrictions{$chain} | $restriction,
+			 '' ,
+			 $match .
+			 do_user( $user ) .
+			 do_test( $testval, $globals{TC_MASK} ) .
+			 do_test( $testval, $globals{TC_MASK} ) .
+			 do_length( $length ) .
+			 do_tos( $tos ) .
+			 do_connbytes( $connbytes ) .
+			 do_helper( $helper ) .
+			 do_headers( $headers ) .
+			 do_probability( $probability ) .
+			 do_dscp( $dscp ) .
+			 state_match( $state ) ,
+			 $source ,
+			 $dest ,
+			 '' ,
+			 "$target " . join( '/', in_hex( $markval ) , $mask ) ,
+			 '',
+			 $target ,
+			 $exceptionrule );
+	}
+    } elsif ( ( my $result = expand_rule( ensure_chain( 'mangle' , $chain ) ,
+					  $restrictions{$chain} | $restriction,
+					  '',
+					  do_proto( $proto, $ports, $sports) . $matches .
+					  do_user( $user ) .
+					  do_test( $testval, $globals{TC_MASK} ) .
+					  do_length( $length ) .
+					  do_tos( $tos ) .
+					  do_connbytes( $connbytes ) .
+					  do_helper( $helper ) .
+					  do_headers( $headers ) .
+					  do_probability( $probability ) .
+					  do_dscp( $dscp ) .
+					  state_match( $state ) ,
+					  $source ,
+					  $dest ,
+					  '' ,
+					  $mark ? "$target $mark" : $target,
+					  '' ,
+					  $target ,
+					  $exceptionrule ) )
+	      && $device ) {
 	#
 	# expand_rule() returns destination device if any
 	#
@@ -607,6 +796,22 @@ sub process_tc_rule( ) {
 
     progress_message "  TC Rule \"$currentline\" $done";
 
+}
+
+sub process_tc_rule( ) {
+    my ( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state );
+    if ( $family == F_IPV4 ) {
+	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp, $state ) =
+	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, probability => 12 , dscp => 13, state => 14 }, {}, 15;
+	$headers = '-';
+    } else {
+	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp, $state ) =
+	    split_line1 'tcrules file', { mark => 0, action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, test => 7, length => 8, tos => 9, connbytes => 10, helper => 11, headers => 12, probability => 13 , dscp => 14 , state => 15 }, {}, 16;
+    }
+
+    for my $proto (split_list( $protos, 'Protocol' ) ) {
+	process_tc_rule1( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state );
+    }
 }
 
 sub rate_to_kbit( $ ) {
@@ -739,7 +944,7 @@ sub process_simple_device() {
     fatal_error "Unknown interface( $device )" unless known_interface $device;
 
     my $physical = physical_name $device;
-    my $dev      = chain_base( $physical );
+    my $dev      = var_base( $physical );
 
     push @tcdevices, $device;
 
@@ -820,8 +1025,9 @@ sub process_simple_device() {
     }
 
     for ( my $i = 1; $i <= 3; $i++ ) {
+	my $prio = 16 | $i;
 	emit "run_tc qdisc add dev $physical parent $number:$i handle ${number}${i}: sfq quantum 1875 limit 127 perturb 10";
-	emit "run_tc filter add dev $physical protocol all prio 2 parent $number: handle $i fw classid $number:$i";
+	emit "run_tc filter add dev $physical protocol all prio $prio parent $number: handle $i fw classid $number:$i";
 	emit "run_tc filter add dev $physical protocol all prio 1 parent ${number}$i: handle ${number}${i} flow hash keys $type divisor 1024" if $type ne '-' && have_capability 'FLOW_FILTER';
 	emit '';
     }
@@ -852,6 +1058,8 @@ sub process_simple_device() {
 
     progress_message "  Simple tcdevice \"$currentline\" $done.";
 }
+
+my %validlinklayer = ( ethernet => 1, atm => 1, adsl => 1 );
 
 sub validate_tc_device( ) {
     my ( $device, $inband, $outband , $options , $redirected ) = split_line 'tcdevices', { interface => 0, in_bandwidth => 1, out_bandwidth => 2, options => 3, redirect => 4 };
@@ -887,7 +1095,8 @@ sub validate_tc_device( ) {
     fatal_error "Duplicate INTERFACE ($device)"    if $tcdevices{$device};
     fatal_error "Invalid INTERFACE name ($device)" if $device =~ /[:+]/;
 
-    my ( $classify, $pfifo, $flow, $qdisc )  = (0, 0, '', 'htb' );
+    my ( $classify, $pfifo, $flow, $qdisc, $linklayer, $overhead, $mtu, $mpu, $tsize ) = 
+	(0,         0,      '',    'htb',  '',         0,         0,    0,    0);
 
     if ( $options ne '-' ) {
 	for my $option ( split_list1 $options, 'option' ) {
@@ -903,6 +1112,25 @@ sub validate_tc_device( ) {
 		$qdisc = 'hfsc';
 	    } elsif ( $option eq 'htb' ) {
 		$qdisc = 'htb';
+	    } elsif ( $option =~ /^linklayer=([a-z]+)$/ ) {
+		$linklayer = $1;
+		fatal_error "Invalid linklayer ($linklayer)" unless $validlinklayer{ $linklayer };
+	    } elsif ( $option =~ /^overhead=(.+)$/ ) {
+		$overhead = numeric_value( $1 );
+		fatal_error "Invalid overhead ($1)" unless defined $overhead;
+		fatal_error q('overhead' requires 'linklayer') unless $linklayer; 
+	    } elsif ( $option =~ /^mtu=(.+)$/ ) {
+		$mtu = numeric_value( $1 );
+		fatal_error "Invalid mtu ($1)" unless defined $mtu;
+		fatal_error q('mtu' requires 'linklayer') unless $linklayer; 
+	    } elsif ( $option =~ /^mpu=(.+)$/ ) {
+		$mpu = numeric_value( $1 );
+		fatal_error "Invalid mpu ($1)" unless defined $mpu;
+		fatal_error q('mpu' requires 'linklayer') unless $linklayer;
+	    } elsif ( $option =~ /^tsize=(.+)$/ ) {
+		$tsize = numeric_value( $1 );
+		fatal_error "Invalid tsize ($1)" unless defined $tsize;
+		fatal_error q('tsize' requires 'linklayer') unless $linklayer; 
 	    } else {
 		fatal_error "Unknown device option ($option)";
 	    }
@@ -941,7 +1169,13 @@ sub validate_tc_device( ) {
 			    guarantee     => 0,
 			    name          => $device,
 			    physical      => physical_name $device,
-			    filters       => []
+			    filters       => [],
+			    linklayer     => $linklayer,
+			    overhead      => $overhead,
+			    mtu           => $mtu,
+			    mpu           => $mpu,
+			    tsize         => $tsize,
+			    filterpri     => 0,
 			  } ,
 
     push @tcdevices, $device;
@@ -975,7 +1209,7 @@ sub convert_delay( $ ) {
     my $delay = shift;
 
     return 0 unless $delay;
-    return $1 if $delay =~ /^(\d+)(ms)?$/;
+    return $1 if $delay =~ /^(\d+(\.\d+)?)(ms)?$/;
     fatal_error "Invalid Delay ($delay)";
 }
 
@@ -1004,6 +1238,39 @@ sub dev_by_number( $ ) {
     ( $dev , $devref );
 }
 
+use constant { RED_INTEGER => 1, RED_FLOAT => 2, RED_NONE => 3 };
+
+my %validredoptions = ( min         => RED_INTEGER,
+			max         => RED_INTEGER,
+			limit       => RED_INTEGER,
+			burst       => RED_INTEGER,
+			avpkt       => RED_INTEGER,
+			bandwidth   => RED_INTEGER,
+			probability => RED_FLOAT,
+			ecn         => RED_NONE,
+		      );
+
+use constant { CODEL_INTEGER => 1, CODEL_INTERVAL => 2, CODEL_NONE => 3 };
+
+my %validcodeloptions = ( flows       => CODEL_INTEGER,
+			  target      => CODEL_INTERVAL,
+			  interval    => CODEL_INTERVAL,
+			  limit       => CODEL_INTEGER,
+			  ecn         => CODEL_NONE,
+			  noecn       => CODEL_NONE,
+			  quantum     => CODEL_INTEGER
+			);
+
+sub validate_filter_priority( $$ ) {
+    my ( $priority, $kind ) = @_;
+
+    my $pri = numeric_value( $priority );
+
+    fatal_error "Invalid $kind priority ($priority)" unless defined $pri && $pri > 0 && $pri <= 65535;
+
+    $pri;
+}
+
 sub validate_tc_class( ) {
     my ( $devclass, $mark, $rate, $ceil, $prio, $options ) =
 	split_line 'tcclasses file', { interface => 0, mark => 1, rate => 2, ceil => 3, prio => 4, options => 5 };
@@ -1013,6 +1280,7 @@ sub validate_tc_class( ) {
     my $occurs = 1;
     my $parentclass = 1;
     my $parentref;
+    my $lsceil = 0;
 
     fatal_error 'INTERFACE must be specified' if $devclass eq '-';
     fatal_error 'CEIL must be specified'      if $ceil eq '-';
@@ -1056,25 +1324,36 @@ sub validate_tc_class( ) {
 
     my $tcref = $tcclasses{$device};
 
-    my $markval = 0;
+    if ( $devref->{qdisc} eq 'htb' ) {
+	fatal_error "Invalid PRIO ($prio)" unless defined numeric_value $prio;
+    }
+
+    my $markval  = 0;
+    my $markprio;
 
     if ( $mark ne '-' ) {
-	if ( $devref->{classify} ) {
-	    warning_message "INTERFACE $device has the 'classify' option - MARK value ($mark) ignored";
+	fatal_error "MARK may not be specified when TC_BITS=0" unless $config{TC_BITS};
+
+	( $mark, my $priority ) = split/:/, $mark, 2;
+
+	if ( supplied $priority ) {
+	    $markprio = validate_filter_priority( $priority, 'mark' );
 	} else {
-	    fatal_error "MARK may not be specified when TC_BITS=0" unless $config{TC_BITS};
+	    fatal_error "Missing mark priority" if $prio eq '-';
+	    $markprio =  ( $prio << 8 ) | 20;
+	    progress_message2 "   Priority of the $device packet mark $mark filter is $markprio";
+	}
 
-	    $markval = numeric_value( $mark );
-	    fatal_error "Invalid MARK ($markval)" unless defined $markval;
+	$markval = numeric_value( $mark );
+	fatal_error "Invalid MARK ($markval)" unless defined $markval;
 
-	    fatal_error "Invalid Mark ($mark)" unless $markval <= $globals{TC_MAX};
+	fatal_error "Invalid Mark ($mark)" unless $markval <= $globals{TC_MAX};
 
-	    if ( $classnumber ) {
-		fatal_error "Duplicate Class NUMBER ($classnumber)" if $tcref->{$classnumber};
-	    } else {
-		$classnumber = $config{TC_BITS} >= 14 ? $devref->{nextclass}++ : hex_value( $devnum . $markval );
-		fatal_error "Duplicate MARK ($mark)" if $tcref->{$classnumber};
-	    }
+	if ( $classnumber ) {
+	    fatal_error "Duplicate Class NUMBER ($classnumber)" if $tcref->{$classnumber};
+	} else {
+	    $classnumber = $config{TC_BITS} >= 14 ? $devref->{nextclass}++ : hex_value( $devnum . $markval );
+	    fatal_error "Duplicate MARK ($mark)" if $tcref->{$classnumber};
 	}
     } else {
 	fatal_error "Duplicate Class NUMBER ($classnumber)" if $tcref->{$classnumber};
@@ -1089,7 +1368,9 @@ sub validate_tc_class( ) {
 	my $parentnum = in_hexp $parentclass;
 	fatal_error "Unknown Parent class ($parentnum)" unless $parentref && $parentref->{occurs} == 1;
 	fatal_error "The class ($parentnum) specifies UMAX and/or DMAX; it cannot serve as a parent" if $parentref->{dmax};
-	fatal_error "The class ($parentnum) specifies flow; it cannot serve as a parent"             if $parentref->{flow};
+	fatal_error "The class ($parentnum) specifies 'flow'; it cannot serve as a parent"           if $parentref->{flow};
+	fatal_error "The class ($parentnum) specifies 'red'; it cannot serve as a parent "           if $parentref->{red};
+	fatal_error "The class ($parentnum) has an 'ls' curve; it cannot serve as a parent "         if $parentref->{lsceil};
 	fatal_error "The default class ($parentnum) may not have sub-classes"                        if ( $devref->{default} || 0 ) == $parentclass;
 	$parentref->{leaf} = 0;
 	$ratemax  = $parentref->{rate};
@@ -1100,16 +1381,27 @@ sub validate_tc_class( ) {
 
     my ( $umax, $dmax ) = ( '', '' );
 
+    if ( $ceil =~ /^(.+):(.+)/ ) {
+	fatal_error "An LS rate may only be specified for HFSC classes" unless $devref->{qdisc} eq 'hfsc';
+	$lsceil = $1;
+	$ceil   = $2;
+    }
+
     if ( $devref->{qdisc} eq 'hfsc' ) {
-	( my $trate , $dmax, $umax , my $rest ) = split ':', $rate , 4;
+	if ( $rate eq '-' ) {
+	    fatal_error 'A RATE must be supplied' unless $lsceil;
+	    $rate = 0;
+	} else {
+	    ( my $trate , $dmax, $umax , my $rest ) = split ':', $rate , 4;
 
-	fatal_error "Invalid RATE ($rate)" if defined $rest;
+	    fatal_error "Invalid RATE ($rate)" if defined $rest;
 
-	$rate = convert_rate ( $ratemax, $trate, 'RATE', $ratename );
-	$dmax = convert_delay( $dmax );
-	$umax = convert_size( $umax );
-	fatal_error "DMAX must be specified when UMAX is specified" if $umax && ! $dmax;
-	$parentclass ||= 1;
+	    $rate = convert_rate ( $ratemax, $trate, 'RATE', $ratename );
+	    $dmax = convert_delay( $dmax );
+	    $umax = convert_size( $umax );
+	    fatal_error "DMAX must be specified when UMAX is specified" if $umax && ! $dmax;
+	    $parentclass ||= 1;
+	}
     } else {
 	$rate = convert_rate ( $ratemax, $rate, 'RATE' , $ratename );
     }
@@ -1120,15 +1412,15 @@ sub validate_tc_class( ) {
 	warning_message "Total RATE of classes ($devref->{guarantee}kbits) exceeds OUT-BANDWIDTH (${full}kbits)" if ( $devref->{guarantee} += $rate ) > $full;
     }
 
-    fatal_error "Invalid PRIO ($prio)" unless defined numeric_value $prio;
-
     $tcref->{$classnumber} = { tos       => [] ,
 			       rate      => $rate ,
 			       umax      => $umax ,
 			       dmax      => $dmax ,
-			       ceiling   => convert_rate( $ceilmax, $ceil, 'CEIL' , $ceilname ) ,
-			       priority  => $prio eq '-' ? 1 : $prio ,
+			       ceiling   => $ceil   = ( supplied $ceil   ? convert_rate( $ceilmax, $ceil,   'CEIL'  , $ceilname ) : 0 ),
+			       lsceil    => $lsceil = ( $lsceil          ? convert_rate( $ceilmax, $lsceil, 'LSCEIL', $ceilname ) : 0 ),
+			       priority  => $prio ,
 			       mark      => $markval ,
+			       markprio  => $markprio ,
 			       flow      => '' ,
 			       pfifo     => 0,
 			       occurs    => 1,
@@ -1140,34 +1432,62 @@ sub validate_tc_class( ) {
 
     $tcref = $tcref->{$classnumber};
 
-    fatal_error "RATE ($tcref->{rate}) exceeds CEIL ($tcref->{ceiling})" if $tcref->{rate} > $tcref->{ceiling};
+    fatal_error "RATE ($rate) exceeds CEIL ($ceil)" if $rate && $ceil && $rate > $ceil;
+
+    my ( $red, %redopts ) = ( 0, ( avpkt => 1000 ) );
+    my ( $codel, %codelopts ) = ( 0, ( ) );
 
     unless ( $options eq '-' ) {
 	for my $option ( split_list1 "\L$options", 'option' ) {
-	    my $optval = $tosoptions{$option};
+	    my $priority;
+	    my $optval;
 
-	    $option = "tos=$optval" if $optval;
+	    ( $option, my $pri ) =  split /:/, $option, 2;
+
+	    if ( $option =~ /^tos=(.+)/ || ( $optval = $tosoptions{$option} ) ) {
+
+		if ( supplied $pri ) {
+		    $priority = validate_filter_priority( $pri, 'mark' );
+		} else {
+		    fatal_error "Missing TOS priority" if $prio eq '-';
+		    $priority = ( $prio << 8 ) | 15;
+		    progress_message2 "   Priority of the $device $option filter is $priority";
+		}
+
+		$option = "tos=$optval" if $optval;
+	    } elsif ( supplied $pri ) {
+		$option = join ':', $option, $pri;
+	    }
 
 	    if ( $option eq 'default' ) {
 		fatal_error "Only one default class may be specified for device $device" if $devref->{default};
 		fatal_error "The $option option is not valid with 'occurs" if $tcref->{occurs} > 1;
 		$devref->{default} = $classnumber;
-	    } elsif ( $option eq 'tcp-ack' ) {
+	    } elsif ( $option =~ /tcp-ack(:(\d+|0x[0-0a-fA-F]))?$/ ) {
 		fatal_error "The $option option is not valid with 'occurs" if $tcref->{occurs} > 1;
-		$tcref->{tcp_ack} = 1;
+		if ( $1 ) {
+		    $tcref->{tcp_ack} = validate_filter_priority( $2, 'tcp-ack' );
+		} else {
+		    fatal_error "Missing tcp-ack priority" if $prio eq '-';
+		    my $ackpri = $tcref->{tcp_ack} =  ( $prio << 8 ) | 10;
+		    progress_message2 "   Priority of the $device tcp-ack filter is $ackpri";
+		}
 	    } elsif ( $option =~ /^tos=0x[0-9a-f]{2}$/ ) {
 		fatal_error "The $option option is not valid with 'occurs" if $tcref->{occurs} > 1;
 		( undef, $option ) = split /=/, $option;
-		push @{$tcref->{tos}}, "$option/0xff";
+		push @{$tcref->{tos}}, "$option/0xff:$priority";
 	    } elsif ( $option =~ /^tos=0x[0-9a-f]{2}\/0x[0-9a-f]{2}$/ ) {
 		fatal_error "The $option option is not valid with 'occurs" if $tcref->{occurs} > 1;
 		( undef, $option ) = split /=/, $option;
-		push @{$tcref->{tos}}, $option;
+		push @{$tcref->{tos}}, "$option:$priority";
 	    } elsif ( $option =~ /^flow=(.*)$/ ) {
 		fatal_error "The 'flow' option is not allowed with 'pfifo'" if $tcref->{pfifo};
+		fatal_error "The 'flow' option is not allowed with 'red'"   if $tcref->{red};
 		$tcref->{flow} = process_flow $1;
 	    } elsif ( $option eq 'pfifo' ) {
-		fatal_error "The 'pfifo'' option is not allowed with 'flow='" if $tcref->{flow};
+		fatal_error "The 'pfifo' option is not allowed with 'flow='"      if $tcref->{flow};
+		fatal_error "The 'pfifo' option is not allowed with 'red='"       if $tcref->{red};
+		fatal_error "The 'pfifo' option is not allowed with 'fq_codel='"  if $tcref->{fq_codel};
 		$tcref->{pfifo} = 1;
 	    } elsif ( $option =~ /^occurs=(\d+)$/ ) {
 		my $val = $1;
@@ -1188,6 +1508,113 @@ sub validate_tc_class( ) {
 		warning_message "limit ignored with pfifo queuing" if $tcref->{pfifo};
 		fatal_error "Invalid limit ($1)" if $1 < 3 || $1 > 128;
 		$tcref->{limit} = $1;
+	    } elsif ( $option =~ s/^red=// ) {
+		fatal_error "The 'red=' option is not allowed with 'flow='"       if $tcref->{flow};
+		fatal_error "The 'red=' option is not allowed with 'pfifo'"       if $tcref->{pfifo};
+		fatal_error "The 'pfifo' option is not allowed with 'fq_codel='"  if $tcref->{fq_codel};
+		$tcref->{red} = 1;
+		my $opttype;
+
+		for my $redopt ( split_list( $option , q('red' option list) ) ) {
+		    #
+		    #                            $2  ----------------------
+		    #              $1  ------       | $3 -------           |
+		    #                 |      |      |   |       |          |
+		    if ( $redopt =~ /^([a-z]+) (?:= (   ([01]?\.)?(\d{1,8})) )?$/x ) {
+			fatal_error "Invalid RED option ($1)" unless $opttype = $validredoptions{$1};
+			if ( $2 ) {
+			    #
+			    # '=<value>' supplied
+			    #
+			    fatal_error "The $1 option does not take a value" if $opttype == RED_NONE;
+			    if ( $3 ) {
+				#
+				# fractional value
+				#
+				fatal_error "The $1 option requires an integer value"  if $opttype == RED_INTEGER;
+				fatal_error "The value of $1 must be <= 1" if $2 > 1;
+			    } else {
+				#
+				# Integer value
+				#
+				fatal_error "The $1 option requires a value 0 <= value <= 1" if $opttype == RED_FLOAT;
+			    }
+			} else {
+			    #
+			    # No value supplied
+			    #
+			    fatal_error "The $1 option requires a value" unless $opttype == RED_NONE;
+			}
+
+			$redopts{$1} = $2;
+		    } else {
+			fatal_error "Invalid RED option specification ($redopt)";
+		    }
+		}
+
+		for ( qw/ limit min max avpkt burst probability / ) {
+		    fatal_error "The $_ 'red' option is required" unless $redopts{$_};
+		}
+
+		fatal_error "The 'max' red option must be at least 2 * 'min'"   unless $redopts{max}   >= 2 * $redopts{min};
+		fatal_error "The 'limit' red option must be at least 2 * 'max'" unless $redopts{limit} >= 2 * $redopts{min};
+		$redopts{ecn} = 1 if exists $redopts{ecn};
+		$tcref->{redopts} = \%redopts;
+	    } elsif ( $option =~ /^fq_codel(?:=.+)?$/ ) {
+		fatal_error "The 'fq_codel' option is not allowed with 'red='"       if $tcref->{red};
+		fatal_error "The 'fq_codel' option is not allowed with 'pfifo'"      if $tcref->{pfifo};
+		$tcref->{fq_codel} = 1;
+		my $opttype;
+
+		$option =~ s/fq_codel=?//;
+
+		for my $codelopt ( split_list( $option , q('fq_codel' option list) ) ) {
+		    #
+		    #              $1  ------      $2 --------------
+		    #                 |      |        |    $3 ---- | 
+		    #                 |      |        |       |  | |
+		    if ( $codelopt =~ /^([a-z]+) (?:= ((?:\d+)(ms)?))?$/x )
+			    {
+			fatal_error "Invalid CODEL option ($1)" unless $opttype = $validcodeloptions{$1};
+			if ( $2 ) {
+			    #
+			    # '=<value>' supplied
+			    #
+			    fatal_error "The $1 option does not take a value" if $opttype == CODEL_NONE;
+			    if ( $3 ) {
+				#
+				# Rate
+				#
+				fatal_error "The $1 option requires an integer value"  if $opttype == CODEL_INTEGER;
+			    } else {
+				#
+				# Interval value
+				#
+				fatal_error "The $1 option requires an interval value" if $opttype == CODEL_INTERVAL;
+			    }
+			} else {
+			    #
+			    # No value supplied
+			    #
+			    fatal_error "The $1 option requires a value" unless $opttype == CODEL_NONE;
+			}
+
+			$codelopts{$1} = $2;
+		    } else {
+			fatal_error "Invalid fq_codel option specification ($codelopt)";
+		    }
+		}
+
+		if ( exists $codelopts{ecn} ) {
+		    fatal_error "The 'ecn' and 'noecn' fq_codel options are mutually exclusive" if exists $codelopts{noecn};
+		    $codelopts{ecn} = 1;
+		} elsif ( exists $codelopts{noecn} ) {
+		    $codelopts{noecn} = 1;
+		} else {
+		    $codelopts{ecn} = 1;
+		}
+		    
+		$tcref->{codelopts} = \%codelopts;
 	    } else {
 		fatal_error "Unknown option ($option)";
 	    }
@@ -1195,10 +1622,7 @@ sub validate_tc_class( ) {
     }
 
     unless ( $devref->{classify} || $occurs > 1 ) {
-	if ( $mark ne '-' ) {
-	    fatal_error "Missing MARK" if $mark eq '-';
-	    warning_message "Class NUMBER ignored -- INTERFACE $device does not have the 'classify' option"	if $devclass =~ /:/;
-	}
+	fatal_error "Missing MARK" if $mark eq '-';
     }
 
     $tcref->{flow}  = $devref->{flow}  unless $tcref->{flow};
@@ -1209,16 +1633,21 @@ sub validate_tc_class( ) {
     while ( --$occurs ) {
 	fatal_error "Duplicate class number ($classnumber)" if $tcclasses{$device}{++$classnumber};
 
-	$tcclasses{$device}{$classnumber} =  { tos      => [] ,
-					       rate     => $tcref->{rate} ,
-					       ceiling  => $tcref->{ceiling} ,
-					       priority => $tcref->{priority} ,
-					       mark     => 0 ,
-					       flow     => $tcref->{flow} ,
-					       pfifo    => $tcref->{pfifo},
-					       occurs   => 0,
-					       parent   => $parentclass,
-					       limit    => $tcref->{limit},
+	$tcclasses{$device}{$classnumber} =  { tos       => [] ,
+					       rate      => $tcref->{rate} ,
+					       ceiling   => $tcref->{ceiling} ,
+					       priority  => $tcref->{priority} ,
+					       mark      => 0 ,
+					       markprio  => $markprio ,
+					       flow      => $tcref->{flow} ,
+					       pfifo     => $tcref->{pfifo},
+					       occurs    => 0,
+					       parent    => $parentclass,
+					       limit     => $tcref->{limit},
+					       red       => $tcref->{red},
+					       redopts   => $tcref->{redopts},
+					       fq_codel  => $tcref->{fq_codel},
+					       codelopts => $tcref->{codelopts},
 					     };
 	push @tcclasses, "$device:$classnumber";
     };
@@ -1231,11 +1660,9 @@ my %validlengths = ( 32 => '0xffe0', 64 => '0xffc0', 128 => '0xff80', 256 => '0x
 #
 # Process a record from the tcfilters file
 #
-sub process_tc_filter() {
+sub process_tc_filter1( $$$$$$$$$ ) {
 
-    my ( $devclass, $source, $dest , $proto, $portlist , $sportlist, $tos, $length ) = split_line 'tcfilters file', { class => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, tos => 6, length => 7 };
-
-    fatal_error 'CLASS must be specified' if $devclass eq '-';
+    my ( $devclass, $source, $dest , $proto, $portlist , $sportlist, $tos, $length, $priority ) = @_;
 
     my ($device, $class, $rest ) = split /:/, $devclass, 3;
 
@@ -1243,7 +1670,7 @@ sub process_tc_filter() {
 
     fatal_error "Invalid INTERFACE:CLASS ($devclass)" if defined $rest || ! ($device && $class );
 
-    my ( $ip, $ip32, $prio , $lo ) = $family == F_IPV4 ? ('ip', 'ip', 10, 2 ) : ('ipv6', 'ip6', 11 , 4 );
+    my ( $ip, $ip32, $lo ) = $family == F_IPV4 ? ('ip', 'ip', 2 ) : ('ipv6', 'ip6', 4 );
 
     my $devref;
 
@@ -1252,6 +1679,18 @@ sub process_tc_filter() {
     } else {
 	( $device , $devref ) = dev_by_number( $device );
     }
+
+    my ( $prio, $filterpri ) = ( undef, $devref->{filterpri} );
+
+    if ( $priority eq '-' ) {
+	$prio = ++$filterpri;
+	fatal_error "Filter priority overflow" if $prio > 65535;
+    } else {
+	$prio = validate_filter_priority( $priority, 'filter' );
+	$filterpri = $prio if $prio > $filterpri;
+    }
+
+    $devref->{filterpri} = $filterpri;
 
     my $devnum = in_hexp $devref->{number};
 
@@ -1494,6 +1933,18 @@ sub process_tc_filter() {
 
 }
 
+sub process_tc_filter() {
+
+    my ( $devclass, $source, $dest , $protos, $portlist , $sportlist, $tos, $length, $priority )
+	= split_line 'tcfilters file', { class => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, tos => 6, length => 7 , priority => 8 };
+
+    fatal_error 'CLASS must be specified' if $devclass eq '-';
+
+    for my $proto ( split_list $protos, 'Protocol' ) {
+	process_tc_filter1( $devclass, $source, $dest , $proto, $portlist , $sportlist, $tos, $length, $priority );
+    }
+}
+
 #
 # Process the tcfilter file storing the compiled filters in the %tcdevices table
 #
@@ -1534,22 +1985,8 @@ sub process_tcfilters() {
 #
 # Process a tcpri record
 #
-sub process_tc_priority() {
-    my ( $band, $proto, $ports , $address, $interface, $helper ) = split_line1 'tcpri', { band => 0, proto => 1, port => 2, address => 3, interface => 4, helper => 5 };
-
-    fatal_error 'BAND must be specified' if $band eq '-';
-
-    if ( $band eq 'COMMENT' ) {
-	process_comment;
-	return;
-    }
-
-    fatal_error "Invalid tcpri entry" if ( $proto     eq '-' &&
-					   $ports     eq '-' &&
-					   $address   eq '-' &&
-					   $interface eq '-' &&
-					   $helper    eq '-' );
-
+sub process_tc_priority1( $$$$$$ ) {
+    my ( $band, $proto, $ports , $address, $interface, $helper ) = @_;
 
     my $val = numeric_value $band;
 
@@ -1597,6 +2034,26 @@ sub process_tc_priority() {
     }
 }
 
+sub process_tc_priority() {
+    my ( $band, $protos, $ports , $address, $interface, $helper ) = split_line1 'tcpri', { band => 0, proto => 1, port => 2, address => 3, interface => 4, helper => 5 };
+
+    fatal_error 'BAND must be specified' if $band eq '-';
+
+    fatal_error "Invalid tcpri entry" if ( $protos    eq '-' &&
+					   $ports     eq '-' &&
+					   $address   eq '-' &&
+					   $interface eq '-' &&
+					   $helper    eq '-' );
+
+    my $val = numeric_value $band;
+
+    fatal_error "Invalid PRIORITY ($band)" unless $val && $val <= 3;
+
+    for my $proto ( split_list $protos, 'Protocol' ) {
+	process_tc_priority1( $band, $proto, $ports , $address, $interface, $helper );
+    }
+}
+
 #
 # Process tcinterfaces
 #
@@ -1615,7 +2072,7 @@ sub process_tcinterfaces() {
 #
 sub process_tcpri() {
     my $fn  = find_file 'tcinterfaces';
-    my $fn1 = open_file 'tcpri';
+    my $fn1 = open_file 'tcpri', 1,1;
 
     if ( $fn1 ) {
 	first_entry
@@ -1625,8 +2082,6 @@ sub process_tcpri() {
 	    };
 
 	process_tc_priority while read_a_line( NORMAL_READ );
-
-	clear_comment;
 
 	if ( $ipp2p ) {
 	    insert_irule( $mangle_table->{tcpost} ,
@@ -1684,6 +2139,7 @@ sub process_traffic_shaping() {
 	my $defmark = in_hexp ( $devref->{default} || 0 );
 	my $devnum  = in_hexp $devref->{number};
 	my $r2q     = int calculate_r2q $devref->{out_bandwidth};
+	my $qdisc   = $devref->{qdisc};
 
 	fatal_error "No default class defined for device $devname" unless defined $devref->{default};
 
@@ -1691,7 +2147,7 @@ sub process_traffic_shaping() {
 
 	unless ( $config{TC_ENABLED} eq 'Shared' ) {
 
-	    my $dev = chain_base( $device );
+	    my $dev = var_base( $device );
 
 	    emit( '',
 		  '#',
@@ -1706,16 +2162,28 @@ sub process_traffic_shaping() {
 	    push_indent;
 
 	    emit ( "qt \$TC qdisc del dev $device root",
-		   "qt \$TC qdisc del dev $device ingress",
-		   "${dev}_mtu=\$(get_device_mtu $device)",
-		   "${dev}_mtu1=\$(get_device_mtu1 $device)"
-		 );
+		   "qt \$TC qdisc del dev $device ingress" );
 
-	    if ( $devref->{qdisc} eq 'htb' ) {
-		emit ( "run_tc qdisc add dev $device root handle $devnum: htb default $defmark r2q $r2q" ,
+	    emit ( "${dev}_mtu=\$(get_device_mtu $device)",
+		   "${dev}_mtu1=\$(get_device_mtu1 $device)"
+		 ) if $qdisc eq 'htb';
+
+	    my $stab;
+
+	    if ( $devref->{linklayer} ) {
+		$stab =  "stab linklayer $devref->{linklayer} overhead $devref->{overhead} ";
+		$stab .= "mtu $devref->{mtu} "     if $devref->{mtu};
+		$stab .= "mpu $devref->{mpu} "     if $devref->{mpu};
+		$stab .= "tsize $devref->{tsize} " if $devref->{tsize};
+	    } else {
+		$stab = '';
+	    }
+
+	    if ( $qdisc eq 'htb' ) {
+		emit ( "run_tc qdisc add dev $device ${stab}root handle $devnum: htb default $defmark r2q $r2q" ,
 		       "run_tc class add dev $device parent $devnum: classid $devnum:1 htb rate $devref->{out_bandwidth} \$${dev}_mtu1" );
 	    } else {
-		emit ( "run_tc qdisc add dev $device root handle $devnum: hfsc default $defmark" ,
+		emit ( "run_tc qdisc add dev $device ${stab}root handle $devnum: hfsc default $defmark" ,
 		       "run_tc class add dev $device parent $devnum: classid $devnum:1 hfsc sc rate $devref->{out_bandwidth} ul rate $devref->{out_bandwidth}" );
 	    }
 
@@ -1739,7 +2207,7 @@ sub process_traffic_shaping() {
 	    handle_in_bandwidth( $device, $devref->{in_bandwidth} );
 
 	    for my $rdev ( @{$devref->{redirected}} ) {
-		my $phyrdev = get_physical( $rdev );
+		my $phyrdev = physical_name( $rdev );
 		emit ( "run_tc qdisc add dev $phyrdev handle ffff: ingress" );
 		emit( "run_tc filter add dev $phyrdev parent ffff: protocol all u32 match u32 0 0 action mirred egress redirect dev $device > /dev/null" );
 	    }
@@ -1762,59 +2230,105 @@ sub process_traffic_shaping() {
 		my $mark     = $tcref->{mark};
 		my $devicenumber  = in_hexp $devref->{number};
 		my $classid  = join( ':', $devicenumber, $classnum);
-		my $rate     = "$tcref->{rate}kbit";
-		my $quantum  = calculate_quantum $rate, calculate_r2q( $devref->{out_bandwidth} );
+		my $rawrate  = $tcref->{rate};
+		my $rate     = "${rawrate}kbit";
+		my $lsceil   = $tcref->{lsceil};
+		my $quantum;
 
 		$classids{$classid}=$devname;
 
-		my $priority = $tcref->{priority} << 8;
 		my $parent   = in_hexp $tcref->{parent};
 
-		emit ( "[ \$${dev}_mtu -gt $quantum ] && quantum=\$${dev}_mtu || quantum=$quantum" );
-
 		if ( $devref->{qdisc} eq 'htb' ) {
+		    $quantum  = calculate_quantum $rate, calculate_r2q( $devref->{out_bandwidth} );
+		    emit ( "[ \$${dev}_mtu -gt $quantum ] && quantum=\$${dev}_mtu || quantum=$quantum" );
 		    emit ( "run_tc class add dev $device parent $devicenumber:$parent classid $classid htb rate $rate ceil $tcref->{ceiling}kbit prio $tcref->{priority} \$${dev}_mtu1 quantum \$quantum" );
 		} else {
 		    my $dmax = $tcref->{dmax};
+		    my $rule = "run_tc class add dev $device parent $devicenumber:$parent classid $classid hfsc";
 
 		    if ( $dmax ) {
 			my $umax = $tcref->{umax} ? "$tcref->{umax}b" : "\${${dev}_mtu}b";
-			emit ( "run_tc class add dev $device parent $devicenumber:$parent classid $classid hfsc sc umax $umax dmax ${dmax}ms rate $rate ul rate $tcref->{ceiling}kbit" );
+			$rule .= " sc umax $umax dmax ${dmax}ms";
+			$rule .= " rate $rate" if $rawrate;
 		    } else {
-			emit ( "run_tc class add dev $device parent $devicenumber:$parent classid $classid hfsc sc rate $rate ul rate $tcref->{ceiling}kbit" );
+			$rule .= " sc rate $rate" if $rawrate;
 		    }
+
+		    $rule .= " ls rate ${lsceil}kbit" if $lsceil;
+		    $rule .= " ul rate $tcref->{ceiling}kbit" if $tcref->{ceiling};
+
+		    emit $rule;
 		}
 
-		if ( $tcref->{leaf} && ! $tcref->{pfifo} ) {
-		    1 while $devnums[++$sfq];
+		if ( $tcref->{leaf} ) {
+		    if ( $tcref->{red} ) {
+			1 while $devnums[++$sfq];
+			$sfqinhex = in_hexp( $sfq);
 
-		    $sfqinhex = in_hexp( $sfq);
-		    if ( $devref->{qdisc} eq 'htb' ) {
-			emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: sfq quantum \$quantum limit $tcref->{limit} perturb 10" );
-		    } else {
-			emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: sfq limit $tcref->{limit} perturb 10" );
+			my ( $options, $redopts ) = ( '', $tcref->{redopts} );
+
+			while ( my ( $option, $type ) = each %validredoptions ) {
+			    if ( my $value = $redopts->{$option} ) {
+				if ( $type == RED_NONE ) {
+				    $options = join( ' ', $options, $option ) if $value;
+				} else {
+				    $options = join( ' ', $options, $option, $value );
+				}
+			    }
+			}
+
+			emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: red${options}" );
+		    } elsif ( $tcref->{fq_codel} ) {
+			1 while $devnums[++$sfq];
+			$sfqinhex = in_hexp( $sfq);
+
+			my ( $options, $codelopts ) = ( '', $tcref->{codelopts} );
+
+			while ( my ( $option, $type ) = each %validcodeloptions ) {
+			    if ( my $value = $codelopts->{$option} ) {
+				if ( $type == CODEL_NONE ) {
+				    $options = join( ' ', $options, $option );
+				} else {
+				    $options = join( ' ', $options, $option, $value );
+				}
+			    }
+			}
+
+			emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: fq_codel${options}" );
+			
+		    } elsif ( ! $tcref->{pfifo} ) {
+			1 while $devnums[++$sfq];
+
+			$sfqinhex = in_hexp( $sfq);
+			if ( $qdisc eq 'htb' ) {
+			    emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: sfq quantum \$quantum limit $tcref->{limit} perturb 10" );
+			} else {
+			    emit( "run_tc qdisc add dev $device parent $classid handle $sfqinhex: sfq limit $tcref->{limit} perturb 10" );
+			}
 		    }
 		}
 		#
 		# add filters
 		#
 		unless ( $mark eq '-' ) {
-		    emit "run_tc filter add dev $device protocol all parent $devicenumber:0 prio " . ( $priority | 20 ) . " handle $mark fw classid $classid" if $tcref->{occurs} == 1;
+		    emit "run_tc filter add dev $device protocol all parent $devicenumber:0 prio $tcref->{markprio} handle $mark fw classid $classid" if $tcref->{occurs} == 1;
 		}
 
 		emit "run_tc filter add dev $device protocol all prio 1 parent $sfqinhex: handle $classnum flow hash keys $tcref->{flow} divisor 1024" if $tcref->{flow};
 		#
 		# options
 		#
-		emit( "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio " . ( $priority | 10 ) . ' u32' .
+		emit( "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio $tcref->{tcp_ack} u32" .
 		      "\\\n    match ip protocol 6 0xff" .
 		      "\\\n    match u8 0x05 0x0f at 0" .
 		      "\\\n    match u16 0x0000 0xffc0 at 2" .
 		      "\\\n    match u8 0x10 0xff at 33 flowid $classid" ) if $tcref->{tcp_ack};
 
 		for my $tospair ( @{$tcref->{tos}} ) {
+		    ( $tospair, my $priority ) = split /:/, $tospair;
 		    my ( $tos, $mask ) = split q(/), $tospair;
-		    emit "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio " . ( $priority | 10 ) . " u32 match ip tos $tos $mask flowid $classid";
+		    emit "run_tc filter add dev $device parent $devicenumber:0 protocol ip prio $priority u32 match ip tos $tos $mask flowid $classid";
 		}
 
 		save_progress_message_short qq("   TC Class $classid defined.");
@@ -1863,7 +2377,7 @@ sub process_traffic_shaping() {
 }
 
 #
-# Validate the TC configuration storing basic information in %tcdevices and %tcdevices
+# Validate the TC configuration storing basic information in %tcdevices and %tcclasses (complex TC only)
 #
 sub process_tc() {
     if ( $config{TC_ENABLED} eq 'Internal' || $config{TC_ENABLED} eq 'Shared' ) {
@@ -1889,7 +2403,7 @@ sub setup_traffic_shaping() {
 
     for my $device ( @tcdevices ) {
 	my $interfaceref = known_interface( $device );
-	my $dev          = chain_base( $interfaceref ? $interfaceref->{physical} : $device );
+	my $dev          = var_base( $interfaceref ? $interfaceref->{physical} : $device );
 
 	emit "setup_${dev}_tc";
     }
@@ -1898,16 +2412,8 @@ sub setup_traffic_shaping() {
 #
 # Process a record in the secmarks file
 #
-sub process_secmark_rule() {
-    my ( $secmark, $chainin, $source, $dest, $proto, $dport, $sport, $user, $mark ) =
-	split_line1( 'Secmarks file' , { secmark => 0, chain => 1, source => 2, dest => 3, proto => 4, dport => 5, sport => 6, user => 7, mark => 8 } );
-
-    fatal_error 'SECMARK must be specified' if $secmark eq '-';
-
-    if ( $secmark eq 'COMMENT' ) {
-	process_comment;
-	return;
-    }
+sub process_secmark_rule1( $$$$$$$$$ ) {
+    my ( $secmark, $chainin, $source, $dest, $proto, $dport, $sport, $user, $mark ) = @_;
 
     my %chns = ( T => 'tcpost'  ,
 		 P => 'tcpre'   ,
@@ -1915,11 +2421,15 @@ sub process_secmark_rule() {
 		 I => 'tcin'    ,
 		 O => 'tcout'   , );
 
-    my %state = ( N =>  'NEW' ,
-		  I => 'INVALID',
-		  NI => 'NEW,INVALID',
-		  E =>  'ESTABLISHED' ,
-		  ER => 'ESTABLISHED,RELATED',
+    my %state = ( N   => 'NEW' ,
+		  I   => 'INVALID',
+		  U   => 'UNTRACKED',
+		  IU  => 'INVALID,UNTRACKED',
+		  NI  => 'NEW,INVALID',
+		  NU  => 'NEW,UNTRACKED',
+		  NIU => 'NEW,INVALID,UNTRACKED',
+		  E   => 'ESTABLISHED' ,
+		  ER  => 'ESTABLISHED,RELATED',
 		);
 
     my ( $chain , $state, $rest) = split ':', $chainin , 3;
@@ -1947,6 +2457,7 @@ sub process_secmark_rule() {
 
     expand_rule( ensure_mangle_chain( $chain1 ) ,
 		 $restrictions{$chain1} ,
+		 '' ,
 		 $state .
 		 do_proto( $proto, $dport, $sport ) .
 		 do_user( $user ) .
@@ -1961,6 +2472,20 @@ sub process_secmark_rule() {
 
     progress_message "Secmarks rule \"$currentline\" $done";
 
+}
+
+#
+# Process a record in the secmarks file
+#
+sub process_secmark_rule() {
+    my ( $secmark, $chainin, $source, $dest, $protos, $dport, $sport, $user, $mark ) =
+	split_line1( 'Secmarks file' , { secmark => 0, chain => 1, source => 2, dest => 3, proto => 4, dport => 5, sport => 6, user => 7, mark => 8 } );
+
+    fatal_error 'SECMARK must be specified' if $secmark eq '-';
+
+    for my $proto ( split_list( $protos, 'Protocol' ) ) {
+	process_secmark_rule1( $secmark, $chainin, $source, $dest, $proto, $dport, $sport, $user, $mark );
+    }
 }
 
 #
@@ -1997,7 +2522,7 @@ sub setup_tc() {
 	add_ijump $mangle_table->{OUTPUT} ,     j => 'tcout', @mark_part;
 
 	if ( have_capability( 'MANGLE_FORWARD' ) ) {
-	    my $mask = have_capability 'EXMARK' ? have_capability 'FWMARK_RT_MASK' ? '/' . in_hex $globals{PROVIDER_MASK} : '' : '';
+	    my $mask = have_capability( 'EXMARK' ) ? have_capability( 'FWMARK_RT_MASK' ) ? '/' . in_hex $globals{PROVIDER_MASK} : '' : '';
 
 	    add_ijump $mangle_table->{FORWARD},      j => "MARK --set-mark 0${mask}" if $config{FORWARD_CLEAR_MARK};
 	    add_ijump $mangle_table->{FORWARD} ,     j => 'tcfor';
@@ -2011,113 +2536,25 @@ sub setup_tc() {
 	append_file $globals{TC_SCRIPT};
     } else {
 	process_tcpri if $config{TC_ENABLED} eq 'Simple';
-	setup_traffic_shaping unless $config{TC_ENABLED} eq 'Shared';
+	setup_traffic_shaping if @tcdevices && $config{TC_ENABLED} ne 'Shared';
     }
 
-    if ( $config{TC_ENABLED} ) {
-	our  @tccmd = ( { match     => sub ( $ ) { $_[0] eq 'SAVE' } ,
-			  target    => 'CONNMARK --save-mark --mask' ,
-			  mark      => $config{TC_EXPERT} ? HIGHMARK : SMALLMARK,
-			  mask      => in_hex( $globals{TC_MASK} ) ,
-			  connmark  => 1
-			} ,
-			{ match     => sub ( $ ) { $_[0] eq 'RESTORE' },
-			  target    => 'CONNMARK --restore-mark --mask' ,
-			  mark      => $config{TC_EXPERT} ? HIGHMARK : SMALLMARK ,
-			  mask      => in_hex( $globals{TC_MASK} ) ,
-			  connmark  => 1
-			} ,
-			{ match     => sub ( $ ) { $_[0] eq 'CONTINUE' },
-			  target    => 'RETURN' ,
-			  mark      => NOMARK ,
-			  mask      => '' ,
-			  connmark  => 0
-			} ,
-			{ match     => sub ( $ ) { $_[0] eq 'SAME' },
-			  target    => 'sticky' ,
-			  mark      => NOMARK ,
-			  mask      => '' ,
-			  connmark  => 0
-			} ,
-			{ match     => sub ( $ ) { $_[0] =~ /^IPMARK/ },
-			  target    => 'IPMARK' ,
-			  mark      => NOMARK,
-			  mask      => '',
-			  connmark  => 0
-			} ,
-			{ match     => sub ( $ ) { $_[0] =~ '\|.*'} ,
-			  target    => 'MARK --or-mark' ,
-			  mark      => HIGHMARK ,
-			  mask      => '' } ,
-			{ match     => sub ( $ ) { $_[0] =~ '&.*' },
-			  target    => 'MARK --and-mark' ,
-			  mark      => HIGHMARK ,
-			  mask      => '' ,
-			  connmark  => 0
-			} ,
-			{ match     => sub ( $ ) { $_[0] =~ /^TPROXY/ },
-			  target    => 'TPROXY',
-			  mark      => HIGHMARK,
-			  mask      => '',
-			  connmark  => '' },
-			{ match     => sub( $ ) { $_[0] =~ /^DIVERT/ },
-			  target    => 'DIVERT',
-			  mark      => HIGHMARK,
-			  mask      => '',
-			  connmark  => '' },
-			{ match     => sub( $ ) { $_[0] =~ /^TTL/ },
-			  target    => 'TTL',
-			  mark      => NOMARK,
-			  mask      => '',
-			  connmark  => 0
-			},
-			{ match     => sub( $ ) { $_[0] =~ /^HL/ },
-			  target    => 'HL',
-			  mark      => NOMARK,
-			  mask      => '',
-			  connmark  => 0
-			},
-			{ match     => sub( $ ) { $_[0] =~ /^IMQ\(\d+\)$/ },
-			  target    => 'IMQ',
-			  mark      => NOMARK,
-			  mask      => '',
-			  connmark  => 0
-			},
-			{ match     => sub( $ ) { $_[0] =~ /^DSCP\(\w+\)$/ },
-			  target    => 'DSCP',
-			  mark      => NOMARK,
-			  mask      => '',
-			  connmark  => 0
-			},
-			{ match     => sub( $ ) { $_[0] =~ /^TOS\(.+\)$/ },
-			  target    => 'TOS',
-			  mark      => NOMARK,
-			  mask      => '',
-			  connmark  => 0
-			},
-		      );
+    if ( $config{MANGLE_ENABLED} ) {
 
-	if ( my $fn = open_file 'tcrules' ) {
-
-	    our $format = 1;
+	if ( my $fn = open_file( 'tcrules' , 2, 1 ) ) {
 
 	    first_entry "$doing $fn...";
 
 	    process_tc_rule while read_a_line( NORMAL_READ );
 
-	    clear_comment;
-
 	}
-    }
 
-    if ( $config{MANGLE_ENABLED} ) {
-	if ( my $fn = open_file 'secmarks' ) {
+	if ( my $fn = open_file( 'secmarks', 1, 1 ) ) {
 
 	    first_entry "$doing $fn...";
 
 	    process_secmark_rule while read_a_line( NORMAL_READ );
 
-	    clear_comment;
 	}
 
 	handle_stickiness( $sticky );

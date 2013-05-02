@@ -54,7 +54,7 @@
 #     zone that is associated with only the same bridge.
 # 
 # POLICY - {ACCEPT|DROP|REJECT|CONTINUE|QUEUE|NFQUEUE[(queuenumber)]|NONE}[:{
-#     default-action-or-macro|None}]
+#     default-action-or-macro[:level]|None}]
 # 
 #     Policy if no match from the rules file is found.
 # 
@@ -64,13 +64,16 @@
 #      a. The word "None" or "none". This causes any default action defined in
 #         shorewall.conf(5) to be omitted for this policy.
 # 
-#      b. The name of an action (requires that USE_ACTIONS=Yes in shorewall.conf
-#         (5)). That action will be invoked before the policy is enforced.
+#      b. The name of an action. The action will be invoked before the policy is
+#         enforced.
 # 
-#      c. The name of a macro. The rules in that macro will be applied before the
-#         policy is enforced. This does not require USE_ACTIONS=Yes.
+#     Actions can have parameters specified.
 # 
-#         Possible policies are:
+#     Beginning with Shorewall 4.5.10, the action name can be followed optionally
+#     by a colon and a log level. The level will be applied to each rule in the
+#     action or body that does not already have a log level.
+# 
+#     Possible actions are:
 # 
 #     ACCEPT
 # 

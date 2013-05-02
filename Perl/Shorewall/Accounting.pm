@@ -3,7 +3,7 @@
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -35,23 +35,22 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.5_3';
+our $VERSION = '4.5_16';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
 #
-my %tables;
+our %tables;
 
-my $jumpchainref;
-my %accountingjumps;
-my $asection;
-my $defaultchain;
-my $ipsecdir;
-my $defaultrestriction;
-my $restriction;
-my $accounting_commands = { COMMENT => 0, SECTION => 2 };
-my $sectionname;
-my $acctable;
+our $jumpchainref;
+our %accountingjumps;
+our $asection;
+our $defaultchain;
+our $ipsecdir;
+our $defaultrestriction;
+our $restriction;
+our $sectionname;
+our $acctable;
 
 #
 # Sections in the Accounting File
@@ -139,29 +138,24 @@ sub process_section ($) {
     $asection = $newsect;
 }
 
+sub split_nfacct_list( $;$ ) {
+    my ($list, $origlist ) = @_;
+
+    fatal_error( "Invalid nfacct list (" . ( $origlist ? $origlist : $list ) . ')' ) if $list =~ /^,|,$|,,$/;
+
+    split /,/, $list;
+}
+
 #
 # Accounting
 #
-sub process_accounting_rule( ) {
+sub process_accounting_rule1( $$$$$$$$$$$ ) {
+
+    my ($action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers ) = @_;
 
     $acctable = $config{ACCOUNTING_TABLE};
 
     $jumpchainref = 0;
-
-    my ($action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers ) =
-	split_line1 'Accounting File', { action => 0, chain => 1, source => 2, dest => 3, proto => 4, dport => 5, sport => 6, user => 7, mark => 8, ipsec => 9, headers => 10 }, $accounting_commands;
-
-    fatal_error 'ACTION must be specified' if $action eq '-';
-
-    if ( $action eq 'COMMENT' ) {
-	process_comment;
-	return 0;
-    }
-
-    if ( $action eq 'SECTION' ) {
-	process_section( $chain );
-	return 0;
-    }
 
     $asection = LEGACY if $asection < 0;
 
@@ -204,6 +198,7 @@ sub process_accounting_rule( ) {
     fatal_error "USER/GROUP may only be specified in the OUTPUT section" unless $user eq '-' || $asection == OUTPUT;
 
     my $rule = do_proto( $proto, $ports, $sports ) . do_user ( $user ) . do_test ( $mark, $globals{TC_MASK} ) . do_headers( $headers );
+    my $prerule = '';
     my $rule2 = 0;
     my $jump  = 0;
 
@@ -236,6 +231,19 @@ sub process_accounting_rule( ) {
 	    }
 	} elsif ( $action =~ /^NFLOG/ ) {
 	    $target = validate_level $action;
+	} elsif ( $action =~ /^NFACCT\((.+)\)$/ ) {
+	    require_capability 'NFACCT_MATCH', 'The NFACCT action', 's';
+	    $target = '';
+	    for ( my @objects = split_nfacct_list $1 ) {
+		validate_nfobject( $_, 1 );
+		if ( s/!$// ) {
+		    $prerule .= do_nfacct( $_ );
+		} else {
+		    $rule .= do_nfacct( $_ );
+		}
+	    }
+	} elsif ( $action eq 'INLINE' ) {
+	    $rule .= get_inline_matches;
 	} else {
 	    ( $action, my $cmd ) = split /:/, $action;
 
@@ -276,6 +284,7 @@ sub process_accounting_rule( ) {
 		expand_rule(
 			    ensure_rules_chain ( 'accountout' ) ,
 			    OUTPUT_RESTRICT ,
+			    $prerule ,
 			    $rule ,
 			    $source ,
 			    $dest = ALLIP ,
@@ -369,6 +378,7 @@ sub process_accounting_rule( ) {
     expand_rule
 	$chainref ,
 	$restriction ,
+	$prerule ,
 	$rule ,
 	$source ,
 	$dest ,
@@ -394,33 +404,54 @@ sub process_accounting_rule( ) {
     }
 
     if ( $rule2 ) {
-	expand_rule
-	    $jumpchainref ,
-	    $restriction ,
-	    $rule ,
-	    $source ,
-	    $dest ,
-	    '' ,
-	    '' ,
-	    '' ,
-	    '' ,
-	    '' ;
+	expand_rule(
+		    $jumpchainref ,
+		    $restriction ,
+		    $prerule ,
+		    $rule ,
+		    $source ,
+		    $dest ,
+		    '' ,
+		    '' ,
+		    '' ,
+		    '' ,
+		    '' );
     }
 
     return 1;
 }
 
+sub process_accounting_rule( ) {
+
+    my ($action, $chain, $source, $dest, $protos, $ports, $sports, $user, $mark, $ipsec, $headers ) =
+	split_line1 'Accounting File', { action => 0, chain => 1, source => 2, dest => 3, proto => 4, dport => 5, sport => 6, user => 7, mark => 8, ipsec => 9, headers => 10 };
+
+    my $nonempty = 0;
+
+    for my $proto ( split_list $protos, 'Protocol' ) {
+	fatal_error 'ACTION must be specified' if $action eq '-';
+
+	if ( $action eq 'SECTION' ) {
+	    process_section( $chain );
+	} else {
+	    for my $proto ( split_list $protos, 'Protocol' ) {
+		$nonempty |= process_accounting_rule1( $action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers );
+	    }
+	}
+    }
+
+    $nonempty;
+}
+
 sub setup_accounting() {
 
-    if ( my $fn = open_file 'accounting' ) {
+    if ( my $fn = open_file 'accounting', 1, 1 ) {
 
 	first_entry "$doing $fn...";
 
 	my $nonEmpty = 0;
 
 	$nonEmpty |= process_accounting_rule while read_a_line( NORMAL_READ );
-
-	clear_comment;
 
 	if ( $nonEmpty ) {
 	    my $tableref = $chain_table{$acctable};

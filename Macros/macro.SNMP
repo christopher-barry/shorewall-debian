@@ -3,10 +3,17 @@
 #
 # /usr/share/shorewall/macro.SNMP
 #
-#	This macro handles SNMP traffic (including traps).
+#	This macro handles SNMP traffic.
+#
+#       Note: To allow SNMP Traps, use the SNMPTrap macro
 #
 ###############################################################################
+?FORMAT 2
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	RATE	USER/
 #				PORT(S)	PORT(S)	LIMIT	GROUP
-PARAM	-	-	udp	161:162
-PARAM	-	-	tcp	161
+
+?if ( __CT_TARGET && ! $AUTOHELPERS && __SNMP_HELPER )
+ PARAM	-	-  	udp     161 ; helper=snmp
+?else
+ PARAM	-	-	udp	161
+?endif

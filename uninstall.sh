@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.5.5.3
+VERSION=4.5.16.1
 
 usage() # $1 = exit status
 {
@@ -131,6 +131,7 @@ rm -f  ${SHAREDIR}/shorewall/prog.*
 rm -f  ${SHAREDIR}/shorewall/module*
 rm -f  ${SHAREDIR}/shorewall/helpers
 rm -f  ${SHAREDIR}/shorewall/action*
+rm -f  ${SHAREDIR}/shorewall/macro.*
 rm -f  ${SHAREDIR}/shorewall/init
 
 for f in ${MANDIR}/man5/shorewall* ${MANDIR}/man8/shorewall*; do
@@ -145,8 +146,7 @@ done
 
 rm -f  ${CONFDIR}/logrotate.d/shorewall
 
-if [ -n "$SYSTEMD" ]; THEN
-rm -f  ${SYSTEMD}/shorewall.service
+[ -n "$SYSTEMD" ] && rm -f  ${SYSTEMD}/shorewall.service
 
 echo "Shorewall Uninstalled"
 
