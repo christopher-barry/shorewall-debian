@@ -3,8 +3,9 @@ shorewall (4.5.16.1-1) unstable; urgency=low
   * New Upstream Version
   * debian/patches/01_debian_configuration.patch: Refreshed
   * debian/patches/02_correct_dnat_snat_behavior.patch: Removed
+  * Update lintian overrides
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 03 May 2013 07:49:59 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 03 May 2013 08:17:42 -0400
 
 shorewall (4.5.5.3-3) unstable; urgency=low
 

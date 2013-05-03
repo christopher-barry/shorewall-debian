@@ -5,6 +5,7 @@ shorewall: postinst-uses-db-input
 # we want to protect sensitive files
 shorewall: non-standard-dir-perm var/lib/shorewall/ 0750 != 0755
 shorewall: non-standard-file-perm etc/shorewall/params 0640 != 0644
+shorewall: non-standard-file-perm etc/shorewall/conntrack 0640 != 0644
 # It is necessary to specify /sbin/shorewall
 shorewall: command-with-path-in-maintainer-script
 # Shorewall needs to continue in runlevel 1 because networking may still be up
