@@ -10,11 +10,11 @@
  
  ###############################################################################
  #		              V E R B O S I T Y
-@@ -74,7 +74,7 @@
+@@ -82,7 +82,7 @@
  
  SHOREWALL_SHELL=/bin/sh
  
--SUBSYSLOCK=/var/lock/subsys/shorewall
+-SUBSYSLOCK=/var/lock/subsys/shorewall6
 +SUBSYSLOCK=""
  
  TC=
