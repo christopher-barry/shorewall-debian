@@ -5,6 +5,7 @@ shorewall6: postinst-uses-db-input
 # we want to protect sensitive files
 shorewall6: non-standard-dir-perm var/lib/shorewall6/ 0750 != 0755
 shorewall6: non-standard-file-perm etc/shorewall6/params 0640 != 0644
+shorewall6: non-standard-file-perm etc/shorewall6/conntrack 0640 != 0644
 # Shorewall needs to continue in runlevel 1 because networking may still be up
 shorewall6: init.d-script-possible-missing-stop
 # The administrator will not replace /sbin/shorewall with a local copy
