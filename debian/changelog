@@ -1,8 +1,9 @@
 shorewall-core (4.5.16.1-1) unstable; urgency=low
 
   * New Upstream Version
+  * debian/patches/01_correct_dynamic_zone_handling.patch: Remove
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 02 May 2013 17:11:31 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 03 May 2013 07:53:17 -0400
 
 shorewall-core (4.5.5.3-3) unstable; urgency=low
 
