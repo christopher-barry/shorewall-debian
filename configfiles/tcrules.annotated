@@ -172,7 +172,7 @@
 # 
 #         CT
 # 
-#             Mark the connecdtion in the POSTROUTING chain
+#             Mark the connection in the POSTROUTING chain
 # 
 #         CI
 # 
@@ -180,7 +180,7 @@
 #             completeness and has no applicability to traffic shaping or policy
 #             routing.
 # 
-#      3. A classification Id (classid) of the form major:minor where major and
+#      3. A classification Id (classid) of the form major:minor where major and 
 #         minor are integers. Corresponds to the 'class' specification in these
 #         traffic shaping modules:
 # 
@@ -197,7 +197,7 @@
 # 
 #         When using Shorewall6's built-in traffic shaping tool, the major class
 #         is the device number (the first device in shorewall6-tcdevices(5) is
-#         major class 1, the second device is major class 2, and so on) and the
+#         major class 1, the second device is major class 2, and so on) and the 
 #         minor class is the class's MARK value in shorewall6-tcclasses(5)
 #         preceded by the number 1 (MARK 1 corresponds to minor class 11, MARK 5
 #         corresponds to minor class 15, MARK 22 corresponds to minor class 122,
@@ -246,7 +246,7 @@
 # 
 #      7. DIVERT
 # 
-#         Added in Shorewall 4.5.3. Two DIVERT rule should preceed the TPROXY
+#         Added in Shorewall 4.5.3. Two DIVERT rule should precede the TPROXY
 #         rule and should select DEST PORT tcp 80 and SOURCE PORT tcp 80
 #         respectively (assuming that tcp port 80 is being proxied). DIVERT
 #         avoids sending packets to the TPROXY target once a socket connection to
@@ -466,7 +466,7 @@
 #     subnets. If your kernel and ip6tables include iprange match support, IP
 #     address ranges are also allowed. List elements may also consist of an
 #     interface name followed by ":" and an address (e.g., eth1:<2002:ce7c:92b4::
-#     /48>). If the ACTION column specificies a classification of the form major:
+#     /48>). If the ACTION column specifies a classification of the form major:
 #     minor then this column may also contain an interface name.
 # 
 #     When an interface is not specified, the angled brackets ('<' and '>')
@@ -491,7 +491,7 @@
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is ipv6-icmp,
 #     this column is interpreted as the destination icmp-type(s). ICMP types may
-#     be specified as a numeric type, a numberic type and code separated by a
+#     be specified as a numeric type, a numeric type and code separated by a
 #     slash (e.g., 3/4), or a typename. See http://www.shorewall.net/
 #     configuration_file_basics.htm#ICMP.
 # 
@@ -517,7 +517,7 @@
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
 #     that the DEST PORT(S) column is non-empty. This causes the rule to match
 #     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
 #     match in your iptables and kernel.
 # 
 # USER - [!][user-name-or-number][:group-name-or-number]
@@ -619,8 +619,9 @@
 # 
 # HELPER - helper
 # 
-#     Optional. Names a Netfiler protocol helper module such as ftp, sip, amanda,
-#     etc. A packet will match if it was accepted by the named helper module.
+#     Optional. Names a Netfilter protocol helper module such as ftp, sip,
+#     amanda, etc. A packet will match if it was accepted by the named helper
+#     module.
 # 
 #     Example: Mark all FTP data connections with mark 4:
 # 
@@ -699,7 +700,7 @@
 #            4         ::/0      ::/0         ipp2p:all
 #            SAVE      ::/0      ::/0         all     -             -       -       !0
 # 
-#     If a packet hasn't been classifed (packet mark is 0), copy the connection
+#     If a packet hasn't been classified (packet mark is 0), copy the connection
 #     mark to the packet mark. If the packet mark is set, we're done. If the
 #     packet is P2P, set the packet mark to 4. If the packet mark has been set,
 #     save it to the connection mark.

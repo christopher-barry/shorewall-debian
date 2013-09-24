@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-masq
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-MASQ" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-MASQ" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -100,7 +100,7 @@ Where
 .RE
 .\}
 .sp
-In that case, you will want to specify the interfaces\*(Aqs address for that provider in the ADDRESS column\&.
+In that case, you will want to specify the interface\*(Aqs address for that provider in the ADDRESS column\&.
 .sp
 The interface may be qualified by adding the character ":" followed by a comma\-separated list of destination host or subnet addresses to indicate that you only want to change the source IP address for packets being sent to those particular destinations\&. Exclusion is allowed (see
 \m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[5]\d\s+2(5)) as are ipset names preceded by a plus sign \*(Aq+\*(Aq\&.
@@ -353,7 +353,7 @@ again:
 Switch settings are retained over
 \fBshorewall restart\fR\&.
 .sp
-Beginning with Shoreawll 4\&.5\&.10, when the
+Beginning with Shorewall 4\&.5\&.10, when the
 \fIswitch\-name\fR
 is followed by
 \fB=0\fR

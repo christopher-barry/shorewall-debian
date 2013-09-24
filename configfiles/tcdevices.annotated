@@ -85,7 +85,7 @@
 # 
 #     What is described above creates a rate/burst policing filter. Beginning
 #     with Shorewall 4.4.25, a rate-estimated policing filter may be configured
-#     instead. Rate-estimated filters should be used with ethernet adapters that
+#     instead. Rate-estimated filters should be used with Ethernet adapters that
 #     have Generic Receive Offload enabled by default. See Shorewall FAQ 97a.
 # 
 #     To create a rate-estimated filter, precede the bandwidth with a tilde

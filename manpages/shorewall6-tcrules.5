@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCRULES" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCRULES" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -225,7 +225,7 @@ Mark the connection in the PREROUTING chain\&.
 .PP
 CT
 .RS 4
-Mark the connecdtion in the POSTROUTING chain
+Mark the connection in the POSTROUTING chain
 .RE
 .PP
 CI
@@ -365,7 +365,7 @@ or
 .\}
 \fBDIVERT\fR
 .sp
-Added in Shorewall 4\&.5\&.3\&. Two DIVERT rule should preceed the TPROXY rule and should select DEST PORT tcp 80 and SOURCE PORT tcp 80 respectively (assuming that tcp port 80 is being proxied)\&. DIVERT avoids sending packets to the TPROXY target once a socket connection to Squid3 has been established by TPROXY\&. DIVERT marks the packet with a unique mark and exempts it from any rules that follow\&.
+Added in Shorewall 4\&.5\&.3\&. Two DIVERT rule should precede the TPROXY rule and should select DEST PORT tcp 80 and SOURCE PORT tcp 80 respectively (assuming that tcp port 80 is being proxied)\&. DIVERT avoids sending packets to the TPROXY target once a socket connection to Squid3 has been established by TPROXY\&. DIVERT marks the packet with a unique mark and exempts it from any rules that follow\&.
 .RE
 .sp
 .RS 4
@@ -746,7 +746,7 @@ You may exclude certain hosts from the set already defined through use of an
 .RS 4
 Destination of the packet\&. Comma separated list of IP addresses and/or subnets\&. If your kernel and ip6tables include iprange match support, IP address ranges are also allowed\&. List elements may also consist of an interface name followed by ":" and an address (e\&.g\&., eth1:<2002:ce7c:92b4::/48>)\&. If the
 \fBACTION\fR
-column specificies a classification of the form
+column specifies a classification of the form
 \fImajor\fR:\fIminor\fR
 then this column may also contain an interface name\&.
 .sp
@@ -774,7 +774,7 @@ Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated l
 Optional destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
 \fIport range\fRs; if the protocol is
-\fBipv6\-icmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
+\fBipv6\-icmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numeric type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&.
 .sp
 If the protocol is
@@ -793,7 +793,7 @@ Optional source port(s)\&. If omitted, any source port is acceptable\&. Specifie
 .sp
 An entry in this field requires that the PROTO column specify tcp (6), udp (17), sctp (132) or udplite (136)\&. Use \*(Aq\-\*(Aq if any of the following fields is supplied\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
 .RE
 .PP
 \fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
@@ -912,7 +912,7 @@ is assumed\&.
 .PP
 \fBHELPER \- \fR\fIhelper\fR
 .RS 4
-Optional\&. Names a Netfiler protocol
+Optional\&. Names a Netfilter protocol
 helper
 module such as
 \fBftp\fR,
@@ -1030,7 +1030,7 @@ We assume packet/connection mark 0 means unclassified\&.
 .RE
 .\}
 .sp
-If a packet hasn\*(Aqt been classifed (packet mark is 0), copy the connection mark to the packet mark\&. If the packet mark is set, we\*(Aqre done\&. If the packet is P2P, set the packet mark to 4\&. If the packet mark has been set, save it to the connection mark\&.
+If a packet hasn\*(Aqt been classified (packet mark is 0), copy the connection mark to the packet mark\&. If the packet mark is set, we\*(Aqre done\&. If the packet is P2P, set the packet mark to 4\&. If the packet mark has been set, save it to the connection mark\&.
 .RE
 .SH "FILES"
 .PP
@@ -1045,7 +1045,7 @@ If a packet hasn\*(Aqt been classifed (packet mark is 0), copy the connection ma
 .PP
 \m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-ecn(5), shorewall6\-exclusion(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-ecn(5), shorewall6\-exclusion(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-rules

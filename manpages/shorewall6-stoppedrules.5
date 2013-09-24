@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-stoppedrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-STOPPEDR" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-STOPPEDR" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -79,7 +79,7 @@ specifies packets arriving on the named interface\&.
 .sp
 This column may also include a comma\-separated list of IP/subnet addresses\&. If your kernel and iptables include iprange match support, IP address ranges are also allowed\&. Ipsets and exclusion are also supported\&. When
 \fB$FW\fR
-or interface are specified, the list must be preceeded by a colon (":")\&.
+or interface are specified, the list must be preceded by a colon (":")\&.
 .sp
 If left empty or supplied as "\-", ::/0 is assumed\&.
 .RE
@@ -94,7 +94,7 @@ specifies packets arriving on the named interface\&. Neither may be specified if
 .sp
 This column may also include a comma\-separated list of IP/subnet addresses\&. If your kernel and iptables include iprange match support, IP address ranges are also allowed\&. Ipsets and exclusion are also supported\&. When
 \fB$FW\fR
-or interface are specified, the list must be preceeded by a colon (":")\&.
+or interface are specified, the list must be preceded by a colon (":")\&.
 .sp
 If left empty or supplied as "\-", ::/0 is assumed\&.
 .RE
@@ -121,7 +121,7 @@ Optional\&. A comma\-separated list of port numbers and/or service names from
 \fIlow\-port\fR:\fIhigh\-port\fR
 if your kernel and iptables include port range support\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
 .RE
 .SH "FILES"
 .PP

@@ -83,7 +83,7 @@
 #     connection to avoid queuing at your providers side.
 # 
 #     If you don't want any traffic to be dropped, set this to a value to zero in
-#     which case Shorewall will not create an ingress qdisc.Must be set to zero
+#     which case Shorewall will not create an ingress qdisc. Must be set to zero
 #     if the REDIRECTED INTERFACES column is non-empty.
 # 
 #     The optional burst option was added in Shorewall 4.4.18. The default burst
@@ -92,7 +92,7 @@
 # 
 #     What is described above creates a rate/burst policing filter. Beginning
 #     with Shorewall 4.4.25, a rate-estimated policing filter may be configured
-#     instead. Rate-estimated filters should be used with ethernet adapters that
+#     instead. Rate-estimated filters should be used with Ethernet adapters that
 #     have Generic Receive Offload enabled by default. See Shorewall FAQ 97a.
 # 
 #     To create a rate-estimated filter, precede the bandwidth with a tilde

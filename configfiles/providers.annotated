@@ -70,7 +70,14 @@
 # OPTIONS (Optional) - [-|option[,option]...]
 # 
 #     A comma-separated list selected from the following. The order of the
-#     options is not significant but the list may contain no embedded whitespace.
+#     options is not significant but the list may contain no embedded
+#     white-space.
+# 
+#     autosrc
+# 
+#         Added in Shorewall 4.5.17. Causes a host route to the provider's
+#         gateway router to be added to the provider's routing table. This is the
+#         default behavior unless overridden by a following noautosrc option.
 # 
 #     balance
 # 
@@ -104,6 +111,13 @@
 #         interface which forces traffic whose source is that IP address to be
 #         sent using the routing table for that interface. Setting loose prevents
 #         creation of such rules on this interface.
+# 
+#     noautosrc
+# 
+#         Added in Shorewall 4.5.17. Prevents the addition of a host route to the
+#         provider's gateway router from being added to the provider's routing
+#         table. This option must be used with caution as it can cause start and
+#         restart failures.
 # 
 #     notrack
 # 
@@ -145,6 +159,10 @@
 #     only when DUPLICATE is main. Only copy routes through INTERFACE and through
 #     interfaces listed here. If you only wish to copy routes through INTERFACE,
 #     enter none in this column.
+# 
+#     Beginning with Shorewall 4.5.17, blackhole, unreachable and prohibit routes
+#     are no longer copied by default but may be copied by including blackhole,
+#     unreachable and prohibit respectively in the COPY list.
 # 
 # Examples
 # 

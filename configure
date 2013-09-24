@@ -28,7 +28,7 @@
 #
 # Build updates this
 #
-VERSION=4.5.16.1
+VERSION=4.5.20
 
 case "$BASH_VERSION" in
     [4-9].*)
@@ -94,14 +94,37 @@ done
 vendor=${params[HOST]}
 
 if [ -z "$vendor" ]; then
+    if [ -f /etc/os-release ]; then
+	eval $(cat /etc/os-release | grep ^ID)
+
+	case $ID in
+	    fedora)
+		vendor=redhat
+		;;
+	    debian)
+		vendor=debian
+		;;
+	    opensuse)
+		vendor=suse
+		;;
+	    *)
+		vendor="$ID"
+		;;
+	esac
+
+	params[HOST]="$vendor"
+    fi
+fi
+
+if [ -z "$vendor" ]; then
     case `uname` in
 	Darwin)
-	    $params[HOST]=apple
+	    params[HOST]=apple
 	    rcfile=shorewallrc.apple
 	    ;;
 
-	cygwin*)
-	    $params[HOST]=cygwin
+	cygwin*|CYGWIN*)
+	    params[HOST]=cygwin
 	    rcfile=shorewallrc.cygwin
 	    ;;
 	*)
@@ -187,6 +210,7 @@ for on in \
     AUXINITSOURCE \
     AUXINITFILE \
     SYSTEMD \
+    SERVICEFILE \
     SYSCONFFILE \
     SYSCONFDIR \
     SPARSE \

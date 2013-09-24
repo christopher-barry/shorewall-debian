@@ -72,7 +72,7 @@
 #           ○ ctevents=event[,...]
 # 
 #             Only generate the specified conntrack events for this connection.
-#             Possible event types are: new, related, destroy, reply, assured,
+#             Possible event types are: new, related, destroy, reply, assured, 
 #             protoinfo, helper, mark (this is connection mark, not packet mark),
 #             natseqinfo, and secmark. If more than one event is listed, the
 #             event list must be enclosed in parentheses (e.g., ctevents=

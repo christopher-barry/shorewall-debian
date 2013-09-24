@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-secmarks
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-SECMARKS" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-SECMARKS" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -96,7 +96,7 @@ Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is pr
 .PP
 \fBCHAIN:STATE (chain) \- {P|I|F|O|T}[:{N|I|U|IU|NI|NU|NIU|NUI:E|ER}]\fR
 .RS 4
-This column determines the CHAIN where the SElinux context is to be applied:
+This column determines the CHAIN where the SELinux context is to be applied:
 .RS 4
 P \- PREROUTING
 .RE
@@ -236,7 +236,7 @@ Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated l
 Optional destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
 \fIport range\fRs; if the protocol is
-\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
+\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numeric type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&.
 .sp
 If the protocol is
@@ -253,7 +253,7 @@ This column is ignored if PROTOCOL = all but must be entered if any of the follo
 .RS 4
 Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
 .RE
 .PP
 \fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR]
@@ -351,7 +351,7 @@ RESTORE                               I:ER
 .PP
 \m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
-shorewall6(8), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-rules
