@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-exclusion
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-EXCLUSIO" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-EXCLUSIO" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -36,10 +36,10 @@ exclusion \- Exclude a set of hosts from a definition in a shorewall6 configurat
 \fB!\fR\fIzone\-name\fR[,\fIzone\-name\fR]...
 .SH "DESCRIPTION"
 .PP
-Exclusion is used when you wish to exclude one or more addresses from a definition\&. An exclaimation point is followed by a comma\-separated list of addresses\&. The addresses may be single host addresses (e\&.g\&., fe80::2a0:ccff:fedb:31c4) or they may be network addresses in CIDR format (e\&.g\&., fe80::2a0:ccff:fedb:31c4/64)\&. If your kernel and ip6tables include iprange support, you may also specify ranges of ip addresses of the form
+Exclusion is used when you wish to exclude one or more addresses from a definition\&. An exclamation point is followed by a comma\-separated list of addresses\&. The addresses may be single host addresses (e\&.g\&., fe80::2a0:ccff:fedb:31c4) or they may be network addresses in CIDR format (e\&.g\&., fe80::2a0:ccff:fedb:31c4/64)\&. If your kernel and ip6tables include iprange support, you may also specify ranges of ip addresses of the form
 \fIlowaddress\fR\-\fIhighaddress\fR
 .PP
-No embedded whitespace is allowed\&.
+No embedded white\-space is allowed\&.
 .PP
 Exclusion can appear after a list of addresses and/or address ranges\&. In that case, the final list of address is formed by taking the first list and then removing the addresses defined in the exclusion\&.
 .PP
@@ -128,4 +128,4 @@ to net ACCEPT rule\&.
 /etc/shorewall6/tcrules
 .SH "SEE ALSO"
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall\-zones(5)

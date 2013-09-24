@@ -7,7 +7,7 @@
 #
 ##################################################################################
 # 
-# This file was added in Shoreall 4.4.16 and is used to define Proxy NDP. There
+# This file was added in Shorewall 4.4.16 and is used to define Proxy NDP. There
 # is one entry in this file for each IPv6 address to be proxied.
 # 
 # The columns in the file are as follows.
@@ -40,7 +40,7 @@
 #     If HAVEROUTE is No or no, then the value of this column determines if the
 #     route added by Shorewall persists after a shorewall6 stop or a shorewall6
 #     clear. If this column contains Yes or yes then the route persists; If the
-#     column is empty or contains No or no then the route is deleted by
+#     column is empty or contains No or no then the route is deleted by 
 #     shorewall6 stop or shorewall6 clear.
 # 
 # Example

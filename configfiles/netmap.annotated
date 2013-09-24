@@ -9,7 +9,7 @@
 ##############################################################################################
 # 
 # This file is used to map addresses in one network to corresponding addresses in
-# a second network. It was added in Shorewall6 iin 4.4.23.3.
+# a second network. It was added in Shorewall6 4.4.23.3.
 # 
 # Warning
 # 
@@ -66,8 +66,8 @@
 # NET3 - network-address
 # 
 #     Optional - added in Shorewall 4.4.11. If specified, qualifies INTERFACE. It
-#     specifies a SOURCE network for DNAT rules and a DESTINATON network for SNAT
-#     rules.
+#     specifies a SOURCE network for DNAT rules and a DESTINATION network for
+#     SNAT rules.
 # 
 # PROTO (Optional - protocol-number-or-name
 # 
@@ -78,7 +78,7 @@
 #     Destination Ports. An optional comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
 #     column is interpreted as the destination icmp-type(s). ICMP types may be
-#     specified as a numeric type, a numberic type and code separated by a slash
+#     specified as a numeric type, a numeric type and code separated by a slash
 #     (e.g., 3/4), or a typename. See http://www.shorewall.net/
 #     configuration_file_basics.htm#ICMP.
 # 

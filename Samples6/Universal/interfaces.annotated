@@ -50,6 +50,10 @@
 #         loc     eth1            -
 #         loc     eth2            -
 # 
+#     Beginning with Shorewall 4.5.17, if you specify a zone for the 'lo'
+#     interface, then that zone must be defined as type local in shorewall6-zones
+#     (5).
+# 
 # INTERFACE - interface[:port]
 # 
 #     Logical name of interface. Each interface may be listed only once in this
@@ -85,7 +89,7 @@
 # 
 #     A comma-separated list of options from the following list. The order in
 #     which you list the options is not significant but the list should have no
-#     embedded white space.
+#     embedded white-space.
 # 
 #     accept_ra[={0|1|2}]
 # 
@@ -114,19 +118,24 @@
 # 
 #         Beginning with Shorewall 4.4.13:
 # 
-#           ● If a zone is given in the ZONES column, then the behavior is as if
+#           ● If a zone is given in the ZONES column, then the behavior is as if 
 #             blacklist had been specified in the IN_OPTIONS column of
 #             shorewall6-zones(5).
 # 
 #           ● Otherwise, the option is ignored with a warning:
 # 
-#                 WARNING: The 'blacklist' option is ignored on mult-zone
+#                 WARNING: The 'blacklist' option is ignored on multi-zone
 #                 interfaces
 # 
 #     bridge
 # 
 #         Designates the interface as a bridge. Beginning with Shorewall 4.4.7,
 #         setting this option also sets routeback.
+# 
+#     destonly
+# 
+#         Added in Shorewall 4.5.17. Causes the compiler to omit rules to handle
+#         traffic from this interface.
 # 
 #     dhcp
 # 
@@ -216,7 +225,7 @@
 #         start if the interface named in the INTERFACE column is not usable. May
 #         not be specified together with optional.
 # 
-#     routeback
+#     routeback[={0|1}]
 # 
 #         If specified, indicates that shorewall6 should include rules that allow
 #         traffic arriving on this interface to be routed back out that same
@@ -227,6 +236,10 @@
 #         If you specify this option, then you should also specify rpfilter (see
 #         below) if you are running Shorewall 4.5.7 or later; otherwise, you
 #         should specify sfilter (see below).
+# 
+#         Beginning with Shorewall 4.5.18, you may specify this option to
+#         explicitly reset (e.g., routeback=0). This can be used to override
+#         Shorewall's default setting for bridge devices which is routeback=1.
 # 
 #     rpfilter
 # 
@@ -280,10 +293,27 @@
 #         changed; the value assigned to the setting will be the value specified
 #         (if any) or 1 if no value is given.
 # 
+#     unmanaged
+# 
+#         Added in Shorewall 4.5.18. Causes all traffic between the firewall and
+#         hosts on the interface to be accepted. When this option is given:
+# 
+#           ● The ZONE column must contain '-'.
+# 
+#           ● Only the following other options are allowed with unmanaged:
+# 
+#             accept_ra
+#             forward
+#             ignore
+#             optional
+#             physical
+#             sourceroute
+#             proxyndp
+# 
 #     wait=seconds
 # 
-#         Added in Shorewall 4.4.10. Causes the generated script to wait up to
-#         seconds seconds for the interface to become usable before applying the
+#         Added in Shorewall 4.4.10. Causes the generated script to wait up to 
+#         seconds seconds for the interface to become usable before applying the 
 #         required or optional options.
 # 
 # Example

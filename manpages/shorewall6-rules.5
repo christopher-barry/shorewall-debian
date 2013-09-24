@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-RULES" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -34,7 +34,7 @@ rules \- Shorewall6 rules file
 \fB/etc/shorewall6/rules\fR
 .SH "DESCRIPTION"
 .PP
-Entries in this file govern connection establishment by defining exceptions to the policies layed out in
+Entries in this file govern connection establishment by defining exceptions to the policies laid out in
 \m[blue]\fBshorewall6\-policy\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. By default, subsequent requests and responses are automatically allowed using connection tracking\&. For any particular (source,dest) pair of zones, the rules are evaluated in the order in which they appear in this file and the first terminating match is the one that determines the disposition of the request\&. All rules are terminating except LOG and QUEUE rules\&.
 .PP
 The rules file is divided into sections\&. Each section is introduced by a "Section Header" which is a line beginning with SECTION and followed by the section name\&.
@@ -126,7 +126,7 @@ and
 \fBRELATED\fR
 sections must be empty\&.
 .PP
-An except is made if you are running Shorewall 4\&.4\&.27 or later and you have specified a non\-defualt value for RELATED_DISPOSITION or RELATED_LOG_LEVEL\&. In that case, you may have rules in the RELATED section of this file\&.
+An except is made if you are running Shorewall 4\&.4\&.27 or later and you have specified a non\-default value for RELATED_DISPOSITION or RELATED_LOG_LEVEL\&. In that case, you may have rules in the RELATED section of this file\&.
 .sp .5v
 .RE
 .PP
@@ -171,7 +171,7 @@ declared in
 Added in Shorewall 4\&.4\&.12\&. Causes addresses and/or port numbers to be added to the named
 \fIipset\fR\&. The
 \fIflags\fR
-specify the address or tupple to be added to the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be added using
+specify the address or tuple to be added to the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be added using
 \fIflags\fR
 \fBsrc\fR
 or
@@ -248,7 +248,7 @@ Simply increment the rule\*(Aqs packet and byte count and pass the packet to the
 Added in Shorewall 4\&.4\&.12\&. Causes an entry to be deleted from the named
 \fIipset\fR\&. The
 \fIflags\fR
-specify the address or tupple to be deleted from the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be deletec using
+specify the address or tuple to be deleted from the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be deleted using
 \fIflags\fR
 \fBsrc\fR
 or
@@ -352,7 +352,7 @@ The older syntax where the macro name and the target are separated by a slash (e
 .PP
 \fBNFLOG\fR[(\fInflog\-parameters\fR)]
 .RS 4
-Added in Shorewall 4\&.5\&.9\&.3\&. Queues matching packets to a backend logging daemon via a netlink socket then continues to the next rule\&. See
+Added in Shorewall 4\&.5\&.9\&.3\&. Queues matching packets to a back end logging daemon via a netlink socket then continues to the next rule\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[6]\d\s+2\&.
 .sp
 Similar to\fB LOG:NFLOG\fR[(\fInflog\-parameters\fR)], except that the log level is not changed when this ACTION is used in an action or macro and the invocation of that action or macro specifies a log level\&.
@@ -495,7 +495,7 @@ or
 Beginning with Shorewall 4\&.4\&.13, you may use a
 \fIzone\-list \fRwhich consists of a comma\-separated list of zones declared in
 \m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[9]\d\s+2
-(5)\&. Ths
+(5)\&. This
 \fIzone\-list\fR
 may be optionally followed by "+" to indicate that the rule is to apply to intra\-zone traffic as well as inter\-zone traffic\&.
 .sp
@@ -535,7 +535,7 @@ excludes all vserver zones, since those zones are nested within the firewall zon
 Hosts may also be specified as an IP address range using the syntax
 \fIlowaddress\fR\-\fIhighaddress\fR\&. This requires that your kernel and ip6tables contain iprange match support\&. If your kernel and ip6tables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of source bindings to be matched\&.
 .sp
-Beginning with Shorewall6 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logican name of the interface as found in the INTERFACE column of
+Beginning with Shorewall6 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an ampersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
 \m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[11]\d\s+2
 (5)\&.
 .sp
@@ -622,7 +622,7 @@ Beginning with Shorewall 4\&.4\&.13, you may use a
 may be optionally followed by "+" to indicate that the rule is to apply to intra\-zone traffic as well as inter\-zone traffic\&. Beginning with Shorewall\-4\&.4\&.13, exclusion is supported \-\- see see
 \m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[10]\d\s+2(5)\&.
 .sp
-Beginning with Shorewall6 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an apersand (\*(Aq&\*(Aq) followed by the logican name of the interface as found in the INTERFACE column of
+Beginning with Shorewall6 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an ampersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
 \m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[11]\d\s+2
 (5)\&.
 .sp
@@ -715,7 +715,7 @@ columns may specify an ipset name\&.
 .sp
 The
 \fIport\fR
-that the server is listening on may be included and separated from the server\*(Aqs IP address by ":"\&. If omitted, the firewall will not modifiy the destination port\&. A destination port may only be included if the
+that the server is listening on may be included and separated from the server\*(Aqs IP address by ":"\&. If omitted, the firewall will not modify the destination port\&. A destination port may only be included if the
 \fBACTION\fR
 is
 \fBDNAT\fR
@@ -771,8 +771,8 @@ Beginning with Shorewall6 4\&.4\&.19, this column can contain a comma\-separated
 \fBDEST PORT(S) \fR(dport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
 Optional destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
-\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&. Note that prior to Shorewall6 4\&.4\&.19, only a single ICMP type may be listsed\&.
+\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numeric type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&. Note that prior to Shorewall6 4\&.4\&.19, only a single ICMP type may be listed\&.
 .sp
 If the protocol is
 \fBipp2p\fR, this column is interpreted as an ipp2p option without the leading "\-\-" (example
@@ -796,14 +796,14 @@ list below:
 .sp
 1\&. There are 15 or less ports listed\&.
 .sp
-2\&. No port ranges are included or your kernel and ip6tables contain extended multiport match support\&.
+2\&. No port ranges are included or your kernel and ip6tables contain extended multi\-port match support\&.
 .RE
 .PP
 \fBSOURCE PORT(S)\fR (sport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.}
 .RS 4
 Optional source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
 .if n \{\
 .sp
 .\}
@@ -827,7 +827,7 @@ list above:
 .sp
 1\&. There are 15 or less ports listed\&.
 .sp
-2\&. No port ranges are included or your kernel and ip6tables contain extended multiport match support\&.
+2\&. No port ranges are included or your kernel and ip6tables contain extended multi\-port match support\&.
 .RE
 .PP
 \fBORIGINAL DEST\fR (origdest) \- [\fB\-\fR]
@@ -846,7 +846,7 @@ or
 \fIburst\fR
 is the largest burst permitted\&. If no
 \fIburst\fR
-is given, a value of 5 is assumed\&. There may be no no whitespace embedded in the specification\&.
+is given, a value of 5 is assumed\&. There may be no no white\-space embedded in the specification\&.
 .sp
 Example:
 \fB10/sec:20\fR
@@ -937,7 +937,7 @@ is specified, the rule matches when the number of connection exceeds the
 \fIlimit\fR\&.
 .RE
 .PP
-\fBTIME\fR \- \fItimeelement\fR[&\fItimelement\fR\&.\&.\&.]
+\fBTIME\fR \- \fItimeelement\fR[&\fItimeelement\fR\&.\&.\&.]
 .RS 4
 May be used to limit the rule to a particular time period each day, to particular days of the week or month, or to a range defined by dates and times\&. Requires time match support in your kernel and ip6tables\&.
 .sp
@@ -1092,7 +1092,7 @@ again:
 Switch settings are retained over
 \fBshorewall6 restart\fR\&.
 .sp
-Beginning with Shoreawll 4\&.5\&.10, when the
+Beginning with Shorewall 4\&.5\&.10, when the
 \fIswitch\-name\fR
 is followed by
 \fB=0\fR
@@ -1292,7 +1292,7 @@ Note that SECCTX must be defined as a builtin action in
 .PP
 \m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-blrules(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-blrules(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-policy

@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.16.1
+VERSION=4.5.20
 
 #
 # Change to the directory containing this script
@@ -212,7 +212,24 @@ if [ -z "$BUILD" ]; then
 	    BUILD=apple
 	    ;;
 	*)
-	    if [ -f /etc/debian_version ]; then
+	    if [ -f /etc/os-release ]; then
+		eval $(cat /etc/os-release | grep ^ID)
+
+		case $ID in
+		    fedora)
+			BUILD=redhat
+			;;
+		    debian)
+			BUILD=debian
+			;;
+		    opensuse)
+			BUILD=suse
+			;;
+		    *)
+			BUILD="$ID"
+			;;
+		esac
+	    elif [ -f /etc/debian_version ]; then
 		BUILD=debian
 	    elif [ -f /etc/redhat-release ]; then
 		BUILD=redhat
@@ -362,9 +379,12 @@ echo "$PRODUCT control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 #
 if [ -n "$INITFILE" ]; then
     if [ -f "${INITSOURCE}" ]; then
-	install_file $INITSOURCE ${DESTDIR}${INITDIR}/$INITFILE 0544
-	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$INITFILE
-	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$INITFILE"
+	initfile="${DESTDIR}/${INITDIR}/${INITFILE}"
+	install_file $INITSOURCE "$initfile" 0544
+
+	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' "$initfile"
+
+	echo  "$Product script installed in $initfile"
     fi
 fi
 
@@ -391,9 +411,10 @@ fi
 #
 if [ -n "$SYSTEMD" ]; then
     mkdir -p ${DESTDIR}${SYSTEMD}
-    run_install $OWNERSHIP -m 600 $PRODUCT.service ${DESTDIR}${SYSTEMD}/$PRODUCT.service
+    [ -z "$SERVICEFILE" ] && SERVICEFILE=$PRODUCT.service
+    run_install $OWNERSHIP -m 600 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
-    echo "Service file installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
+    echo "Service file $SERVICEFILE installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
 fi
 
 #
@@ -1128,7 +1149,7 @@ if [ -n "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PRODUCT} ]; then
 	chmod 755 ${DESTDIR}${SYSCONFDIR}
     fi
 
-    run_install $OWNERSHIP -m 0644 default.debian ${DESTDIR}${SYSCONFDIR}/$PRODUCT
+    run_install $OWNERSHIP -m 0644 ${SYSCONFFILE} ${DESTDIR}${SYSCONFDIR}/$PRODUCT
     echo "$SYSCONFFILE installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
 fi
 

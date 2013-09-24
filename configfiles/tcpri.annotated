@@ -78,11 +78,11 @@
 # 
 # HELPER - [helper]
 # 
-#     Optional. Names a Netfiler protocol helper module such as ftp, sip, amanda,
-#     etc. A packet will match if it was accepted by the named helper module. You
-#     can also append "-" and a port number to the helper module name (e.g.,
-#     ftp-21) to specify the port number that the original connection was made
-#     on.
+#     Optional. Names a Netfilter protocol helper module such as ftp, sip,
+#     amanda, etc. A packet will match if it was accepted by the named helper
+#     module. You can also append "-" and a port number to the helper module name
+#     (e.g., ftp-21) to specify the port number that the original connection was
+#     made on.
 # 
 ###############################################################################
 #BAND	PROTO	PORT(S)		ADDRESS		IN-INTERFACE	HELPER

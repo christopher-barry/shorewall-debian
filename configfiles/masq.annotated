@@ -40,7 +40,7 @@
 # 
 #             eth0(Avvanta)
 # 
-#     In that case, you will want to specify the interfaces's address for that
+#     In that case, you will want to specify the interface's address for that
 #     provider in the ADDRESS column.
 # 
 #     The interface may be qualified by adding the character ":" followed by a
@@ -257,7 +257,7 @@
 # 
 #     Switch settings are retained over shorewall restart.
 # 
-#     Beginning with Shoreawll 4.5.10, when the switch-name is followed by =0 or
+#     Beginning with Shorewall 4.5.10, when the switch-name is followed by =0 or
 #     =1, then the switch is initialized to off or on respectively by the start
 #     command. Other commands do not affect the switch setting.
 # 

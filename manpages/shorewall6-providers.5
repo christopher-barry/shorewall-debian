@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-PROVIDER" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-PROVIDER" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -122,7 +122,14 @@ For PPP devices, you may omit this column\&.
 .PP
 \fBOPTIONS\fR (Optional) \- [\fB\-\fR|\fIoption\fR[\fB,\fR\fIoption\fR]\&.\&.\&.]
 .RS 4
-A comma\-separated list selected from the following\&. The order of the options is not significant but the list may contain no embedded whitespace\&.
+A comma\-separated list selected from the following\&. The order of the options is not significant but the list may contain no embedded white\-space\&.
+.PP
+autosrc
+.RS 4
+Added in Shorewall 4\&.5\&.17\&. Causes a host route to the provider\*(Aqs gateway router to be added to the provider\*(Aqs routing table\&. This is the default behavior unless overridden by a following
+\fBnoautosrc\fR
+option\&.
+.RE
 .PP
 \fBbalance\fR
 .RS 4
@@ -162,6 +169,11 @@ defaults to the setting of the TRACK_PROVIDERS option in
 Shorewall6 normally adds a routing rule for each IP address on an interface which forces traffic whose source is that IP address to be sent using the routing table for that interface\&. Setting
 \fBloose\fR
 prevents creation of such rules on this interface\&.
+.RE
+.PP
+noautosrc
+.RS 4
+Added in Shorewall 4\&.5\&.17\&. Prevents the addition of a host route to the provider\*(Aqs gateway router from being added to the provider\*(Aqs routing table\&. This option must be used with caution as it can cause start and restart failures\&.
 .RE
 .PP
 \fBnotrack\fR
@@ -210,6 +222,12 @@ A comma\-separated list of other interfaces on your firewall\&. Wildcards specif
 \fBmain\fR\&. Only copy routes through INTERFACE and through interfaces listed here\&. If you only wish to copy routes through INTERFACE, enter
 \fBnone\fR
 in this column\&.
+.sp
+Beginning with Shorewall 4\&.5\&.17, blackhole, unreachable and prohibit routes are no longer copied by default but may be copied by including
+\fBblackhole\fR,\fBunreachable\fR
+and
+\fBprohibit\fR
+respectively in the COPY list\&.
 .RE
 .SH "EXAMPLES"
 .PP
@@ -258,7 +276,7 @@ eth2 connects to a local network\&.
 .PP
 \m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shoewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-tcrules(5)

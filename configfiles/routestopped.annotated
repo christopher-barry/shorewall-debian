@@ -39,13 +39,13 @@
 # OPTIONS - [-|option[,option]...]
 # 
 #     An optional comma-separated list of options. The order of the options is
-#     not important but the list can contain no embedded whitespace. The
+#     not important but the list can contain no embedded white-space. The
 #     currently-supported options are:
 # 
 #     routeback
 # 
 #         Set up a rule to ACCEPT traffic from these hosts back to themselves.
-#         Beginning with Shorewall 4.4.9, this option is automatically set if
+#         Beginning with Shorewall 4.4.9, this option is automatically set if 
 #         routeback is specified in shorewall6-interfaces (5) or if the rules
 #         compiler detects that the interface is a bridge.
 # 

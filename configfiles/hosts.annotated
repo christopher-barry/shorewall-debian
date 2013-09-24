@@ -51,7 +51,7 @@
 # 
 #      d. The name of an ipset.
 # 
-#      e. The word dynamic which makes the zone dynamic in that you can use the
+#      e. The word dynamic which makes the zone dynamic in that you can use the 
 #         shorewall add and shorewall delete commands to change to composition of
 #         the zone. This capability was added in Shorewall 4.4.21.
 # 
@@ -62,7 +62,7 @@
 # 
 #     An optional comma-separated list of options from the following list. The
 #     order in which you list the options is not significant but the list must
-#     have no embedded white space.
+#     have no embedded white-space.
 # 
 #     blacklist
 # 
