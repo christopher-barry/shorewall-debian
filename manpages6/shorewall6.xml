@@ -53,7 +53,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>check</option></arg>
+      <arg choice="opt"><option>check | ck </option></arg>
 
       <arg><option>-e</option></arg>
 
@@ -86,7 +86,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>compile</option></arg>
+      <arg choice="opt"><option>compile | co </option></arg>
 
       <arg><option>-e</option></arg>
 
@@ -447,7 +447,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-b</option></arg>
 
@@ -469,7 +469,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-f</option></arg>
 
@@ -483,10 +483,10 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg
-      choice="req"><option>actions|classifiers|connections|config|filters|ip|macros|zones|policies|tc|marks</option></arg>
+      choice="req"><option>actions|classifiers|connections|config|events|filters|ip|macros|zones|policies|tc|marks</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -496,7 +496,20 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
+
+      <arg choice="plain"><option>event</option><arg
+      choice="plain"><replaceable>event</replaceable></arg></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg choice="plain"><option>tc</option></arg>
     </cmdsynopsis>
@@ -508,7 +521,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-m</option></arg>
 
@@ -637,7 +650,7 @@
     <emphasis role="bold">q</emphasis> subtracts one from the effective
     VERBOSITY. Alternatively, <emphasis role="bold">v</emphasis> may be
     followed immediately with one of -1,0,1,2 to specify a specify VERBOSITY.
-    There may be no white space between <emphasis role="bold">v</emphasis> and
+    There may be no white-space between <emphasis role="bold">v</emphasis> and
     the VERBOSITY.</para>
 
     <para>The <emphasis>options</emphasis> may also include the letter
@@ -699,7 +712,7 @@
         <term><emphasis role="bold">check</emphasis></term>
 
         <listitem>
-          <para>Compiles the configuraton in the specified
+          <para>Compiles the configuration in the specified
           <emphasis>directory</emphasis> and discards the compiled output
           script. If no <emphasis>directory</emphasis> is given, then
           /etc/shorewall6 is assumed.</para>
@@ -757,12 +770,22 @@
           <para>When -e is specified, the compilation is being performed on a
           system other than where the compiled script will run. This option
           disables certain configuration options that require the script to be
-          compiled where it is to be run. The use of -e requires the presense
+          compiled where it is to be run. The use of -e requires the presence
           of a configuration file named <filename>capabilities</filename>
           which may be produced using the command <emphasis
           role="bold">shorewall6-lite show -f capabilities &gt;
           capabilities</emphasis> on a system with Shorewall6 Lite
-          installed</para>
+          installed.</para>
+
+          <para>The <emphasis role="bold">-c</emphasis> option was added in
+          Shorewall 4.5.17 and causes conditional compilation of a script. The
+          script specified by <replaceable>pathname</replaceable> (or implied
+          if <emphasis role="bold">pathname</emphasis> is omitted) is compiled
+          if it doesn't exist or if there is any file in the
+          <replaceable>directory</replaceable> or in a directory on the
+          CONFIG_PATH that has a modification time later than the file to be
+          compiled. When no compilation is needed, a message is issued and an
+          exit status of zero is returned.</para>
 
           <para>The <option>-d</option> option causes the compiler to be run
           under control of the Perl debugger.</para>
@@ -897,7 +920,7 @@
         <term><emphasis role="bold">forget</emphasis></term>
 
         <listitem>
-          <para>Deletes /var/lib/shorewall6/<emphasis>filenam</emphasis>e and
+          <para>Deletes /var/lib/shorewall6/<emphasis>filename</emphasis> and
           /var/lib/shorewall6/save. If no <emphasis>filename</emphasis> is
           given then the file specified by RESTOREFILE in <ulink
           url="shorewall6.conf.html">shorewall6.conf</ulink>(5) is
@@ -926,7 +949,7 @@
           and raw table PREROUTING chains.</para>
 
           <para>The trace records are written to the kernel's log buffer with
-          faciility = kernel and priority = warning, and they are routed from
+          facility = kernel and priority = warning, and they are routed from
           there by your logging daemon (syslogd, rsyslog, syslog-ng, ...) --
           Shorewall has no control over where the messages go; consult your
           logging daemon's documentation.</para>
@@ -1030,7 +1053,7 @@
 
           <para>The <replaceable>iptables match expression</replaceable> must
           be one given in the <command>iptrace</command> command being
-          cancelled.</para>
+          canceled.</para>
         </listitem>
       </varlistentry>
 
@@ -1327,7 +1350,7 @@
               <term><emphasis role="bold">config</emphasis></term>
 
               <listitem>
-                <para>Dispays distribution-specific defaults.</para>
+                <para>Displays distribution-specific defaults.</para>
               </listitem>
             </varlistentry>
 
@@ -1337,6 +1360,24 @@
               <listitem>
                 <para>Displays the IP connections currently being tracked by
                 the firewall.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">event</emphasis><replaceable>
+              event</replaceable></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.19. Displays the named
+                event.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">events</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.19. Displays all events.</para>
               </listitem>
             </varlistentry>
 
@@ -1455,7 +1496,7 @@
           <para>Update: In Shorewall6 4.4.20, a new LEGACY_FASTSTART option
           was added to <ulink
           url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When
-          LEGACY_FASTSTART=No, the modificaiotn times of files in
+          LEGACY_FASTSTART=No, the modification times of files in
           /etc/shorewall6 are compared with that of
           /var/lib/shorewall6/firewall (the compiled script that last
           started/restarted the firewall).</para>
@@ -1513,7 +1554,7 @@
           <replaceable>directory</replaceable>; otherwise, a <emphasis
           role="bold">start</emphasis> command is performed using the
           specified configuration <replaceable>directory</replaceable>. if an
-          error occurs during the compliation phase of the <emphasis
+          error occurs during the compilation phase of the <emphasis
           role="bold">restart</emphasis> or <emphasis
           role="bold">start</emphasis>, the command terminates without
           changing the Shorewall6 state. If an error occurs during the
@@ -1589,9 +1630,20 @@
   </refsect1>
 
   <refsect1>
-    <title>FILES</title>
+    <title>EXIT STATUS</title>
 
-    <para>/etc/shorewall6/</para>
+    <para>In general, when a command succeeds, status 0 is returned; when the
+    command fails, a non-zero status is returned.</para>
+
+    <para>The <command>status</command> command returns exit status as
+    follows:</para>
+
+    <para>0 - Firewall is started.</para>
+
+    <para>3 - Firewall is stopped or cleared</para>
+
+    <para>4 - Unknown state; usually means that the firewall has never been
+    started.</para>
   </refsect1>
 
   <refsect1>
@@ -1602,7 +1654,7 @@
 
     <para>shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-interfaces(5),
-    shorewall6-maclist(5), shoewall6-netmap(5),shorewall6-params(5),
+    shorewall6-maclist(5), shorewall6-netmap(5),shorewall6-params(5),
     shorewall6-policy(5), shorewall6-providers(5), shorewall6-rtrules(5),
     shorewall6-routestopped(5), shorewall6-rules(5), shorewall6.conf(5),
     shorewall6-secmarks(5), shorewall6-tcclasses(5), shorewall6-tcdevices(5),
