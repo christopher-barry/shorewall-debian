@@ -1,3 +1,224 @@
+Changes in 4.5.20 Final
+
+1)  Update release documents.
+
+2)  Correct installation of $SYSCONFFILE.
+
+3)  Add SERVICEFILE variable to shorewallrc.
+
+4)  Several corrections to Shorewall-init.
+
+Changes in 4.5.20 RC 1
+
+1)  Update release documents.
+
+2)  Make the 'status' command obey VERBOSITY.
+
+3)  Document exit status codes.
+
+4)  Fix -lite uninstallers.
+
+5)  Correct typo in the compiled scripts 'usage' output.
+
+Changes in 4.5.20 Beta 3
+
+1)  Update release documents.
+
+2)  Add abbreviations for common commands.
+
+3)  Use /etc/os-release to determine distribution.
+
+Changes in 4.5.20 Beta 2
+
+1)  Update release documents.
+
+2)  Implement OPTIMIZE=All
+
+Changes in 4.5.20 Beta 1
+
+1)  Update release documents.
+
+2)  Document TRACK_RULES
+
+Changes in 4.5.19 Final
+
+1)  Update release documents.
+
+Changes in 4.5.19 RC 1
+
+1)  Update release documents.
+
+2)  Add AutoBL action.
+
+3)  Add warning to existing automatic blacklisting example.
+
+Changes in 4.5.19 Beta 3
+
+1)  Update release documents.
+
+2)  Add 'show event' and 'show events' commands.
+
+3)  Allow Events to be used in IPv6.
+
+Changes in 4.5.19 Beta 2
+
+1)  Update release documents.
+
+2)  Allow logging rules with > 15 ports again.
+
+3)  Implement triggers
+
+Changes in 4.5.19 Beta 1
+
+1)  Update release documents.
+
+2)  Fix Shorewall-init service file.
+
+3)  Allow -q to suppress 'Compiling...', etc. messages.
+
+4)  Add warning in the Limit action.
+
+5)  Re-implement logging rule generation.
+
+Changes in 4.5.18 Final
+
+1)  Update release documents.
+
+Changes in 4.5.18 RC 2
+
+1)  Update release documents.
+
+2)  Fix 'qt' and bridge detection.
+
+Changes in 4.5.18 RC 1
+
+1)  Update release documents.
+
+2)  Make ?...shell/perl directives case-insensitive.
+
+Changes in 4.5.18 Beta 3
+
+1)  Update release documents.
+
+2)  Reword 'unreachable' warning.
+
+3)  Remove incorrect statement from the Macro article.
+
+4)  Make 'routeback' a binary option.
+
+Changes in 4.5.18 Beta 2
+
+1)  Update release documents.
+
+2)  Add Kerberos macro from James Shubin
+
+3)  Allow 'unmanaged' interfaces.
+
+Changes in 4.5.18 Beta 1
+
+1)  Update release documents.
+
+2)  Merge 4.5.17.1 fixes.
+
+3)  Re-implement 'discarded' message.
+
+4)  Replace ersatz logic with NONE policies.
+
+Changes in 4.5.17 Final
+
+1)  Update release documents.
+
+2)  Export 'shorewall' from the Config module.
+
+3)  Don't forward between local zones.
+
+4)  Correct ICMPv6 name translations.
+
+5)  Fix minor IPv6 TPROXY bug.
+
+6)  Rework 'unreachable' warning implementation.
+
+7)  Don't drop 'nfacct' rules.
+
+Changes in 4.5.17 RC 2
+
+1)  Update release documents.
+
+2)  Add some warning/progress messages to help understand 'update -D'
+    behavior.
+
+3)  Only enable nf_conntrack_helpers during 'clear'.
+
+4)  Emit 'expensive' matches last.
+
+5)  Disallow 'virtual' physical interfaces.
+
+6)  Change 'local' to 'loopback' and add 'local'.
+
+Changes in 4.5.17 RC 1
+
+1)  Update release documents.
+
+2)  Make local zones work with destonly loopback interface.
+
+3)  Ensure correct ordering with trivial exclusion.
+
+4)  Don't generate fw->fw jumps when there is a local zone.
+
+Changes in 4.5.17 Beta 3
+
+1)  Update release documents.
+
+2)  Apply Mr-4's Shorewall-init bugfix.
+
+3)  Allow all+ in the policy file.
+
+4)  Remove most special handling of Auth.
+
+5)  Switch 'local' to a zone type.
+
+Changes in 4.5.17 Beta 2
+
+1)  Update release documents.
+
+2)  More shorewall-init fixes.
+
+3)  Add 'destonly' and 'local' interface options.
+
+4)  Correct an optimizer defect.
+
+5)  Apply optimize 0 for the IPV6 nat table.
+
+Changes in 4.5.17 Beta 1
+
+1)  Update release documents.
+
+2)  Apply Mr-4's special route handling in COPY
+
+3)  Apply Mr-4's Noautosrc patch
+
+4)  Apply Mr-4's priority -> perf patch
+
+5)  Delete SWPING from the Multi-ISP doc
+
+6)  Help insure that cp doesn't copy the firewall script to itself.
+
+7)  Misc fixes to Shoreawll-init
+
+8)  Correct Debian Shoreall-init SysV init script.
+
+9)  Support the -c compile option.
+
+Changes in 4.5.16.2
+
+1)  Update release documents.
+
+2)  Clean up temporary chains sooner
+
+3)  Correct handling of INLINE with '-j' in the rules file.
+
+4)  Correct typos in manpages (Roberto Sanchez).
+
 Changes in 4.5.16.1
 
 1)  Update release documents.

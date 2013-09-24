@@ -24,8 +24,6 @@ lockfile="/var/lock/subsys/shorewall-init"
 # Source function library.
 . /etc/rc.d/init.d/functions
 
-vardir=$VARDIR
-
 # Get startup options (override default)
 OPTIONS=
 
@@ -46,17 +44,17 @@ setstatedir() {
 
     [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARDIR}/${PRODUCT}
 
-    if [ ! -x $STATEDIR/firewall ]; then
-	if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-	    ${SBINDIR}/$PRODUCT compile
-	fi
+    if [ $PRODUCT == shorewall -o $PRODUCT == shorewall6 ]; then
+	${SBINDIR}/$PRODUCT $OPTIONS compile -c
+    else
+	return 0
     fi
 }
 
 # Initialize the firewall
 start () {
     local PRODUCT
-    local vardir
+    local STATEDIR
 
     if [ -z "$PRODUCTS" ]; then
 	echo "No firewalls configured for shorewall-init"
@@ -65,23 +63,26 @@ start () {
     fi
 
     echo -n "Initializing \"Shorewall-based firewalls\": "
+
     for PRODUCT in $PRODUCTS; do
 	setstatedir
+	retval=$?
 
-	if [ ! -x ${VARDIR}/firewall ]; then
-	    if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-		${SBINDIR}/$PRODUCT compile
+	if [ $retval -eq 0 ]; then
+	    if [ -x "${STATEDIR}/firewall" ]; then
+		${STATEDIR}/firewall stop 2>&1 | $logger
+		retval=${PIPESTATUS[0]}
+		[ $retval -ne 0 ] && break
+	    else
+		retval=6 #Product not configured
+		break
 	    fi
-	fi
-
-	if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
-	    ${VARDIR}/$PRODUCT/firewall stop 2>&1 | $logger
-	    retval=${PIPESTATUS[0]}
-	    [ $retval -ne 0 ] && break
+	else
+	    break
 	fi
     done
 
-    if [ retval -eq 0 ]; then
+    if [ $retval -eq 0 ]; then
 	touch $lockfile 
 	success
     else
@@ -94,26 +95,29 @@ start () {
 # Clear the firewall
 stop () {
     local PRODUCT
-    local vardir
+    local STATEDIR
 
     echo -n "Clearing \"Shorewall-based firewalls\": "
+
     for PRODUCT in $PRODUCTS; do
 	setstatedir
+	retval=$?
 
-	if [ ! -x ${VARDIR}/firewall ]; then
-	    if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-		${SBINDIR}/$PRODUCT compile
+	if [ $retval -eq 0 ]; then
+	    if [ -x "${STATEDIR}/firewall" ]; then
+		${STATEDIR}/firewall clear 2>&1 | $logger
+		retval=${PIPESTATUS[0]}
+		[ $retval -ne 0 ] && break
+	    else
+		retval=6 #Product not configured
+		break
 	    fi
-	fi
-
-	if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
-	    ${VARDIR}/$PRODUCT/firewall clear 2>&1 | $logger
-	    retval=${PIPESTATUS[0]}
-	    [ $retval -ne 0 ] && break
+	else
+	    break
 	fi
     done
 
-    if [ retval -eq 0 ]; then
+    if [ $retval -eq 0 ]; then
 	rm -f $lockfile
 	success
     else
@@ -144,7 +148,7 @@ case "$1" in
 	status $prog
 	;;
   *)
-	echo "Usage: /etc/init.d/shorewall-init {start|stop|status}"
+	echo "Usage: $0 {start|stop|status}"
 	exit 1
 esac
 
