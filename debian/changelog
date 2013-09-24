@@ -2,8 +2,10 @@ shorewall6 (4.5.20-1) unstable; urgency=low
 
   * New Upstream Version
   * Update to Standards-Version 3.9.4 (no changes)
+  * Remove Suggests, as anything suggested by shorewall gets suggested
+    when it is pulled in as a dependency of shorewall6 (Closes: #693109)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 24 Sep 2013 19:31:21 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 24 Sep 2013 19:32:17 -0400
 
 shorewall6 (4.5.16.1-1) unstable; urgency=low
 
