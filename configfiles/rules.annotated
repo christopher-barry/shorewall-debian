@@ -9,7 +9,7 @@
 ######################################################################################################################################################################################################
 # 
 # Entries in this file govern connection establishment by defining exceptions to
-# the policies layed out in shorewall-policy(5). By default, subsequent requests
+# the policies laid out in shorewall-policy(5). By default, subsequent requests
 # and responses are automatically allowed using connection tracking. For any
 # particular (source,dest) pair of zones, the rules are evaluated in the order in
 # which they appear in this file and the first terminating match is the one that
@@ -93,7 +93,7 @@
 # and RELATED sections must be empty.
 # 
 # An except is made if you are running Shorewall 4.4.27 or later and you have
-# specified a non-defualt value for RELATED_DISPOSITION or RELATED_LOG_LEVEL. In
+# specified a non-default value for RELATED_DISPOSITION or RELATED_LOG_LEVEL. In
 # that case, you may have rules in the RELATED section of this file.
 # 
 # You may omit any section that you don't need. If no Section Headers appear in
@@ -143,7 +143,7 @@
 #     ADD(ipset:flags)
 # 
 #         Added in Shorewall 4.4.12. Causes addresses and/or port numbers to be
-#         added to the named ipset. The flags specify the address or tupple to be
+#         added to the named ipset. The flags specify the address or tuple to be
 #         added to the set and must match the type of ipset involved. For
 #         example, for an iphash ipset, either the SOURCE or DESTINATION address
 #         can be added using flags src or dst respectively (see the -A command in
@@ -211,9 +211,9 @@
 #     DEL(ipset:flags)
 # 
 #         Added in Shorewall 4.4.12. Causes an entry to be deleted from the named
-#         ipset. The flags specify the address or tupple to be deleted from the
+#         ipset. The flags specify the address or tuple to be deleted from the
 #         set and must match the type of ipset involved. For example, for an
-#         iphash ipset, either the SOURCE or DESTINATION address can be deletec
+#         iphash ipset, either the SOURCE or DESTINATION address can be deleted
 #         using flags src or dst respectively (see the -D command in ipset (8)).
 # 
 #         DEL is non-terminating. Even if a packet matches the rule, it is passed
@@ -291,7 +291,7 @@
 # 
 #     NFLOG[(nflog-parameters)]
 # 
-#         Added in Shorewall 4.5.9.3. Queues matching packets to a backend
+#         Added in Shorewall 4.5.9.3. Queues matching packets to a back end
 #         logging daemon via a netlink socket then continues to the next rule.
 #         See http://www.shorewall.net/shorewall_logging.html.
 # 
@@ -348,9 +348,9 @@
 # 
 #     ULOG[(ulog-parameters)]
 # 
-#         Added in Shorewall 4.5.10. Queues matching packets to a backend logging
-#         daemon via a netlink socket then continues to the next rule. See http:/
-#         /www.shorewall.net/shorewall_logging.html.
+#         Added in Shorewall 4.5.10. Queues matching packets to a back end
+#         logging daemon via a netlink socket then continues to the next rule.
+#         See http://www.shorewall.net/shorewall_logging.html.
 # 
 #         Similar to LOG:ULOG[(ulog-parameters)], except that the log level is
 #         not changed when this ACTION is used in an action or macro body and the
@@ -389,18 +389,18 @@
 #     address-or-range]...[exclusion]|exclusion|+ipset|^countrycode-list}
 # 
 #     Source hosts to which the rule applies. May be a zone declared in /etc/
-#     shorewall/zones, $FW to indicate the firewall itself, all, all+, all-,
+#     shorewall/zones, $FW to indicate the firewall itself, all, all+, all-, 
 #     all+- or none.
 # 
 #     Beginning with Shorewall 4.4.13, you may use a zone-list which consists of
-#     a comma-separated list of zones declared in shorewall-zones (5). Ths
+#     a comma-separated list of zones declared in shorewall-zones (5). This
 #     zone-list may be optionally followed by "+" to indicate that the rule is to
 #     apply to intra-zone traffic as well as inter-zone traffic.
 # 
 #     When none is used either in the SOURCE or DEST column, the rule is ignored.
 # 
 #     all means "All Zones", including the firewall itself. all- means "All
-#     Zones, except the firewall itself". When all[-] is used either in the
+#     Zones, except the firewall itself". When all[-] is used either in the 
 #     SOURCE or DEST column intra-zone traffic is not affected. When all+[-] is
 #     "used, intra-zone traffic is affected. Beginning with Shorewall 4.4.13,
 #     exclusion is supported -- see see shorewall-exclusion(5).
@@ -419,7 +419,7 @@
 #     zones). Note that any excludes all vserver zones, since those zones are
 #     nested within the firewall zone.
 # 
-#     Hosts may also be specified as an IP address range using the syntax
+#     Hosts may also be specified as an IP address range using the syntax 
 #     lowaddress-highaddress. This requires that your kernel and iptables contain
 #     iprange match support. If your kernel and iptables have ipset match support
 #     then you may give the name of an ipset prefaced by "+". The ipset name may
@@ -427,7 +427,7 @@
 #     ([]) to indicate the number of levels of source bindings to be matched.
 # 
 #     Beginning with Shorewall 4.4.17, the primary IP address of a firewall
-#     interface can be specified by an apersand ('&') followed by the logican
+#     interface can be specified by an ampersand ('&') followed by the logical
 #     name of the interface as found in the INTERFACE column of
 #     shorewall-interfaces (5).
 # 
@@ -485,7 +485,7 @@
 #     indicate the firewall itself, all. all+ or none.
 # 
 #     Beginning with Shorewall 4.4.13, you may use a zone-list which consists of
-#     a comma-separated list of zones declared in shorewall-zones (5). Ths
+#     a comma-separated list of zones declared in shorewall-zones (5). This
 #     zone-list may be optionally followed by "+" to indicate that the rule is to
 #     apply to intra-zone traffic as well as inter-zone traffic.
 # 
@@ -538,16 +538,16 @@
 #     If you kernel and iptables have ipset match support then you may give the
 #     name of an ipset prefaced by "+". The ipset name may be optionally followed
 #     by a number from 1 to 6 enclosed in square brackets ([]) to indicate the
-#     number of levels of destination bindings to be matched. Only one of the
+#     number of levels of destination bindings to be matched. Only one of the 
 #     SOURCE and DEST columns may specify an ipset name.
 # 
 #     Beginning with Shorewall 4.4.17, the primary IP address of a firewall
-#     interface can be specified by an apersand ('&') followed by the logical
+#     interface can be specified by an ampersand ('&') followed by the logical
 #     name of the interface as found in the INTERFACE column of
 #     shorewall-interfaces (5).
 # 
 #     The port that the server is listening on may be included and separated from
-#     the server's IP address by ":". If omitted, the firewall will not modifiy
+#     the server's IP address by ":". If omitted, the firewall will not modify
 #     the destination port. A destination port may only be included if the ACTION
 #     is DNAT or REDIRECT.
 # 
@@ -558,9 +558,9 @@
 # 
 #     The port may be specified as a service name. You may specify a port range
 #     in the form lowport-highport to cause connections to be assigned to ports
-#     in the range in round-robin fashion. When a port range is specified,
+#     in the range in round-robin fashion. When a port range is specified, 
 #     lowport and highport must be given as integers; service names are not
-#     permitted. Additionally, the port range may be optionally followed by
+#     permitted. Additionally, the port range may be optionally followed by 
 #     :random which causes assignment to ports in the list to be random.
 # 
 #     If the ACTION is REDIRECT or REDIRECT-, this column needs only to contain
@@ -582,10 +582,10 @@
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
 #     column is interpreted as the destination icmp-type(s). ICMP types may be
-#     specified as a numeric type, a numberic type and code separated by a slash
+#     specified as a numeric type, a numeric type and code separated by a slash
 #     (e.g., 3/4), or a typename. See http://www.shorewall.net/
 #     configuration_file_basics.htm#ICMP. Note that prior to Shorewall 4.4.19,
-#     only a single ICMP type may be listsed.
+#     only a single ICMP type may be listed.
 # 
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option
 #     without the leading "--" (example bit for bit-torrent). If no port is
@@ -604,7 +604,7 @@
 #     1. There are 15 or less ports listed.
 # 
 #     2. No port ranges are included or your kernel and iptables contain extended
-#     multiport match support.
+#     multi-port match support.
 # 
 # SOURCE PORT(S) (sport) - {-|port-name-number-or-range[,
 #     port-name-number-or-range]...}
@@ -616,7 +616,7 @@
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
 #     that the DEST PORT(S) column is non-empty. This causes the rule to match
 #     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
 #     match in your iptables and kernel.
 # 
 #     Warning
@@ -635,7 +635,7 @@
 #     1. There are 15 or less ports listed.
 # 
 #     2. No port ranges are included or your kernel and iptables contain extended
-#     multiport match support.
+#     multi-port match support.
 # 
 # ORIGINAL DEST (origdest) - [-|address[,address]...[exclusion]|exclusion]
 # 
@@ -652,7 +652,7 @@
 #     listed.
 # 
 #     Beginning with Shorewall 4.4.17, the primary IP address of a firewall
-#     interface can be specified by an apersand ('&') followed by the logical
+#     interface can be specified by an ampersand ('&') followed by the logical
 #     name of the interface as found in the INTERFACE column of
 #     shorewall-interfaces (5).
 # 
@@ -678,7 +678,7 @@
 # 
 #     rate is the number of connections per interval (sec or min) and burst is
 #     the largest burst permitted. If no burst is given, a value of 5 is assumed.
-#     There may be no no whitespace embedded in the specification.
+#     There may be no no white-space embedded in the specification.
 # 
 #     Example: 10/sec:20
 # 
@@ -760,7 +760,7 @@
 #     the subnet source-address/mask. When ! is specified, the rule matches when
 #     the number of connection exceeds the limit.
 # 
-# TIME - timeelement[&timelement...]
+# TIME - timeelement[&timeelement...]
 # 
 #     May be used to limit the rule to a particular time period each day, to
 #     particular days of the week or month, or to a range defined by dates and
@@ -837,7 +837,7 @@
 # 
 #     Switch settings are retained over shorewall restart.
 # 
-#     Beginning with Shoreawll 4.5.10, when the switch-name is followed by =0 or
+#     Beginning with Shorewall 4.5.10, when the switch-name is followed by =0 or
 #     =1, then the switch is initialized to off or on respectively by the start
 #     command. Other commands do not affect the switch setting.
 # 
@@ -996,8 +996,8 @@
 # 
 # Example 10:
 # 
-#     Add the tupple (source IP, dest port, dest IP) of an incoming SSH
-#     connection to the ipset S:
+#     Add the tuple (source IP, dest port, dest IP) of an incoming SSH connection
+#     to the ipset S:
 # 
 #             #ACTION                       SOURCE           DEST           PROTO       DEST
 #             #                                                                         PORT(S)

@@ -40,7 +40,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.5_16';
+our $VERSION = '4.5_19';
 
 my  %tcs = ( T => { chain  => 'tcpost',
 		    connmark => 0,
@@ -458,7 +458,7 @@ our  %tccmd;
 						  if ( $ip =~ /^\[(.+)\]$/ || $ip =~ /^<(.+)>$/ ) {
 						      $ip = $1;
 						  } elsif ( $ip =~ /^\[(.+)\]\/(\d+)$/ ) {
-						      $ip = join( $1, $2 );
+						      $ip = join( '/', $1, $2 );
 						  }
 					      }
 
@@ -551,9 +551,11 @@ our  %tccmd;
 					   assert ( $cmd eq 'INLINE' );
 					   $matches = get_inline_matches;
 
-					   if ( $matches =~ /^(.*\s+)-j\s+(.+)$/ ) {
+					   if ( $matches =~ /^(.*\s+)-j\s+(.+) $/ ) {
 					       $matches = $1;
 					       $target  = $2;
+					   } else {
+					       $target = '';
 					   }
 
 					   $cmd = '';
@@ -2444,7 +2446,7 @@ sub process_secmark_rule1( $$$$$$$$$ ) {
     if ( ( $state ||= '' ) ne '' ) {
 	my $state1;
 	fatal_error "Invalid STATE ( $state )" unless $state1 = $state{$state};
-	$state = "$globals{STATEMATCH} $state1 ";
+	$state = state_match( $state1 );
     }
 
     my $target = $secmark eq 'SAVE'    ? 'CONNSECMARK --save' :

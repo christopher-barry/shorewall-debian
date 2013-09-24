@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 4.5.16
-%define release 1
+%define version 4.5.20
+%define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -95,7 +95,10 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/action.Drop
 %attr(0644,root,root) /usr/share/shorewall/action.DropSmurfs
 %attr(0644,root,root) /usr/share/shorewall/action.A_Drop
+%attr(0644,root,root) /usr/share/shorewall/action.AutoBL
+%attr(0644,root,root) /usr/share/shorewall/action.AutoBLL
 %attr(0644,root,root) /usr/share/shorewall/action.Established
+%attr(0644,root,root) /usr/share/shorewall/action.IfEvent
 %attr(0644,root,root) /usr/share/shorewall/action.Invalid
 %attr(0644,root,root) /usr/share/shorewall/action.New
 %attr(0644,root,root) /usr/share/shorewall/action.NotSyn
@@ -103,6 +106,8 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/action.Reject
 %attr(0644,root,root) /usr/share/shorewall/action.Related
 %attr(0644,root,root) /usr/share/shorewall/action.A_Reject
+%attr(0644,root,root) /usr/share/shorewall/action.ResetEvent
+%attr(0644,root,root) /usr/share/shorewall/action.SetEvent
 %attr(0644,root,root) /usr/share/shorewall/action.TCPFlags
 %attr(0644,root,root) /usr/share/shorewall/action.allowInvalid
 %attr(0644,root,root) /usr/share/shorewall/action.dropInvalid
@@ -128,6 +133,54 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
+* Sun Aug 18 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0base
+* Sun Aug 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0RC1
+* Tue Aug 06 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0Beta3
+* Mon Jul 29 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0Beta2
+* Mon Jul 22 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0Beta1
+* Sun Jul 21 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0base
+* Mon Jul 15 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0RC1
+* Thu Jul 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0Beta3
+* Tue Jul 09 2013 Tom Eastep tom@shorewall.net
+- Added Event actions
+* Mon Jul 08 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0Beta2
+* Mon Jul 01 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0Beta1
+* Thu Jun 27 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0base
+* Mon Jun 24 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0RC2
+* Mon Jun 17 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0RC1
+* Tue Jun 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0Beta3
+* Tue Jun 04 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0Beta2
+* Thu May 30 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0Beta1
+* Mon May 27 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0base
+* Sun May 26 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0RC2
+* Wed May 22 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0RC1
+* Sun May 12 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0Beta3
+* Sat May 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0Beta2
+* Tue May 07 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0Beta1
+* Wed May 01 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.16-2
 * Wed May 01 2013 Tom Eastep tom@shorewall.net
 - Updated to 4.5.16-1
 * Tue Apr 30 2013 Tom Eastep tom@shorewall.net

@@ -27,11 +27,11 @@
 #       Default action is DROP
 #
 ##########################################################################################
-?FORMAT 2
+?format 2
 
 DEFAULTS DROP,-
 
-?BEGIN PERL;
+?begin perl;
 
 use Shorewall::IPAddrs;
 use Shorewall::Config;
@@ -46,9 +46,9 @@ if ( supplied $audit ) {
 }
 
 if ( my $check = check_state( 'INVALID' ) ) {
-    perl_action_helper( $action, $check == 1 ? "$globals{STATEMATCH} INVALID" : '' , 'INVALID' );
+    perl_action_helper( $action, $check == 1 ? state_match( 'INVALID' ) : '' , 'INVALID' );
 }
 
 1;
 
-?END PERL;
+?end perl;

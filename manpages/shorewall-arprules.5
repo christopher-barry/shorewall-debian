@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-arprules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ARPRULES" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-ARPRULES" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -34,9 +34,9 @@ arprules \- Shorewall ARP rules file
 \fB/etc/shorewall/arprules\fR
 .SH "DESCRIPTION"
 .PP
-This file was added in Shorwall 4\&.5\&.12 and is used to describe low\-level rules managed by arptables (8)\&. These rules only affect Address Resolution Protocol (ARP), Reverse Address Resolution Protocol (RARP) and Dynamic Reverse Address Resolution Protocol (DRARP) frames\&.
+This file was added in Shorewall 4\&.5\&.12 and is used to describe low\-level rules managed by arptables (8)\&. These rules only affect Address Resolution Protocol (ARP), Reverse Address Resolution Protocol (RARP) and Dynamic Reverse Address Resolution Protocol (DRARP) frames\&.
 .PP
-The columns in the file are as shown below\&. MAC addresses are specified normally (6 hexidecimal numbers separated by colons)\&.
+The columns in the file are as shown below\&. MAC addresses are specified normally (6 hexadecimal numbers separated by colons)\&.
 .PP
 \fBACTION\fR
 .RS 4
@@ -124,7 +124,7 @@ The source MAC address\&.
 .PP
 \fImacmask\fR
 .RS 4
-Mask for MAC address; must be specified as 6 hexidecimal numbers separated by colons\&.
+Mask for MAC address; must be specified as 6 hexadecimal numbers separated by colons\&.
 .RE
 .sp
 When \*(Aq!\*(Aq is specified, the test is inverted\&.
@@ -173,7 +173,7 @@ The destination MAC address\&.
 .PP
 \fImacmask\fR
 .RS 4
-Mask for MAC address; must be specified as 6 hexidecimal numbers separated by colons\&.
+Mask for MAC address; must be specified as 6 hexadecimal numbers separated by colons\&.
 .RE
 .sp
 When \*(Aq!\*(Aq is specified, the test is inverted and the rule matches frames which do not match the specified address/mask\&.
@@ -249,12 +249,12 @@ InARP Request
 ARP NAK
 .RE
 .sp
-When \*(Aq!\*(Aq is specified, the test is inverted and the rule matches frames which do not match the specifed
+When \*(Aq!\*(Aq is specified, the test is inverted and the rule matches frames which do not match the specified
 \fIopcode\fR\&.
 .RE
 .SH "EXAMPLE"
 .PP
-The eth1 interface has both a pubiic IP address and a private address (10\&.1\&.10\&.11/24)\&. When sending ARP requests to 10\&.1\&.10\&.0/24, use the private address as the IP source:
+The eth1 interface has both a public IP address and a private address (10\&.1\&.10\&.11/24)\&. When sending ARP requests to 10\&.1\&.10\&.0/24, use the private address as the IP source:
 .sp
 .if n \{\
 .RS 4

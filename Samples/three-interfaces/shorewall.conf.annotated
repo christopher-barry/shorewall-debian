@@ -418,8 +418,8 @@ NFACCT=
 #
 # NFACCT=[pathname]
 # 
-#     Added in Shorewall 4.5.7. Specifies the pathname of the nfacct utiliity. If
-#     not specified, Shorewall will use the PATH settting to find the program.
+#     Added in Shorewall 4.5.7. Specifies the pathname of the nfacct utility. If
+#     not specified, Shorewall will use the PATH setting to find the program.
 # 
 PERL=/usr/bin/perl
 #
@@ -463,7 +463,7 @@ SUBSYSLOCK=
 #     removing this file allows Shorewall to work with your distribution's
 #     initscripts. For RedHat and OpenSuSE, this should be set to /var/lock/
 #     subsys/shorewall. For Debian, the value is /var/lock/shorewall and in LEAF
-#     it is /var/run/shorwall.
+#     it is /var/run/shorewall.
 # 
 TC=
 #
@@ -539,7 +539,7 @@ RSH_COMMAND='ssh ${root}@${system} ${command}'
 #
 # RSH_COMMAND="command"
 # 
-#     Eariler generations of Shorewall Lite required that remote root login via
+#     Earlier generations of Shorewall Lite required that remote root login via
 #     ssh be enabled in order to use the load and reload commands. Beginning with
 #     release 3.9.5, you may define an alternative means for accessing the remote
 #     firewall system. In that release, two new options were added to
@@ -553,7 +553,7 @@ RSH_COMMAND='ssh ${root}@${system} ${command}'
 #     RSH_COMMAND: ssh ${root}@${system} ${command}
 #     RCP_COMMAND: scp ${files} ${root}@${system}:${destination}
 # 
-#     Shell variables that will be set when the commands are envoked are as
+#     Shell variables that will be set when the commands are invoked are as
 #     follows:
 # 
 #     root - root user. Normally root but may be overridden using the '-r'
@@ -876,7 +876,7 @@ FASTACCEPT=No
 #     accepted. So for packets going from the 'loc' zone to the 'net' zone,
 #     ESTABLISHED/RELATED packets are ACCEPTED in the 'loc2net' chain.
 # 
-#     If you set FASTACCEPT=Yes, then ESTABLISHED/RELEATED packets are accepted
+#     If you set FASTACCEPT=Yes, then ESTABLISHED/RELATED packets are accepted
 #     early in the INPUT, FORWARD and OUTPUT chains. If you set FASTACCEPT=Yes
 #     then you may not include rules in the ESTABLISHED or RELATED sections of
 #     shorewall-rules(5).
@@ -997,7 +997,7 @@ KEEP_RT_TABLES=No
 #     etc/iproute2/rt_tables database when there are entries in /etc/shorewall/
 #     providers. If you set this option to Yes while Shorewall (Shorewall-lite)
 #     is running, you should remove the file /var/lib/shorewall/rt_tables (/var/
-#     lib/shorewall-lite/rt_tables) before your next stop, refresh, restore on
+#     lib/shorewall-lite/rt_tables) before your next stop, refresh, restore on 
 #     restart command.
 # 
 #     The default is KEEP_RT_TABLES=No.
@@ -1019,7 +1019,7 @@ LEGACY_FASTSTART=No
 #     preserves the legacy behavior of start -f (the modification times of the
 #     files in /etc/shorewall are compare with that of /var/lib/shorewall/
 #     restore). If set to No, then the times are compared with that of /var/lib/
-#     shorewall/firewall, which is consistant with the way that restart -f works.
+#     shorewall/firewall, which is consistent with the way that restart -f works.
 # 
 MACLIST_TABLE=filter
 #
@@ -1143,13 +1143,17 @@ NULL_ROUTE_RFC1918=No
 #     prohibit to set the type of route to be created. See http://
 #     www.shorewall.net/MultiISP.html#null_routing.
 # 
-OPTIMIZE=31
+OPTIMIZE=All
 #
 # OPTIMIZE=[value]
 # 
 #     The specified value enables certain optimizations. Each optimization
 #     category is associated with a power of two. To enable multiple optimization
 #     categories, simply add their corresponding numbers together.
+# 
+#     Beginning with Shorewall 4.5.20, you may specify OPTIMIZE=All to enable all
+#     optimization categories, and you may also specify OPTIMIZE=None to disable
+#     optimization.
 # 
 #       ● Optimization category 1 - Traditionally, Shorewall has created rules
 #         for the complete matrix of host groups defined by the zones, interfaces
@@ -1164,9 +1168,15 @@ OPTIMIZE=31
 #         rule is considered to be redundant when it has the same ACTION and Log
 #         Level as the applicable policy.
 # 
+#         Note
+# 
+#         Optimization level 1 is ignored when optimization level 4 is also
+#         selected, since level 4 performs similar optimizations in a more robust
+#         way.
+# 
 #       ● Optimization category 2 - Added in Shorewall 4.4.7. When set,
 #         suppresses superfluous ACCEPT rules in a policy chain that implements
-#         an ACCEPT policy. Any ACCEPT rules that immediately preceed the final
+#         an ACCEPT policy. Any ACCEPT rules that immediately precede the final
 #         blanket ACCEPT rule in the chain are now omitted.
 # 
 #       ● Optimization category 4 - Added in Shorewall 4.4.7. When set, causes
@@ -1223,7 +1233,7 @@ OPTIMIZE=31
 #         are considered compatible if they differ only in their destination
 #         ports and comments.
 # 
-#         A sequence of combatible rules is often generated when macros are
+#         A sequence of compatible rules is often generated when macros are
 #         invoked in sequence.
 # 
 #         The ability to combine adjacent rules is limited by two factors:
@@ -1231,11 +1241,11 @@ OPTIMIZE=31
 #           ○ Destination port lists may only be combined up to a maximum of 15
 #             ports, where a port-pair counts as two ports.
 # 
-#           ○ Rules may only be combined until the length of their concatinated
+#           ○ Rules may only be combined until the length of their concatenated
 #             comment reaches 255 characters.
 # 
 #         When either of these limits would be exceeded, the current combined
-#         rule is emitted and the compiler attemts to combine rules beginning
+#         rule is emitted and the compiler attempts to combine rules beginning
 #         with the one that would have exceeded the limit. Adjacent combined
 #         comments are separated by ', '. Empty comments at the front of a group
 #         of combined comments are replaced by 'Others and'. Empty comments at
@@ -1252,7 +1262,7 @@ OPTIMIZE=31
 # 
 #         Example 2:
 # 
-#             Rules with comments <empty>, "FOO" and "BAR" would reult in the
+#             Rules with comments <empty>, "FOO" and "BAR" would result in the
 #             combined comment "Others and FOO, BAR". Note: Optimize level 16
 #             requires "Extended Multi-port Match" in your iptables and kernel.
 # 
@@ -1312,7 +1322,7 @@ RETAIN_ALIASES=No
 #     specified labels but can have the undesirable side effect of causing routes
 #     to be quietly deleted. When RETAIN_ALIASES is set to Yes, existing
 #     addresses will not be deleted. Regardless of the setting of RETAIN_ALIASES,
-#     addresses added during shorewall start are still deleted at a subsequent
+#     addresses added during shorewall start are still deleted at a subsequent 
 #     shorewall stop or shorewall restart.
 # 
 ROUTE_FILTER=No
@@ -1328,12 +1338,19 @@ ROUTE_FILTER=No
 #     to No, then route filtering is disabled on all interfaces except those
 #     specified in shorewall-interfaces(5).
 # 
+#     Important
+# 
+#     If you need to disable route filtering on any interface, then you must set
+#     ROUTE_FILTER=No then set routefilter=1 or routefilter=2 on those interfaces
+#     where you want route filtering. See shorewall-interfaces(5) for additional
+#     details.
+# 
 SAVE_ARPTABLES=No
 #
 # SAVE_ARPTABLES={Yes|No}
 # 
 #     Added in Shorewall 4.5.12. If SAVE_ARPTABLES=Yes, then the current
-#     arptables contents will be saved by shorewall save command and restored by
+#     arptables contents will be saved by shorewall save command and restored by 
 #     shorewall restore command. Default value is No.
 # 
 SAVE_IPSETS=No
@@ -1417,6 +1434,18 @@ TRACK_PROVIDERS=Yes
 #     passed to the PREROUTING rules. Since TRACK_PROVIDERS was just introduced
 #     in 4.4.3, this change should be transparent to most, if not all, users.
 # 
+TRACK_RULES=No
+#
+# TRACK_RULES={Yes|No}
+# 
+#     Added in Shorewall 4.5.20. If set to Yes, causes the compiler to add a
+#     comment to iptables rules to indicate the file name and line number of the
+#     configuration entry that generated the rule. If set to No (the default),
+#     then no such comments are added.
+# 
+#     Setting this option to Yes requires the Comments capability in iptables and
+#     kernel.
+# 
 USE_DEFAULT_RT=No
 #
 # USE_DEFAULT_RT=[Yes|No]
@@ -1449,8 +1478,8 @@ USE_DEFAULT_RT=No
 #         Note
 # 
 #         detect may be specified for interfaces whose configuration is managed
-#         by dhcpcd. Shorewall will use dhcpcd's database to find the
-#         interfaces's gateway.
+#         by dhcpcd. Shorewall will use dhcpcd's database to find the interface's
+#         gateway.
 # 
 #      6. You should disable all default route management outside of Shorewall.
 #         If a default route is added to the main table while Shorewall is
@@ -1465,8 +1494,8 @@ USE_PHYSICAL_NAMES=No
 # USE_PHYSICAL_NAMES=[Yes|No]
 # 
 #     Added in Shorewall 4.4.27. Normally, when Shorewall creates a Netfilter
-#     chain that relates to an interface, it uses the interfaces's logical name
-#     as the base of the chain name. For example, if the logical name for an
+#     chain that relates to an interface, it uses the interface's logical name as
+#     the base of the chain name. For example, if the logical name for an
 #     interface is OAKLAND, then the input chain for traffic arriving on that
 #     interface would be 'OAKLAND_in'. If this option is set to Yes, then the
 #     physical name of the interface will be used the base of the chain name.

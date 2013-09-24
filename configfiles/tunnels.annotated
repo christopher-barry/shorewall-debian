@@ -120,7 +120,7 @@
 # Example 4:
 # 
 #     Road Warriors that may belong to zones vpn1, vpn2 or vpn3. The FreeS/Wan
-#     _updown script will add the host to the appropriate zone using the
+#     _updown script will add the host to the appropriate zone using the 
 #     shorewall add command on connect and will remove the host from the zone at
 #     disconnect time.
 # 

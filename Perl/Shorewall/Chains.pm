@@ -47,7 +47,7 @@ our @EXPORT = ( qw(
 		    add_ijump
 		    insert_rule
 		    insert_irule
-		    clone_rule
+		    clone_irule
 		    insert_ijump
 		    rule_target
 		    clear_rule_target
@@ -67,6 +67,7 @@ our @EXPORT = ( qw(
 		    require_audit
 		    newlogchain
 		    log_rule_limit
+		    log_irule_limit
 		    allow_optimize
 		    allow_delete
 		    allow_move
@@ -77,6 +78,8 @@ our @EXPORT = ( qw(
 		    dont_delete
 		    dont_move
 		    add_interface_options
+		    state_match
+		    state_imatch
 
 		    STANDARD
 		    NATRULE
@@ -120,11 +123,8 @@ our %EXPORT_TAGS = (
 				       ALL_RESTRICT
 				       ALL_COMMANDS
 				       NOT_RESTORE
-				       OPTIMIZE_POLICY_MASK
-				       OPTIMIZE_POLICY_MASK2n4
-				       OPTIMIZE_RULESET_MASK
-				       OPTIMIZE_MASK
 
+				       unreachable_warning
 				       state_match
 				       state_imatch
 				       initialize_chain_table
@@ -232,6 +232,7 @@ our %EXPORT_TAGS = (
 				       do_ipsec_options
 				       do_ipsec
 				       log_rule
+				       log_irule
 				       handle_network_list
 				       expand_rule
 				       addnatjump
@@ -264,7 +265,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_16';
+our $VERSION = '4.5_18';
 
 #
 # Chain Table
@@ -282,6 +283,7 @@ our $VERSION = '4.5_16';
 #                                               policy       => <policy>
 #                                               policychain  => <name of policy chain> -- self-reference if this is a policy chain
 #                                               policypair   => [ <policy source>, <policy dest> ] -- Used for reporting duplicated policies
+#                                               origin       => <filename and line number of entry that created this policy chain>
 #                                               loglevel     => <level>
 #                                               synparams    => <burst/limit + connlimit>
 #                                               synchain     => <name of synparam chain>
@@ -317,7 +319,7 @@ our $VERSION = '4.5_16';
 #
 #       Only 'referenced' chains get written to the iptables-restore input.
 #
-#       'loglevel', 'synparams', 'synchain', 'audit' and 'default' only apply to policy chains.
+#       'loglevel', 'synparams', 'synchain', 'audit', 'default' abd 'origin' only apply to policy chains.
 ###########################################################################################################################################
 #
 # For each ordered pair of zones, there may exist a 'canonical rules chain' in the filter table; the name of this chain is formed by
@@ -335,8 +337,9 @@ our $VERSION = '4.5_16';
 #      These are present when there is more than one zone associated with the interface. They are jumped to from the INPUT, OUTPUT and
 #      FORWARD chains respectively.
 # - Input Option, Output Option and Forward "Interface Option Chains"
-#      Used when blacklisting is involved for enforcing interface options that require Netfilter rules. When these chains are not used,
-#      any rules that they contained are moved to the corresponding interface chains.
+#      Used when blacklisting is involved for enforcing interface options that require Netfilter rules. This allows blacklisting to
+#      occur prior to interface option filtering. When these chains are not used, any rules that they contained are moved to the
+#      corresponding interface chains.
 #
 ###########################################################################################################################################
 #
@@ -446,17 +449,6 @@ our $ipset_rules;
 # Determines the commands for which a particular interface-oriented shell variable needs to be set
 #
 use constant { ALL_COMMANDS => 1, NOT_RESTORE => 2 };
-
-#
-# Optimization masks
-#
-use constant {
-	       OPTIMIZE_POLICY_MASK    => 0x02 , # Call optimize_policy_chains()
-	       OPTIMIZE_POLICY_MASK2n4 => 0x06 ,
-	       OPTIMIZE_RULESET_MASK   => 0x1C , # Call optimize_ruleset()
-	     };
-
-use constant { OPTIMIZE_MASK => OPTIMIZE_POLICY_MASK | OPTIMIZE_RULESET_MASK };
 
 use constant { DONT_OPTIMIZE => 1 , DONT_DELETE => 2, DONT_MOVE => 4, RETURNS => 8, RETURNS_DONT_MOVE => 12 };
 
@@ -613,6 +605,8 @@ use constant { UNIQUE      => 1,
 	       CONTROL     => 16,
 	       COMPLEX     => 32,
 	       NFACCT      => 64,
+	       EXPENSIVE   => 128,
+	       RECENT      => 256,
 	   };
 
 our %opttype = ( rule          => CONTROL,
@@ -644,6 +638,10 @@ our %opttype = ( rule          => CONTROL,
 		                  EXCLUSIVE,
 
 		 nfacct        => NFACCT,
+		 recent        => RECENT,
+
+		 set           => EXPENSIVE,
+		 geoip         => EXPENSIVE,
 
 		 conntrack     => COMPLEX,
 
@@ -793,6 +791,13 @@ sub validate_nfobject( $;$ ) {
     $nfobjects{$_} = 1;
 }
 
+#
+# Get a rule option's type
+#
+sub get_opttype( $$ ) { # $option, $default
+    $opttype{$_[0]} || $_[1];
+}
+
 # # Next a helper for setting an individual option
 #
 sub set_rule_option( $$$ ) {
@@ -803,7 +808,7 @@ sub set_rule_option( $$$ ) {
     $ruleref->{simple} = 0;
     $ruleref->{complex} = 1 if reftype $value;
 
-    my $opttype = $opttype{$option} || MATCH;
+    my $opttype = get_opttype( $option, MATCH );
 
     if ( $opttype == COMPLEX ) {
 	#
@@ -827,7 +832,7 @@ sub set_rule_option( $$$ ) {
     if ( exists $ruleref->{$option} ) {
 	assert( defined( my $value1 = $ruleref->{$option} ) , $ruleref );
 
-	if ( $opttype & ( MATCH | NFACCT ) ) {
+	if ( $opttype & ( MATCH | NFACCT | RECENT | EXPENSIVE ) ) {
 	    if ( $globals{KLUDGEFREE} ) {
 		unless ( reftype $value1 ) {
 		    unless ( reftype $value ) {
@@ -860,7 +865,7 @@ sub set_rule_option( $$$ ) {
 
 	    fatal_error "Multiple $option settings in one rule is prohibited";
 	} else {
-	    assert(0, $opttype );
+	    assert($opttype == TARGET, $opttype );
 	}
     } else {
 	$ruleref->{$option} = $value;
@@ -1001,7 +1006,7 @@ sub pop_match( $$ ) {
     reftype $value ? shift @{$ruleref->{$option}} : $value;
 }
 
-sub clone_rule( $ );
+sub clone_irule( $ );
 
 sub format_rule( $$;$ ) {
     my ( $chainref, $rulerefp, $suppresshdr ) = @_;
@@ -1012,10 +1017,13 @@ sub format_rule( $$;$ ) {
     #
     # The code the follows can be destructive of the rule so we clone it
     #
-    my $ruleref = $rulerefp->{complex} ? clone_rule( $rulerefp ) : $rulerefp;
+    my $ruleref = $rulerefp->{complex} ? clone_irule( $rulerefp ) : $rulerefp;
+    my $nfacct  = $rulerefp->{nfacct};
+    my $recent  = $rulerefp->{recent};
+    my $expensive;
 
     for ( @{$ruleref->{matches}} ) {
-	my $type = $opttype{$_} || 0;
+	my $type = get_opttype( $_, 0 );
 
 	next if $type & ( CONTROL | TARGET );
 
@@ -1031,7 +1039,24 @@ sub format_rule( $$;$ ) {
 	    }
 
 	    next;
+	} elsif ( $type == EXPENSIVE ) {
+	    #
+	    # Only emit expensive matches now if there are '-m nfacct' or '-m recent' matches in the rule
+	    #
+	    if ( $nfacct || $recent ) {
+		$rule .= format_option( $_, pop_match( $ruleref, $_ ) );
+	    } else {
+		$expensive = 1;
+	    }
 	} else {
+	    $rule .= format_option( $_, pop_match( $ruleref, $_ ) );
+	}
+    }
+    #
+    # Emit expensive matches last unless we had '-m nfacct' or '-m recent' matches in the rule.
+    #
+    if ( $expensive ) {
+	for ( grep( get_opttype( $_, 0 ) == EXPENSIVE, @{$ruleref->{matches}} ) ) {
 	    $rule .= format_option( $_, pop_match( $ruleref, $_ ) );
 	}
     }
@@ -1089,8 +1114,6 @@ sub merge_rules( $$$ ) {
 
     my $target = $fromref->{target};
 
-    my %added;
-
     for my $option ( @unique_options ) {
 	if ( exists $fromref->{$option} ) {
 	    push( @{$toref->{matches}}, $option ) unless exists $toref->{$option};
@@ -1098,7 +1121,7 @@ sub merge_rules( $$$ ) {
 	}
     }
 
-    for my $option ( grep ! $opttype{$_}, keys %$fromref ) {
+    for my $option ( grep ! $opttype{$_} || $_ eq 'nfacct' || $_ eq 'recent', keys %$fromref ) {
 	set_rule_option( $toref, $option, $fromref->{$option} );
     }
 
@@ -1113,6 +1136,10 @@ sub merge_rules( $$$ ) {
     }
 
     set_rule_option( $toref, 'policy', $fromref->{policy} ) if exists $fromref->{policy};
+
+    for my $option ( grep( get_opttype( $_, 0 ) == EXPENSIVE, keys %$fromref ) ) {
+	set_rule_option( $toref, $option, $fromref->{$option} );
+    }
 
     unless ( $toref->{comment} ) {
 	$toref->{comment} = $fromref->{comment} if exists $fromref->{comment};
@@ -1184,8 +1211,8 @@ sub push_rule( $$ ) {
     my $complete = 0;
     my $ruleref  = transform_rule( $_[1], $complete );
 
-    $ruleref->{comment}  = "$comment" if $comment;
-    $ruleref->{mode}     = CMD_MODE   if $ruleref->{cmdlevel} = $chainref->{cmdlevel};
+    $ruleref->{comment} = shortlineinfo($chainref->{origin}) || $comment;
+    $ruleref->{mode}    = CMD_MODE if $ruleref->{cmdlevel} = $chainref->{cmdlevel};
 
     push @{$chainref->{rules}}, $ruleref;
     $chainref->{referenced} = 1;
@@ -1211,6 +1238,13 @@ sub add_trule( $$ ) {
     trace( $chainref, 'A', @{$chainref->{rules}}, format_rule( $chainref, $ruleref ) ) if $debug;
 
     $ruleref;
+}
+
+#
+# Return the number of ports represented by the passed list
+#
+sub port_count( $ ) {
+    ( $_[0] =~ tr/,:/,:/ ) + 1;
 }
 
 #
@@ -1383,7 +1417,17 @@ sub push_matches {
     DONT_OPTIMIZE if $dont_optimize;
 }
 
-sub push_irule( $$$;@ ) {
+sub push_irule( $$ ) {
+    my ( $chainref, $ruleref ) = @_;
+
+    push @{$chainref->{rules}}, $ruleref;
+
+    trace( $chainref, 'A', @{$chainref->{rules}}, format_rule( $chainref, $ruleref ) ) if $debug;
+
+    $ruleref;
+}
+
+sub create_irule( $$$;@ ) {
     my ( $chainref, $jump, $target, @matches ) = @_;
 
     ( $target, my $targetopts ) = split ' ', $target, 2;
@@ -1401,9 +1445,7 @@ sub push_irule( $$$;@ ) {
 	$ruleref->{target} = '';
     }
 
-    if ( $comment ) {
-	$ruleref->{comment} = $comment unless $ruleref->{comment};
-    }
+    $ruleref->{comment} = shortlineinfo($chainref->{origin}) || $ruleref->{comment} || $comment;
 
     $iprangematch = 0;
 
@@ -1413,11 +1455,83 @@ sub push_irule( $$$;@ ) {
 	$chainref->{optflags} |= push_matches( $ruleref, @matches );
     }
 
-    push @{$chainref->{rules}}, $ruleref;
-
-    trace( $chainref, 'A', @{$chainref->{rules}}, format_rule( $chainref, $ruleref ) ) if $debug;
-
     $ruleref;
+}
+
+#
+# Clone an existing rule. Only the rule hash itself is cloned; reference values are shared between the new rule
+# reference and the old.
+#
+sub clone_irule( $ ) {
+    my $oldruleref = $_[0];
+    my $newruleref = {};
+
+    while ( my ( $key, $value ) = each %$oldruleref ) {
+	if ( reftype $value ) {
+	    my @array = @$value;
+	    $newruleref->{$key} = \@array;
+	} else {
+	    $newruleref->{$key} = $value;
+	}
+    }
+
+    $newruleref;
+}
+
+sub handle_port_ilist( $$$ );
+
+sub handle_port_ilist( $$$ ) {
+    my ($chainref, $ruleref, $dport) = @_;
+
+    our $splitcount;
+
+    my $ports = $ruleref->{$dport ? 'dports' : 'sports'};
+
+    if ( $ports && port_count( $ports ) > 15 ) {
+	#
+	# More than 15 ports specified
+	#
+	my @ports = split '([,:])', $ports;
+
+	while ( @ports ) {
+	    my $count = 0;
+	    my $newports = '';
+
+	    while ( @ports && $count < 15 ) {
+		my ($port, $separator) = ( shift @ports, shift @ports );
+
+		$separator ||= '';
+
+		if ( ++$count == 15 ) {
+		    if ( $separator eq ':' ) {
+			unshift @ports, $port, ':';
+			chop $newports;
+			last;
+		    } else {
+			$newports .= $port;
+		    }
+		} else {
+		    $newports .= "${port}${separator}";
+		}
+	    }
+
+	    my $newruleref = clone_irule( $ruleref );
+
+	    $newruleref->{$dport} = $newports;
+
+	    if ( $dport ) {
+		handle_port_ilist( $chainref, $newruleref, 0 );
+	    } else {
+		push_irule( $chainref, $newruleref );
+		$splitcount++;
+	    }
+	}
+    } elsif ( $dport ) {
+	handle_port_ilist( $chainref, $ruleref, 0 );
+    } else {
+	push_irule ( $chainref, $ruleref );
+	$splitcount++;
+    }
 }
 
 #
@@ -1441,7 +1555,7 @@ sub compare_values( $$ ) {
 sub add_irule( $;@ ) {
     my ( $chainref, @matches ) = @_;
 
-    push_irule( $chainref, '' => '', @matches );
+    push_irule( $chainref, create_irule( $chainref, '' => '', @matches ) );
 
 }
 
@@ -1487,7 +1601,8 @@ sub insert_rule1($$$)
 
     my $ruleref = transform_rule( $rule );
 
-    $ruleref->{comment}  = "$comment" if $comment;
+    $ruleref->{comment} = shortlineinfo($chainref->{origin}) || $comment;
+
     assert( ! ( $ruleref->{cmdlevel} = $chainref->{cmdlevel}) , $chainref->{name} );
     $ruleref->{mode} = CAT_MODE;
 
@@ -1527,9 +1642,8 @@ sub insert_irule( $$$$;@ ) {
 	$chainref->{optflags} |= push_matches( $ruleref, @matches );
     }
 
-    if ( $comment ) {
-	$ruleref->{comment} = $comment unless $ruleref->{comment};
-    }
+    
+    $ruleref->{comment} = shortlineinfo( $chainref->{origin} ) || $ruleref->{comment} || $comment;
 
     splice( @{$chainref->{rules}}, $number, 0, $ruleref );
 
@@ -1540,26 +1654,6 @@ sub insert_irule( $$$$;@ ) {
     $chainref->{referenced} = 1;
 
     $ruleref;
-}
-
-#
-# Clone an existing rule. Only the rule hash itself is cloned; reference values are shared between the new rule
-# reference and the old.
-#
-sub clone_rule( $ ) {
-    my $oldruleref = $_[0];
-    my $newruleref = {};
-
-    while ( my ( $key, $value ) = each %$oldruleref ) {
-	if ( reftype $value ) {
-	    my @array = @$value;
-	    $newruleref->{$key} = \@array;
-	} else {
-	    $newruleref->{$key} = $value;
-	}
-    }
-
-    $newruleref;
 }
 
 # Do final work to 'delete' a chain. We leave it in the chain table but clear
@@ -1639,8 +1733,8 @@ sub decrement_reference_count( $$ ) {
 
     if ( $toref && $toref->{referenced} ) {
 	assert($toref->{references}{$chain} > 0 , $toref, $chain );
-	delete $toref->{references}{$chain} unless --$toref->{references}{$chain};
-	delete_chain( $toref )              unless ( keys %{$toref->{references}} );
+	delete $toref->{references}{$chain}    unless --$toref->{references}{$chain};
+	delete_chain_and_references ( $toref ) unless ( keys %{$toref->{references}} );
     }
 }
 
@@ -1848,7 +1942,7 @@ sub use_forward_chain($$) {
     my $interfaceref = find_interface($interface);
     my $nets = $interfaceref->{nets};
 
-    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
+    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & OPTIMIZE_USE_FIRST );
     #
     # Use it if we already have jumps to it
     #
@@ -1924,7 +2018,7 @@ sub use_input_chain($$) {
     my $interfaceref = find_interface($interface);
     my $nets = $interfaceref->{nets};
 
-    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
+    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & OPTIMIZE_USE_FIRST );
     #
     # We must use the interfaces's chain if the interface is associated with multiple Zones
     #
@@ -2004,7 +2098,7 @@ sub use_output_chain($$) {
     my $interfaceref = find_interface($interface);
     my $nets = $interfaceref->{nets};
 
-    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & 4096 );
+    return 1 if @{$chainref->{rules}} && ( $config{OPTIMIZE} & OPTIMIZE_USE_FIRST );
     #
     # We must use the interfaces's chain if the interface is associated with multiple Zones
     #
@@ -2239,10 +2333,12 @@ sub add_expanded_jump( $$$$ ) {
     add_reference( $chainref, $toref ) while --$splitcount > 0;
 }
 
-sub add_ijump( $$$;@ ) {
-    my ( $fromref, $jump, $to, @matches ) = @_;
+sub add_ijump_internal( $$$$;@ ) {
+    my ( $fromref, $jump, $to, $expandports, @matches ) = @_;
 
     return $dummyrule if $fromref->{complete};
+
+    our $splitcount;
 
     my $toref;
     my $ruleref;
@@ -2268,16 +2364,21 @@ sub add_ijump( $$$;@ ) {
 	$toref->{referenced} = 1;
 	add_reference $fromref, $toref;
 	$jump = 'j' unless have_capability 'GOTO_TARGET';
-	$ruleref = push_irule ($fromref, $jump => $to, @matches );
+	$ruleref = create_irule ($fromref, $jump => $to, @matches );
     } else {
-	$ruleref = push_irule( $fromref, 'j' => $to, @matches );
+	$ruleref = create_irule( $fromref, 'j' => $to, @matches );
     }
 
     if ( $ruleref->{simple} ) {
 	$fromref->{complete} = 1 if $jump eq 'g' || $terminating{$to};
     }
 
-    $ruleref;
+    $expandports ? handle_port_ilist( $fromref, $ruleref, 1 ) : push_irule( $fromref, $ruleref );
+}
+
+sub add_ijump( $$$;@ ) {
+    my ( $fromref, $jump, $to, @matches ) = @_;
+    add_ijump_internal( $fromref, $jump, $to, 0, @matches );
 }
 
 sub insert_ijump( $$$$;@ ) {
@@ -2571,7 +2672,7 @@ sub ensure_manual_chain($) {
     $chainref;
 }
 
-sub log_rule_limit( $$$$$$$$ );
+sub log_irule_limit( $$$$$$$@ );
 
 sub ensure_blacklog_chain( $$$$ ) {
     my ( $target, $disposition, $level, $audit ) = @_;
@@ -2582,7 +2683,7 @@ sub ensure_blacklog_chain( $$$$ ) {
 	$target =~ s/A_//;
 	$target = 'reject' if $target eq 'REJECT';
 
-	log_rule_limit( $level , $logchainref , 'blacklst' , $disposition , "$globals{LOGLIMIT}" , '', 'add',	'' );
+	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , '', 'add' );
 
 	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target ) if $audit;
 	add_ijump( $logchainref, g => $target );
@@ -2597,7 +2698,7 @@ sub ensure_audit_blacklog_chain( $$$ ) {
     unless ( $filter_table->{A_blacklog} ) {
 	my $logchainref = new_manual_chain 'A_blacklog';
 
-	log_rule_limit( $level , $logchainref , 'blacklst' , $disposition , "$globals{LOGLIMIT}" , '', 'add',	'' );
+	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , '', 'add' );
 
 	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target );
 
@@ -2911,8 +3012,8 @@ sub calculate_digest( $ ) {
 #
 # Replace jumps to the passed chain with jumps to the passed target
 #
-sub replace_references( $$$;$ ) {
-    my ( $chainref, $target, $targetopts, $digest ) = @_;
+sub replace_references( $$$$;$ ) {
+    my ( $chainref, $target, $targetopts, $comment, $digest ) = @_;
     my $tableref  = $chain_table{$chainref->{table}};
     my $count     = 0;
     my $name      = $chainref->{name};
@@ -2929,6 +3030,7 @@ sub replace_references( $$$;$ ) {
 		if ( $_->{target} eq $name ) {
 		    $_->{target}     = $target;
 		    $_->{targetopts} = $targetopts if $targetopts;
+		    $_->{comment}    = $comment unless $_->{comment};
 
 		    if ( $targetref ) {
 			add_reference ( $fromref, $targetref );
@@ -3053,17 +3155,24 @@ sub check_optimization( $ ) {
 # When an unreferenced chain is found, it is deleted unless its 'dont_delete' flag is set.
 sub optimize_level0() {
     for my $table ( qw/raw rawpost mangle nat filter/ ) {
-	next if $family == F_IPV6 && $table eq 'nat';
 	my $tableref = $chain_table{$table};
-	my @chains  = grep $_->{referenced}, values %$tableref;
-	my $chains  = @chains;
+	next unless $tableref;
 
-	for my $chainref ( @chains ) {
-	    #
-	    # If the chain isn't branched to, then delete it
-	    #
-	    unless ( $chainref->{optflags} & DONT_DELETE || keys %{$chainref->{references}} ) {
-		delete_chain $chainref if $chainref->{referenced};
+	my $progress = 1;
+
+	while ( $progress ) {
+	    my @chains  = grep $_->{referenced}, values %$tableref;
+	    my $chains  = @chains;
+
+	    $progress = 0;
+
+	    for my $chainref ( @chains ) {
+		#
+		# If the chain isn't branched to, then delete it
+		#
+		unless ( $chainref->{optflags} & DONT_DELETE || keys %{$chainref->{references}} ) {
+		    delete_chain_and_references $chainref, $progress = 1 if $chainref->{referenced};
+		}
 	    }
 	}
     }
@@ -3098,7 +3207,7 @@ sub optimize_level4( $$ ) {
 	    # If the chain isn't branched to, then delete it
 	    #
 	    unless ( ( $optflags & DONT_DELETE ) || keys %{$chainref->{references}} ) {
-		delete_chain $chainref if $chainref->{referenced};
+		delete_chain_and_references $chainref if $chainref->{referenced};
 		next;
 	    }
 
@@ -3168,7 +3277,10 @@ sub optimize_level4( $$ ) {
 				#
 				# Replace all references to this chain with references to the target
 				#
-				replace_references $chainref, $firstrule->{target}, $firstrule->{targetopts};
+				replace_references( $chainref,
+						    $firstrule->{target},
+						    $firstrule->{targetopts},
+						    $firstrule->{comment} );
 				$progress = 1;
 			    }
 			} elsif ( $firstrule->{target} ) {
@@ -3217,7 +3329,7 @@ sub optimize_level4( $$ ) {
 			    while ( @$rulesref ) {
 				my $rule1ref = $rulesref->[-1];
 
-				last unless ( $rule1ref->{target} || '' ) eq $target && ! $rule1ref->{targetopts};
+				last unless ( $rule1ref->{target} || '' ) eq $target && ! ( $rule1ref->{targetopts} || $rule1ref->{nfacct} || $rule1ref->{recent} );
 
 				trace ( $chainref, 'D', $rule, $rule1ref ) if $debug;
 
@@ -3388,7 +3500,7 @@ sub optimize_level8( $$$ ) {
 		if ( $chainref->{digest} eq $chainref1->{digest} ) {
 		    progress_message "  Chain $chainref1->{name} combined with $chainref->{name}";
 		    $progress = 1;
-		    replace_references $chainref1, $chainref->{name}, undef, 1;
+		    replace_references $chainref1, $chainref->{name}, undef, '', 1;
 
 		    unless ( $chainref->{name} =~ /^~/ || $chainref1->{name} =~ /^%/ ) {
 			#
@@ -4056,15 +4168,14 @@ sub logchain( $$$$$$ ) {
 	#
 	# Now add the log rule and target rule without matches to the log chain.
 	#
-	log_rule_limit(
+	log_irule_limit(
 		       $loglevel ,
 		       $logchainref ,
 		       $chainref->{name} ,
 		       $disposition ,
-		       '',
+		       [] ,
 		       $logtag,
-		       'add',
-		       '' );
+		       'add' );
 	add_jump( $logchainref, $target, 0, $exceptionrule );
     }
 
@@ -4201,13 +4312,6 @@ sub dest_iexclusion( $$$$$;@ ) {
 
 sub clearrule() {
     $iprangematch = 0;
-}
-
-#
-# Return the number of ports represented by the passed list
-#
-sub port_count( $ ) {
-    ( $_[0] =~ tr/,:/,:/ ) + 1;
 }
 
 #
@@ -5940,9 +6044,11 @@ sub do_ipsec($$) {
 # Generate a log message
 #
 sub log_rule_limit( $$$$$$$$ ) {
-    my ($level, $chainref, $chain, $disposition, $limit, $tag, $command, $matches ) = @_;
+    my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, $matches ) = @_;
 
     my $prefix = '';
+    my $chain       = get_action_chain_name  || $chn;
+    my $disposition = get_action_disposition || $dispo;
 
     $level = validate_level $level; # Do this here again because this function can be called directly from user exits.
 
@@ -6030,10 +6136,110 @@ sub log_rule_limit( $$$$$$$$ ) {
     }
 }
 
+sub log_irule_limit( $$$$$$$@ ) {
+    my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, @matches ) = @_;
+
+    my $prefix = '';
+    my %matches;
+    my $chain       = get_action_chain_name  || $chn;
+    my $disposition = get_action_disposition || $dispo;
+
+    $level = validate_level $level; # Do this here again because this function can be called directly from user exits.
+
+    return 1 if $level eq '';
+
+    %matches = @matches;
+
+    unless ( $matches{limit} || $matches{hashlimit} ) {
+	$limit = $globals{LOGILIMIT} unless @$limit;
+	push @matches, @$limit if @$limit;
+    }
+
+    if ( $config{LOGFORMAT} =~ /^\s*$/ ) {
+	if ( $level =~ '^ULOG' ) {
+	    $prefix = "$level";
+	} elsif  ( $level =~ /^NFLOG/ ) {
+	    $prefix = "$level";
+	} else {
+	    my $flags = $globals{LOGPARMS};
+
+	    if ( $level =~ /^(.+)\((.*)\)$/ ) {
+		$level = $1;
+		$flags = join( ' ', $flags, $2 ) . ' ';
+		$flags =~ s/,/ /g;
+	    }
+
+	    $prefix = "LOG ${flags}--log-level $level";
+	}
+    } else {
+	if ( $tag ) {
+	    if ( $config{LOGTAGONLY} && $tag ne ',' ) {
+		if ( $tag =~ /^,/ ) {
+		    ( $disposition = $tag ) =~ s/,//;
+		} elsif ( $tag =~ /,/ ) {
+		    ( $chain, $disposition ) = split ',', $tag;
+		} else { 
+		    $chain = $tag;
+		}
+
+		$tag   = '';
+	    } else {
+		$tag .= ' ';
+	    }
+	} else {
+	    $tag = '' unless defined $tag;
+	}
+
+	$disposition =~ s/\s+.*//;
+
+	if ( $globals{LOGRULENUMBERS} ) {
+	    $prefix = (sprintf $config{LOGFORMAT} , $chain , $chainref->{log}++, $disposition ) . $tag;
+	} else {
+	    $prefix = (sprintf $config{LOGFORMAT} , $chain , $disposition) . $tag;
+	}
+
+	if ( length $prefix > 29 ) {
+	    $prefix = substr( $prefix, 0, 28 ) . ' ';
+	    warning_message "Log Prefix shortened to \"$prefix\"";
+	}
+
+	if ( $level =~ '^ULOG' ) {
+	    $prefix = "$level --ulog-prefix \"$prefix\"";
+	} elsif  ( $level =~ /^NFLOG/ ) {
+	    $prefix = "$level --nflog-prefix \"$prefix\"";
+	} elsif ( $level =~ '^LOGMARK' ) {
+	    $prefix = join( '', substr( $prefix, 0, 12 ) , ':' ) if length $prefix > 13;
+	    $prefix = "$level --log-prefix \"$prefix\"";
+	} else {
+	    my $options = $globals{LOGPARMS};
+
+	    if ( $level =~ /^(.+)\((.*)\)$/ ) {
+		$level   = $1;
+		$options = join( ' ', $options, $2 ) . ' ';
+		$options =~ s/,/ /g;
+	    }
+
+	    $prefix = "LOG ${options}--log-level $level --log-prefix \"$prefix\"";
+	}
+    }
+
+    if ( $command eq 'add' ) {
+	add_ijump_internal ( $chainref, j => $prefix , 1, @matches );
+    } else {
+	insert_ijump ( $chainref, j => $prefix, 0 , @matches );
+    }
+}
+
 sub log_rule( $$$$ ) {
     my ( $level, $chainref, $disposition, $matches ) = @_;
 
     log_rule_limit $level, $chainref, $chainref->{name} , $disposition, $globals{LOGLIMIT}, '', 'add', $matches;
+}
+
+sub log_irule( $$$;@ ) {
+    my ( $level, $chainref, $disposition, @matches ) = @_;
+
+    log_irule_limit $level, $chainref, $chainref->{name} , $disposition, $globals{LOGILIMIT} , '', 'add', @matches;
 }
 
 #
@@ -6488,6 +6694,21 @@ sub verify_address_variables() {
     }
 }
 
+#
+# Generate 'unreachable rule' message
+#
+sub unreachable_warning( $$ ) {
+    my ( $ignore, $chainref ) = @_;
+    unless ( $ignore ) {
+	if ( $chainref->{complete} ) {
+	    warning_message "One or more unreachable rules in chain $chainref->{name} have been discarded" unless $chainref->{unreachable_warned}++;
+	    return 1;
+	}
+    }
+
+    0;
+}
+
 ############################################################################################
 # Helpers for expand_rule()
 ############################################################################################
@@ -6869,10 +7090,12 @@ sub handle_original_dest( $$$ ) {
 #
 # Handles non-trivial exclusion. Updates the passed rule and returns ( $rule, $done )
 #
-sub handle_exclusion( $$$$$$$$$$$$$$$$$$$ ) {
+sub handle_exclusion( $$$$$$$$$$$$$$$$$$$$$ ) {
     my ( $disposition, 
 	 $table,
 	 $prerule,
+	 $sprerule,
+	 $dprerule,
 	 $rule,
 	 $restriction, 
 	 $inets,
@@ -6954,7 +7177,7 @@ sub handle_exclusion( $$$$$$$$$$$$$$$$$$$ ) {
 
 		for my $dnet ( split_host_list( $dnets, $config{DEFER_DNS_RESOLUTION} ) ) {
 		    $source_match = match_source_net( $inet, $restriction, $mac ) unless $globals{KLUDGEFREE};
-		    add_expanded_jump( $chainref, $echainref, 0, join( '', $prerule, $source_match, match_dest_net( $dnet, $restriction ), $onet, $rule ) );
+		    add_expanded_jump( $chainref, $echainref, 0, join( '', $prerule, $source_match, $sprerule, match_dest_net( $dnet, $restriction ), $dprerule, $onet, $rule ) );
 		}
 
 		conditional_rule_end( $chainref ) if $cond;
@@ -6985,14 +7208,13 @@ sub handle_exclusion( $$$$$$$$$$$$$$$$$$$ ) {
 	#
 	# Log rule
 	#
-	log_rule_limit( $loglevel ,
-			$echainref ,
-			$chain,
-			$actparms{disposition} || ( $disposition eq 'reject' ? 'REJECT' : $disposition ),
-			'' ,
-			$logtag ,
-			'add' ,
-			'' )
+	log_irule_limit( $loglevel ,
+			 $echainref ,
+			 $chain ,
+			 $actparms{disposition} || ( $disposition eq 'reject' ? 'REJECT' : $disposition ),
+			 [] ,
+			 $logtag ,
+			 'add' )
 	    if $loglevel;
 	#
 	# Generate Final Rule
@@ -7030,7 +7252,7 @@ sub expand_rule( $$$$$$$$$$$;$ )
 	$logname,      # Name of chain to name in log messages
        ) = @_;
 
-    return '' if $chainref->{complete};
+    return if $chainref->{complete};
 
     my ( $iiface, $diface, $inets, $dnets, $iexcl, $dexcl, $onets , $oexcl, $trivialiexcl, $trivialdexcl ) = 
        ( '',      '',      '',     '',     '',     '',     '',      '',     '',            '' );
@@ -7102,13 +7324,15 @@ sub expand_rule( $$$$$$$$$$$;$ )
     #
     # Determine if there is Source Exclusion
     #
+    my ( $sprerule, $dprerule ) = ( '', '' );
+
     if ( $inets ) {
 	( $inets, $iexcl ) = handle_network_list( $inets, 'SOURCE' );
 
 	unless ( $inets || $iexcl =~ /^\+\[/ || ( $iiface && $restriction & POSTROUTE_RESTRICT ) ) {
 	    my @iexcl = split_host_list( $iexcl, $deferdns, 1 );
 	    if ( @iexcl == 1 ) {
-		$rule .= match_source_net "!$iexcl" , $restriction;
+		$sprerule = match_source_net "!$iexcl" , $restriction;
 		$iexcl = '';
 		$trivialiexcl = 1;
 	    }
@@ -7123,7 +7347,7 @@ sub expand_rule( $$$$$$$$$$$;$ )
 	unless ( $dnets || $dexcl =~ /^\+\[/ ) {
 	    my @dexcl = split_host_list( $dexcl, $deferdns, 1 );
 	    if ( @dexcl == 1 ) {
-		$rule .= match_dest_net "!$dexcl", $restriction;
+		$dprerule = match_dest_net "!$dexcl", $restriction;
 		$dexcl = '';
 		$trivialdexcl = 1;
 	    }
@@ -7146,6 +7370,8 @@ sub expand_rule( $$$$$$$$$$$;$ )
 	( $rule, $done ) = handle_exclusion( $disposition,
 					     $table,
 					     $prerule,
+					     $sprerule,
+					     $dprerule,
 					     $rule,
 					     $restriction,
 					     $inets,
@@ -7183,7 +7409,7 @@ sub expand_rule( $$$$$$$$$$$;$ )
 		for my $dnet ( split_host_list( $dnets, $deferdns ) ) {
 		    $source_match  = match_source_net( $inet, $restriction, $mac ) unless $globals{KLUDGEFREE};
 		    my $dest_match = match_dest_net( $dnet, $restriction );
-		    my $matches = join( '', $source_match, $dest_match, $onet, $rule );
+		    my $matches = join( '', $source_match, $sprerule, $dest_match, $dprerule, $onet, $rule );
 
 		    my $cond3 = conditional_rule( $chainref, $dnet );
 
@@ -7362,7 +7588,9 @@ sub add_interface_options( $ ) {
 		    } else {
 			for my $interface ( @input_interfaces ) {
 			    $chain1ref = $input_chains{$interface};
-			    add_ijump ( $chainref , j => $chain1ref->{name}, @input_interfaces > 1 ? imatch_source_dev( $interface ) : () ) if @{$chain1ref->{rules}};
+			    add_ijump ( $chainref ,
+					j => $chain1ref->{name},
+					@input_interfaces > 1 ? imatch_source_dev( $interface ) : () )->{comment} = interface_origin( $interface ) if @{$chain1ref->{rules}};
 			}
 		    }
 		} else {
@@ -7375,7 +7603,7 @@ sub add_interface_options( $ ) {
 		    } else {
 			for my $interface ( @forward_interfaces ) {
 			    $chain1ref = $forward_chains{$interface};
-			    add_ijump ( $chainref , j => $chain1ref->{name}, @forward_interfaces > 1 ? imatch_source_dev( $interface ) : () ) if  @{$chain1ref->{rules}};
+			    add_ijump ( $chainref , j => $chain1ref->{name}, @forward_interfaces > 1 ? imatch_source_dev( $interface ) : () )->{comment} = interface_origin( $interface ) if  @{$chain1ref->{rules}};
 			}
 		    }
 		}

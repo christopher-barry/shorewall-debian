@@ -337,7 +337,7 @@ uptodate() {
     ifs="$IFS"
     IFS=':'
 
-    for dir in $CONFIG_PATH; do
+    for dir in $g_shorewalldir $CONFIG_PATH; do
 	if [ -n "$(find ${dir} -newer $1)" ]; then
 	    IFS="$ifs"
 	    return 1;
@@ -373,6 +373,8 @@ compiler() {
     #
     get_config Yes
 
+    [ -n "$g_doing" ] && progress_message3 "$g_doing..."
+
     case $COMMAND in
 	*start|try|refresh)
 	    ;;
@@ -397,6 +399,11 @@ compiler() {
     if [ -n "$g_export" ]; then
 	shorewallrc1=$(find_file shorewallrc)
 	[ -f "$shorewallrc1" ] || fatal_error "Compiling for export requires a shorewallrc file"
+    fi
+
+    if [ -n "$g_conditional" ] && uptodate $g_file; then
+	echo "$g_file is up to date -- no compilation required"
+	return 0
     fi
 
     options="--verbose=$VERBOSITY --family=$g_family --config_path=$CONFIG_PATH --shorewallrc=${shorewallrc}"
@@ -466,8 +473,6 @@ start_command() {
 	    rc=$?
 	    [ -n "$nolock" ] || mutex_off
 	else
-	    progress_message3 "Compiling..."
-
 	    if compiler $g_debugging $nolock compile ${VARDIR}/.start; then
 		run_postcompile ${VARDIR}/.start
 		[ -n "$nolock" ] || mutex_on
@@ -629,6 +634,10 @@ compile_command() {
 			    g_debug=Yes;
 			    option=${option#d}
 			    ;;
+			c*)
+			    g_conditional=Yes;
+			    option=${option#c}
+			    ;;
 			T*)
 			    g_confess=Yes
 			    option=${option#T}
@@ -649,15 +658,15 @@ compile_command() {
 	esac
     done
 
-    file=
+    g_file=
 
     case $# in
 	0)
-	    [ -n "$g_export" ] && file=firewall || file=${VARDIR}/firewall
+	    [ -n "$g_export" ] && g_file=firewall || g_file=${VARDIR}/firewall
 	    ;;
 	1)
-	    file=$1
-	    [ -d $file ] && fatal_error "$file is a directory"
+	    g_file=$1
+	    [ -d $g_file ] && fatal_error "$g_file is a directory"
 	    ;;
 	2)
 	    [ -n "$g_shorewalldir" -a -z "$g_export" ] && usage 2
@@ -671,16 +680,16 @@ compile_command() {
 	    fi
 
 	    g_shorewalldir=$(resolve_file $1)
-	    file=$2
+	    g_file=$2
 	    ;;
 	*)
 	    usage 1
 	    ;;
     esac
 
-    [ "x$file" = x- ] || progress_message3 "Compiling..."
+    [ "x$g_file" = x- ] && g_doing=''
 
-    compiler $g_debugging compile $file && run_postcompile $file
+    compiler $g_debugging compile $g_file && run_postcompile $g_file
 }
 
 #
@@ -757,7 +766,7 @@ check_command() {
 	    ;;
     esac
 
-    progress_message3 "Checking..."
+    g_doing="Checking"
 
     compiler $g_debugging $nolock check
 }
@@ -849,7 +858,7 @@ update_command() {
 	    ;;
     esac
 
-    progress_message3 "Updating..."
+    g_doing="Updating..."
 
     compiler $g_debugging $nolock check
 }
@@ -944,8 +953,6 @@ restart_command() {
     fi
 
     if [ -z "$g_fast" ]; then
-	progress_message3 "Compiling..."
-
 	if compiler $g_debugging $nolock compile ${VARDIR}/.restart; then
 	    run_postcompile ${VARDIR}/.restart
 	    [ -n "$nolock" ] || mutex_on
@@ -1035,8 +1042,6 @@ refresh_command() {
     product_is_started || fatal_error "$g_product is not running"
 
     [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
-
-    progress_message3 "Compiling..."
 
     if compiler $g_debugging $nolock compile ${VARDIR}/.refresh; then
 	run_postcompile ${VARDIR}/.refresh
@@ -1146,8 +1151,6 @@ safe_commands() {
 	# the command is safe-restart and the firewall is already running
 	command="restart"
     fi
-
-    progress_message3 "Compiling..."
 
     if ! compiler $g_debugging nolock compile ${VARDIR}/.$command; then
 	status=$?
@@ -1279,8 +1282,6 @@ try_command() {
 	# the firewall is already running
 	command="restart"
     fi
-
-    progress_message3 "Compiling..."
 
     if ! compiler $g_debugging $nolock compile ${VARDIR}/.$command; then
 	status=$?
@@ -1577,9 +1578,9 @@ usage() # $1 = exit status
     echo "where <command> is one of:"
     echo "   add <interface>[:<host-list>] ... <zone>"
     echo "   allow <address> ..."
-    echo "   check [ -e ] [ -r ] [ -p ] [ -r ] [ -T ] [ <directory> ]"
+    echo "   [ check | ck ] [ -e ] [ -r ] [ -p ] [ -r ] [ -T ] [ <directory> ]"
     echo "   clear"
-    echo "   compile [ -e ] [ -p ] [ -t ] [ -d ] [ -T ] [ <directory name> ] [ <path name> ]"
+    echo "   [ compile | co ] [ -e ] [ -p ] [ -t ] [ -c ] [ -d ] [ -T ] [ <directory name> ] [ <path name> ]"
     echo "   delete <interface>[:<host-list>] ... <zone>"
     echo "   disable <interface>"
     echo "   drop <address> ..."
@@ -1622,31 +1623,31 @@ usage() # $1 = exit status
     echo "   safe-restart [ -t <timeout> ] [ <directory> ]"
     echo "   safe-start [ -t <timeout> ] [ <directory> ]"
     echo "   save [ <file name> ]"
-    echo "   show [ -x ] [ -t {filter|mangle|nat|raw|rawpost} ] [ {chain [<chain> [ <chain> ... ]"
-    echo "   show actions"
-    echo "   show [ -f ] capabilities"
-    echo "   show classifiers"
-    echo "   show config"
-    echo "   show connections"
-    echo "   show dynamic <zone>"
-    echo "   show filters"
-    echo "   show ip"
+    echo "   [ show | list | ls ] [ -x ] [ -t {filter|mangle|nat|raw|rawpost} ] [ {chain [<chain> [ <chain> ... ]"
+    echo "   [ show | list | ls ] actions"
+    echo "   [ show | list | ls ] [ -f ] capabilities"
+    echo "   [ show | list | ls ] classifiers"
+    echo "   [ show | list | ls ] config"
+    echo "   [ show | list | ls ] connections"
+    echo "   [ show | list | ls ] dynamic <zone>"
+    echo "   [ show | list | ls ] filters"
+    echo "   [ show | list | ls ] ip"
 
     if [ $g_family -eq 4 ]; then
-	echo "   show ipa"
+	echo "   [ show | list | ls ] ipa"
     fi
 
-    echo "   show [ -m ] log [<regex>]"
-    echo "   show macro <macro>"
-    echo "   show macros"
-    echo "   show marks"
-    echo "   show [ -x ] mangle|nat|raw|rawpost|routing"
-    echo "   show nfacct"
-    echo "   show policies"
-    echo "   show routing"
-    echo "   show tc [ device ]"
-    echo "   show vardir"
-    echo "   show zones"
+    echo "   [ show | list | ls ] [ -m ] log [<regex>]"
+    echo "   [ show | list | ls ] macro <macro>"
+    echo "   [ show | list | ls ] macros"
+    echo "   [ show | list | ls ] marks"
+    echo "   [ show | list | ls ] [ -x ] mangle|nat|raw|rawpost|routing"
+    echo "   [ show | list | ls ] nfacct"
+    echo "   [ show | list | ls ] policies"
+    echo "   [ show | list | ls ] routing"
+    echo "   [ show | list | ls ] tc [ device ]"
+    echo "   [ show | list | ls ] vardir"
+    echo "   [ show | list | ls ] zones"
     echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ -T ] [ <directory> ]"
     echo "   status"
     echo "   stop"
@@ -1660,7 +1661,7 @@ usage() # $1 = exit status
 compiler_command() {
 
     case $COMMAND in
-	compile)
+	compile|co)
 	    shift
 	    compile_command $@
 	    ;;
@@ -1669,7 +1670,7 @@ compiler_command() {
 	    shift
 	    refresh_command $@
 	    ;;
-	check)
+	check|ck)
 	    shift
 	    check_command $@
 	    ;;

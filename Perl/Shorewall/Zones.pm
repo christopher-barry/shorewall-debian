@@ -38,6 +38,8 @@ our @EXPORT = ( qw( NOTHING
 		    IPSECMODE
 		    FIREWALL
 		    VSERVER
+		    LOOPBACK
+		    LOCAL
 		    IP
 		    BPORT
 		    IPSEC
@@ -50,6 +52,8 @@ our @EXPORT = ( qw( NOTHING
 		    dump_zone_contents
 		    find_zone
 		    firewall_zone
+		    loopback_zones
+		    local_zones
 		    defined_zone
 		    zone_type
 		    zone_interfaces
@@ -68,7 +72,10 @@ our @EXPORT = ( qw( NOTHING
 		    all_real_interfaces
 		    all_plain_interfaces
 		    all_bridges
+		    managed_interfaces
+		    unmanaged_interfaces
 		    interface_number
+		    interface_origin
 		    find_interface
 		    known_interface
 		    get_physical
@@ -84,6 +91,7 @@ our @EXPORT = ( qw( NOTHING
 		    interface_has_option
 		    set_interface_option
 		    set_interface_provider
+		    interface_zone
 		    interface_zones
 		    verify_required_interfaces
 		    validate_hosts_file
@@ -96,7 +104,7 @@ our @EXPORT = ( qw( NOTHING
 	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_16';
+our $VERSION = '4.5_20';
 
 #
 # IPSEC Option types
@@ -152,6 +160,8 @@ our @zones;
 our %zones;
 our %zonetypes;
 our $firewall_zone;
+our @loopback_zones;
+our @local_zones;
 
 our %reservedName = ( all => 1,
 		      any => 1,
@@ -211,7 +221,10 @@ use constant { FIREWALL => 1,
 	       IP       => 2,
 	       BPORT    => 4,
 	       IPSEC    => 8,
-	       VSERVER  => 16 };
+	       VSERVER  => 16,
+	       LOOPBACK => 32,
+	       LOCAL    => 64,
+	   };
 
 use constant { SIMPLE_IF_OPTION   => 1,
 	       BINARY_IF_OPTION   => 2,
@@ -234,9 +247,28 @@ use constant { NO_UPDOWN   => 1,
 
 our %validinterfaceoptions;
 
-our %defaultinterfaceoptions = ( routefilter => 1 , wait => 60, accept_ra => 1 );
+our %prohibitunmanaged = (
+			  blacklist      => 1,
+			  bridge         => 1,
+			  destonly       => 1,
+			  detectnets     => 1,
+			  dhcp           => 1,
+			  maclist        => 1,
+			  nets           => 1,
+			  norfc1918      => 1,
+			  nosmurfs       => 1,
+			  optional       => 1,
+			  routeback      => 1,
+			  rpfilter       => 1,
+			  sfilter        => 1,
+			  tcpflags       => 1,
+			  upnp           => 1,
+			  upnpclient     => 1,
+			 );
 
-our %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 , ignore => NO_UPDOWN, accept_ra => 2 );
+our %defaultinterfaceoptions = ( routefilter => 1 , wait => 60, accept_ra => 1 , ignore => 3, routeback => 1 );
+
+our %maxoptionvalue = ( routefilter => 2, mss => 100000 , wait => 120 , ignore => NO_UPDOWN | NO_SFILTER, accept_ra => 2 );
 
 our %validhostoptions;
 
@@ -277,6 +309,8 @@ sub initialize( $$ ) {
     ( $family , $upgrade ) = @_;
     @zones = ();
     %zones = ();
+    @loopback_zones = ();
+    @local_zones = ();
     $firewall_zone = '';
     $have_ipsec = undef;
 
@@ -298,6 +332,7 @@ sub initialize( $$ ) {
 				  arp_ignore  => ENUM_IF_OPTION,
 				  blacklist   => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  bridge      => SIMPLE_IF_OPTION,
+				  destonly    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  detectnets  => OBSOLETE_IF_OPTION,
 				  dhcp        => SIMPLE_IF_OPTION,
 				  ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
@@ -309,7 +344,7 @@ sub initialize( $$ ) {
 				  optional    => SIMPLE_IF_OPTION,
 				  proxyarp    => BINARY_IF_OPTION,
 				  required    => SIMPLE_IF_OPTION,
-				  routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
+				  routeback   => BINARY_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				  routefilter => NUMERIC_IF_OPTION ,
 				  rpfilter    => SIMPLE_IF_OPTION,
 				  sfilter     => IPLIST_IF_OPTION,
@@ -319,6 +354,7 @@ sub initialize( $$ ) {
 				  upnpclient  => SIMPLE_IF_OPTION,
 				  mss         => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				  physical    => STRING_IF_OPTION  + IF_OPTION_HOST,
+				  unmanaged   => SIMPLE_IF_OPTION,
 				  wait        => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				 );
 	%validhostoptions = (
@@ -332,11 +368,19 @@ sub initialize( $$ ) {
 			     sourceonly => 1,
 			     mss => 1,
 			    );
-	%zonetypes = ( 1 => 'firewall', 2 => 'ipv4', 4 => 'bport4', 8 => 'ipsec4', 16 => 'vserver' );
+
+	%zonetypes = ( 1   => 'firewall',
+		       2   => 'ipv4',
+		       4   => 'bport4',
+		       8   => 'ipsec4',
+		       16  => 'vserver',
+		       32  => 'loopback',
+		       64  => 'local' );
     } else {
 	%validinterfaceoptions = (  accept_ra   => NUMERIC_IF_OPTION,
 				    blacklist   => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    bridge      => SIMPLE_IF_OPTION,
+				    destonly    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    dhcp        => SIMPLE_IF_OPTION,
 				    ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				    maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -345,7 +389,7 @@ sub initialize( $$ ) {
 				    optional    => SIMPLE_IF_OPTION,
 				    proxyndp    => BINARY_IF_OPTION,
 				    required    => SIMPLE_IF_OPTION,
-				    routeback   => SIMPLE_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
+				    routeback   => BINARY_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				    rpfilter    => SIMPLE_IF_OPTION,
 				    sfilter     => IPLIST_IF_OPTION,
 				    sourceroute => BINARY_IF_OPTION,
@@ -353,6 +397,7 @@ sub initialize( $$ ) {
 				    mss         => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				    forward     => BINARY_IF_OPTION,
 				    physical    => STRING_IF_OPTION + IF_OPTION_HOST,
+				    unmanaged   => SIMPLE_IF_OPTION,
 				    wait        => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				 );
 	%validhostoptions = (
@@ -362,7 +407,14 @@ sub initialize( $$ ) {
 			     tcpflags => 1,
 			     mss => 1,
 			    );
-	%zonetypes = ( 1 => 'firewall', 2 => 'ipv6', 4 => 'bport6', 8 => 'ipsec4', 16 => 'vserver' );
+
+	%zonetypes = ( 1   => 'firewall',
+		       2   => 'ipv6',
+		       4   => 'bport6',
+		       8   => 'ipsec4',
+		       16  => 'vserver',
+		       32  => 'loopback',
+		       64  => 'local' );
     }
 }
 
@@ -380,6 +432,8 @@ sub parse_zone_option_list($$\$$)
     my $fmt;
 
     if ( $list ne '-' ) {
+	fatal_error "The 'loopback' zone may not have $column OPTIONS" if $zonetype == LOOPBACK;
+
 	for my $e ( split_list $list, 'option' ) {
 	    my $val    = undef;
 	    my $invert = '';
@@ -487,6 +541,13 @@ sub process_zone( \$ ) {
     } elsif ( $type eq '-' ) {
 	$type = IP;
 	$$ip = 1;
+    } elsif ( $type eq 'local' ) {
+	push @local_zones, $zone;
+	$type = LOCAL;
+	$$ip  = 1;
+    } elsif ( $type eq 'loopback' ) {
+	push @loopback_zones, $zone;
+	$type = LOOPBACK;
     } else {
 	fatal_error "Invalid zone type ($type)";
     }
@@ -499,6 +560,8 @@ sub process_zone( \$ ) {
 
 	fatal_error 'Subzones of a Vserver zone not allowed' if $ptype & VSERVER;
 	fatal_error 'Subzones of firewall zone not allowed'  if $ptype & FIREWALL;
+	fatal_error 'Loopback zones may only be subzones of other loopback zones' if ( $type | $ptype ) & LOOPBACK && $type != $ptype;
+	fatal_error 'Local zones may only be subzones of other local zones'       if ( $type | $ptype ) & LOCAL    && $type != $ptype;
 
 	set_super( $zones{$p} ) if $type & IPSEC && ! ( $ptype & IPSEC );
 
@@ -564,6 +627,8 @@ sub process_zone( \$ ) {
 #
 # Parse the zones file.
 #
+sub vserver_zones();
+
 sub determine_zones()
 {
     my @z;
@@ -582,6 +647,7 @@ sub determine_zones()
 
     fatal_error "No firewall zone defined" unless $firewall_zone;
     fatal_error "No IP zones defined" unless $ip;
+    fatal_error "Loopback zones and vserver zones are mutually exclusive" if @loopback_zones && vserver_zones;
     #
     # Topological sort to place sub-zones before all of their parents
     #
@@ -743,8 +809,12 @@ sub add_group_to_zone($$$$$)
     my $zoneref  = $zones{$zone};
     my $zonetype = $zoneref->{type};
 
-
+    $interfaceref = $interfaces{$interface};
     $zoneref->{interfaces}{$interface} = 1;
+    $zoneref->{destonly} ||= $interfaceref->{options}{destonly};
+    $options->{destonly} ||= $interfaceref->{options}{destonly};
+
+    $interfaceref->{zones}{$zone} = 1;
 
     my @newnetworks;
     my @exclusions = ();
@@ -753,10 +823,6 @@ sub add_group_to_zone($$$$$)
     my $allip    = 0;
 
     for my $host ( @$networks ) {
-	$interfaceref = $interfaces{$interface};
-
-	$interfaceref->{zones}{$zone} = 1;
-
 	$interfaceref->{nets}++;
 
 	fatal_error "Invalid Host List" unless supplied $host;
@@ -888,11 +954,19 @@ sub firewall_zone() {
     $firewall_zone;
 }
 
+sub loopback_zones() {
+    @loopback_zones;
+}
+
+sub local_zones() {
+    @local_zones;
+}
+
 #
 # Determine if the passed physical device is a bridge
 #
 sub is_a_bridge( $ ) {
-    which 'brctl' && qt( "brctl show | tail -n+2 | grep -q '^$_[0]\[\[:space:\]\]'" );
+    which 'brctl' && system( "brctl show < /dev/null | tail -n+2 | grep -q '^$_[0]\[\[:space:\]\]' > /dev/null" ) == 0;
 }
 
 #
@@ -1145,7 +1219,7 @@ sub process_interface( $$ ) {
 	    } elsif ( $type == BINARY_IF_OPTION ) {
 		$value = 1 unless defined $value;
 		fatal_error "Option value for '$option' must be 0 or 1" unless ( $value eq '0' || $value eq '1' );
-		fatal_error "The '$option' option may not be used with a wild-card interface name" if $wildcard;
+		fatal_error "The '$option' option may not be used with a wild-card interface name" if $wildcard && ! $type && IF_OPTION_WILDOK;
 		$options{$option} = $value;
 		$hostoptions{$option} = $value if $hostopt;
 	    } elsif ( $type == ENUM_IF_OPTION ) {
@@ -1210,6 +1284,7 @@ sub process_interface( $$ ) {
 
 		if ( $option eq 'physical' ) {
 		    fatal_error "Invalid Physical interface name ($value)" unless $value && $value !~ /%/;
+		    fatal_error "Virtual interfaces ($value) are not supported" if $value =~ /:\d+$/;
 
 		    fatal_error "Duplicate physical interface name ($value)" if ( $physical{$value} && ! $port );
 
@@ -1251,10 +1326,10 @@ sub process_interface( $$ ) {
 	if ( $options{bridge} ) {
 	    require_capability( 'PHYSDEV_MATCH', 'The "bridge" option', 's');
 	    fatal_error "Bridges may not have wildcard names" if $wildcard;
-	    $hostoptions{routeback} = $options{routeback} = 1;
+	    $hostoptions{routeback} = $options{routeback} = 1 unless supplied $options{routeback};
 	}
 
-	$hostoptions{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export || $options{routeback};
+	$hostoptions{routeback} = $options{routeback} = is_a_bridge( $physical ) unless $export || supplied $options{routeback} || $options{unmanaged};
 
 	$hostoptionsref = \%hostoptions;
     } else {
@@ -1266,6 +1341,14 @@ sub process_interface( $$ ) {
 	# And give the 'ignore' option a defined value
 	#
 	$options{ignore} ||= 0;
+    }
+
+    if ( $options{unmanaged} ) {
+	fatal_error "The 'lo' interface may not be unmanaged when there are vserver zones" if $physical eq 'lo' && vserver_zones;
+
+	while ( my ( $option, $value ) = each( %options ) ) {
+	    fatal_error "The $option option may not be specified with 'unmanaged'" if $prohibitunmanaged{$option};
+	}
     }
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
@@ -1280,9 +1363,42 @@ sub process_interface( $$ ) {
 						       physical   => $physical ,
 						       base       => var_base( $physical ),
 						       zones      => {},
+						       origin     => shortlineinfo(''),
 						     };
 
     if ( $zone ) {
+	fatal_error "Unmanaged interfaces may not be associated with a zone" if $options{unmanaged};
+
+	if ( $physical eq 'lo' ) {
+	    fatal_error "Only a loopback zone may be assigned to 'lo'" unless $zoneref->{type} == LOOPBACK;
+	    fatal_error "Invalid definition of 'lo'"                   if $bridge ne $interface;
+	    
+	    for ( qw/arp_filter
+		     arp_ignore
+		     blacklist
+		     bridge
+		     detectnets
+		     dhcp
+		     maclist
+		     logmartians
+		     norfc1918
+		     nosmurts
+		     proxyarp
+		     routeback
+		     routefilter
+		     rpfilter
+		     sfilter
+		     sourceroute
+		     upnp
+		     upnpclient
+		     mss
+		    / ) {
+		fatal_error "The 'lo' interface may not specify the '$_' option" if supplied $options{$_};
+	    }
+	} else {
+	    fatal_error "A loopback zone may only be assigned to 'lo'" if $zoneref->{type} == LOOPBACK;
+	}
+
 	$netsref ||= [ allip ];
 	add_group_to_zone( $zone, $zoneref->{type}, $interface, $netsref, $hostoptionsref );
 	add_group_to_zone( $zone,
@@ -1409,7 +1525,7 @@ sub known_interface($)
 	}
     }
 
-    0;
+    $physical{$interface} || 0;
 }
 
 #
@@ -1420,6 +1536,13 @@ sub interface_number( $ ) {
 }
 
 #
+# Return interface origin
+#
+sub interface_origin( $ ) {
+    $interfaces{$_[0]}->{origin};
+}
+
+#
 # Return the interfaces list
 #
 sub all_interfaces() {
@@ -1427,10 +1550,10 @@ sub all_interfaces() {
 }
 
 #
-# Return all non-vserver interfaces
+# Return all managed non-vserver interfaces
 #
 sub all_real_interfaces() {
-    grep $_ ne '%vserver%', @interfaces;
+    grep $_ ne '%vserver%' && ! $interfaces{$_}{options}{unmanaged}, @interfaces;
 }
 
 #
@@ -1438,6 +1561,20 @@ sub all_real_interfaces() {
 #
 sub all_bridges() {
     grep ( $interfaces{$_}{options}{bridge} , @interfaces );
+}
+
+#
+# Return a list of managed interfaces
+#
+sub managed_interfaces() {
+    grep (! $interfaces{$_}{options}{unmanaged} , @interfaces );
+}
+
+#
+# Return a list of unmanaged interfaces (skip 'lo' since it is implicitly unmanaged when there are no loopback zones).
+#
+sub unmanaged_interfaces() {
+    grep ( $interfaces{$_}{options}{unmanaged} && $_ ne 'lo', @interfaces );
 }
 
 #
@@ -1502,6 +1639,15 @@ sub interface_zones( $ ) {
 
     fatal_error "Unknown interface(@_)" unless $interfaceref;
     $interfaceref->{zones} || {};
+}
+
+#
+# Returns the 'zone' member of the passed interface, if any
+#
+sub interface_zone( $ ) {
+    my $interfaceref = known_interface( $_[0] );
+
+    $interfaceref ? $interfaceref->{zone} : '';
 }
 
 #
@@ -1823,6 +1969,13 @@ sub process_host( ) {
 	$hosts = $2;
 
 	fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
+	fatal_error "Unmanaged interfaces may not be associated with a zone" if $interfaceref->{unmanaged};
+
+	if ( $interfaceref->{name} eq 'lo' ) {
+	    fatal_error "Only a loopback zone may be associated with the loopback interface (lo)" if $type != LOOPBACK;
+	} else {
+	    fatal_error "Loopback zones may only be associated with the loopback interface (lo)" if $type == LOOPBACK;
+	}
     } else {
 	fatal_error "Invalid HOST(S) column contents: $hosts"
     }

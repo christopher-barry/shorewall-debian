@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-exclusion
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-EXCLUSION" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-EXCLUSION" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -36,10 +36,10 @@ exclusion \- Exclude a set of hosts from a definition in a shorewall configurati
 \fB!\fR\fIzone\-name\fR[,\fIzone\-name\fR]...
 .SH "DESCRIPTION"
 .PP
-The first form of exclusion is used when you wish to exclude one or more addresses from a definition\&. An exclaimation point is followed by a comma\-separated list of addresses\&. The addresses may be single host addresses (e\&.g\&., 192\&.168\&.1\&.4) or they may be network addresses in CIDR format (e\&.g\&., 192\&.168\&.1\&.0/24)\&. If your kernel and iptables include iprange support, you may also specify ranges of ip addresses of the form
+The first form of exclusion is used when you wish to exclude one or more addresses from a definition\&. An exclamation point is followed by a comma\-separated list of addresses\&. The addresses may be single host addresses (e\&.g\&., 192\&.168\&.1\&.4) or they may be network addresses in CIDR format (e\&.g\&., 192\&.168\&.1\&.0/24)\&. If your kernel and iptables include iprange support, you may also specify ranges of ip addresses of the form
 \fIlowaddress\fR\-\fIhighaddress\fR
 .PP
-No embedded whitespace is allowed\&.
+No embedded white\-space is allowed\&.
 .PP
 Exclusion can appear after a list of addresses and/or address ranges\&. In that case, the final list of address is formed by taking the first list and then removing the addresses defined in the exclusion\&.
 .PP

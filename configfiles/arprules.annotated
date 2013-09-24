@@ -5,13 +5,13 @@
 #
 ##############################################################################################################
 # 
-# This file was added in Shorwall 4.5.12 and is used to describe low-level rules
+# This file was added in Shorewall 4.5.12 and is used to describe low-level rules
 # managed by arptables (8). These rules only affect Address Resolution Protocol
 # (ARP), Reverse Address Resolution Protocol (RARP) and Dynamic Reverse Address
 # Resolution Protocol (DRARP) frames.
 # 
 # The columns in the file are as shown below. MAC addresses are specified
-# normally (6 hexidecimal numbers separated by colons).
+# normally (6 hexadecimal numbers separated by colons).
 # 
 # ACTION
 # 
@@ -81,7 +81,7 @@
 # 
 #     macmask
 # 
-#         Mask for MAC address; must be specified as 6 hexidecimal numbers
+#         Mask for MAC address; must be specified as 6 hexadecimal numbers
 #         separated by colons.
 # 
 #     When '!' is specified, the test is inverted.
@@ -114,7 +114,7 @@
 # 
 #     macmask
 # 
-#         Mask for MAC address; must be specified as 6 hexidecimal numbers
+#         Mask for MAC address; must be specified as 6 hexadecimal numbers
 #         separated by colons.
 # 
 #     When '!' is specified, the test is inverted and the rule matches frames
@@ -170,11 +170,11 @@
 #         ARP NAK
 # 
 #     When '!' is specified, the test is inverted and the rule matches frames
-#     which do not match the specifed opcode.
+#     which do not match the specified opcode.
 # 
 # Example
 # 
-# The eth1 interface has both a pubiic IP address and a private address
+# The eth1 interface has both a public IP address and a private address
 # (10.1.10.11/24). When sending ARP requests to 10.1.10.0/24, use the private
 # address as the IP source:
 # 

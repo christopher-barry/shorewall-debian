@@ -77,7 +77,7 @@
 #     chkconfig, etc.) to disable startup of the products listed in the PRODUCTS
 #     setting.
 # 
-# On a laptop with both ethernet and wireless interfaces, you will want to make
+# On a laptop with both Ethernet and wireless interfaces, you will want to make
 # both interfaces optional and set the REQUIRE_INTERFACE option to Yes in
 # shorewall.conf (5) or shorewall6.conf (5). This causes the firewall to remain
 # stopped until at least one of the interfaces comes up.
