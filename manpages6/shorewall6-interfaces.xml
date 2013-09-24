@@ -84,6 +84,11 @@
 loc     eth1            -
 loc     eth2            -</programlisting>
           </blockquote>
+
+          <para>Beginning with Shorewall 4.5.17, if you specify a zone for the
+          'lo' interface, then that zone must be defined as type
+          <option>local</option> in <ulink
+          url="shorewall6-zones.html">shorewall6-zones</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -145,7 +150,7 @@ loc     eth2            -</programlisting>
         <listitem>
           <para>A comma-separated list of options from the following list. The
           order in which you list the options is not significant but the list
-          should have no embedded white space.</para>
+          should have no embedded white-space.</para>
 
           <variablelist>
             <varlistentry>
@@ -214,7 +219,7 @@ loc     eth2            -</programlisting>
 
                     <blockquote>
                       <para><emphasis role="bold">WARNING: The 'blacklist'
-                      option is ignored on mult-zone
+                      option is ignored on multi-zone
                       interfaces</emphasis></para>
                     </blockquote>
                   </listitem>
@@ -229,6 +234,15 @@ loc     eth2            -</programlisting>
                 <para>Designates the interface as a bridge. Beginning with
                 Shorewall 4.4.7, setting this option also sets
                 <option>routeback</option>.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">destonly</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.17. Causes the compiler to omit
+                rules to handle traffic from this interface.</para>
               </listitem>
             </varlistentry>
 
@@ -399,7 +413,7 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">routeback</emphasis></term>
+              <term><emphasis role="bold">routeback[={0|1}]</emphasis></term>
 
               <listitem>
                 <para>If specified, indicates that shorewall6 should include
@@ -413,6 +427,12 @@ loc     eth2            -</programlisting>
                 <option>rpfilter</option> (see below) if you are running
                 Shorewall 4.5.7 or later; otherwise, you should specify
                 <option>sfilter</option> (see below).</para>
+
+                <para>Beginning with Shorewall 4.5.18, you may specify this
+                option to explicitly reset (e.g., <emphasis
+                role="bold">routeback=0</emphasis>). This can be used to
+                override Shorewall's default setting for bridge devices which
+                is <emphasis role="bold">routeback=1</emphasis>.</para>
               </listitem>
             </varlistentry>
 
@@ -501,6 +521,49 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
+              <term>unmanaged</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.18. Causes all traffic between
+                the firewall and hosts on the interface to be accepted. When
+                this option is given:</para>
+
+                <itemizedlist>
+                  <listitem>
+                    <para>The ZONE column must contain '-'.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>Only the following other options are allowed with
+                    <emphasis role="bold">unmanaged</emphasis>:</para>
+
+                    <simplelist>
+                      <member><emphasis
+                      role="bold">accept_ra</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">forward</emphasis></member>
+
+                      <member><emphasis role="bold">ignore</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">optional</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">physical</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">sourceroute</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">proxyndp</emphasis></member>
+                    </simplelist>
+                  </listitem>
+                </itemizedlist>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term><emphasis
               role="bold">wait</emphasis>=<emphasis>seconds</emphasis></term>
 
@@ -568,7 +631,7 @@ dmz     eth2      -</programlisting>
 
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-maclist(5),
-    shoewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
+    shorewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
     shorewall6-providers(5), shorewall6-rtrules(5),
     shorewall6-routestopped(5), shorewall6-rules(5), shorewall6.conf(5),
     shorewall6-secmarks(5), shorewall6-tcclasses(5), shorewall6-tcdevices(5),

@@ -133,8 +133,8 @@ c:a,b     ipv6</programlisting>
                 <para>This is the standard Shorewall6 zone type and is the
                 default if you leave this column empty or if you enter "-" in
                 the column. Communication with some zone hosts may be
-                encrypted. Encrypted hosts are designated using the
-                'ipsec'option in <ulink
+                encrypted. Encrypted hosts are designated using the 'ipsec'
+                option in <ulink
                 url="shorewall6-hosts.html">shorewall6-hosts</ulink>(5).</para>
               </listitem>
             </varlistentry>
@@ -185,6 +185,82 @@ c:a,b     ipv6</programlisting>
                 firewall zone.</para>
               </listitem>
             </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">loopback</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.17.</para>
+
+                <para>Normally, Shorewall treats the loopback interface (lo)
+                in the following way:</para>
+
+                <itemizedlist>
+                  <listitem>
+                    <para>By default, all traffic through the interface is
+                    ACCEPTed.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>If a $FW -&gt; $FW policy is defined or $FW -&gt;
+                    $FW rules are defined, they are placed in a chain named
+                    ${FW}2${F2} or ${FW}-${FW} (e.g., 'fw2fw' or 'fw-fw' )
+                    depending on the ZONE2ZONE setting in <ulink
+                    url="shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>$FW -&gt; $FW traffic is only filtered in the OUTPUT
+                    chain.</para>
+                  </listitem>
+                </itemizedlist>
+
+                <para>By defining a <emphasis role="bold">loopback</emphasis>
+                zone and associating it with the loopback interface in
+                shorewall-interfaces(5), you can effect a slightly different
+                model. Suppose that the <emphasis
+                role="bold">loopback</emphasis> zone name is 'local';
+                then:</para>
+
+                <itemizedlist>
+                  <listitem>
+                    <para>Both $FW -&gt; local and local -&gt; $FW chains are
+                    created.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>The $FW -&gt; local and local -&gt; $FW policies may
+                    be different.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>Both $FW -&gt; local and local -&gt; $FW rules may
+                    be specified.</para>
+                  </listitem>
+                </itemizedlist>
+
+                <para>Rules to/from the <emphasis
+                role="bold">loopback</emphasis> zone and any zone other than
+                the firewall zone are ignored with a warning.</para>
+
+                <para><emphasis role="bold">loopback</emphasis> zones may be
+                nested within other <emphasis role="bold">loopback</emphasis>
+                zones.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>local</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.17. <emphasis
+                role="bold">local</emphasis> is the same as <emphasis
+                role="bold">ipv6</emphasis> with the exception that the zone
+                is only accessible from the <emphasis
+                role="bold">firewall</emphasis> and <emphasis
+                role="bold">vserver</emphasis> zones.</para>
+              </listitem>
+            </varlistentry>
           </variablelist>
         </listitem>
       </varlistentry>
@@ -211,8 +287,8 @@ c:a,b     ipv6</programlisting>
 
                 <para>When specified in the IN_OPTIONS column, causes all
                 traffic from this zone to be passed against the <emphasis
-                role="bold">src</emphasis> entries in s<ulink
-                url="shorewall6-blacklist.html">horewall6-blacklist</ulink>(5).</para>
+                role="bold">src</emphasis> entries in <ulink
+                url="shorewall6-blacklist.html">shorewall6-blacklist</ulink>(5).</para>
 
                 <para>When specified in the OUT_OPTIONS column, causes all
                 traffic to this zone to be passed against the <emphasis
@@ -358,7 +434,7 @@ c:a,b     ipv6</programlisting>
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-interfaces(5),
     shorewall6-maclist(5), shorewall6-nesting(8),
-    shoewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
+    shorewall6-netmap(5),shorewall6-params(5), shorewall6-policy(5),
     shorewall6-providers(5), shorewall6-rtrules(5),
     shorewall6-routestopped(5), shorewall6-rules(5), shorewall6.conf(5),
     shorewall6-secmarks(5), shorewall6-tcclasses(5), shorewall6-tcdevices(5),

@@ -150,6 +150,11 @@ loc     eth2            -</programlisting>
 
             <member>wait</member>
           </simplelist>
+
+          <para>Beginning with Shorewall 4.5.17, if you specify a zone for the
+          'lo' interface, then that zone must be defined as type
+          <option>local</option> in <ulink
+          url="shorewall6-zones.html">shorewall6-zones</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -187,7 +192,7 @@ loc     eth2            -</programlisting>
         <listitem>
           <para>A comma-separated list of options from the following list. The
           order in which you list the options is not significant but the list
-          should have no embedded white space.</para>
+          should have no embedded white-space.</para>
 
           <variablelist>
             <varlistentry>
@@ -283,7 +288,7 @@ loc     eth2            -</programlisting>
 
                     <blockquote>
                       <para><emphasis role="bold">WARNING: The 'blacklist'
-                      option is ignored on mult-zone
+                      option is ignored on multi-zone
                       interfaces</emphasis></para>
                     </blockquote>
                   </listitem>
@@ -298,6 +303,15 @@ loc     eth2            -</programlisting>
                 <para>Designates the interface as a bridge. Beginning with
                 Shorewall 4.4.7, setting this option also sets
                 <option>routeback</option>.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">destonly</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.17. Causes the compiler to omit
+                rules to handle traffic from this interface.</para>
               </listitem>
             </varlistentry>
 
@@ -420,7 +434,7 @@ loc     eth2            -</programlisting>
                 <para>Connection requests from this interface are compared
                 against the contents of <ulink
                 url="shorewall-maclist.html">shorewall-maclist</ulink>(5). If
-                this option is specified, the interface must be an ethernet
+                this option is specified, the interface must be an Ethernet
                 NIC and must be up before Shorewall is started.</para>
               </listitem>
             </varlistentry>
@@ -562,7 +576,7 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">routeback</emphasis></term>
+              <term><emphasis role="bold">routeback[={0|1}]</emphasis></term>
 
               <listitem>
                 <para>If specified, indicates that Shorewall should include
@@ -577,6 +591,12 @@ loc     eth2            -</programlisting>
                 <option>sfilter</option> (see below) or
                 <option>routefilter</option> on all interfaces (see
                 below).</para>
+
+                <para>Beginning with Shorewall 4.5.18, you may specify this
+                option to explicitly reset (e.g., <emphasis
+                role="bold">routeback=0</emphasis>). This can be used to
+                override Shorewall's default setting for bridge devices which
+                is <emphasis role="bold">routeback=1</emphasis>.</para>
               </listitem>
             </varlistentry>
 
@@ -604,9 +624,26 @@ loc     eth2            -</programlisting>
                   the INTERFACE column.</para>
                 </note>
 
-                <para>This option can also be enabled globally in the <ulink
+                <para>This option can also be enabled globally via the
+                ROUTE_FILTER option in the <ulink
                 url="shorewall.conf.html">shorewall.conf</ulink>(5)
                 file.</para>
+
+                <important>
+                  <para>If ROUTE_FILTER=Yes in <ulink
+                  url="shorewall.conf.html">shorewall.conf</ulink>(5), or if
+                  your distribution sets net.ipv4.conf.all.rp_filter=1 in
+                  <filename>/etc/sysctl.conf</filename>, then setting
+                  <emphasis role="bold">routefilter</emphasis>=0 in an
+                  <replaceable>interface</replaceable> entry will not disable
+                  route filtering on that
+                  <replaceable>interface</replaceable>! The effective setting
+                  for an <replaceable>interface</replaceable> is the maximum
+                  of the contents of
+                  <filename>/proc/sys/net/ipv4/conf/all/rp_filter</filename>
+                  and the routefilter setting specified in this file
+                  (/proc/sys/net/ipv4/conf/<replaceable>interface</replaceable>/rp_filter).</para>
+                </important>
 
                 <note>
                   <para>There are certain cases where
@@ -706,6 +743,55 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
+              <term>unmanaged</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.18. Causes all traffic between
+                the firewall and hosts on the interface to be accepted. When
+                this option is given:</para>
+
+                <itemizedlist>
+                  <listitem>
+                    <para>The ZONE column must contain '-'.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>Only the following other options are allowed with
+                    <emphasis role="bold">unmanaged</emphasis>:</para>
+
+                    <simplelist>
+                      <member><emphasis
+                      role="bold">arp_filter</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">arp_ignore</emphasis></member>
+
+                      <member><emphasis role="bold">ignore</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">routefilter</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">optional</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">physical</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">routefilter</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">sourceroute</emphasis></member>
+
+                      <member><emphasis
+                      role="bold">proxyndp</emphasis></member>
+                    </simplelist>
+                  </listitem>
+                </itemizedlist>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term><emphasis role="bold">upnp</emphasis></term>
 
               <listitem>
@@ -792,7 +878,7 @@ dmz     eth2</programlisting>
         <term>Example 3:</term>
 
         <listitem>
-          <para>You have a simple dial-in system with no ethernet
+          <para>You have a simple dial-in system with no Ethernet
           connections.</para>
 
           <programlisting>FORMAT 2
