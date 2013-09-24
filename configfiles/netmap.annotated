@@ -23,7 +23,7 @@
 # 
 #     Must be DNAT or SNAT; beginning with Shorewall 4.4.23, may be optionally
 #     followed by :P, :O or :T to perform stateless NAT. Stateless NAT requires
-#     Rawpost Table support in your kernel and iptables (see the output of
+#     Rawpost Table support in your kernel and iptables (see the output of 
 #     shorewall show capabilities).
 # 
 #     If DNAT or DNAT:P, traffic entering INTERFACE and addressed to NET1 has its
@@ -66,7 +66,7 @@
 # NET3 (Optional) - network-address
 # 
 #     Added in Shorewall 4.4.11. If specified, qualifies INTERFACE. It specifies
-#     a SOURCE network for DNAT rules and a DESTINATON network for SNAT rules.
+#     a SOURCE network for DNAT rules and a DESTINATION network for SNAT rules.
 # 
 # PROTO - protocol-number-or-name
 # 
@@ -79,7 +79,7 @@
 #     comma-separated list of Port names (from services(5)), port numbers or port
 #     ranges; if the protocol is icmp, this column is interpreted as the
 #     destination icmp-type(s). ICMP types may be specified as a numeric type, a
-#     numberic type and code separated by a slash (e.g., 3/4), or a typename. See
+#     numeric type and code separated by a slash (e.g., 3/4), or a typename. See
 #     http://www.shorewall.net/configuration_file_basics.htm#ICMP.
 # 
 #     If the protocol is ipp2p, this column is interpreted as an ipp2p option

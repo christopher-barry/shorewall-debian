@@ -79,7 +79,7 @@
 #         This is the standard Shorewall zone type and is the default if you
 #         leave this column empty or if you enter "-" in the column.
 #         Communication with some zone hosts may be encrypted. Encrypted hosts
-#         are designated using the 'ipsec'option in shorewall-hosts(5).
+#         are designated using the 'ipsec' option in shorewall-hosts(5).
 # 
 #     ipsec (or ipsec4)
 # 
@@ -104,6 +104,42 @@
 #         guests. The zone contents must be defined in shorewall-hosts (5).
 # 
 #         Vserver zones are implicitly handled as subzones of the firewall zone.
+# 
+#     loopback
+# 
+#         Added in Shorewall 4.5.17.
+# 
+#         Normally, Shorewall treats the loopback interface (lo) in the following
+#         way:
+# 
+#           ● By default, all traffic through the interface is ACCEPTed.
+# 
+#           ● If a $FW -> $FW policy is defined or $FW -> $FW rules are defined,
+#             they are placed in a chain named ${FW}2${F2} or ${FW}-${FW} (e.g.,
+#             'fw2fw' or 'fw-fw' ) depending on the ZONE2ZONE setting in
+#             shorewall.conf(5).
+# 
+#           ● $FW -> $FW traffic is only filtered in the OUTPUT chain.
+# 
+#         By defining a loopback zone and associating it with the loopback
+#         interface in shorewall-interfaces(5), you can effect a slightly
+#         different model. Suppose that the loopback zone name is 'local'; then:
+# 
+#           ● Both $FW -> local and local -> $FW chains are created.
+# 
+#           ● The $FW -> local and local -> $FW policies may be different.
+# 
+#           ● Both $FW -> local and local -> $FW rules may be specified.
+# 
+#         Rules to/from the loopback zone and any zone other than the firewall
+#         zone are ignored with a warning.
+# 
+#         loopback zones may be nested within other loopback zones.
+# 
+#     local
+# 
+#         Added in Shorewall 4.5.17. local is the same as ipv4 with the exception
+#         that the zone is only accessible from the firewall and vserver zones.
 # 
 # OPTIONS, IN OPTIONS and OUT OPTIONS (options, in_options, out_options) - [
 #     option[,option]...]

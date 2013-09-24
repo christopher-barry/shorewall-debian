@@ -50,7 +50,7 @@
 # 
 # CHAIN:STATE (chain) - {P|I|F|O|T}[:{N|I|U|IU|NI|NU|NIU|NUI:E|ER}]
 # 
-#     This column determines the CHAIN where the SElinux context is to be
+#     This column determines the CHAIN where the SELinux context is to be
 #     applied:
 # 
 #     P - PREROUTING
@@ -131,7 +131,7 @@
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
 #     column is interpreted as the destination icmp-type(s). ICMP types may be
-#     specified as a numeric type, a numberic type and code separated by a slash
+#     specified as a numeric type, a numeric type and code separated by a slash
 #     (e.g., 3/4), or a typename. See http://www.shorewall.net/
 #     configuration_file_basics.htm#ICMP.
 # 

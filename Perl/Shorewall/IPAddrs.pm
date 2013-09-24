@@ -79,7 +79,7 @@ our @EXPORT = ( qw( ALLIPv4
 		  validate_icmp6
 		 ) );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.5_15';
+our $VERSION = '4.5_17';
 
 #
 # Some IPv4/6 useful stuff
@@ -174,7 +174,6 @@ sub resolve_4dnsname( $ ) {
 
     @addrs;
 } 
-    
 
 sub decodeaddr( $ ) {
     my $address = $_[0];
@@ -768,8 +767,8 @@ my %ipv6_icmp_types = ( any                          => 'any',
 			'destination-unreachable'    => 1,
 			'no-route'                   => '1/0',
 			'communication-prohibited'   => '1/1',
-			'address-unreachable'        => '1/2',
-			'port-unreachable'           => '1/3',
+			'address-unreachable'        => '1/3',
+			'port-unreachable'           => '1/4',
 			'packet-too-big'             =>  2,
 			'time-exceeded'              =>  3,
 			'ttl-exceeded'               =>  3,

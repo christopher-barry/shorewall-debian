@@ -1,51 +1,31 @@
 ----------------------------------------------------------------------------
-	            S H O R E W A L L  4 . 5 . 1 6 . 1
+	              S H O R E W A L L  4 . 5 . 2 0 
                    ------------------------------------
-                           M a y  0 1 ,  2 0 1 3
+                        A u g u s t  2 5 ,  2 0 1 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
 II.   KNOWN PROBLEMS REMAINING
 III.  NEW FEATURES IN THIS RELEASE
-IV.   RELEASE 4.4 HIGHLIGHTS
-V.    MIGRATION ISSUES
-VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
+IV.   MIGRATION ISSUES
+V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.5.16.1
+1)  On some distributions, the shorewall-lite and shorewall6-lite
+    uninstallers could fail with a syntax error.
 
-1)  Version 4.5.16 broke the handling of application helpers when the
-    CT Target. Symtom is messages like the following:
+2)  A typographical error in the usage text produced by the -h command
+    in the compiled firewall script has been corrected.
 
-    Use of uninitialized value $Shorewall::Config::sillyname in
-    concatenation (.) or string at
-    /usr/share/shorewall/Shorewall/Config.pm line 3907.
+3)  The handling of INITSOURCE is now uniform between the standard and
+    the -lite installers.
 
-    That has been corrected.
-
-4.5.16
-
-1)  Previously, the TOS target and tos match did not work on older
-    iptables versions such as 1.3.5 in RHEL5-based distributions. That
-    has been corrected. To correct this problem, a new capability (New
-    tos Match) was created, so users who utilize a capabilities file
-    will need to regenerate the file. This applies to all distributions
-    and not just the older ones.
-
-2)  A_ACCEPT! is now recognized as a rules ACTION. Previously, it was
-    documented in shorewall[6]-rules(5) but was not implemented.
-
-3)  Previously, NFACCT accounting rules generated iptables rules with
-    the matches in the incorrect order. That caused the counters to be
-    incremented before all of the matches had been checked. Now, the
-    counter in an NFACCT rule is incremented only if all of the other
-    matches have been successful.
-
-4)  A number of ipset-related modules were incorrectly included in
-    /usr/share/shorewall/helpers. Those entries have now been removed.
+4)  Previously, when SYSCONFFILE was specified in shorewallrc, the
+    installers would always install default.debian rather than the
+    named file. That has been corrected.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -58,187 +38,47 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  A new Shorewall6 interface option, 'accept_ra' has been added. The
-    option value may be set as follows:
+1)  A new TRACK_RULES option has been added to shorewall[6].conf. When
+    set to 'Yes', this option causes most rules to be tagged with a
+    comment which gives the configuration file name and line number
+    that caused the rule to be generated. These comments replace any
+    comments added via AUTOCOMMENT=Yes and ?COMMENT entries.
+    
+    Setting this option to 'Yes' requires the 'Comments' capability in
+    your kernel and ip[6]tables.
 
-    0
+2)  You may now specify 'OPTIMIZE=All' in shorewall[6].conf to enable
+    all optimizations. If new optimization levels are added in the 
+    future, OPTIMIZE=All will automatically enable those optimizations.
 
-        Do not accept Router Advertisements.
-    1
+    For completeness, 'OPTIMIZE=None' disables all optimizations.
 
-	Accept Route Advertisements if forwarding is disabled.
-    2
+3)  'list' and 'ls' are now documented alternatives for 'show' in the
+    CLI programs. /sbin/shorewall and /sbin/shorewall6 now accept 'ck'
+    as an abbreviation for 'check' and 'co' as an abbreviation for
+    'compile'.
 
-	Overrule forwarding behavior. Accept Route Advertisements even
-	if forwarding is enabled.
+4)  Beginning with this release, if /etc/os-release exists during
+    installation, then the ID setting in that file will be used to
+    determine which Linux distribution is running on the system.
 
-    If the option is specified without a value, then value 1 is
-    assumed.
+5)  The 'status' command now obeys the effective VERBOSITY and will
+    produce no output when the effective VERBOSITY is less than 1.
 
-2)  Two new macros have been added:
+6)  The CLI exit status codes are now documented in the manpages
+    (shorewall(8), shorewall6(8), etc.).
 
-      macro.Xymon contributed by T.J. Yang
-      macro.VRRP contributed by James Shubin
+7)  Beginning with this release, the shorewallrc file supports a
+    SERVICEFILE variable. SERVICEFILE is only relevant when SERVERD is
+    non-empty, in which case it names the file to be installed as the
+    product's .service file. If SERVERD is specified but SERVICEFILE is
+    not, the assumed value of SERVERFILE is $PRODUCT.service.
 
-3)  A new INLINE action has been added. This action allows defining
-    arbitrary iptables rules in the blrules and rules files, as well as
-    in action and macro bodies.
-
-    The basic form of an INLINE rule is as follows:
-
-    	INLINE	<src> <dst> <proto> ... ; <iptables matches and jump>
-
-    The <iptables matches and jump> are added to the rule generated by
-    the contents of the other supplied columns. Given the 'raw' nature
-    of this action, you should examine the rule generated by the entry
-    (e.g., 'shorewall check -r') prior to attempting a 'start' or
-    'restart' operation.
-
-    Example:
-
-        INLINE  $FW   net   tcp   1234  ; -j SECCTX --name foo
-
-    This entry generates the following:
-
-        -A fw2net -p 6 --dport 1234 -j SECCTX --name foo
-
-    When multiple matches are specified, the compiler will keep them in
-    the order in which they appear, but they will not necessarily be at
-    the end of the generated rule. For example, if addresses are
-    specified in the SOURCE and/or DEST columns, their generated matches
-    will appear after those specified using ';'.
-
-    Note: The following matches will always appear at the front of the
-    rule in the order shown:
-
-      p
-	dport
-      	sport
-      	icmp-type
-  	icmpv6-type
-      s
-      d
-      i
-      o
-      policy
-      state or conntrack --ctstate
-
-    As part of this change, a new 'builtin' action type has been added.
-    ip[6]tables targets not supported by Shorewall (such as 'SECCTX' in
-    the example above), must be defined in your
-    /etc/shorewall[6]/actions file:
-
-    Example:
-
-       SECCTX	builtin
-
-    Such builtin actions may only be used in INLINE action invocations;
-    they may not appear in the ACTION column of a rule.
-
-    If you want to use a standard Shorewall-supported action, you can 
-    pass it as a parameter to INLINE.
-
-    Example:
-
-       INLINE(ACCEPT) $FW net ; -m foo --bar baz
-
-    Note that if you include a log level with INLINE and do not pass a
-    parameter, Shorewall will automatically assume that the parameter
-    is LOG. That means that you must not specify a log level if you
-    specify your own rule target with '-j'.
-
-    The alternate input format may be used with INLINE, provided that
-    the {....} form of alternate input is used.
-
-    Example:
-
-       INLINE $FW net { owner=teastep } ; -j FOO --bar
-
-4)  The INLINE action is also supported in the accounting and tcrules
-    files. In the accounting file, INLINE is treated the same as COUNT
-    in the with the exception that the freeform iptables input
-    following the ';' is appended to any matches generated by the
-    column contents. INLINE is treated similarly in the tcrules file;
-    that is, the freeform input following ';' must specify the rule
-    target, if any. In the accounting and tcrules files, INLINE does
-    not accept a parameter.
-
-5)  It is now possible to specify HELPERS=none in
-    /etc/shorewall[6]/shorewall[6].conf.
-
-    This setting has two consequences:
-
-    a) All of the *_HELPER capabilities are set to off.
-    b) No probing of helpers is performed, thus eliminating "xt_CT: No
-       such helper XXX" warnings when the compiler is probing the
-       system for capabilities.
-
-6)  It is now possible to specify multiple nfacct objects in an NFACCT
-    accounting rule. Where previously, the following rules were given:
-
-     SECTION INPUT
-     NFACCT(all)
-     NFACCT(all_in)
-
-     SECTION OUTPUT
-     NFACCT(all)
-     NFACCT(all_out)
-
-     SECTION FORWARD
-     NFACCT(all)
-     NFACCT(all_fwd) 	       
-
-    It is now possible to do the same thing as follows:
-
-     SECTION INPUT
-     NFACCT(all,all_in)
-
-     SECTION OUTPUT
-     NFACCT(all,all_out)
-
-     SECTION FORWARD
-     NFACCT(all,all_fwd)
-
-    To allow a nfobject to be incremented unconditionally, you may
-    follow the object name with '!' (e.g., NFACCT(all!)). When
-    '!' is omitted, the object is incremented only if all of the rule's
-    matches succeed.
-
-7)  It is now possible to increment an nfacct counter when a packet
-    matches an ipset. To do that, simplly include the counter object's
-    name in parentheses after the ipset specification.
-
-    Examples:
-
-    a)  Increment the mysetcounter nfacct object when a packet's source
-	matches myset.
-
-	+myset[src](mysetcounter)
-
-    b)  Increment the mysetcounter1 and mysetcounter2 nfacct objects
-	when a packet's sourcematches myset.
-
-	+myset[src](mysetcounter1,mysetcounter2)
-
-    b)  In an accounting rule, increment the 'all' nfacct object
-    	unconditionally and increment the 'mysetcounter' object only if
-    	the packet source matches myset:
-
-	NFACCT(all!)	  -	  +myset(mysetcounter)
-
-8)  Prior to the availability of BEGIN PERL....END PERL in
-    configuration files, the only way to execute a chain-specific
-    script was to create a script file with the same name as the chain
-    and place it in a directory on the CONFIG_PATH. That facility has
-    the drawback that the compiler will attempt to run a non-script
-    file just because it has the same name as a chain. To disable this
-    facility, a new CHAIN_SCRIPTS option has been added to
-    shorewall[6].conf. The facility is disabled by setting
-    CHAIN_SCRIPTS=No. If not specified or specified as the empty value,
-    CHAIN_SCRIPTS=Yes is assumed for backward compatibility.
+8)  The ${SBINDIR}/shorewall-init utility will now compile
+    configurations if needed
 
 ----------------------------------------------------------------------------
-                   V.  M I G R A T I O N   I S S U E S
+                  I V.  M I G R A T I O N   I S S U E S
 ----------------------------------------------------------------------------
 
 1)  If you are migrating from Shorewall 4.2.x or earlier, please see
@@ -438,7 +278,523 @@ VI.   PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     BLACKLIST_LOG_LEVEL in the new .conf file.
 
 ----------------------------------------------------------------------------
-        V I.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
+         V.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1 9
+----------------------------------------------------------------------------
+
+1)  The shorewall-init.service file previously specified an incorrect
+    path name for the shorewall-init utility
+
+2)  Previously, the '-q' option did not suppress all output from
+    certain commands such as 'check'.
+
+----------------------------------------------------------------------------
+                 N E W  F E A T U R E S  I N  4 . 5 . 1 9
+----------------------------------------------------------------------------
+
+1)  The 'Limit' action now produces a warning message stating that it
+    is deprecated in favor of per-IP limiting using the RATE LIMIT
+    column.
+
+2)  Generation of logging rules has been largely re-written to directly
+    creatre rules in the compiler's internal representation.
+    Previously, such rules were created in iptables format then
+    translated into the internal form.
+
+3)  A form of 'events' or 'triggers' is now available. Events are
+    implemented using the ip[6]tables 'recent' match so they are
+    actually lists of IP addresses with associated timestamps and
+    packet counts. They may be tested in a number of ways:
+
+    - Any matching packets to/from an address ever?
+    - Any matching packets to/from an address in the last N seconds?
+    - M or more matching packets to/from an address?
+    - M or more matching packets to/from an address in the last N
+      seconds?
+
+    See http://www.shorewall.net/Events.html for details and usage
+    examples.
+
+4)  As part of adding event support, the CLI programs now support
+    two new variants of the 'show' command.
+
+    show events
+
+    	 Displays the contents of all events.
+
+    show event <event> ...
+
+         Displays the contents of the listed events.
+
+    Note that a given event can be used for both IPv4 and IPv6. So
+    /sbin/shorewall and /sbin/shorewall-lite will show entries that are
+    different from /sbin/shorewall6 and /sbin/shorewall6-lite.
+
+5)  Using the event mechanism described above, Shorewall now supports a
+    form of automatic blacklisting when the number of connection
+    attempts in a given period of time is exceeded.
+
+    See http://www.shorewall.net/Events.html for details.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1 8
+----------------------------------------------------------------------------
+
+1)  This release includes all defect repair from Shorewall 4.5.17.1.
+
+2)  The following warning message could be emitted inappropriately when
+    running shorewall 4.5.17.
+        
+      The rule(s) generated by this entry are unreachable and have been
+      discarded
+
+    These warnings, which were disabled in Shorewall 4.5.17.1, are now
+    only emitted where appropriate. The message has also been reworded
+    to:
+
+      One or more unreachable rules in chain <name> have been discarded
+
+    The message is issued a maximum of once per Netfilter chain.
+
+3)  A problem that could cause the 'trace' compiler option to produce
+    false error messages or to produce an altered generated firewall
+    script has been corrected.
+
+4)  If the 'Owner Name Match' capability was not available, the
+    following error message would previously appear during compilation:
+
+      iptables: No chain/target/match by that name.
+
+----------------------------------------------------------------------------
+                 N E W  F E A T U R E S  I N  4 . 5 . 1 8
+----------------------------------------------------------------------------
+
+1)  'NONE' policies are now instantiated between 'local' zone and zones
+    other than the firewall.  Similarly, 'NONE' policies are
+    instantiated between 'loopback' zones and zones other than $FW
+    and other 'loopback' zones. 
+
+    This provides a cleaner implementation than the one provided in
+    Shorewall 4.5.17, and one that should be easier to maintain going
+    forward.
+
+2)  James Shubin has contributed a Kerberos macro.
+
+3)  A new 'unmanaged' interface option has been added. This option may
+    be used to define interfaces that allow all traffic to/from the
+    firewall but that's all. They are not accessible from hosts on
+    other interfaces nor can traffic from an unmanaged interface be
+    forwarded to hosts on other interfaces.
+
+    The following interface options are mutually-exclusive with
+    'unmanaged':
+
+    - blacklist
+    - bridge
+    - destonly
+    - detectnets
+    - dhcp
+    - maclist
+    - nets
+    - norfc1918
+    - nosmurfs
+    - optional
+    - routeback
+    - rpfilter
+    - sfilter
+    - tcpflags
+    - upnp
+    - upnpclient
+
+    Unmanaged interfaces may not be associated with a zone in either
+    the interfaces or hosts files.
+
+    The 'lo' interface may not be unmanaged when there are vserver
+    zones defined.
+
+4)  The value (0 or 1) for the 'routeback' interface option may now
+    be specified (e.g., 'routeback=0'). This allows overriding the
+    Shorewall default setting for bridge devices which is
+    'routeback=1'.
+
+5)  The ?SHELL, ?PERL, ?BEGIN SHELL, ?END SHELL, ?BEGIN PERL and ?END
+    PERL directives are now case-insensitive.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1 7
+----------------------------------------------------------------------------
+
+4.5.17.1
+
+1)  The following warning message may be emitted inappropriately when
+    running shorewall 4.5.17. The message is no longer issued.
+	
+      The rule(s) generated by this entry are unreachable and have been
+      discarded
+
+2)  Rules intended to increment nfacct objects would previously be
+    optimized away when they immediately preceded an unconditional jump
+    to the same target. Such rules are now retained.
+
+3)  A bug in the optimizer in 4.5.17 can cause 'set' and 'geoip'
+    matches to be dropped. That has been corrected.
+
+4.5.17
+
+1)  When INLINE was used in the tcrules file and no target ('-j' part)	
+    is included in the free-form part of the rule, an invalid 
+    iptables rule was generated.
+
+2)  Thanks to Roberto Sanchez, many typos in the manpages have been
+    corrected.
+
+3)  A number of issues have been corrected in the Debian and
+    Redhat/Fedora Shorewall-init SysV init scripts:
+
+    a) Settings in ${SHAREDIR}/vardir are now handled correctly.
+
+    b) Exit status is now returned correctly.
+
+    c) Stale lock files are avoided.
+
+4)  When the compiled firewall script is run directly, it no longer 
+    attempts to copy itself onto itself using the 'cp' utility.
+
+5)  An optimizer defect that could leave unreferenced chains in the
+    configuration has been corrected.
+
+6)  Unreferenced chains in the IPV6 nat table are now omitted.
+
+7)  Rules with trivial exclusion (a single net or ipset preceded by
+    '!') now generate the iptables matches in the correct
+    order. Previously, the exclusion match(es) was(were) placed at the
+    end. This is important in rules that auto-increment nfacct objects.
+
+8)  Previously, conntrack helpers were enabled by the 'stop'
+    command. Now, these helpers are only enabled by the 'clear'
+    command.
+
+9)  Previously, an interface label (e.g., dev:N) could be specified
+    as the 'physical' interface in /etc/shorewall/interfaces. This
+    is now disallowed.
+
+10) The Perl function 'shorewall' was not previously exported by
+    Shorewall::Config, with the result that the function had 
+    to be called as Shorewall::Config::shorewall(...). the function is
+    now exported and can be called from ?BEGIN PERL blocks as simply
+    shorewall(...).
+
+11) Previously, two ICMPv6 type names were mis-translated.
+
+      address-unreachable was translated to 1/2; should be 1/3
+      port-unreachable was translated to 1/3; should be 1/4
+
+    These translations have been corrected.
+
+12) If a TPROXY IPv6 address was specified in /etc/shorewall6/tcrules
+    using the [<address>]/vlsm form (e.g.,
+    'TPROXY(0x100,3129,[2001:470:b:227::44]/64)') then an 'Invalid Address'
+    error was issued. This has been corrected.
+
+----------------------------------------------------------------------------
+                 N E W  F E A T U R E S  I N  4 . 5 . 1 7
+----------------------------------------------------------------------------
+
+1)  Route types 'blackhole', 'unreachable' and 'prohibit' are no longer
+    copied to provider routing tables by default when
+    USE_DEFAULT_RT=No. You may cause them to be copied by including
+    'blackhole', 'unreachable' and/or 'prohibit' in the COPY list along
+    with interface names.
+
+2)  Previously, the generated script always added a host route to a
+    provider's gateway in the provider's routing table. Beginning with 
+    this release, the 'noautosrc' provider option can be used to
+    inhibit this behavior. 'noautosrc' must be used with care since the
+    absense of such a route can cause start/restart runtime failures.
+
+3)  A '-c' (conditional) option has been added to the 'compile' command.
+    This option causes compilation to proceed if:
+
+    a) The specified (or defaulted) firewall script does not exist; or
+    b) A file on the CONFIG_PATH (including any directory specified in
+       the command) is newer than the existing script.
+
+4)  A new interface option has been added.
+
+    destonly
+
+	Causes the compiler to omit rules to handle traffic arriving on
+	the interface.
+
+5)  It is now possible to use 'all+' in the SOURCE and DEST columns of
+    /etc/shorewall[6]/policy file. It has the same meaning as in the
+    rules file in that it can override default intra-zone ACCEPT
+    policies.
+
+6)  Beginning with this release, most special handling of 'Auth' (TCP
+    port 113) has been removed. In particular, the Drop default action
+    will no longer default to silently REJECTing Auth requests but will 
+    rather simply process them like other tcp packets.
+
+7)  Traditionally, Shorewall has treated the loopback interface ('lo')
+    as follows:
+
+    - It deals with firewall-to-firewall, firewall-to-vserver,
+      vserver-to-firewall, and vserver-to-vserver traffic.
+    - All filtering is done in the OUTPUT flow; all traffic arriving on
+      'lo' is silently accepted.
+    - If no firewall-to-firewall policy or rules are defined, then
+      a simple ACCEPT rule is also included in the OUTPUT chain for
+      'lo' (after any vserver-oriented jumps).
+
+    Beginning with this release, the handling of firewall-to-firewall
+    traffic can be altered by adding a zone of type 'loopback'.
+
+    - 'loopback' zones must be associated with the loopback device in
+      the interfaces and/or hosts file.
+
+      /etc/shorewall/zones
+
+      #ZONE	TYPE
+      loop	loopback
+
+      /etc/shorewall/interfaces
+      
+      ?FORMAT 2
+      #ZONE   INTERFACE		OPTIONS
+      loop    lo		...
+
+      When this is done, the ACCEPT jumps for 'lo' in the INPUT and
+      OUTPUT chains are omitted and replaced with jumps to the loop2fw
+      and fw2loop (loop-fw and fw-lop) chains respectively. This
+      provides a model similar to other zones for fireall-to-firewall
+      traffic.
+
+8)  A new 'local' zone TYPE has been added to /etc/shorewall[6]/zones.
+    A 'local' zone is similar to an 'ipv4' ('ipv6') zone, except that
+    rules and policies to/from a 'local' zone may only be to/from the
+    firewall zone and vserver zones.
+ 
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1 6
+----------------------------------------------------------------------------
+
+4.5.16.1
+
+1)  Version 4.5.16 broke the handling of application helpers when the
+    CT Target is available. Symptom is messages like the following:
+
+    Use of uninitialized value $Shorewall::Config::sillyname in
+    concatenation (.) or string at
+    /usr/share/shorewall/Shorewall/Config.pm line 3907.
+
+    That has been corrected.
+
+4.5.16
+
+1)  Previously, the TOS target and tos match did not work on older
+    iptables versions such as 1.3.5 in RHEL5-based distributions. That
+    has been corrected. To correct this problem, a new capability (New
+    tos Match) was created, so users who utilize a capabilities file
+    will need to regenerate the file. This applies to all distributions
+    and not just the older ones.
+
+2)  A_ACCEPT! is now recognized as a rules ACTION. Previously, it was
+    documented in shorewall[6]-rules(5) but was not implemented.
+
+3)  Previously, NFACCT accounting rules generated iptables rules with
+    the matches in the incorrect order. That caused the counters to be
+    incremented before all of the matches had been checked. Now, the
+    counter in an NFACCT rule is incremented only if all of the other
+    matches have been successful.
+
+4)  A number of ipset-related modules were incorrectly included in
+    /usr/share/shorewall/helpers. Those entries have now been removed.
+
+----------------------------------------------------------------------------
+                 N E W  F E A T U R E S  I N  4 . 5 . 1 6
+----------------------------------------------------------------------------
+
+1)  A new Shorewall6 interface option, 'accept_ra' has been added. The
+    option value may be set as follows:
+
+    0
+
+        Do not accept Router Advertisements.
+    1
+
+	Accept Route Advertisements if forwarding is disabled.
+    2
+
+	Overrule forwarding behavior. Accept Route Advertisements even
+	if forwarding is enabled.
+
+    If the option is specified without a value, then value 1 is
+    assumed.
+
+2)  Two new macros have been added:
+
+      macro.Xymon contributed by T.J. Yang
+      macro.VRRP contributed by James Shubin
+
+3)  A new INLINE action has been added. This action allows defining
+    arbitrary iptables rules in the blrules and rules files, as well as
+    in action and macro bodies.
+
+    The basic form of an INLINE rule is as follows:
+
+    	INLINE	<src> <dst> <proto> ... ; <iptables matches and jump>
+
+    The <iptables matches and jump> are added to the rule generated by
+    the contents of the other supplied columns. Given the 'raw' nature
+    of this action, you should examine the rule generated by the entry
+    (e.g., 'shorewall check -r') prior to attempting a 'start' or
+    'restart' operation.
+
+    Example:
+
+        INLINE  $FW   net   tcp   1234  ; -j SECCTX --name foo
+
+    This entry generates the following:
+
+        -A fw2net -p 6 --dport 1234 -j SECCTX --name foo
+
+    When multiple matches are specified, the compiler will keep them in
+    the order in which they appear, but they will not necessarily be at
+    the end of the generated rule. For example, if addresses are
+    specified in the SOURCE and/or DEST columns, their generated matches
+    will appear after those specified using ';'.
+
+    Note: The following matches will always appear at the front of the
+    rule in the order shown:
+
+      p
+	dport
+      	sport
+      	icmp-type
+  	icmpv6-type
+      s
+      d
+      i
+      o
+      policy
+      state or conntrack --ctstate
+
+    As part of this change, a new 'builtin' action type has been added.
+    ip[6]tables targets not supported by Shorewall (such as 'SECCTX' in
+    the example above), must be defined in your
+    /etc/shorewall[6]/actions file:
+
+    Example:
+
+       SECCTX	builtin
+
+    Such builtin actions may only be used in INLINE action invocations;
+    they may not appear in the ACTION column of a rule.
+
+    If you want to use a standard Shorewall-supported action, you can 
+    pass it as a parameter to INLINE.
+
+    Example:
+
+       INLINE(ACCEPT) $FW net ; -m foo --bar baz
+
+    Note that if you include a log level with INLINE and do not pass a
+    parameter, Shorewall will automatically assume that the parameter
+    is LOG. That means that you must not specify a log level if you
+    specify your own rule target with '-j'.
+
+    The alternate input format may be used with INLINE, provided that
+    the {....} form of alternate input is used.
+
+    Example:
+
+       INLINE $FW net { owner=teastep } ; -j FOO --bar
+
+4)  The INLINE action is also supported in the accounting and tcrules
+    files. In the accounting file, INLINE is treated the same as COUNT
+    in the with the exception that the freeform iptables input
+    following the ';' is appended to any matches generated by the
+    column contents. INLINE is treated similarly in the tcrules file;
+    that is, the freeform input following ';' must specify the rule
+    target, if any. In the accounting and tcrules files, INLINE does
+    not accept a parameter.
+
+5)  It is now possible to specify HELPERS=none in
+    /etc/shorewall[6]/shorewall[6].conf.
+
+    This setting has two consequences:
+
+    a) All of the *_HELPER capabilities are set to off.
+    b) No probing of helpers is performed, thus eliminating "xt_CT: No
+       such helper XXX" warnings when the compiler is probing the
+       system for capabilities.
+
+6)  It is now possible to specify multiple nfacct objects in an NFACCT
+    accounting rule. Where previously, the following rules were given:
+
+     SECTION INPUT
+     NFACCT(all)
+     NFACCT(all_in)
+
+     SECTION OUTPUT
+     NFACCT(all)
+     NFACCT(all_out)
+
+     SECTION FORWARD
+     NFACCT(all)
+     NFACCT(all_fwd) 	       
+
+    It is now possible to do the same thing as follows:
+
+     SECTION INPUT
+     NFACCT(all,all_in)
+
+     SECTION OUTPUT
+     NFACCT(all,all_out)
+
+     SECTION FORWARD
+     NFACCT(all,all_fwd)
+
+    To allow a nfobject to be incremented unconditionally, you may
+    follow the object name with '!' (e.g., NFACCT(all!)). When
+    '!' is omitted, the object is incremented only if all of the rule's
+    matches succeed.
+
+7)  It is now possible to increment an nfacct counter when a packet
+    matches an ipset. To do that, simplly include the counter object's
+    name in parentheses after the ipset specification.
+
+    Examples:
+
+    a)  Increment the mysetcounter nfacct object when a packet's source
+	matches myset.
+
+	+myset[src](mysetcounter)
+
+    b)  Increment the mysetcounter1 and mysetcounter2 nfacct objects
+	when a packet's sourcematches myset.
+
+	+myset[src](mysetcounter1,mysetcounter2)
+
+    b)  In an accounting rule, increment the 'all' nfacct object
+    	unconditionally and increment the 'mysetcounter' object only if
+    	the packet source matches myset:
+
+	NFACCT(all!)	  -	  +myset(mysetcounter)
+
+8)  Prior to the availability of BEGIN PERL....END PERL in
+    configuration files, the only way to execute a chain-specific
+    script was to create a script file with the same name as the chain
+    and place it in a directory on the CONFIG_PATH. That facility has
+    the drawback that the compiler will attempt to run a non-script
+    file just because it has the same name as a chain. To disable this
+    facility, a new CHAIN_SCRIPTS option has been added to
+    shorewall[6].conf. The facility is disabled by setting
+    CHAIN_SCRIPTS=No. If not specified or specified as the empty value,
+    CHAIN_SCRIPTS=Yes is assumed for backward compatibility.
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1 5
 ----------------------------------------------------------------------------

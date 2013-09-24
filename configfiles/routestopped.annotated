@@ -41,13 +41,13 @@
 # OPTIONS - [-|option[,option]...]
 # 
 #     Optional. A comma-separated list of options. The order of the options is
-#     not important but the list can contain no embedded whitespace. The
+#     not important but the list can contain no embedded white-space. The
 #     currently-supported options are:
 # 
 #     routeback
 # 
 #         Set up a rule to ACCEPT traffic from these hosts back to themselves.
-#         Beginning with Shorewall 4.4.9, this option is automatically set if
+#         Beginning with Shorewall 4.4.9, this option is automatically set if 
 #         routeback is specified in shorewall-interfaces (5) or if the rules
 #         compiler detects that the interface is a bridge.
 # 
@@ -67,7 +67,7 @@
 # 
 #     notrack
 # 
-#         The traffic will be exempted from conntection tracking.
+#         The traffic will be exempted from connection tracking.
 # 
 # PROTO (Optional) ‒ protocol-name-or-number
 # 
@@ -88,7 +88,7 @@
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
 #     that the DEST PORT(S) column is non-empty. This causes the rule to match
 #     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multiport
+#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
 #     match in your iptables and kernel.
 # 
 # Note

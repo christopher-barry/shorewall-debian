@@ -48,6 +48,9 @@ our @EXPORT = qw(
 		 fatal_error
 		 assert
 		 currentlineinfo
+		 shortlineinfo
+		 clear_currentfilename
+		 validate_level
 
 		 progress_message
 		 progress_message_nocompress
@@ -57,13 +60,18 @@ our @EXPORT = qw(
 		 supplied
 		 split_list
 
+		 shorewall
+
 		 get_action_params
 		 get_action_chain
 		 get_action_chain_name
+		 set_action_name_to_caller
 		 get_action_logging
 		 get_action_disposition
+		 set_action_disposition
 		 set_action_param
 		 get_inline_matches
+		 set_inline_matches
 
 		 have_capability
 		 require_capability
@@ -122,7 +130,6 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       pop_action_params
 				       default_action_params
 				       read_a_line
-				       validate_level
 				       which
 				       qt
 				       ensure_config_path
@@ -192,6 +199,12 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       CONFIG_CONTINUATION
 				       DO_INCLUDE
 				       NORMAL_READ
+
+				       OPTIMIZE_POLICY_MASK
+				       OPTIMIZE_POLICY_MASK2n4
+				       OPTIMIZE_RULESET_MASK
+				       OPTIMIZE_USE_FIRST
+				       OPTIMIZE_ALL
 				     ) , ] ,
 		   protocols => [ qw (
 				       TCP
@@ -207,7 +220,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_16';
+our $VERSION = '4.5.20-Beta1';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -341,7 +354,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 TPROXY_TARGET   => 'TPROXY Target',
 		 FLOW_FILTER     => 'Flow Classifier',
 		 FWMARK_RT_MASK  => 'fwmark route mask',
-		 MARK_ANYWHERE   => 'Mark in any table',
+		 MARK_ANYWHERE   => 'Mark in the filter table',
 		 HEADER_MATCH    => 'Header Match',
 		 ACCOUNT_TARGET  => 'ACCOUNT Target',
 		 AUDIT_TARGET    => 'AUDIT Target',
@@ -391,6 +404,10 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 our %used;
 
 use constant {
+               USED     => 1,
+	       REQUIRED => 2 };
+
+use constant {
 	       ICMP                => 1,
 	       TCP                 => 6,
 	       UDP                 => 17,
@@ -399,6 +416,17 @@ use constant {
 	       IPv6_ICMP           => 58,
 	       SCTP                => 132,
 	       UDPLITE             => 136,
+	     };
+#
+# Optimization masks
+#
+use constant {
+	       OPTIMIZE_POLICY_MASK    => 0x02 , # Call optimize_policy_chains()
+	       OPTIMIZE_POLICY_MASK2n4 => 0x06 ,
+	       OPTIMIZE_RULESET_MASK   => 0x1C , # Call optimize_ruleset()
+	       OPTIMIZE_ALL            => 0x1F , # Maximum value for documented categories.
+
+	       OPTIMIZE_USE_FIRST      => 0x1000 # Always use interface 'first' chains -- undocumented
 	     };
 
 our %helpers = ( amanda          => UDP,
@@ -655,8 +683,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    STATEMATCH              => '-m state --state',
-		    VERSION                 => "4.5.16.1",
+		    VERSION                 => "4.5.20",
 		    CAPVERSION              => 40515 ,
 		  );
     #
@@ -791,6 +818,7 @@ sub initialize( $;$$) {
 	  DEFER_DNS_RESOLUTION => undef,
 	  USE_RT_NAMES => undef,
 	  CHAIN_SCRIPTS => undef,
+	  TRACK_RULES => undef,
 	  #
 	  # Packet Disposition
 	  #
@@ -1107,6 +1135,22 @@ sub currentlineinfo() {
     }
 }
 
+sub shortlineinfo( $ ) {
+    if ( $config{TRACK_RULES} ) {
+	if ( $currentfile ) {
+	    my $comment = '@@@ '. join( ':', $currentfilename, $currentlinenumber ) . ' @@@';
+	    $comment = '@@@ ' . join( ':' , basename($currentfilename), $currentlinenumber) . ' @@@' if length $comment > 255;
+	    $comment = '@@@ Filename Too Long @@@' if length $comment > 255;
+	    $comment;
+	} else {
+	    #
+	    # Alternate lineinfo may have been passed
+	    #
+	    $_[0] || ''
+	}
+    }
+}
+
 sub handle_first_entry();
 
 #
@@ -1137,6 +1181,64 @@ sub warning_message
     $| = 0; #Re-allow output buffering
 }
 
+#
+# Q[uie]t version of system(). Returns true for success
+#
+sub qt( $ ) {
+    if ( $debug ) {
+	print "SYS----> @_\n";
+	system( "@_ 2>&1 < /dev/null" ) == 0;
+    } else {
+	system( "@_ > /dev/null 2>&1 < /dev/null" ) == 0;
+    }
+}
+
+sub qt0( $ ) {
+    if ( $debug ) {
+	print "SYS----> @_\n";
+	system( "@_ 2>&1 < /dev/null" );
+    } else {
+	system( "@_ > /dev/null 2>&1 < /dev/null" );
+    }
+}
+
+sub qt1( $ ) {
+    1 while qt0( "@_" ) == 4;
+    $? == 0;
+}
+
+#
+# Delete the test chains
+#
+sub cleanup_iptables() {
+    qt1( "$iptables -F $sillyname" );
+    qt1( "$iptables -X $sillyname" );
+    qt1( "$iptables -F $sillyname1" );
+    qt1( "$iptables -X $sillyname1" );
+
+    if ( $capabilities{MANGLE_ENABLED} ) {
+	qt1( "$iptables -t mangle -F $sillyname" );
+	qt1( "$iptables -t mangle -X $sillyname" );
+    }
+
+    if ( $capabilities{NAT_ENABLED} ) {
+	qt1( "$iptables -t nat -F $sillyname" );
+	qt1( "$iptables -t nat -X $sillyname" );
+    }
+
+    if ( $capabilities{RAW_TABLE} ) {
+	qt1( "$iptables -t raw -F $sillyname" );
+	qt1( "$iptables -t raw -X $sillyname" );
+    }
+
+    $sillyname = $sillyname1 = undef;
+
+    $sillyname = '';
+}
+
+#
+# Clean up after the compiler exits
+#
 sub cleanup() {
     #
     # Close files first in case we're running under Cygwin
@@ -1177,34 +1279,7 @@ sub cleanup() {
     #
     # Delete temporary chains
     #
-    if ( $sillyname ) {
-	#
-	# We went through determine_capabilities()
-	#
-	qt1( "$iptables -F $sillyname" );
-	qt1( "$iptables -X $sillyname" );
-	qt1( "$iptables -F $sillyname1" );
-	qt1( "$iptables -X $sillyname1" );
-
-	if ( $capabilities{MANGLE_ENABLED} ) {
-	    qt1( "$iptables -t mangle -F $sillyname" );
-	    qt1( "$iptables -t mangle -X $sillyname" );
-	}
-
-	if ( $capabilities{NAT_ENABLED} ) {
-	    qt1( "$iptables -t nat -F $sillyname" );
-	    qt1( "$iptables -t nat -X $sillyname" );
-	}
-
-	if ( $capabilities{RAW_TABLE} ) {
-	    qt1( "$iptables -t raw -F $sillyname" );
-	    qt1( "$iptables -t raw -X $sillyname" );
-	}
-
-	$sillyname = $sillyname1 = undef;
-
-	$sillyname = '';
-    }
+    cleanup_iptables if $sillyname;
 }
 
 #
@@ -1388,7 +1463,7 @@ sub emit {
 }
 
 #
-# Version of emit() that writes to standard out
+# Version of emit() that writes to standard out unconditionally
 #
 sub emitstd {
     for ( @_ ) {
@@ -1907,6 +1982,7 @@ sub supplied( $ ) {
 #    ensure that it has an appropriate number of columns.
 #    supply '-' in omitted trailing columns.
 #    Handles all of the supported forms of column/pair specification
+#    Handles segragating raw iptables input in INLINE rules
 #
 sub split_line1( $$;$$ ) {
     my ( $description, $columnsref, $nopad, $maxcolumns ) = @_;
@@ -1918,7 +1994,7 @@ sub split_line1( $$;$$ ) {
 
     $inline_matches = '';
     #
-    # First see if there is a semicolon on the line; what follows will be column/value paris
+    # First see if there is a semicolon on the line; what follows will be column/value pairs or raw iptables input
     #
     my ( $columns, $pairs, $rest ) = split( ';', $currentline );
 
@@ -2158,6 +2234,13 @@ sub close_file() {
 
 	$first_entry      = 0;
     }
+}
+
+#
+# Clear the current filename
+#
+sub clear_currentfilename() {
+    $currentfilename = '';
 }
 
 #
@@ -2771,7 +2854,7 @@ sub embedded_shell( $ ) {
 	my $last = 0;
 
 	while ( read_a_line( PLAIN_READ ) ) {
-	    last if $last = $currentline =~ s/^\s*\??END(\s+SHELL)?\s*(?:;\s*)?$//;
+	    last if $last = $currentline =~ s/^\s*\??END(\s+SHELL)?\s*(?:;\s*)?$//i;
 	    $command .= "$currentline\n";
 	}
 
@@ -2805,7 +2888,7 @@ sub embedded_perl( $ ) {
 	my $last = 0;
 
 	while ( read_a_line( PLAIN_READ ) ) {
-	    last if $last = $currentline =~ s/^\s*\??END(\s+PERL)?\s*(?:;\s*)?//;
+	    last if $last = $currentline =~ s/^\s*\??END(\s+PERL)?\s*(?:;\s*)?//i;
 	    $command .= "$currentline\n";
 	}
 
@@ -2864,6 +2947,10 @@ sub embedded_perl( $ ) {
 #
 sub get_inline_matches() {
     "$inline_matches ";
+}
+
+sub set_inline_matches( $ ) {
+    $inline_matches = $_[0];
 }
 
 #
@@ -2956,8 +3043,16 @@ sub get_action_chain_name() {
     $actparms{chain};
 }
 
+sub set_action_name_to_caller() {
+    $actparms{chain} = $actparms{caller};
+}
+
 sub get_action_disposition() {
     $actparms{disposition};
+}
+
+sub set_action_disposition($) {
+    $actparms{disposition} = $_[0];
 }
 
 sub set_action_param( $$ ) {
@@ -3102,15 +3197,15 @@ sub read_a_line($) {
 	    chop $currentline, next if ($currentline .= $_) =~ /\\$/;
 	    #
 	    # Must check for shell/perl before doing variable expansion
-	    #
+	    # 
 	    if ( $options & EMBEDDED_ENABLED ) {
-		if ( $currentline =~ s/^\s*\??(BEGIN\s+)SHELL\s*;?// || $currentline =~ s/^\s*\??SHELL\s*// ) {
+		if ( $currentline =~ s/^\s*\??(BEGIN\s+)SHELL\s*;?//i || $currentline =~ s/^\s*\??SHELL\s*//i ) {
 		    handle_first_entry if $first_entry;
 		    embedded_shell( $1 );
 		    next;
 		}
 
-		if ( $currentline =~ s/^\s*\??(BEGIN\s+)PERL\s*;?// || $currentline =~ s/^\s*\??PERL\s*// ) {
+		if ( $currentline =~ s/^\s*\??(BEGIN\s+)PERL\s*;?//i || $currentline =~ s/^\s*\??PERL\s*//i ) {
 		    handle_first_entry if $first_entry;
 		    embedded_perl( $1 );
 		    next;
@@ -3554,23 +3649,6 @@ sub load_kernel_modules( ) {
 }
 
 #
-# Q[uie]t version of system(). Returns true for success
-#
-sub qt( $ ) {
-    if ( $debug ) {
-	print "SYS----> @_\n";
-	system( "@_ 2>&1" );
-    } else {
-	system( "@_ > /dev/null 2>&1 < /dev/null" ) == 0;
-    }
-}
-
-sub qt1( $ ) {
-    1 while qt( "@_" ) == 4;
-    $? == 0;
-}
-
-#
 # Get the current kernel version
 #
 sub determine_kernelversion() {
@@ -3724,6 +3802,7 @@ sub Owner_Match() {
 
 sub Owner_Name_Match() {
     if ( my $name = `id -un 2> /dev/null` ) {
+	chomp $name;
 	qt1( "$iptables -A $sillyname -m owner --uid-owner $name -j ACCEPT" );
     }
 }
@@ -4340,7 +4419,7 @@ sub determine_capabilities() {
 	$capabilities{MASQUERADE_TGT}  = detect_capability( 'MASQUERADE_TGT' );
 	$capabilities{UDPLITEREDIRECT} = detect_capability( 'UDPLITEREDIRECT' );
 	$capabilities{NEW_TOS_MATCH}   = detect_capability( 'NEW_TOS_MATCH' );
-	
+
 	unless ( have_capability 'CT_TARGET' ) {
 	    $capabilities{HELPER_MATCH} = detect_capability 'HELPER_MATCH';
 	}
@@ -4430,8 +4509,8 @@ sub conditional_quote( $ ) {
 #
 # Update the shorewall[6].conf file. Save the current file with a .bak suffix.
 #
-sub update_config_file( $ ) {
-    my $annotate = shift;
+sub update_config_file( $$ ) {
+    my ( $annotate, $directives ) = @_;
 
     sub is_set( $ ) {
 	my $value = $_[0];
@@ -4549,7 +4628,7 @@ EOF
 		progress_message3 "No update required to configuration file $configfile";
 	    }
 
-	    exit 0 unless -f find_file 'blacklist';
+	    exit 0 unless $directives || -f find_file 'blacklist';
 	}
     } else {
 	fatal_error "$fn does not exist";
@@ -4559,8 +4638,8 @@ EOF
 #
 # Small functions called by get_configuration. We separate them so profiling is more useful
 #
-sub process_shorewall_conf( $$ ) {
-    my ( $update, $annotate ) = @_;
+sub process_shorewall_conf( $$$ ) {
+    my ( $update, $annotate, $directives ) = @_;
     my $file   = find_file "$product.conf";
 
     if ( -f $file ) {
@@ -4605,7 +4684,7 @@ sub process_shorewall_conf( $$ ) {
     #
     # Now update the config file if asked
     #
-    update_config_file( $annotate) if $update;
+    update_config_file( $annotate, $directives ) if $update;
     #
     # Config file update requires that the option values not have
     # Shell variables expanded. We do that now.
@@ -4936,23 +5015,26 @@ sub convert_to_directives() {
     progress_message3 "Converting 'FORMAT' and 'COMMENT' lines to compiler directives...";
 
     for my $dir ( @path ) {
-	unless ( $dir =~ /$dirtest/ || ! -w $dir ) {
-	    $dir =~ s|/+$||;
+	unless ( $dir =~ /$dirtest/ ) {
+	    if ( ! -w $dir ) {
+		warning_message "$dir not processed (not writeable)";
+	    } else {
+		$dir =~ s|/+$||;
 
-	    opendir( my $dirhandle, $dir ) || fatal_error "Cannot open directory $dir for reading:$!";
+		opendir( my $dirhandle, $dir ) || fatal_error "Cannot open directory $dir for reading:$!";
 
-	    while ( my $file = readdir( $dirhandle ) ) {
-		unless ( $file eq 'capabilities'       ||
-			 $file eq 'params'             ||
-			 $file =~ /^shorewall6?.conf$/ ||
-			 $file =~ /\.bak$/ ) {
-		    $file = "$dir/$file";
+		while ( my $file = readdir( $dirhandle ) ) {
+		    unless ( $file eq 'capabilities'       ||
+			     $file eq 'params'             ||
+			     $file =~ /^shorewall6?.conf$/ ||
+			     $file =~ /\.bak$/ ) {
+			$file = "$dir/$file";
 		
-		    if ( -f $file && -w _ ) {
-			#
-			# writeable regular file
-			#
-			my $result = system << "EOF";
+			if ( -f $file && -w _ ) {
+			    #
+			    # writeable regular file
+			    #
+			    my $result = system << "EOF";
 perl -pi.bak -e '/^\\s*FORMAT\\s*/ && s/FORMAT/?FORMAT/;
                  if ( /^\\s*COMMENT\\s+/ ) {
                      s/COMMENT/?COMMENT/;
@@ -4960,20 +5042,25 @@ perl -pi.bak -e '/^\\s*FORMAT\\s*/ && s/FORMAT/?FORMAT/;
                      s/COMMENT/?COMMENT/;
                  }' $file
 EOF
-			if ( $result == 0 ) {
-			    if ( system( "diff -q $file ${file}.bak > /dev/null" ) ) {
-				progress_message3 "   File $file updated - old file renamed ${file}.bak";
-			    } elsif ( ! rename "${file}.bak" , $file ) {
-				warning message "Unable to rename ${file}.bak to $file:$!";
+			    if ( $result == 0 ) {
+				if ( system( "diff -q $file ${file}.bak > /dev/null" ) ) {
+				    progress_message3 "   File $file updated - old file renamed ${file}.bak";
+				} elsif ( rename "${file}.bak" , $file ) {
+				    progress_message "   File $file not updated -- no bare 'COMMENT' or 'FORMAT' lines found";
+				} else {
+				    warning message "Unable to rename ${file}.bak to $file:$!";
+				}
+			    } else {
+				warning_message ("Unable to update file ${file}.bak:$!" );
 			    }
 			} else {
-			    warning_message ("Unable to update file ${file}.bak:$!" );
+			    warning_message( "$file skipped (not writeable)" ) unless -d _;
 			}
 		    }
 		}
-	    }
 
-	    closedir $dirhandle;
+		closedir $dirhandle;
+	    }
 	}
     }
 }
@@ -4998,7 +5085,7 @@ sub get_configuration( $$$$ ) {
 
     get_params;
 
-    process_shorewall_conf( $update, $annotate );
+    process_shorewall_conf( $update, $annotate, $directives );
 
     ensure_config_path;
 
@@ -5052,9 +5139,11 @@ sub get_configuration( $$$$ ) {
 	%helpers_enabled = %helpers_temp;
 
 	while ( my ( $helper, $enabled ) = each %helpers_enabled ) {
-	    $helper =~ s/-0/0/;
-	    $helper =~ s/-/_/;
-	    $capabilities{uc($helper) . '_HELPER'} = 0 unless $enabled; 
+	    unless ( $enabled ) {
+		$helper =~ s/-0/0/;
+		$helper =~ s/-/_/;
+		$capabilities{uc($helper) . '_HELPER'} = 0;
+	    } 
 	}
     } elsif ( have_capability 'CT_TARGET' ) {
 	$helpers_enabled{$_} = 0 for keys %helpers_enabled;
@@ -5069,10 +5158,9 @@ sub get_configuration( $$$$ ) {
     %used     = ();
 
     if ( have_capability 'CONNTRACK_MATCH') {
-	$globals{STATEMATCH} = '-m conntrack --ctstate';
-	$used{CONNTRACK_MATCH} = 2;
+	$used{CONNTRACK_MATCH} = REQUIRED;
     } else {
-	$used{STATE_MATCH} = 2;
+	$used{STATE_MATCH} = REQUIRED;
     }
     #
     # The following is not documented as it is not likely useful to the user base in general 
@@ -5148,6 +5236,15 @@ sub get_configuration( $$$$ ) {
 	$globals{LOGLIMIT} .= "--limit-burst $config{LOGBURST} " if supplied $config{LOGBURST};
     } else {
 	$globals{LOGLIMIT} = '';
+    }
+
+    if ( $globals{LOGLIMIT} ) {
+	my $loglimit = $globals{LOGLIMIT};
+	$loglimit =~ s/ $//;
+	my @loglimit = ( split ' ', $loglimit, 3 )[1,2];
+	$globals{LOGILIMIT} = \@loglimit;
+    } else {
+	$globals{LOGILIMIT} = [];
     }
 
     check_trivalue ( 'IP_FORWARDING', 'on' );
@@ -5293,6 +5390,9 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'MULTICAST'                  , '';
     default_yes_no 'MARK_IN_FORWARD_CHAIN'      , '';
     default_yes_no 'CHAIN_SCRIPTS'              , 'Yes';
+    default_yes_no 'TRACK_RULES'                , '';
+
+    require_capability 'COMMENTS', 'TRACK_RULES=Yes', 's' if $config{TRACK_RULES};
 
     default_yes_no 'MANGLE_ENABLED'             , have_capability( 'MANGLE_ENABLED' ) ? 'Yes' : '';
     default_yes_no 'USE_DEFAULT_RT'             , '';
@@ -5351,10 +5451,14 @@ sub get_configuration( $$$$ ) {
 	$globals{ZONE_OFFSET}     = $config{PROVIDER_BITS};
     }
 
+    #
+    # It is okay if the event mark is outside of the a 32-bit integer. We check that in IfEvent"
+    #
     fatal_error 'Invalid Packet Mark layout' if $config{ZONE_BITS} + $globals{ZONE_OFFSET} > 30;
 
     $globals{EXCLUSION_MASK} = 1 << ( $globals{ZONE_OFFSET} + $config{ZONE_BITS} );
     $globals{TPROXY_MARK}    = $globals{EXCLUSION_MASK} << 1;
+    $globals{EVENT_MARK}     = $globals{TPROXY_MARK} << 1;
     $globals{PROVIDER_MIN}   = 1 << $config{PROVIDER_OFFSET};
 
     $globals{TC_MAX}         = make_mask( $config{TC_BITS} );
@@ -5573,9 +5677,15 @@ sub get_configuration( $$$$ ) {
 	$config{$default} = 'none' if "\L$config{$default}" eq 'none';
     }
 
-    $val = numeric_value $config{OPTIMIZE};
+    if ( ( $val = $config{OPTIMIZE} ) =~ /^all$/i ) {
+	$config{OPTIMIZE} = $val = OPTIMIZE_ALL;
+    } elsif ( $val =~ /^none$/i ) {
+	$config{OPTIMIZE} = $val = 0;
+    } else {
+	$val = numeric_value $config{OPTIMIZE};
 
-    fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless supplied( $val ) && $val >= 0 && ( $val & ( 4096 ^ -1 ) ) <= 31;
+	fatal_error "Invalid OPTIMIZE value ($config{OPTIMIZE})" unless supplied( $val ) && $val >= 0 && ( $val & ~OPTIMIZE_USE_FIRST ) <= OPTIMIZE_ALL;
+    }
 
     require_capability 'XMULTIPORT', 'OPTIMIZE level 16', 's' if $val & 16;
 
@@ -5638,6 +5748,8 @@ sub get_configuration( $$$$ ) {
     }
 
     convert_to_directives if $directives;
+
+    cleanup_iptables if $sillyname && ! $config{LOAD_HELPERS_ONLY};
 }
 
 #
@@ -5889,7 +6001,7 @@ sub report_used_capabilities() {
 	progress_message2 "Configuration uses these capabilities ('*' denotes required):";
 
 	for ( sort grep $_ ne 'KERNELVERSION', keys %used ) {
-	    if ( $used{$_} > 1 ) {
+	    if ( ( $used{$_} || 0 ) & REQUIRED ) {
 		progress_message2 "   $_*";
 	    } else { 
 		progress_message2 "   $_";

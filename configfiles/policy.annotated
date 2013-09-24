@@ -27,7 +27,8 @@
 # For $FW and for all of the zones defined in /etc/shorewall/zones, the POLICY
 # for connections from the zone to itself is ACCEPT (with no logging or TCP
 # connection rate limiting) but may be overridden by an entry in this file. The
-# overriding entry must be explicit (cannot use "all" in the SOURCE or DEST).
+# overriding entry must be explicit (specifying the zone name in both SOURCE and
+# DEST) or it must use "all+" (Shorewall 4.5.17 or later).
 # 
 # Similarly, if you have IMPLICIT_CONTINUE=Yes in shorewall.conf, then the
 # implicit policy to/from any sub-zone is CONTINUE. These implicit CONTINUE
@@ -37,17 +38,23 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# SOURCE - zone|$FW|all
+# SOURCE - zone|$FW|all|all+
 # 
-#     Source zone. Must be the name of a zone defined in shorewall-zones(5), $FW
-#     or "all".
+#     Source zone. Must be the name of a zone defined in shorewall-zones(5), $FW,
+#     "all" or "all+".
 # 
-# DEST - zone|$FW|all
+#     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
+#     the implicit intra-zone ACCEPT policy while "all+" does.
+# 
+# DEST - zone|$FW|all|all+
 # 
 #     Destination zone. Must be the name of a zone defined in shorewall-zones(5),
-#     $FW or "all". If the DEST is a bport zone, then the SOURCE must be "all",
-#     another bport zone associated with the same bridge, or it must be an ipv4
-#     zone that is associated with only the same bridge.
+#     $FW, "all" or "all+". If the DEST is a bport zone, then the SOURCE must be
+#     "all", "all+", another bport zone associated with the same bridge, or it
+#     must be an ipv4 zone that is associated with only the same bridge.
+# 
+#     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
+#     the implicit intra-zone ACCEPT policy while "all+" does.
 # 
 # POLICY - {ACCEPT|DROP|REJECT|CONTINUE|QUEUE|NFQUEUE[(queuenumber)]|NONE}[:{
 #     default-action-or-macro[:level]|None}]

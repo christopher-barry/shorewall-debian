@@ -226,16 +226,24 @@ sub copy_and_edit_table( $$$$$ ) {
     my $filter = $family == F_IPV6 ? q(fgrep -v ' cache ' | sed 's/ via :: / /' | ) : '';
     my %copied;
     my @copy;
+    my @bup_copy;
+    my $bup_copy;
     #
     # Remove duplicates
     #
     for ( split ',', $copy ) {
 	unless ( $copied{$_} ) {
-	    fatal_error "Unknown interface ($_)" unless known_interface($_);
-	    push @copy, $_;
+	    if ( known_interface($_) ) {
+		push @copy, $_;    
+	    } elsif ( $_ =~ /^(?:blackhole|unreachable|prohibit)$/ ) {
+		push @bup_copy, $_;
+            } else {
+		fatal_error "Unknown interface ($_)";
+            }
 	    $copied{$_} = 1;
 	}
     }
+    $bup_copy = join( '|' , @bup_copy );
     #
     # Map physical names in $copy to logical names
     #
@@ -255,11 +263,13 @@ sub copy_and_edit_table( $$$$$ ) {
 
     emit (  '    case $net in',
 	    '        default)',
-	    '            ;;',
-	    '        blackhole|prohibit|unreachable)',
+	    '            ;;' );
+    if ( $bup_copy ) {
+      emit ("        $bup_copy)",
 	    "            run_ip route add table $id \$net \$route $realm",
-	    '            ;;',
-	    '        *)',
+	    '            ;;' );
+    }
+    emit (  '        *)',
 	    '            case $(find_device $route) in',
 	    "                $copy)" );
     if ( $family == F_IPV4 ) {
@@ -432,6 +442,7 @@ sub process_a_provider( $ ) {
     ( $interface, my $address ) = split /:/, $interface;
 
     my $shared = 0;
+    my $noautosrc = 0;
 
     if ( defined $address ) {
 	validate_address $address, 0;
@@ -520,6 +531,10 @@ sub process_a_provider( $ ) {
 	    } elsif ( $option =~ /^load=(0?\.\d{1,8})/ ) {
 		$load = $1;
 		require_capability 'STATISTIC_MATCH', "load=$load", 's';
+	    } elsif ( $option eq 'autosrc' ) {
+		$noautosrc = 0;
+	    } elsif ( $option eq 'noautosrc' ) {
+		$noautosrc = 1;
 	    } else {
 		fatal_error "Invalid option ($option)";
 	    }
@@ -617,6 +632,7 @@ sub process_a_provider( $ ) {
 			   balance     => $balance ,
 			   pref        => $pref ,
 			   mtu         => $mtu ,
+			   noautosrc   => $noautosrc ,
 			   track       => $track ,
 			   loose       => $loose ,
 			   duplicate   => $duplicate ,
@@ -691,6 +707,7 @@ sub add_a_provider( $$ ) {
     my $balance     = $providerref->{balance};
     my $pref        = $providerref->{pref};
     my $mtu         = $providerref->{mtu};
+    my $noautosrc   = $providerref->{noautosrc};
     my $track       = $providerref->{track};
     my $loose       = $providerref->{loose};
     my $duplicate   = $providerref->{duplicate};
@@ -833,18 +850,20 @@ CEOF
 		       'done'
 		     );
 	    }
-	} elsif ( $shared ) {
-	    emit  "qt \$IP -$family rule del from $address" if $config{DELETE_THEN_ADD};
-	    emit( "run_ip rule add from $address pref 20000 table $id" ,
-		  "echo \"\$IP -$family rule del from $address > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing" );
-	} elsif ( ! $pseudo ) {
-	    emit  ( "find_interface_addresses $physical | while read address; do" );
-	    emit  ( "    qt \$IP -$family rule del from \$address" ) if $config{DELETE_THEN_ADD};
-	    emit  ( "    run_ip rule add from \$address pref 20000 table $id",
-		    "    echo \"\$IP -$family rule del from \$address > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing",
-		    '    rulenum=$(($rulenum + 1))',
-		    'done'
-		  );
+	} elsif ( ! $noautosrc ) {
+	    if ( $shared ) {
+		emit  "qt \$IP -$family rule del from $address" if $config{DELETE_THEN_ADD};
+		emit( "run_ip rule add from $address pref 20000 table $id" ,
+		      "echo \"\$IP -$family rule del from $address > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing" );
+	    } elsif ( ! $pseudo ) {
+		emit  ( "find_interface_addresses $physical | while read address; do" );
+		emit  ( "    qt \$IP -$family rule del from \$address" ) if $config{DELETE_THEN_ADD};
+		emit  ( "    run_ip rule add from \$address pref 20000 table $id",
+			"    echo \"\$IP -$family rule del from \$address > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing",
+			'    rulenum=$(($rulenum + 1))',
+			'done'
+		      );
+	    }
 	}
     }
 
@@ -1099,7 +1118,7 @@ sub add_an_rtrule( ) {
 
     fatal_error "Invalid priority ($priority)" unless $priority && $priority =~ /^\d{1,5}$/;
 
-    $priority = "priority $priority";
+    $priority = "pref $priority";
 
     push @{$providerref->{rules}}, "qt \$IP -$family rule del $source ${dest}${mark} $priority" if $config{DELETE_THEN_ADD};
     push @{$providerref->{rules}}, "run_ip rule add $source ${dest}${mark} $priority table $id";
@@ -1390,17 +1409,15 @@ sub process_providers( $ ) {
 	}
     }
 
-    if ( $providers || $pseudoproviders ) {
-	my $fn = open_file 'routes';
+    my $fn = open_file 'routes';
 
-	if ( $fn ) {
-	    first_entry "$doing $fn...";
-	    emit '';
-	    add_a_route while read_a_line( NORMAL_READ );
-	}
-
-	add_a_provider( $providers{$_}, $tcdevices ) for @providers;
+    if ( $fn ) {
+	first_entry "$doing $fn...";
+	emit '';
+	add_a_route while read_a_line( NORMAL_READ );
     }
+
+    add_a_provider( $providers{$_}, $tcdevices ) for @providers;
 
     emit << 'EOF';;
 
@@ -1541,8 +1558,23 @@ sub setup_providers() {
 	emit "\nundo_routing";
 	emit "restore_default_route $config{USE_DEFAULT_RT}";
 
+	my $standard_routes = @{$providers{main}{routes}} || @{$providers{default}{routes}};
+
 	if ( $config{NULL_ROUTE_RFC1918} ) {
 	    setup_null_routing;
+	    emit "\nrun_ip route flush cache" unless $standard_routes;
+	}
+
+	if ( $standard_routes ) {
+	    for my $provider ( qw/main default/ ) {
+		emit '';
+		emit qq(> \${VARDIR}/undo_${provider}_routing );
+		emit '';
+		emit $_ for @{$providers{$provider}{routes}};
+		emit '';
+		emit $_ for @{$providers{$provider}{rules}};
+	    }
+
 	    emit "\nrun_ip route flush cache";
 	}
 
@@ -1957,18 +1989,18 @@ sub handle_stickiness( $ ) {
 
 		for my $chainref ( $stickyref, $setstickyref ) {
 		    if ( $chainref->{name} eq 'sticky' ) {
-			$rule1 = clone_rule( $_ );
+			$rule1 = clone_irule( $_ );
 
 			set_rule_target( $rule1, 'MARK',   "--set-mark $mark" );
-			set_rule_option( $rule1, 'recent', "--name $list --update --seconds 300" );
+			set_rule_option( $rule1, 'recent', "--name $list --update --seconds 300 --reap" );
 
-			$rule2 = clone_rule( $_ );
+			$rule2 = clone_irule( $_ );
 
 			clear_rule_target( $rule2 );
 			set_rule_option( $rule2, 'mark',   "--mark 0\/$mask" );
 			set_rule_option( $rule2, 'recent', "--name $list --remove" );
 		    } else {
-			$rule1 = clone_rule( $_ );
+			$rule1 = clone_irule( $_ );
 
 			clear_rule_target( $rule1 );
 			set_rule_option( $rule1, 'mark',   "--mark $mark\/$mask" );
@@ -1992,18 +2024,18 @@ sub handle_stickiness( $ ) {
 
 		for my $chainref ( $stickoref, $setstickoref ) {
 		    if ( $chainref->{name} eq 'sticko' ) {
-			$rule1 = clone_rule $_;
+			$rule1 = clone_irule $_;
 
 			set_rule_target( $rule1, 'MARK',   "--set-mark $mark" );
-			set_rule_option( $rule1, 'recent', " --name $list --rdest --update --seconds 300" );
+			set_rule_option( $rule1, 'recent', " --name $list --rdest --update --seconds 300 --reap" );
 
-			$rule2 = clone_rule $_;
+			$rule2 = clone_irule $_;
 
 			clear_rule_target( $rule2 );
 			set_rule_option  ( $rule2, 'mark',   "--mark 0\/$mask" );
 			set_rule_option  ( $rule2, 'recent', "--name $list --rdest --remove" );
 		    } else {
-			$rule1 = clone_rule $_;
+			$rule1 = clone_irule $_;
 
 			clear_rule_target( $rule1 );
 			set_rule_option  ( $rule1, 'mark',   "--mark $mark" );

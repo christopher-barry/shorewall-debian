@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.75.2 <http://docbook.sf.net/>
-.\"      Date: 05/01/2013
+.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
+.\"      Date: 08/26/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "05/01/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -149,7 +149,7 @@ Mark the connection in the PREROUTING chain\&.
 .PP
 CT
 .RS 4
-Mark the connecdtion in the POSTROUTING chain
+Mark the connection in the POSTROUTING chain
 .RE
 .PP
 CI
@@ -224,7 +224,7 @@ Mark the connection in the PREROUTING chain\&.
 .PP
 CT
 .RS 4
-Mark the connecdtion in the POSTROUTING chain
+Mark the connection in the POSTROUTING chain
 .RE
 .PP
 CI
@@ -364,7 +364,7 @@ or
 .\}
 \fBDIVERT\fR
 .sp
-Added in Shorewall 4\&.5\&.4 and only available when FORMAT is 2\&. Two DIVERT rule should preceed the TPROXY rule and should select DEST PORT tcp 80 and SOURCE PORT tcp 80 respectively (assuming that tcp port 80 is being proxied)\&. DIVERT avoids sending packets to the TPROXY target once a socket connection to Squid3 has been established by TPROXY\&. DIVERT marks the packet with a unique mark and exempts it from any rules that follow\&.
+Added in Shorewall 4\&.5\&.4 and only available when FORMAT is 2\&. Two DIVERT rule should precede the TPROXY rule and should select DEST PORT tcp 80 and SOURCE PORT tcp 80 respectively (assuming that tcp port 80 is being proxied)\&. DIVERT avoids sending packets to the TPROXY target once a socket connection to Squid3 has been established by TPROXY\&. DIVERT marks the packet with a unique mark and exempts it from any rules that follow\&.
 .RE
 .sp
 .RS 4
@@ -530,7 +530,7 @@ For example, suppose that your internal network is 192\&.168\&.1\&.0/29 (host IP
 \fImajor\fR
 and
 \fIminor\fR
-classes are equal\&. So you might chose instent to use IPMARK(src,0xFF,0x10100) as in the example above so that all of your
+classes are equal\&. So you might choose instead to use IPMARK(src,0xFF,0x10100) as in the example above so that all of your
 \fIminor\fR
 classes will have a value > 256\&.
 .RE
@@ -936,7 +936,7 @@ Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated l
 Optional destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
 \fIport range\fRs; if the protocol is
-\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numberic type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
+\fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numeric type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&.
 .sp
 If the protocol is
@@ -955,7 +955,7 @@ Optional source port(s)\&. If omitted, any source port is acceptable\&. Specifie
 .sp
 An entry in this field requires that the PROTO column specify tcp (6), udp (17), sctp (132) or udplite (136)\&. Use \*(Aq\-\*(Aq if any of the following fields is supplied\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multiport match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
 .RE
 .PP
 \fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
@@ -1094,7 +1094,7 @@ is assumed\&.
 .PP
 \fBHELPER \- \fR\fIhelper\fR
 .RS 4
-Names a Netfiler protocol
+Names a Netfilter protocol
 helper
 module such as
 \fBftp\fR,
@@ -1194,7 +1194,7 @@ We assume packet/connection mark 0 means unclassified\&.
 .RE
 .\}
 .sp
-If a packet hasn\*(Aqt been classifed (packet mark is 0), copy the connection mark to the packet mark\&. If the packet mark is set, we\*(Aqre done\&. If the packet is P2P, set the packet mark to 4\&. If the packet mark has been set, save it to the connection mark\&.
+If a packet hasn\*(Aqt been classified (packet mark is 0), copy the connection mark to the packet mark\&. If the packet mark is set, we\*(Aqre done\&. If the packet is P2P, set the packet mark to 4\&. If the packet mark has been set, save it to the connection mark\&.
 .RE
 .PP
 Example 2:

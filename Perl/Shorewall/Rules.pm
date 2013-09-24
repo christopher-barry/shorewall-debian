@@ -57,7 +57,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize process_rule );
-our $VERSION = '4.5_16';
+our $VERSION = '4.5_20';
 #
 # Globals are documented in the initialize() function
 #
@@ -344,13 +344,20 @@ sub new_policy_chain($$$$$)
 #
 # Set the passed chain's policychain and policy to the passed values.
 #
-sub set_policy_chain($$$$$)
+sub set_policy_chain($$$$$$)
 {
-    my ($source, $dest, $chain1, $chainref, $policy ) = @_;
+    my ($source, $dest, $chain1, $chainref, $policy, $intrazone) = @_;
 
     my $chainref1 = $filter_table->{$chain1};
 
-    $chainref1 = new_rules_chain $chain1 unless $chainref1;
+    if ( $chainref1 ) {
+	if ( $intrazone && $source eq $dest && $chainref1->{provisional} ) {
+	    $chainref1->{policychain} = '';
+	    $chainref1->{provisional} = '';
+	}
+    } else {
+	$chainref1 = new_rules_chain $chain1;
+    }
 
     unless ( $chainref1->{policychain} ) {
 	if ( $config{EXPAND_POLICIES} ) {
@@ -376,6 +383,7 @@ sub set_policy_chain($$$$$)
 
 	$chainref1->{policy} = $policy;
 	$chainref1->{policypair} = [ $source, $dest ];
+	$chainref1->{origin} = $chainref->{origin};
     }
 }
 
@@ -477,11 +485,13 @@ sub process_a_policy() {
     fatal_error 'DEST must be specified'   if $server eq '-';
     fatal_error 'POLICY must be specified' if $originalpolicy eq '-';
 
-    my $clientwild = ( "\L$client" eq 'all' );
+    my $clientwild = ( "\L$client" =~ /^all(\+)?$/ );
+    my $intrazone  = $clientwild && $1;
 
     fatal_error "Undefined zone ($client)" unless $clientwild || defined_zone( $client );
 
-    my $serverwild = ( "\L$server" eq 'all' );
+    my $serverwild = ( "\L$server" =~ /^all(\+)?/ );
+    $intrazone ||= $serverwild && $1;
 
     fatal_error "Undefined zone ($server)" unless $serverwild || defined_zone( $server );
 
@@ -564,23 +574,25 @@ sub process_a_policy() {
     my $chainref1 = $usedactions{$default};
     $chainref->{default} = $chainref1 ? $chainref1->{name} : $default;
 
+    $chainref->{origin} = shortlineinfo('');
+
     if ( $clientwild ) {
 	if ( $serverwild ) {
 	    for my $zone ( @zonelist ) {
 		for my $zone1 ( @zonelist ) {
-		    set_policy_chain $client, $server, rules_chain( ${zone}, ${zone1} ), $chainref, $policy;
+		    set_policy_chain $client, $server, rules_chain( ${zone}, ${zone1} ), $chainref, $policy, $intrazone;
 		    print_policy $zone, $zone1, $policy, $chain;
 		}
 	    }
 	} else {
 	    for my $zone ( all_zones ) {
-		set_policy_chain $client, $server, rules_chain( ${zone}, ${server} ), $chainref, $policy;
+		set_policy_chain $client, $server, rules_chain( ${zone}, ${server} ), $chainref, $policy, $intrazone;
 		print_policy $zone, $server, $policy, $chain;
 	    }
 	}
     } elsif ( $serverwild ) {
 	for my $zone ( @zonelist ) {
-	    set_policy_chain $client, $server, rules_chain( ${client}, ${zone} ), $chainref, $policy;
+	    set_policy_chain $client, $server, rules_chain( ${client}, ${zone} ), $chainref, $policy, $intrazone;
 	    print_policy $client, $zone, $policy, $chain;
 	}
 
@@ -649,6 +661,27 @@ sub process_policies()
 	push @policy_chains, ( new_policy_chain firewall_zone, $zone, 'NONE',   PROVISIONAL, 0 ) if zone_type( $zone ) & BPORT;
 
 	my $zoneref = find_zone( $zone );
+	my $type    = $zoneref->{type};
+
+	if ( $type == LOCAL ) {
+	    for my $zone1 ( off_firewall_zones ) {
+		unless ( $zone eq $zone1 ) {
+		    my $name  = rules_chain( $zone,  $zone1 );
+		    my $name1 = rules_chain( $zone1, $zone  );
+		    set_policy_chain( $zone,  $zone1, $name,  ensure_rules_chain( $name  ), 'NONE', 0 );
+		    set_policy_chain( $zone1, $zone,  $name1, ensure_rules_chain( $name1 ), 'NONE', 0 );
+		}
+	    }
+	} elsif ( $type == LOOPBACK ) {
+	    for my $zone1 ( off_firewall_zones ) {
+		unless ( $zone eq $zone1 || zone_type( $zone1 ) == LOOPBACK ) {
+		    my $name  = rules_chain( $zone,  $zone1 );
+		    my $name1 = rules_chain( $zone1, $zone  );
+		    set_policy_chain( $zone,  $zone1, $name,  ensure_rules_chain( $name  ), 'NONE', 0 );
+		    set_policy_chain( $zone1, $zone,  $name1, ensure_rules_chain( $name1 ), 'NONE', 0 );
+		}
+	    }
+	}
 
 	if ( $config{IMPLICIT_CONTINUE} && ( @{$zoneref->{parents}} || $zoneref->{type} & VSERVER ) ) {
 	    for my $zone1 ( all_zones ) {
@@ -850,10 +883,12 @@ sub complete_standard_chain ( $$$$ ) {
     $policychainref = $filter_table->{$ruleschainref->{policychain}} if $ruleschainref;
 
     if ( $policychainref ) {
-	( $policy, $loglevel, $defaultaction ) = @{$policychainref}{'policy', 'loglevel', 'default' }
+	( $policy, $loglevel, $defaultaction ) = @{$policychainref}{'policy', 'loglevel', 'default' };
+	$stdchainref->{origin} = $policychainref->{origin};
     } elsif ( $defaultaction !~ /:/ ) {
 	$defaultaction = join(":", $defaultaction, 'none', '', '' );
     }
+
 
     policy_rules $stdchainref , $policy , $loglevel, $defaultaction, 0;
 }
@@ -871,14 +906,13 @@ sub setup_syn_flood_chains() {
 		    new_chain 'filter' , syn_flood_chain $chainref :
 		    new_chain( 'filter' , '@' . $chainref->{name} );
 	    add_rule $synchainref , "${limit}-j RETURN";
-	    log_rule_limit( $level ,
-			    $synchainref ,
-			    $chainref->{name} ,
-			    'DROP',
-			    $globals{LOGLIMIT} || '-m limit --limit 5/min --limit-burst 5 ' ,
+	    log_irule_limit( $level ,
+			     $synchainref ,
+			     $chainref->{name} ,
+			     'DROP',
+			     @{$globals{LOGILIMIT}} ? $globals{LOGILIMIT} : [ limit => "--limit 5/min --limit-burst 5" ] ,
 			    '' ,
-			    'add' ,
-			    '' )
+			    'add' )
 		if $level ne '';
 	    add_ijump $synchainref, j => 'DROP';
 	}
@@ -1441,11 +1475,11 @@ sub dropBcast( $$$$ ) {
 
     if ( have_capability( 'ADDRTYPE' ) ) {
 	if ( $level ne '' ) {
-	    log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -m addrtype --dst-type BROADCAST ';
+	    log_irule_limit( $level, $chainref, 'dropBcast' , 'DROP', [], $tag, 'add', addrtype => '--dst-type BROADCAST' );
 	    if ( $family == F_IPV4 ) {
-		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ';
+		log_irule_limit( $level, $chainref, 'dropBcast' , 'DROP', [], $tag, 'add', d => '224.0.0.0/4' );
 	    } else {
-		log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST , '-j DROP ' );
+		log_irule_limit( $level, $chainref, 'dropBcast' , 'DROP', [], $tag, 'add', d => IPv6_MULTICAST );
 	    }
 	}
 
@@ -1458,17 +1492,17 @@ sub dropBcast( $$$$ ) {
 	}
 
 	incr_cmd_level $chainref;
-	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d $address ' if $level ne '';
+	log_irule_limit( $level, $chainref, 'dropBcast' , 'DROP', [], $tag, 'add', d => '$address' ) if $level ne '';
 	add_ijump $chainref, j => $target, d => '$address';
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
     }
 
     if ( $family == F_IPV4 ) {
-	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
+	log_irule_limit $level, $chainref, 'dropBcast' , 'DROP', [], $tag, 'add', d => '224.0.0.0/4' if $level ne '';
 	add_ijump $chainref, j => $target, d => '224.0.0.0/4';
     } else {
-	log_rule_limit $level, $chainref, 'dropBcast' , 'DROP', '', $tag, 'add', join( ' ', ' -d' , IPv6_MULTICAST . ' ' ) if $level ne '';
+	log_irule_limit( $level, $chainref, 'dropBcast' , 'DROP', [], $tag, 'add', d => IPv6_MULTICAST ) if $level ne '';
 	add_ijump $chainref, j => $target, d => IPv6_MULTICAST;
     }
 }
@@ -1480,8 +1514,8 @@ sub allowBcast( $$$$ ) {
 
     if ( $family == F_IPV4 && have_capability( 'ADDRTYPE' ) ) {
 	if ( $level ne '' ) {
-	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -m addrtype --dst-type BROADCAST ';
-	    log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ';
+	    log_irule_limit( $level, $chainref, 'allowBcast' , 'ACCEPT', [], $tag, 'add', addrtype => '--dst-type BROADCAST' );
+	    log_irule_limit( $level, $chainref, 'allowBcast' , 'ACCEPT', [], $tag, 'add', d => '224.0.0.0/4' );
 	}
 
 	add_ijump $chainref, j => $target, addrtype => '--dst-type BROADCAST';
@@ -1493,17 +1527,17 @@ sub allowBcast( $$$$ ) {
 	}
 
 	incr_cmd_level $chainref;
-	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d $address ' if $level ne '';
+	log_irule_limit( $level, $chainref, 'allowBcast' , 'ACCEPT', [], $tag, 'add', d => '$address' ) if $level ne '';
 	add_ijump $chainref, j => $target, d => '$address';
 	decr_cmd_level $chainref;
 	add_commands $chainref, 'done';
     }
 
     if ( $family == F_IPV4 ) {
-	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d 224.0.0.0/4 ' if $level ne '';
+	log_irule_limit( $level, $chainref, 'allowBcast' , 'ACCEPT', [], $tag, 'add', d => '224.0.0.0/4' ) if $level ne '';
 	add_ijump $chainref, j => $target, d => '224.0.0.0/4';
     } else {
-	log_rule_limit $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add', ' -d ' . IPv6_MULTICAST . ' ' if $level ne '';
+	log_irule_limit( $level, $chainref, 'allowBcast' , 'ACCEPT', '', $tag, 'add',  d => IPv6_MULTICAST ) if $level ne '';
 	add_ijump $chainref, j => $target, d => IPv6_MULTICAST;
     }
 }
@@ -1513,7 +1547,7 @@ sub dropNotSyn ( $$$$ ) {
 
     my $target = require_audit( 'DROP', $audit );
 
-    log_rule_limit $level, $chainref, 'dropNotSyn' , 'DROP', '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
+    log_irule_limit( $level, $chainref, 'dropNotSyn' , 'DROP', [], $tag, 'add', p => '6 ! --syn' ) if $level ne '';
     add_ijump $chainref , j => $target, p => '6 ! --syn';
 }
 
@@ -1528,7 +1562,7 @@ sub rejNotSyn ( $$$$ ) {
 	$target = require_audit( 'REJECT' , $audit );
     }
 
-    log_rule_limit $level, $chainref, 'rejNotSyn' , 'REJECT', '', $tag, 'add', '-p 6 ! --syn ' if $level ne '';
+    log_irule_limit( $level, $chainref, 'rejNotSyn' , 'REJECT', [], $tag, 'add', p => '6 ! --syn' ) if $level ne '';
     add_ijump $chainref , j => $target, p => '6 ! --syn';
 }
 
@@ -1544,8 +1578,8 @@ sub allowinUPnP ( $$$$ ) {
     my $target = require_audit( 'ACCEPT', $audit );
 
     if ( $level ne '' ) {
-	log_rule_limit $level, $chainref, 'allowinUPnP' , 'ACCEPT', '', $tag, 'add', '-p 17 --dport 1900 ';
-	log_rule_limit $level, $chainref, 'allowinUPnP' , 'ACCEPT', '', $tag, 'add', '-p 6 --dport 49152 ';
+	log_irule_limit( $level, $chainref, 'allowinUPnP' , 'ACCEPT', [], $tag, 'add', p => '17 --dport 1900' );
+	log_irule_limit( $level, $chainref, 'allowinUPnP' , 'ACCEPT', [], $tag, 'add', p => '6 --dport 49152' );
     }
 
     add_ijump $chainref, j => $target, p => '17 --dport 1900';
@@ -1576,11 +1610,13 @@ sub Limit( $$$$ ) {
 
     require_capability( 'RECENT_MATCH' , 'Limit rules' , '' );
 
+    warning_message "The Limit action is deprecated in favor of per-IP rate limiting using the RATE LIMIT column";
+
     add_irule $chainref, recent => "--name $set --set";
 
     if ( $level ne '' ) {
 	my $xchainref = new_chain 'filter' , "$chainref->{name}%";
-	log_rule_limit $level, $xchainref, $param[0], 'DROP', '', $tag, 'add', '';
+	log_irule_limit( $level, $xchainref, $param[0], 'DROP', [], $tag, 'add' );
 	add_ijump $xchainref, j => 'DROP';
 	add_ijump $chainref,  j => $xchainref, recent => "--name $set --update --seconds $param[2] --hitcount $count";
     } else {
@@ -2097,11 +2133,11 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
     if ( $basictarget eq 'INLINE' ) {
 	my $inline_matches = get_inline_matches;
 
-	if ( $inline_matches =~ /^(.*\s+)-j\s+(.+) $/ ) {
-	    $raw_matches .= $1;
+	if ( $inline_matches =~ /^(.*\s+)?-j\s+(.+) $/ ) {
+	    $raw_matches .= $1 if supplied $1;
 	    $action = $2;
 	    my ( $target ) = split ' ', $action;
-	    fatal_error "Unknown jump target ($action)" unless $targets{$target};
+	    fatal_error "Unknown jump target ($action)" unless $targets{$target} || $target eq 'MARK';
 	    fatal_error "INLINE may not have a parameter when '-j' is specified in the free-form area" if $param ne '';
 	} else {
 	    $raw_matches .= $inline_matches;
@@ -2367,7 +2403,11 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	#
 	# If we are processing an inline action, we need the source zone for NAT.
 	#
-	$sourceref = find_zone( $chainref->{sourcezone} ) if $chainref->{sourcezone}; 
+	$sourceref = find_zone( $chainref->{sourcezone} ) if $chainref->{sourcezone};
+	#
+	# And we need the dest zone for local/loopback/off-firewall/destonly checks
+	#
+	$destref   = find_zone( $chainref->{destzone}   ) if $chainref->{destzone};
     } else {
 	unless ( $actiontype & NATONLY ) {
 	    #
@@ -2385,6 +2425,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	    # Ensure that the chain exists but don't mark it as referenced until after optimization is checked
 	    #
 	    ( $chainref  = ensure_chain( 'filter', $chain ) )->{sourcezone} = $sourcezone;
+	    $chainref->{destzone} = $destzone;
 
 	    my $policy = $chainref->{policy};
 
@@ -2393,7 +2434,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		fatal_error "Rules may not override a NONE policy";
 	    }
 	    #
-	    # Handle Optimization
+	    # Handle Optimization level 1 when specified alone
 	    #
 	    if ( $optimize == 1 && $section == NEW_SECTION ) {
 		my $loglevel = $filter_table->{$chainref->{policychain}}{loglevel};
@@ -2423,6 +2464,18 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 
 		$chain    = $auxchain;
 		$chainref = $auxref;
+	    }
+	}
+    }
+    #
+    # Handle 'local/loopback' warnings
+    #
+    unless ( $wildcard ) {
+	if ( $sourceref ) {
+	    warning_message( "The SOURCE zone in this rule is 'destonly'" ) if $sourceref->{destonly};
+
+	    if ( $destref ) {
+		warning_message( "\$FW to \$FW rules are ignored when there is a defined 'loopback' zone" ) if loopback_zones && $sourceref->{type} == FIREWALL && $destref->{type} == FIREWALL;
 	    }
 	}
     }
@@ -2562,7 +2615,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	     }
 
 	fatal_error "$basictarget rules are not allowed in the $section_rmap{$section} SECTION" if $actiontype & ( NATRULE | NONAT );
-	$rule .= "$globals{STATEMATCH} ESTABLISHED " if $section == ESTABLISHED_SECTION;
+	$rule .= state_match('ESTABLISHED') if $section == ESTABLISHED_SECTION;
     }
     #
     # Generate CT rules(s), if any
@@ -2605,6 +2658,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 				     $source,
 				     ( $actiontype & ACTION ) ? '' : $loglevel,
 				     $log_action,
+				     $wildcard
 				   );
 
 	#
@@ -2642,7 +2696,8 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 			   $chain,
 			   $loglevel,
 			   $log_action,
-			   $rule
+			   $rule,
+			   $wildcard
 			 );
     }
 
@@ -2668,6 +2723,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 
 	verify_audit( $action ) if $actiontype & AUDIT;
 
+	
 	expand_rule( $chainref ,
 		     $restriction ,
 		     '' ,
@@ -2678,7 +2734,8 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		     $action ,
 		     $loglevel ,
 		     $log_action ,
-		     '' );
+		     '' )
+	    unless unreachable_warning( $wildcard || $section == DEFAULTACTION_SECTION, $chainref );
     }
 
     delete $usedactions{$normalized_target} if $delete_action;
@@ -2798,6 +2855,8 @@ sub perl_action_helper($$;$) {
     assert( $chainref );
 
     $matches .= ' ' unless $matches =~ /^(?:.+\s)?$/;
+
+    set_inline_matches $matches if $target =~ /^INLINE(?::.*)?$/;
 
     if ( $isstatematch ) {
 	if ( $statematch ) {

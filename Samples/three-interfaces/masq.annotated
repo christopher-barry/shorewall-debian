@@ -49,7 +49,7 @@
 # 
 #             eth0(Avvanta)
 # 
-#     In that case, you will want to specify the interfaces's address for that
+#     In that case, you will want to specify the interface's address for that
 #     provider in the ADDRESS column.
 # 
 #     The interface may be qualified by adding the character ":" followed by a
@@ -89,7 +89,7 @@
 # 
 # SOURCE (Formerly called SUBNET) - {interface|address[,address][exclusion]}
 # 
-#     Set of hosts that you wish to masquerade. You can specify this as an
+#     Set of hosts that you wish to masquerade. You can specify this as an 
 #     address (net or host) or as an interface (use of an interface is
 #     deprecated). If you give the name of an interface, the interface must be up
 #     before you start the firewall and the Shorewall rules compiler will warn
@@ -122,7 +122,7 @@
 #     You may follow the port range (or :random) with :persistent. This is only
 #     useful when an address range is specified and causes a client to be given
 #     the same source/destination IP pair. This feature replaces the SAME
-#     modifier which was removed from Shorewall in version 4.4.0. Unlike random,
+#     modifier which was removed from Shorewall in version 4.4.0. Unlike random, 
 #     persistent may not be used by itself.
 # 
 #     You may also use the special value "detect" which causes Shorewall to
@@ -301,7 +301,7 @@
 # 
 #     Switch settings are retained over shorewall restart.
 # 
-#     Beginning with Shoreawll 4.5.10, when the switch-name is followed by =0 or
+#     Beginning with Shorewall 4.5.10, when the switch-name is followed by =0 or
 #     =1, then the switch is initialized to off or on respectively by the start
 #     command. Other commands do not affect the switch setting.
 # 
@@ -371,7 +371,7 @@
 # 
 # Example 6:
 # 
-#     Connections leaving on eth0 and destined to any host defined in the ipset
+#     Connections leaving on eth0 and destined to any host defined in the ipset 
 #     myset should have the source IP address changed to 206.124.146.177.
 # 
 #             #INTERFACE              SOURCE          ADDRESS

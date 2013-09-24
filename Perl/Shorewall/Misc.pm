@@ -46,7 +46,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_16';
+our $VERSION = '4.5_20';
 
 our $family;
 
@@ -832,11 +832,12 @@ sub add_common_rules ( $ ) {
     }
 
     for $interface ( all_real_interfaces ) {
-	ensure_chain( 'filter', $_ ) for first_chains( $interface ), output_chain( $interface ), option_chains( $interface ), output_option_chain( $interface );
+	ensure_chain( 'filter', $_ )->{origin} = interface_origin( $interface )
+	    for first_chains( $interface ), output_chain( $interface ), option_chains( $interface ), output_option_chain( $interface );
 
 	my $interfaceref = find_interface $interface;
 
-	unless ( $interfaceref->{options}{ignore} & NO_SFILTER || $interfaceref->{options}{rpfilter} ) {
+	unless ( $interfaceref->{options}{ignore} & NO_SFILTER || $interfaceref->{options}{rpfilter} || $interfaceref->{physical} eq 'lo' ) {
 
 	    my @filters = @{$interfaceref->{filter}};
 
@@ -860,7 +861,7 @@ sub add_common_rules ( $ ) {
 
 	    for ( option_chains( $interface ) ) {
 		add_ijump( $filter_table->{$_}, j => $dynamicref, @state ) if $dynamicref;
-		add_ijump( $filter_table->{$_}, j => 'ACCEPT', state_imatch $faststate ) if $config{FASTACCEPT};
+		add_ijump( $filter_table->{$_}, j => 'ACCEPT', state_imatch $faststate )->{comment} = '' if $config{FASTACCEPT};
 	    }
 	}
     }
@@ -926,14 +927,13 @@ sub add_common_rules ( $ ) {
 	if ( supplied $config{SMURF_LOG_LEVEL} ) {
 	    my $smurfref = new_chain( 'filter', 'smurflog' );
 
-	    log_rule_limit( $config{SMURF_LOG_LEVEL},
-			    $smurfref,
-			    'smurfs' ,
-			    'DROP',
-			    $globals{LOGLIMIT},
-			    '',
-			    'add',
-			    '' );
+	    log_irule_limit( $config{SMURF_LOG_LEVEL},
+			     $smurfref,
+			     'smurfs' ,
+			     'DROP',
+			     $globals{LOGILIMIT},
+			     '',
+			     'add' );
 	    add_ijump( $smurfref, j => 'AUDIT', targetopts => '--type drop' ) if $smurfdest eq 'A_DROP';
 	    add_ijump( $smurfref, j => 'DROP' );
 
@@ -1334,7 +1334,7 @@ sub setup_mac_lists( $ ) {
 
 	    run_user_exit2( 'maclog', $chainref );
 
-	    log_rule_limit $level, $chainref , $chain , $disposition, '', '', 'add', '' if $level ne '';
+	    log_irule_limit $level, $chainref , $chain , $disposition, [], '', 'add' if $level ne '';
 	    add_ijump $chainref, j => $target;
 	}
     }
@@ -1423,11 +1423,14 @@ sub generate_source_rules( $$$;@ ) {
 # Loopback traffic -- this is where we assemble the intra-firewall chains
 #
 sub handle_loopback_traffic() {
-    my @zones   = ( vserver_zones, firewall_zone );
-    my $natout  = $nat_table->{OUTPUT};
-    my $rawout  = $raw_table->{OUTPUT};
-    my $rulenum = 0;
+    my @zones    = ( vserver_zones, firewall_zone );
+    my $natout   = $nat_table->{OUTPUT};
+    my $rawout   = $raw_table->{OUTPUT};
+    my $rulenum  = 0;
+    my $loopback = loopback_zones;
+    my $loref    = known_interface('lo');
 
+    my $unmanaged;
     my $outchainref;
     my @rule;
 
@@ -1441,8 +1444,13 @@ sub handle_loopback_traffic() {
 	#
 	# Only the firewall -- just use the OUTPUT chain
 	#
-	$outchainref = $filter_table->{OUTPUT};
-	@rule = ( o => 'lo');
+	if ( $unmanaged = $loref && $loref->{options}{unmanaged} ) {
+	    add_ijump( $filter_table->{INPUT},  j => 'ACCEPT', i => 'lo' );
+	    add_ijump( $filter_table->{OUTPUT}, j => 'ACCEPT', o => 'lo' );
+	} else {
+	    $outchainref = $filter_table->{OUTPUT};
+	    @rule = ( o => 'lo');
+	}
     }
 
     for my $z1 ( @zones ) {
@@ -1455,8 +1463,9 @@ sub handle_loopback_traffic() {
 	#
 	if ( $type1 == FIREWALL ) {
 	    for my $z2 ( @zones ) {
-		my $chain = rules_target( $z1, $z2 );
+		next if $z1 eq $z2 && ( $loopback || $unmanaged );
 
+		my $chain = rules_target( $z1, $z2 );
 		generate_dest_rules( $outchainref, $chain, $z2, @rule ) if $chain;
 	    }
 	    #
@@ -1517,9 +1526,9 @@ sub add_interface_jumps {
     our %input_jump_added;
     our %output_jump_added;
     our %forward_jump_added;
-    my  $lo_jump_added = 0;
     my @interfaces = grep $_ ne '%vserver%', @_;
     my $dummy;
+    my $lo_jump_added = interface_zone( 'lo' ) && ! get_interface_option( 'lo', 'destonly' );
     #
     # Add Nat jumps
     #
@@ -1627,6 +1636,8 @@ sub handle_complex_zone( $$ ) {
 	    my $sourcechainref = $filter_table->{forward_chain $interface};
 	    my @interfacematch;
 	    my $interfaceref = find_interface $interface;
+
+	    next if $interfaceref->{options}{destonly};
 
 	    if ( use_forward_chain( $interface, $sourcechainref ) ) {
 		#
@@ -2076,7 +2087,7 @@ sub optimize1_zones( $$@ ) {
 # nat-table rules.
 #
 sub generate_matrix() {
-    my @interfaces = ( all_interfaces );
+    my @interfaces = ( managed_interfaces );
     #
     # Should this be the real PREROUTING chain?
     #
@@ -2116,6 +2127,7 @@ sub generate_matrix() {
 	my $nested           = @{$zoneref->{parents}};
 	my $parenthasnat     = 0;
 	my $parenthasnotrack = 0;
+	my $type             = $zoneref->{type};
 	#
 	# Create the zone's dnat chain
 	#
@@ -2191,6 +2203,7 @@ sub generate_matrix() {
 	    #
 	    for my $zone1 ( @dest_zones ) {
 		my $zone1ref = find_zone( $zone1 );
+		my $type1    = $zone1ref->{type};
 
 		next if $filter_table->{rules_chain( ${zone}, ${zone1} )}->{policy}  eq 'NONE';
 
@@ -2204,7 +2217,7 @@ sub generate_matrix() {
 		    next if ( $num_ifaces = scalar( keys ( %{$zoneref->{interfaces}} ) ) ) < 2 && ! $zoneref->{options}{in_out}{routeback};
 		}
 
-		if ( $zone1ref->{type} & BPORT ) {
+		if ( $type1 & BPORT ) {
 		    next unless $zoneref->{bridge} eq $zone1ref->{bridge};
 		}
 
@@ -2243,17 +2256,23 @@ sub generate_matrix() {
 
     add_interface_jumps @interfaces unless $interface_jumps_added;
 
-    my %builtins = ( mangle => [ qw/PREROUTING INPUT FORWARD POSTROUTING/ ] ,
-		     nat=>     [ qw/PREROUTING OUTPUT POSTROUTING/ ] ,
-		     filter=>  [ qw/INPUT FORWARD OUTPUT/ ] );
-
     unless ( $config{COMPLETE} ) {
+	for ( unmanaged_interfaces ) {
+	    my $physical = get_physical $_;
+	    add_ijump( $filter_table->{INPUT},  j => 'ACCEPT', i => $physical );
+	    add_ijump( $filter_table->{OUTPUT}, j => 'ACCEPT', o => $physical );
+	}
+
 	complete_standard_chain $filter_table->{INPUT}   , 'all' , firewall_zone , 'DROP';
 	complete_standard_chain $filter_table->{OUTPUT}  , firewall_zone , 'all', 'REJECT';
 	complete_standard_chain $filter_table->{FORWARD} , 'all' , 'all', 'REJECT';
     }
 
     if ( $config{LOGALLNEW} ) {
+	my %builtins = ( mangle => [ qw/PREROUTING INPUT FORWARD POSTROUTING/ ] ,
+			 nat=>     [ qw/PREROUTING OUTPUT POSTROUTING/ ] ,
+			 filter=>  [ qw/INPUT FORWARD OUTPUT/ ] );
+
 	for my $table ( qw/mangle nat filter/ ) {
 	    for my $chain ( @{$builtins{$table}} ) {
 		log_rule_limit
@@ -2264,7 +2283,7 @@ sub generate_matrix() {
 		    '' ,
 		    '' ,
 		    'insert' ,
-		    "$globals{STATEMATCH} NEW ";
+		    state_match('NEW');
 	    }
 	}
     }
@@ -2435,7 +2454,7 @@ EOF
     #
     # Enable automatic helper association on kernel 3.5.0 and later
     #
-    if [ -f /proc/sys/net/netfilter/nf_conntrack_helper ]; then
+    if [ $COMMAND = clear -a -f /proc/sys/net/netfilter/nf_conntrack_helper ]; then
         echo 1 > /proc/sys/net/netfilter/nf_conntrack_helper
     fi
 

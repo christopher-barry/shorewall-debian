@@ -29,8 +29,8 @@
 # MAC - address
 # 
 #     MAC address of the host -- you do not need to use the Shorewall format for
-#     MAC addresses here. If IP ADDRESSESES is supplied then MAC can be supplied
-#     as a dash (-)
+#     MAC addresses here. If IP ADDRESSES is supplied then MAC can be supplied as
+#     a dash (-)
 # 
 # IP ADDRESSES (addresses) - [address[,address]...]
 # 
