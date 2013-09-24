@@ -65,6 +65,7 @@ startup_error() # $* = Error Message
 	esac
     fi
 
+    mutex_off
     kill $$
     exit 2
 }
@@ -272,8 +273,11 @@ shorewall6_is_started() {
 # Echos the fully-qualified name of the calling shell program
 #
 my_pathname() {
+    local pwd
+    pwd=$PWD
     cd $(dirname $0)
     echo $PWD/$(basename $0)
+    cd $pwd
 }
 
 #
