@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '4.5.16.1'
+    VERSION => '4.5.20'
 };
 
 my %params;
@@ -55,6 +55,26 @@ for ( @ARGV ) {
 my $vendor = $params{HOST};
 my $rcfile;
 my $rcfilename;
+
+unless ( defined $vendor ) {
+    if ( -f '/etc/os-release' ) {
+	my $id = `cat /etc/os-release | grep ^ID`;
+
+	chomp $id;
+
+	$id =~ s/ID=//;
+	
+	if ( $id eq 'fedora' ) {
+	    $vendor = 'redhat';
+	} elsif ( $id eq 'opensuse' ) {
+	    $vendor = 'suse';
+	} else {
+	    $vendor = $id;
+	}
+    }
+
+    $params{HOST} = $vendor;
+}
 
 if ( defined $vendor ) {
     $rcfilename = $vendor eq 'linux' ? 'shorewallrc.default' : 'shorewallrc.' . $vendor;
@@ -146,6 +166,7 @@ for ( qw/ HOST
 	  AUXINITSOURCE
 	  AUXINITFILE
 	  SYSTEMD
+          SERVICEFILE
 	  SYSCONFFILE
 	  SYSCONFDIR
 	  SPARSE
