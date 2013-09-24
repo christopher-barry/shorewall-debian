@@ -1,8 +1,6 @@
 %define name shorewall6-lite
-%define version 4.5.16
-%define release 1
-%define version 4.5.16
-%define release 1
+%define version 4.5.20
+%define release 0base
 
 Summary: Shoreline Firewall 6 Lite is an ip6tables-based firewall for Linux systems.
 Name: %{name}
@@ -97,6 +95,52 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Sun Aug 18 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0base
+* Sun Aug 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0RC1
+* Tue Aug 06 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0Beta3
+* Mon Jul 29 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0Beta2
+* Mon Jul 22 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.20-0Beta1
+* Sun Jul 21 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0base
+* Mon Jul 15 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0RC1
+* Thu Jul 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0Beta3
+* Mon Jul 08 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0Beta2
+* Mon Jul 01 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.19-0Beta1
+* Thu Jun 27 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0base
+* Mon Jun 24 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0RC2
+* Mon Jun 17 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0RC1
+* Tue Jun 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0Beta3
+* Tue Jun 04 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0Beta2
+* Thu May 30 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.18-0Beta1
+* Mon May 27 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0base
+* Sun May 26 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0RC2
+* Wed May 22 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0RC1
+* Sun May 12 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0Beta3
+* Sat May 11 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0Beta2
+* Tue May 07 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.17-0Beta1
+* Wed May 01 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.5.16-2
 * Wed May 01 2013 Tom Eastep tom@shorewall.net
 - Updated to 4.5.16-1
 * Tue Apr 30 2013 Tom Eastep tom@shorewall.net

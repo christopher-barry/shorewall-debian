@@ -335,7 +335,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-b</option></arg>
 
@@ -357,7 +357,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-f</option></arg>
 
@@ -371,10 +371,10 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg
-      choice="req"><option>classifiers|connections|config|filters|ip|ipa|zones|policies|marks</option></arg>
+      choice="req"><option>classifiers|connections|config|events|filters|ip|ipa|zones|policies|marks</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -384,7 +384,20 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
+
+      <arg choice="plain"><option>event</option><arg
+      choice="plain"><replaceable>event</replaceable></arg></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-x</option></arg>
 
@@ -398,7 +411,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg choice="plain"><option>tc</option></arg>
     </cmdsynopsis>
@@ -410,7 +423,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>show</option></arg>
+      <arg choice="opt"><option>show | list | ls </option></arg>
 
       <arg><option>-m</option></arg>
 
@@ -492,9 +505,9 @@
     url="shorewall.conf.html">shorewall6.conf</ulink>(5). Each <emphasis
     role="bold">v</emphasis> adds one to the effective verbosity and each
     <emphasis role="bold">q</emphasis> subtracts one from the effective
-    VERBOSITY. Anternately, <emphasis role="bold">v</emphasis> may be followed
+    VERBOSITY. Alternately, <emphasis role="bold">v</emphasis> may be followed
     immediately with one of -1,0,1,2 to specify a specify VERBOSITY. There may
-    be no white space between <emphasis role="bold">v</emphasis> and the
+    be no white-space between <emphasis role="bold">v</emphasis> and the
     VERBOSITY.</para>
 
     <para>The <emphasis>options</emphasis> may also include the letter
@@ -630,7 +643,7 @@
         <term><emphasis role="bold">forget</emphasis></term>
 
         <listitem>
-          <para>Deletes /var/lib/shorewall6-lite/<emphasis>filenam</emphasis>e
+          <para>Deletes /var/lib/shorewall6-lite/<emphasis>filename</emphasis>
           and /var/lib/shorewall6-lite/save. If no
           <emphasis>filename</emphasis> is given then the file specified by
           RESTOREFILE in <ulink
@@ -688,7 +701,7 @@
           and raw table PREROUTING chains.</para>
 
           <para>The trace records are written to the kernel's log buffer with
-          faciility = kernel and priority = warning, and they are routed from
+          facility = kernel and priority = warning, and they are routed from
           there by your logging daemon (syslogd, rsyslog, syslog-ng, ...) --
           shorewall6-lite has no control over where the messages go; consult
           your logging daemon's documentation.</para>
@@ -745,7 +758,7 @@
 
           <para>The <replaceable>iptables match expression</replaceable> must
           be one given in the <command>iptrace</command> command being
-          cancelled.</para>
+          canceled.</para>
         </listitem>
       </varlistentry>
 
@@ -873,7 +886,7 @@
               <term><emphasis role="bold">config</emphasis></term>
 
               <listitem>
-                <para>Dispays distribution-specific defaults.</para>
+                <para>Displays distribution-specific defaults.</para>
               </listitem>
             </varlistentry>
 
@@ -883,6 +896,24 @@
               <listitem>
                 <para>Displays the IP connections currently being tracked by
                 the firewall.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">event</emphasis><replaceable>
+              event</replaceable></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.19. Displays the named
+                event.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">events</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.19. Displays all events.</para>
               </listitem>
             </varlistentry>
 
@@ -1054,9 +1085,20 @@
   </refsect1>
 
   <refsect1>
-    <title>FILES</title>
+    <title>EXIT STATUS</title>
 
-    <para>/etc/shorewall6-lite/</para>
+    <para>In general, when a command succeeds, status 0 is returned; when the
+    command fails, a non-zero status is returned.</para>
+
+    <para>The <command>status</command> command returns exit status as
+    follows:</para>
+
+    <para>0 - Firewall is started.</para>
+
+    <para>3 - Firewall is stopped or cleared</para>
+
+    <para>4 - Unknown state; usually means that the firewall has never been
+    started.</para>
   </refsect1>
 
   <refsect1>
