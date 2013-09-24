@@ -1,8 +1,9 @@
 shorewall6 (4.5.20-1) unstable; urgency=low
 
   * New Upstream Version
+  * Update to Standards-Version 3.9.4 (no changes)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 24 Sep 2013 19:30:16 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 24 Sep 2013 19:31:21 -0400
 
 shorewall6 (4.5.16.1-1) unstable; urgency=low
 
