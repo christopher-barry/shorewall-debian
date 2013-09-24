@@ -50,16 +50,16 @@ echo_notdone () {
 }
 
 not_configured () {
-	echo "#### WARNING ####"
-	echo "the firewall won't be initialized unless it is configured"
-	if [ "$1" != "stop" ]
-	then
-		echo ""
-		echo "Please read about Debian specific customization in"
-		echo "/usr/share/doc/shorewall-init/README.Debian.gz."
-	fi
-	echo "#################"
-	exit 0
+    echo "#### WARNING ####"
+    echo "the firewall won't be initialized unless it is configured"
+    if [ "$1" != "stop" ]
+    then
+	echo ""
+	echo "Please read about Debian specific customization in"
+	echo "/usr/share/doc/shorewall-init/README.Debian.gz."
+    fi
+    echo "#################"
+    exit 0
 }
 
 # set the STATEDIR variable
@@ -71,10 +71,8 @@ setstatedir() {
 
     [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARDIR}/${PRODUCT}
 
-    if [ ! -x $STATEDIR/firewall ]; then
-	if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-	    ${SBINDIR}/$PRODUCT compile
-	fi
+    if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+	${SBINDIR}/$PRODUCT compile -c || echo_notdone
     fi
 }
 
@@ -83,18 +81,16 @@ setstatedir() {
 #
 . /usr/share/shorewall/shorewallrc
 
-vardir=$VARDIR
-
 # check if shorewall-init is configured or not
 if [ -f "$SYSCONFDIR/shorewall-init" ]
 then
-	. $SYSCONFDIR/shorewall-init
-	if [ -z "$PRODUCTS" ]
-	then
-		not_configured
-	fi
-else
+    . $SYSCONFDIR/shorewall-init
+    if [ -z "$PRODUCTS" ]
+    then
 	not_configured
+    fi
+else
+    not_configured
 fi
 
 # Initialize the firewall
@@ -103,24 +99,23 @@ shorewall_start () {
   local STATEDIR
 
   echo -n "Initializing \"Shorewall-based firewalls\": "
+
   for PRODUCT in $PRODUCTS; do
       setstatedir
 
-      if [ ! -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-	      ${SBINDIR}/$PRODUCT compile
-	  fi
-      fi
-
-      if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  #
+      if [ -x ${STATEDIR}/$PRODUCT/firewall ]; then
+          #
 	  # Run in a sub-shell to avoid name collisions
 	  #
 	  ( 
-	      if ! ${VARDIR}/$PRODUCT/firewall status > /dev/null 2>&1; then
-		  ${VARDIR}/$PRODUCT/firewall stop || echo_notdone
+	      if ! ${STATEDIR}/$PRODUCT/firewall status > /dev/null 2>&1; then
+		  ${STATEDIR}/$PRODUCT/firewall stop || echo_notdone
+	      else
+		  echo_notdone
 	      fi
 	  )
+      else
+	  echo echo_notdone
       fi
   done
 
@@ -132,20 +127,14 @@ shorewall_start () {
 # Clear the firewall
 shorewall_stop () {
   local PRODUCT
-  local VARDIR
+  local STATEDIR
 
   echo -n "Clearing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
       setstatedir
 
-      if [ ! -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
-	      ${SBINDIR}/$PRODUCT compile
-	  fi
-      fi
-
-      if [ -x ${VARDIR}/$PRODUCT/firewall ]; then
-	  ${VARDIR}/$PRODUCT/firewall clear || echo_notdone
+      if [ -x ${STATEDIR}/$PRODUCT/firewall ]; then
+	  ${STATEDIR}/$PRODUCT/firewall clear || echo_notdone
       fi
   done
 
@@ -164,7 +153,7 @@ case "$1" in
   reload|force-reload)
      ;;
   *)
-     echo "Usage: /etc/init.d/shorewall-init {start|stop|reload|force-reload}"
+     echo "Usage: $0 {start|stop|reload|force-reload}"
      exit 1
 esac
 

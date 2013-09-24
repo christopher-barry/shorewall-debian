@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.16.1
+VERSION=4.5.20
 
 usage() # $1 = exit status
 {
@@ -182,7 +182,24 @@ if [ -z "$BUILD" ]; then
 	    BUILD=apple
 	    ;;
 	*)
-	    if [ -f /etc/debian_version ]; then
+	    if [ -f /etc/os-release ]; then
+		eval $(cat /etc/os-release | grep ^ID)
+
+		case $ID in
+		    fedora)
+			BUILD=redhat
+			;;
+		    debian)
+			BUILD=debian
+			;;
+		    opensuse)
+			BUILD=suse
+			;;
+		    *)
+			BUILD="$ID"
+			;;
+		esac
+	    elif [ -f /etc/debian_version ]; then
 		BUILD=debian
 	    elif [ -f /etc/redhat-release ]; then
 		BUILD=redhat
@@ -222,7 +239,7 @@ case "$HOST" in
     debian)
 	echo "Installing Debian-specific configuration..."
 	;;
-    redhat|redhat)
+    redhat)
 	echo "Installing Redhat/Fedora-specific configuration..."
 	;;
     slackware)
@@ -233,7 +250,7 @@ case "$HOST" in
 	echo "Shorewall-init is currently not supported on Arch Linux" >&2
 	exit 1
 	;;
-    suse|suse)
+    suse)
 	echo "Installing SuSE-specific configuration..."
 	;;
     linux)
@@ -291,9 +308,10 @@ fi
 #
 if [ -n "$SYSTEMD" ]; then
     mkdir -p ${DESTDIR}${SYSTEMD}
-    run_install $OWNERSHIP -m 600 shorewall-init.service ${DESTDIR}${SYSTEMD}/shorewall-init.service
-    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/shorewall-init.service
-    echo "Service file installed as ${DESTDIR}${SYSTEMD}/shorewall-init.service"
+    [ -z "$SERVICEFILE" ] && SERVICEFILE=$PRODUCT.service
+    run_install $OWNERSHIP -m 600 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
+    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
+    echo "Service file $SERVICEFILE installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
     if [ -n "$DESTDIR" ]; then
 	mkdir -p ${DESTDIR}${SBINDIR}
         chmod 755 ${DESTDIR}${SBINDIR}

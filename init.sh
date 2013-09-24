@@ -85,7 +85,7 @@ shorewall_start () {
 
       if [ -x ${STATEDIR}/firewall ]; then
 	  if ! ${SBIN}/$PRODUCT status > /dev/null 2>&1; then
-	      ${STATEDIR}/firewall stop || echo_notdone
+	      ${STATEDIR}/firewall stop || exit 1
 	  fi
       fi
   done
@@ -100,20 +100,20 @@ shorewall_start () {
 # Clear the firewall
 shorewall_stop () {
   local PRODUCT
-  local VARDIR
+  local STATEDIR
 
   echo -n "Clearing \"Shorewall-based firewalls\": "
   for PRODUCT in $PRODUCTS; do
       setstatedir
 
-      if [ ! -x ${VARDIR}/firewall ]; then
+      if [ ! -x ${STATEDIR}/firewall ]; then
 	  if [ $PRODUCT = shorewall -o $product = shorewall6 ]; then
 	      ${SBINDIR}/$PRODUCT compile
 	  fi
       fi
 
-      if [ -x ${VARDIR}/firewall ]; then
-	  ${VARDIR}/firewall clear || exit 1
+      if [ -x ${STATEDIR}/firewall ]; then
+	  ${STATEDIR}/firewall clear || exit 1
       fi
   done
 
