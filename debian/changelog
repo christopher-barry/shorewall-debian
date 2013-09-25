@@ -1,3 +1,9 @@
+shorewall (4.5.20-2) UNRELEASED; urgency=low
+
+  * Remove linux-image from suggests (Closes: #724564)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 25 Sep 2013 06:55:09 -0400
+
 shorewall (4.5.20-1) unstable; urgency=low
 
   * New Upstream Version (Closes: #712282, #686909)
