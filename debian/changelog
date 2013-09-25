@@ -1,3 +1,9 @@
+shorewall-lite (4.5.20-2) UNRELEASED; urgency=low
+
+  * Remove linux-image from suggests
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 25 Sep 2013 06:56:35 -0400
+
 shorewall-lite (4.5.20-1) unstable; urgency=low
 
   * New Upstream Version
