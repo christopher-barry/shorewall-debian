@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	              S H O R E W A L L  4 . 5 . 2 0 
+	             S H O R E W A L L  4 . 5 . 2 1
                    ------------------------------------
-                        A u g u s t  2 5 ,  2 0 1 3
+                      O c t o b e r  0 4 ,  2 0 1 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,18 +14,46 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  On some distributions, the shorewall-lite and shorewall6-lite
-    uninstallers could fail with a syntax error.
+1)  ip[6]tables 1.4.20 introduced an incompatible change that causes
+    the program to fail if there is another instance of either iptables
+    or ip6tables already running. This behavior can be avoided if the
+    new -w option is specified.
 
-2)  A typographical error in the usage text produced by the -h command
-    in the compiled firewall script has been corrected.
+    To work around this problem, the compiler now uses the -w option
+    (when available) during capabilities determination so that
+    shorewall and shorewall6 compilations can proceed in parallel.
 
-3)  The handling of INITSOURCE is now uniform between the standard and
-    the -lite installers.
+2)  Previously, the Shorewall-init installer unconditionally installed
+    the sysconfig file even when a different SYSCONFFILE was specified.
+    (Thomas D).
 
-4)  Previously, when SYSCONFFILE was specified in shorewallrc, the
-    installers would always install default.debian rather than the
-    named file. That has been corrected.
+3)  /sbin/shorewall-init now includes the correct SYSCONFDIR name in
+    its error message that reports the absense of
+    ${SYSCONFDIR}/shorewall-init. (Thomas D).
+
+4)  /sbin/shorewall-init and the Shorewall-init SysV init scripts now
+    honor the setting of $OPTIONS.
+
+5)  The -lite installers now look in ${SHAREDIR} for the coreversion
+    file rather than in /usr/share/.
+
+6)  If a Shorewall-lite installation used an /etc/shorewall-lite/vardir
+    file to set a non-standard state directory, the administrative
+    system would send the firewall and firewall.conf files to the wrong
+    directory on the firewall system.
+
+7)  Previously, the compiler verified 'monthdays' specifications in the
+    rules TIME column, but failed to include --monthdays in the
+    generated rule. That omission has been corrected.
+
+8)  The installers now use 'insserv' on Debian systems to update the
+    SysV init symlinks. Previously, update-rc.d was used but that
+    approach fails on Debian 7.
+
+9)  The Multicast DNS macros (mDNS and mDNSbi) now allow the entire
+    non-priv port range (1024-65535) for the the dynamic unicast
+    port. Previously, only the Linux 2.6+ dynamic port range
+    (32768-65535) were allowed.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -38,44 +66,126 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  A new TRACK_RULES option has been added to shorewall[6].conf. When
-    set to 'Yes', this option causes most rules to be tagged with a
-    comment which gives the configuration file name and line number
-    that caused the rule to be generated. These comments replace any
-    comments added via AUTOCOMMENT=Yes and ?COMMENT entries.
-    
-    Setting this option to 'Yes' requires the 'Comments' capability in
-    your kernel and ip[6]tables.
+1)  When a REJECT target is specified, Shorewall normally handles the
+    packet as follows:
 
-2)  You may now specify 'OPTIMIZE=All' in shorewall[6].conf to enable
-    all optimizations. If new optimization levels are added in the 
-    future, OPTIMIZE=All will automatically enable those optimizations.
+    - If the destination address is a broadcast or multicast address,
+      the packet is dropped.
 
-    For completeness, 'OPTIMIZE=None' disables all optimizations.
+    - If the protocol is IGMP (1), then the packet is dropped.
 
-3)  'list' and 'ls' are now documented alternatives for 'show' in the
-    CLI programs. /sbin/shorewall and /sbin/shorewall6 now accept 'ck'
-    as an abbreviation for 'check' and 'co' as an abbreviation for
-    'compile'.
+    - If the protocol is TCP (6) then the packet is rejected with an
+      RST.
 
-4)  Beginning with this release, if /etc/os-release exists during
-    installation, then the ID setting in that file will be used to
-    determine which Linux distribution is running on the system.
+    - If the protocol is UDP (17) then the packet is rejected with 
+      a 'port-unreachable' ICMP (ICMP6).
 
-5)  The 'status' command now obeys the effective VERBOSITY and will
-    produce no output when the effective VERBOSITY is less than 1.
+    - If the protocol is ICMP (ICMP6), then the packet is rejected
+      with a 'host-unreachable' ('addr-unreachable') ICMP (ICMP6).
 
-6)  The CLI exit status codes are now documented in the manpages
-    (shorewall(8), shorewall6(8), etc.).
+    - Otherwise, the packet is rejected with a 'host-prohibited'
+      (adm-prohibited) ICMP (ICMP6).
 
-7)  Beginning with this release, the shorewallrc file supports a
-    SERVICEFILE variable. SERVICEFILE is only relevant when SERVERD is
-    non-empty, in which case it names the file to be installed as the
-    product's .service file. If SERVERD is specified but SERVICEFILE is
-    not, the assumed value of SERVERFILE is $PRODUCT.service.
+    Beginning with this release, this behavior may be modified using
+    the new REJECT_ACTION option in shorewall.conf (shorewall6.conf).
 
-8)  The ${SBINDIR}/shorewall-init utility will now compile
-    configurations if needed
+    REJECT_ACTION=<action>
+
+    where <action> is the name of an action that implements your
+    alternative handling. The 'nolog' and 'inline' options are
+    automatically assumed for the named <action>.
+
+    The following action implements the standard behavior described
+    above:
+
+    ?format 2
+    #TARGET		SOURCE	DEST	PROTO
+    Broadcast(DROP) 	-	-	-
+    DROP		-	-	2
+    INLINE		-	-	6	; -j REJECT --reject-with tcp-reset
+    ?if __ENHANCED_REJECT
+    INLINE		-	-	17	; -j REJECT
+    ?if __IPV4
+    INLINE		-	-	1	; -j REJECT --reject-with icmp-host-unreachable
+    INLINE		-	-	-	; -j REJECT --reject-with icmp-host-prohibited
+    ?else
+    INLINE		-	-	58	; -j REJECT --reject-with icmp6-addr-unreachable
+    INLINE		-	-	-	; -j REJECT --reject-with icmp6-adm-prohibited
+    ?endif
+    ?else
+    INLINE		-	-	-	; -j REJECT
+    ?endif
+
+2)  In earlier versions, default log levels in shorewall.conf
+    (shorewall6.conf) were not validated, making it difficult to
+    determine what setting was causing the following error message:
+
+       ERROR: Log level INFO requires LOG Target support in your kernel
+       	      and iptables
+
+    This change will make log level errors from shorewall.conf and
+    shorewall6.conf easier to isolate by including the option name.
+
+    Example:
+
+       ERROR: Log level INFO for option SFILTER_LOG_LEVEL requires LOG
+              Target support in your kernel and iptables
+
+3)  The 'shorewall dump' command now uses 'ss' rather than 'netstat' to
+    produce socket-related information. By Martin Gignac.
+
+4)  Thomas D has provided installer support for Gentoo. Thank you
+    Thomas!
+
+5)  The generated firewall script inserts a host route for each
+    provider gateway into both the main routing table and into the
+    provider's routing table. This is necessary on older kernels to
+    avoid failure of default route insertion into the tables.
+
+    It has been discovered, however, that these host routes prevent
+    Zebra from being able to add routes on some distributions, most
+    notably Debian 7.0. To work around this issue, two new provider
+    options are now available:
+
+        hostroute   This is the default and causes the host routes
+        	    described above to be inserted.
+
+        nohostroute Prevents the host routes from being inserted.
+
+6)  It was previously not possible for Perl code in an action file to
+    change the rule comment as is done using the ?COMMENT directive
+    outside of Perl. 
+
+    To allow actions to manipulate the current comment, two functions
+    are made available:
+
+    	push_comment() Clears the current rule comment and returns 
+		       that comment to the caller. 
+
+	set_comment($) Sets the current rule comment to the passed
+		       string.
+
+    Typical usage would be:
+
+        ?BEGIN PERL
+	use Shorewall::Config;
+	...
+	my $oldcomment = push_comment(); #Save and clear current 
+	   	       	 		 #current rule comment
+	...
+	set_comment('This is a comment');
+	add_ijump(....);                 #This rule will have comment
+	    				 # /* This is a comment */
+        set_comment('');                 #Clear current rule comment
+	add_ijump(....);		 #This rule has no comment
+        ...
+	set_comment($oldcomment)	 #Restore caller's comment
+					 #if any.
+	?END PERL
+
+7)  The compiler version used to create the current firewall script is
+    now displayed in the output of the 'status' and 'version -a'
+    commands.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -279,6 +389,66 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  4 . 5  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 2 0
+----------------------------------------------------------------------------
+
+1)  On some distributions, the shorewall-lite and shorewall6-lite
+    uninstallers could fail with a syntax error.
+
+2)  A typographical error in the usage text produced by the -h command
+    in the compiled firewall script has been corrected.
+
+3)  The handling of INITSOURCE is now uniform between the standard and
+    the -lite installers.
+
+4)  Previously, when SYSCONFFILE was specified in shorewallrc, the
+    installers would always install default.debian rather than the
+    named file. That has been corrected.
+
+----------------------------------------------------------------------------
+                 N E W  F E A T U R E S  I N  4 . 5 . 2 0
+----------------------------------------------------------------------------
+
+1)  A new TRACK_RULES option has been added to shorewall[6].conf. When
+    set to 'Yes', this option causes most rules to be tagged with a
+    comment which gives the configuration file name and line number
+    that caused the rule to be generated. These comments replace any
+    comments added via AUTOCOMMENT=Yes and ?COMMENT entries.
+    
+    Setting this option to 'Yes' requires the 'Comments' capability in
+    your kernel and ip[6]tables.
+
+2)  You may now specify 'OPTIMIZE=All' in shorewall[6].conf to enable
+    all optimizations. If new optimization levels are added in the 
+    future, OPTIMIZE=All will automatically enable those optimizations.
+
+    For completeness, 'OPTIMIZE=None' disables all optimizations.
+
+3)  'list' and 'ls' are now documented alternatives for 'show' in the
+    CLI programs. /sbin/shorewall and /sbin/shorewall6 now accept 'ck'
+    as an abbreviation for 'check' and 'co' as an abbreviation for
+    'compile'.
+
+4)  Beginning with this release, if /etc/os-release exists during
+    installation, then the ID setting in that file will be used to
+    determine which Linux distribution is running on the system.
+
+5)  The 'status' command now obeys the effective VERBOSITY and will
+    produce no output when the effective VERBOSITY is less than 1.
+
+6)  The CLI exit status codes are now documented in the manpages
+    (shorewall(8), shorewall6(8), etc.).
+
+7)  Beginning with this release, the shorewallrc file supports a
+    SERVICEFILE variable. SERVICEFILE is only relevant when SERVERD is
+    non-empty, in which case it names the file to be installed as the
+    product's .service file. If SERVERD is specified but SERVICEFILE is
+    not, the assumed value of SERVERFILE is $PRODUCT.service.
+
+8)  The ${SBINDIR}/shorewall-init utility will now compile
+    configurations if needed
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  4 . 5 . 1 9
 ----------------------------------------------------------------------------
