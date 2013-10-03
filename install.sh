@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.20
+VERSION=4.5.21
 
 usage() # $1 = exit status
 {
@@ -204,6 +204,9 @@ if [ -z "$BUILD" ]; then
 		    debian)
 			BUILD=debian
 			;;
+		    gentoo)
+			BUILD=gentoo
+			;;
 		    opensuse)
 			BUILD=suse
 			;;
@@ -213,6 +216,8 @@ if [ -z "$BUILD" ]; then
 		esac
 	    elif [ -f /etc/debian_version ]; then
 		BUILD=debian
+	    elif [ -f /etc/gentoo-release ]; then
+		BUILD=gentoo
 	    elif [ -f /etc/redhat-release ]; then
 		BUILD=redhat
 	    elif [ -f /etc/slackware-version ] ; then
@@ -271,7 +276,7 @@ case "$HOST" in
     apple)
 	echo "Installing Mac-specific configuration...";
 	;;
-    debian|redhat|slackware|archlinux|linux|suse)
+    debian|gentoo|redhat|slackware|archlinux|linux|suse)
 	;;
     *)
 	echo "ERROR: Unknown HOST \"$HOST\"" >&2
@@ -342,7 +347,7 @@ if [ -n "${INITFILE}" ]; then
     if [ -n "$AUXINITSOURCE" -a -f "$AUXINITSOURCE" ]; then
 	install_file $AUXINITSOURCE ${DESTDIR}${INITDIR}/$AUXINITFILE 0544
 	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$AUXINITFILE
-	echo  "$Product script installed in ${DESTDIR}${INITDIR}/$AUXINITFILE"
+	echo  "SysV init script $AUXINITSOURCE installed in ${DESTDIR}${INITDIR}/$AUXINITFILE"
     fi
 fi
 #
