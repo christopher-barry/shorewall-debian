@@ -43,7 +43,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.5_19';
+our $VERSION = '4.5_21';
 
 our $export;
 
@@ -849,6 +849,10 @@ sub compiler {
     # Apply Policies
     #
     apply_policy_rules;
+    #
+    # Reject Action
+    #
+    process_reject_action if $config{REJECT_ACTION};
     #
     # Accounting.
     #

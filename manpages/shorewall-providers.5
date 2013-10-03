@@ -2,12 +2,12 @@
 .\"     Title: shorewall-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 08/26/2013
+.\"      Date: 10/03/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-PROVIDERS" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-PROVIDERS" "5" "10/03/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -233,6 +233,30 @@ Added in Shorewall 4\&.5\&.4\&. Used for supporting the TPROXY action in shorewa
 should be the only OPTION\&. Only one
 \fBtproxy\fR
 provider is allowed\&.
+.RE
+.PP
+\fBhostroute\fR
+.RS 4
+Added in Shorewall 4\&.5\&.21\&. This is the default behavior that results in a host route to the defined
+\fBGATEWAY\fR
+being inserted into the main routing table and into the provider\*(Aqs routing table\&.
+\fBhostroute\fR
+is required for older distributions but
+\fBnohostroute\fR
+(below) is appropriate for recent distributions\&.
+\fBhostroute\fR
+may interfere with Zebra\*(Aqs ability to add routes on some distributions such as Debian 7\&.
+.RE
+.PP
+\fBnohostroute\fR
+.RS 4
+Added in Shorewall 4\&.5\&.21\&. nohostroute inhibits addition of a host route to the defined
+\fBGATEWAY\fR
+being inserted into the main routing table and into the provider\*(Aqs routing table\&.
+\fBnohostroute\fR
+is not appropriate for older distributions but is appropriate for recent distributions\&.
+\fBnohostroute\fR
+allows Zebra\*(Aqs to correctly add routes on some distributions such as Debian 7\&.
 .RE
 .RE
 .PP
