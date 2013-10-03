@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.20
+VERSION=4.5.21
 
 usage() # $1 = exit status
 {
@@ -99,6 +99,8 @@ PRODUCT=shorewall-init
 #
 # Parse the run line
 #
+T='-T'
+
 finished=0
 
 while [ $finished -eq 0 ] ; do
@@ -192,6 +194,9 @@ if [ -z "$BUILD" ]; then
 		    debian)
 			BUILD=debian
 			;;
+		    gentoo)
+			BUILD=gentoo
+			;;
 		    opensuse)
 			BUILD=suse
 			;;
@@ -201,6 +206,8 @@ if [ -z "$BUILD" ]; then
 		esac
 	    elif [ -f /etc/debian_version ]; then
 		BUILD=debian
+	    elif [ -f /etc/gentoo-release ]; then
+		BUILD=gentoo
 	    elif [ -f /etc/redhat-release ]; then
 		BUILD=redhat
 	    elif [ -f /etc/SuSE-release ]; then
@@ -223,7 +230,7 @@ case $BUILD in
     apple)
 	T=
 	;;
-    debian|redhat|suse|slackware|archlinux)
+    debian|gentoo|redhat|suse|slackware|archlinux)
 	;;
     *)
 	[ -n "$BUILD" ] && echo "ERROR: Unknown BUILD environment ($BUILD)" >&2 || echo "ERROR: Unknown BUILD environment"
@@ -238,6 +245,9 @@ OWNERSHIP="-o $OWNER -g $GROUP"
 case "$HOST" in
     debian)
 	echo "Installing Debian-specific configuration..."
+	;;
+    gentoo)
+	echo "Installing Gentoo-specific configuration..."
 	;;
     redhat)
 	echo "Installing Redhat/Fedora-specific configuration..."
@@ -255,6 +265,7 @@ case "$HOST" in
 	;;
     linux)
 	echo "ERROR: Shorewall-init is not supported on this system" >&2
+	exit 1
 	;;
     *)
 	echo "ERROR: Unsupported HOST distribution: \"$HOST\"" >&2
@@ -300,7 +311,7 @@ if [ -n "$INITFILE" ]; then
 	install_file $INITSOURCE ${DESTDIR}${INITDIR}/$AUXINITFILE 0544
     fi
 
-    echo  "Shorewall-init script installed in ${DESTDIR}${INITDIR}/$INITFILE"
+    echo  "SysV init script $INITSOURCE installed in ${DESTDIR}${INITDIR}/$INITFILE"
 fi
 
 #
@@ -317,6 +328,7 @@ if [ -n "$SYSTEMD" ]; then
         chmod 755 ${DESTDIR}${SBINDIR}
     fi
     run_install $OWNERSHIP -m 700 shorewall-init ${DESTDIR}${SBINDIR}/shorewall-init
+    [ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${SBINDIR}/shorewall-init
     echo "CLI installed as ${DESTDIR}${SBINDIR}/shorewall-init"
 fi
 
@@ -371,14 +383,18 @@ else
 	    if [ $HOST = suse ]; then
 		mkdir -p ${DESTDIR}/etc/sysconfig/network/if-up.d
 		mkdir -p ${DESTDIR}${SYSCONFDIR}/network/if-down.d
+	    elif [ $HOST = gentoo ]; then
+		# Gentoo does not support if-{up,down}.d
+		return
 	    else
 		mkdir -p ${DESTDIR}/etc/NetworkManager/dispatcher.d
 	    fi
 	fi
     fi
 
-    if [ -d ${DESTDIR}${SYSCONFDIR} -a ! -f ${DESTDIR}${SYSCONFDIR}/shorewall-init ]; then
-	install_file sysconfig ${DESTDIR}${SYSCONFDIR}/shorewall-init 0644
+    if [ -n "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PRODUCT} ]; then
+	run_install $OWNERSHIP -m 0644 ${SYSCONFFILE} ${DESTDIR}${SYSCONFDIR}/$PRODUCT
+	echo "$SYSCONFFILE installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
     fi
 
     [ $HOST = suse ] && IFUPDOWN=ifupdown.suse.sh || IFUPDOWN=ifupdown.fedora.sh
@@ -437,10 +453,21 @@ esac
 if [ -z "$DESTDIR" ]; then
     if [ -n "$first_install" ]; then
 	if [ $HOST = debian ]; then
-	    
-	    update-rc.d shorewall-init enable
-
-	    echo "Shorewall Init will start automatically at boot"
+	    if mywhich insserv; then
+		if insserv enable; then
+		    echo "Shorewall Init will start automatically at boot"
+		else
+		    cant_autostart
+		fi
+	    elif rc-update add $PRODUCT default; then
+		echo "Shorewall Init will start automatically at boot"
+	    else
+		cant_autostart
+	    fi
+	elif [ $HOST = gentoo ]; then
+	    # On Gentoo, a service must be enabled manually by the user,
+	    # not by the installer
+	    return
 	else
 	    if [ -n "$SYSTEMD" ]; then
 		if systemctl enable shorewall-init.service; then
