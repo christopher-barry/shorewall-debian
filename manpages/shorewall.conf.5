@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 08/26/2013
+.\"      Date: 10/03/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "08/26/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "10/03/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -1725,7 +1725,7 @@ MASK_BITS
 above for default value\&.
 .RE
 .PP
-\fBPROVIDER_OFFSET\fR=[\fInumber\fR]
+\fBPROVIDER_OFFSET\fR=[\fInumber\fR]If
 .RS 4
 Added in Shorewall 4\&.4\&.26\&. The offset from the right (low\-order end) of the provider number field in the 32\-bit packet mark\&. If non\-zero, must be >= TC_BITS (Shorewall automatically adjusts PROVIDER_OFFSET\*(Aqs value)\&. PROVIDER_OFFSET + PROVIDER_BITS + ZONE_BITS must be < 32\&. See
 MASK_BITS
@@ -1792,6 +1792,114 @@ Added in Shorewall 4\&.4\&.27\&. Shorewall has traditionally ACCEPTed RELATED pa
 Added in Shorewall 4\&.4\&.27\&. Packets in the related state that do not match any rule in the RELATED section of
 \m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[7]\d\s+2
 (5) are logged at this level\&. The default value is empty which means no logging is performed\&.
+.RE
+.PP
+\fBREJECT_ACTION=\fR\fIaction\fR
+.RS 4
+Added in Shorewall 4\&.5\&.21\&. When a REJECT target is specified, Shorewall normally handles the response as follows:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+If the destination address of the packet is a broadcast or multicast address, the packet is dropped\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+if the protocol is ICMP (2) then the packet is dropped\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+if the protocol is TCP (6) then the packet is rejected with an RST\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+if the protocol is UDP (17) then the packet is rejected with an \*(Aqport\-unreachable\*(Aq ICMP (ICMP6)\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+if the protocol is ICMP (1) then the packet is rejected with a \*(Aqhost\-unreachable\*(Aq ICMP\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+otherwise, the packet is rejected with a \*(Aqhost\-prohibited\*(Aq ICMP\&.
+.RE
+.sp
+You can modify this behavior by implementing your own
+\fIaction\fR
+that handles REJECT and specifying it\*(Aqs name in this option\&. The
+\fBnolog\fR
+and
+\fBinline\fR
+options will automatically be assumed for the specified
+\fIaction\fR\&.
+.sp
+The following action implements the standard behavior:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+?format 2
+#TARGET         SOURCE  DEST    PROTO
+Broadcast(DROP) \-       \-       \-
+DROP            \-       \-       2
+INLINE          \-       \-       6       ; \-j REJECT \-\-reject\-with tcp\-reset
+?if __ENHANCED_REJECT
+INLINE          \-       \-       17      ; \-j REJECT
+?if __IPV4
+INLINE          \-       \-       1       ; \-j REJECT \-\-reject\-with icmp\-host\-unreachable
+INLINE          \-       \-       \-       ; \-j REJECT \-\-reject\-with icmp\-host\-prohibited
+?else
+INLINE          \-       \-       58      ; \-j REJECT \-\-reject\-with icmp6\-addr\-unreachable
+INLINE          \-       \-       \-       ; \-j REJECT \-\-reject\-with icmp6\-adm\-prohibited
+?endif
+?else
+INLINE          \-       \-       \-       ; \-j REJECT
+?endif
+.fi
+.if n \{\
+.RE
+.\}
 .RE
 .PP
 \fBREQUIRE_INTERFACE=\fR[\fBYes\fR|\fBNo\fR]

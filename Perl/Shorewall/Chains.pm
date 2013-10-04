@@ -2788,8 +2788,8 @@ sub initialize_chain_table($) {
 		    'DROP!'           => STANDARD,
 		    'A_DROP'          => STANDARD + AUDIT,
 		    'A_DROP!'         => STANDARD + AUDIT,
-		    'REJECT'          => STANDARD,
-		    'REJECT!'         => STANDARD,
+		    'REJECT'          => STANDARD + OPTIONS,
+		    'REJECT!'         => STANDARD + OPTIONS,
 		    'A_REJECT'        => STANDARD + AUDIT,
 		    'A_REJECT!'       => STANDARD + AUDIT,
 		    'DNAT'            => NATRULE  + OPTIONS,
@@ -2852,8 +2852,8 @@ sub initialize_chain_table($) {
 		    'DROP!'           => STANDARD,
 		    'A_DROP'          => STANDARD + AUDIT,
 		    'A_DROP!'         => STANDARD + AUDIT,
-		    'REJECT'          => STANDARD,
-		    'REJECT!'         => STANDARD,
+		    'REJECT'          => STANDARD + OPTIONS,
+		    'REJECT!'         => STANDARD + OPTIONS,
 		    'A_REJECT'        => STANDARD + AUDIT,
 		    'A_REJECT!'       => STANDARD + AUDIT,
 		    'DNAT'            => NATRULE  + OPTIONS,
@@ -4916,6 +4916,7 @@ sub do_time( $ ) {
 	    for my $day ( split /,/, $days ) {
 		fatal_error "Invalid day of the month ($day)" unless $day =~ /^\d{1,2}$/ && $day && $day <= 31;
 	    }
+	    $result .= "--monthday $days ";
 	} elsif ( $element =~ /^(datestart|datestop)=(\d{4}(-\d{2}(-\d{2}(T\d{1,2}(:\d{1,2}){0,2})?)?)?)$/ ) {
 	    $result .= "--$1 $2 ";
 	} elsif ( $element =~ /^(utc|localtz|kerneltz)$/ ) {

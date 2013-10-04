@@ -1277,6 +1277,52 @@ OPTIMIZE_ACCOUNTING=No
 #     subject to optimization (OPTIMIZE=4,5,6 or 7). If not specified or set to
 #     the empty value, OPTIMIZE_ACCOUNTING=No is assumed.
 # 
+REJECT_ACTION=
+#
+# REJECT_ACTION=action
+# 
+#     Added in Shorewall 4.5.21. When a REJECT target is specified, Shorewall
+#     normally handles the response as follows:
+# 
+#       ● If the destination address of the packet is a broadcast or multicast
+#         address, the packet is dropped.
+# 
+#       ● if the protocol is ICMP (2) then the packet is dropped.
+# 
+#       ● if the protocol is TCP (6) then the packet is rejected with an RST.
+# 
+#       ● if the protocol is UDP (17) then the packet is rejected with an
+#         'port-unreachable' ICMP (ICMP6).
+# 
+#       ● if the protocol is ICMP (1) then the packet is rejected with a
+#         'host-unreachable' ICMP.
+# 
+#       ● otherwise, the packet is rejected with a 'host-prohibited' ICMP.
+# 
+#     You can modify this behavior by implementing your own action that handles
+#     REJECT and specifying it's name in this option. The nolog and inline
+#     options will automatically be assumed for the specified action.
+# 
+#     The following action implements the standard behavior:
+# 
+#     ?format 2
+#     #TARGET         SOURCE  DEST    PROTO
+#     Broadcast(DROP) -       -       -
+#     DROP            -       -       2
+#     INLINE          -       -       6       ; -j REJECT --reject-with tcp-reset
+#     ?if __ENHANCED_REJECT
+#     INLINE          -       -       17      ; -j REJECT
+#     ?if __IPV4
+#     INLINE          -       -       1       ; -j REJECT --reject-with icmp-host-unreachable
+#     INLINE          -       -       -       ; -j REJECT --reject-with icmp-host-prohibited
+#     ?else
+#     INLINE          -       -       58      ; -j REJECT --reject-with icmp6-addr-unreachable
+#     INLINE          -       -       -       ; -j REJECT --reject-with icmp6-adm-prohibited
+#     ?endif
+#     ?else
+#     INLINE          -       -       -       ; -j REJECT
+#     ?endif
+# 
 REQUIRE_INTERFACE=No
 #
 # REQUIRE_INTERFACE=[Yes|No]
@@ -1668,7 +1714,7 @@ PROVIDER_BITS=
 # 
 PROVIDER_OFFSET=
 #
-# PROVIDER_OFFSET=[number]
+# PROVIDER_OFFSET=[number]If
 # 
 #     Added in Shorewall 4.4.26. The offset from the right (low-order end) of the
 #     provider number field in the 32-bit packet mark. If non-zero, must be >=
