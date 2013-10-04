@@ -1,0 +1,10 @@
+--- shorewall.git.orig/init.debian.sh
++++ shorewall.git/init.debian.sh
+@@ -12,6 +12,7 @@
+ ### END INIT INFO
+ 
+ 
++. /lib/lsb/init-functions
+ 
+ SRWL=/sbin/shorewall-lite
+ SRWL_OPTS="-tvv"
