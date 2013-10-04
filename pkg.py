@@ -358,7 +358,7 @@ elif op == 'tag':
         p_upstream_branch = branch_tag_prefix + p + '/' + upstream_branch
         if verbose: print "Checking out to branch: %s" % p_debian_branch
         gbp_repo.set_branch(p_debian_branch)
-        tag_ver = gbp.deb.changelogChangeLog(filename='debian/changelog').version
+        tag_ver = gbp.deb.changelog.ChangeLog(filename='debian/changelog').version
         p_debian_tag = branch_tag_prefix + p + '/' + debian_tag + '/' + tag_ver
         # Borrowed from git-buildpackage
         p_debian_tag = p_debian_tag.replace('~', '_').replace(':', '%')
