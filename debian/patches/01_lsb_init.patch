@@ -1,0 +1,13 @@
+Author: Roberto C. Sanchez <roberto@connexer.com>
+Description: Source LSB functions in the init script.
+--- shorewall.git.orig/init.debian.sh
++++ shorewall.git/init.debian.sh
+@@ -38,6 +38,8 @@
+ 
+ export VERBOSITY=0
+ 
++. /lib/lsb/init-functions
++
+ if [ "$(id -u)" != "0" ]
+ then
+   echo "You must be root to start, stop or restart \"Shorewall \"."

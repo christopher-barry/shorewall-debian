@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.5.20
+VERSION=4.5.21
 
 usage() # $1 = exit status
 {
@@ -140,6 +140,7 @@ remove_file ${CONFDIR}/NetworkManager/dispatcher.d/01-shorewall
 
 remove_file ${CONFDIR}/network/if-up.d/shorewall
 remove_file ${CONFDIR}/network/if-down.d/shorewall
+remove_file ${CONFDIR}/network/if-post-down.d/shorewall
 
 remove_file ${CONFDIR}/sysconfig/network/if-up.d/shorewall
 remove_file ${CONFDIR}/sysconfig/network/if-down.d/shorewall
