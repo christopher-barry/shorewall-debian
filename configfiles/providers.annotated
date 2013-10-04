@@ -152,6 +152,24 @@
 #         GATEWAY columns should be empty, INTERFACE should be set to 'lo' and
 #         tproxy should be the only OPTION. Only one tproxy provider is allowed.
 # 
+#     hostroute
+# 
+#         Added in Shorewall 4.5.21. This is the default behavior that results in
+#         a host route to the defined GATEWAY being inserted into the main
+#         routing table and into the provider's routing table. hostroute is
+#         required for older distributions but nohostroute (below) is appropriate
+#         for recent distributions. hostroute may interfere with Zebra's ability
+#         to add routes on some distributions such as Debian 7.
+# 
+#     nohostroute
+# 
+#         Added in Shorewall 4.5.21. nohostroute inhibits addition of a host
+#         route to the defined GATEWAY being inserted into the main routing table
+#         and into the provider's routing table. nohostroute is not appropriate
+#         for older distributions but is appropriate for recent distributions. 
+#         nohostroute allows Zebra's to correctly add routes on some
+#         distributions such as Debian 7.
+# 
 # COPY - [{none|interface[,interface]...}]
 # 
 #     A comma-separated list of other interfaces on your firewall. Wildcards
