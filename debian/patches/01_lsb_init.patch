@@ -1,3 +1,5 @@
+Author: Roberto C. Sanchez <roberto@connexer.com>
+Description: Source LSB functions in the init script.
 --- shorewall.git.orig/init.debian.sh
 +++ shorewall.git/init.debian.sh
 @@ -12,6 +12,7 @@
