@@ -1,8 +1,16 @@
+<<<<<<< HEAD
 shorewall-doc (4.5.20-1~bpo70+1) wheezy; urgency=low
 
   * Rebuilt for wheezy.
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 24 Sep 2013 20:51:27 -0400
+=======
+shorewall-doc (4.5.21-1) unstable; urgency=low
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 03 Oct 2013 19:37:51 -0400
+>>>>>>> shorewall-doc/master
 
 shorewall-doc (4.5.20-1) unstable; urgency=low
 
