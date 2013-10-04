@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.20
+VERSION=4.5.21
 
 usage() # $1 = exit status
 {
@@ -212,6 +212,9 @@ if [ -z "$BUILD" ]; then
 		    debian)
 			BUILD=debian
 			;;
+		    gentoo)
+			BUILD=gentoo
+			;;
 		    opensuse)
 			BUILD=suse
 			;;
@@ -221,6 +224,8 @@ if [ -z "$BUILD" ]; then
 		esac
 	    elif [ -f ${CONFDIR}/debian_version ]; then
 		BUILD=debian
+	    elif [ -f /etc/gentoo-release ]; then
+		BUILD=gentoo
 	    elif [ -f ${CONFDIR}/redhat-release ]; then
 		BUILD=redhat
 	    elif [ -f ${CONFDIR}/SuSE-release ]; then
@@ -269,6 +274,9 @@ case "$HOST" in
     debian)
 	echo "Installing Debian-specific configuration..."
 	;;
+    gentoo)
+	echo "Installing Gentoo-specific configuration..."
+	;;
     redhat)
 	echo "Installing Redhat/Fedora-specific configuration..."
 	;;
@@ -300,7 +308,7 @@ if [ -n "$DESTDIR" ]; then
     install -d $OWNERSHIP -m 755 ${DESTDIR}/${SBINDIR}
     install -d $OWNERSHIP -m 755 ${DESTDIR}${INITDIR}
 else
-    if [ ! -f /usr/share/shorewall/coreversion ]; then
+    if [ ! -f ${SHAREDIR}/shorewall/coreversion ]; then
 	echo "$PRODUCT $VERSION requires Shorewall Core which does not appear to be installed" >&2
 	exit 1
     fi
@@ -312,7 +320,7 @@ echo "Installing $Product Version $VERSION"
 # Check for ${CONFDIR}/$PRODUCT
 #
 if [ -z "$DESTDIR" -a -d ${CONFDIR}/$PRODUCT ]; then
-    if [ ! -f /usr/share/shorewall/coreversion ]; then
+    if [ ! -f ${SHAREDIR}/shorewall/coreversion ]; then
 	echo "$PRODUCT $VERSION requires Shorewall Core which does not appear to be installed" >&2
 	exit 1
     fi
@@ -366,7 +374,7 @@ if [ -n "$INITFILE" ]; then
 
 	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' "$initfile"
 
-	echo  "$Product init script installed in $initfile"
+	echo  "SysV init script $INITSOURCE installed in $initfile"
     fi
 fi
 #
@@ -389,6 +397,9 @@ fi
 
 if [ $HOST = archlinux ] ; then
    sed -e 's!LOGFILE=/var/log/messages!LOGFILE=/var/log/messages.log!' -i ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf
+elif [ $HOST = gentoo ]; then
+    # Adjust SUBSYSLOCK path (see https://bugs.gentoo.org/show_bug.cgi?id=459316)
+    perl -p -w -i -e "s|^SUBSYSLOCK=.*|SUBSYSLOCK=/run/lock/$PRODUCT|;" ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf
 fi
 
 #
@@ -497,7 +508,10 @@ delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/lib.common
 delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/lib.cli
 delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/wait4ifup
 
-if [ -n "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PRODUCT} ]; then
+#
+# Note -- not all packages will have the SYSCONFFILE so we need to check for its existance here
+#
+if [ -n "$SYSCONFFILE" -a -f "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PRODUCT} ]; then
     if [ ${DESTDIR} ]; then
 	mkdir -p ${DESTDIR}${SYSCONFDIR}
 	chmod 755 ${DESTDIR}${SYSCONFDIR}
@@ -513,20 +527,20 @@ if [ ${SHAREDIR} != /usr/share ]; then
 fi
 
 if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
-    if mywhich update-rc.d ; then
-	echo "$PRODUCT will start automatically at boot"
-	echo "Set startup=1 in ${SYSCONFDIR}/$PRODUCT to enable"
-	touch /var/log/$PRODUCT-init.log
-	perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/${PRODUCT}/${PRODUCT}.conf
-	update-rc.d $PRODUCT enable defaults
-    elif [ -n "$SYSTEMD" ]; then
+    if [ -n "$SYSTEMD" ]; then
 	if systemctl enable ${PRODUCT}.service; then
 	    echo "$Product will start automatically at boot"
 	fi
     elif mywhich insserv; then
 	if insserv ${INITDIR}/${INITFILE} ; then
 	    echo "$PRODUCT will start automatically at boot"
-	    echo "Set STARTUP_ENABLED=Yes in ${CONFDIR}/$PRODUCT/${PRODUCT}.conf to enable"
+	    if [ $HOST = debian ]; then
+		echo "Set startup=1 in ${CONFDIR}/default/$PRODUCT to enable"
+		touch /var/log/$PRODUCT-init.log
+		perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/$PRODUCT/$PRODUCT.conf
+	    else
+		echo "Set STARTUP_ENABLED=Yes in ${CONFDIR}/$PRODUCT/$PRODUCT.conf to enable"
+	    fi
 	else
 	    cant_autostart
 	fi
@@ -541,7 +555,13 @@ if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
     elif mywhich rc-update ; then
 	if rc-update add $PRODUCT default; then
 	    echo "$PRODUCT will start automatically at boot"
-	    echo "Set STARTUP_ENABLED=Yes in ${CONFDIR}/$PRODUCT/$PRODUCT.conf to enable"
+	    if [ $HOST = debian ]; then
+		echo "Set startup=1 in ${CONFDIR}/default/$PRODUCT to enable"
+		touch /var/log/$PRODUCT-init.log
+		perl -p -w -i -e 's/^STARTUP_ENABLED=No/STARTUP_ENABLED=Yes/;s/^IP_FORWARDING=On/IP_FORWARDING=Keep/;s/^SUBSYSLOCK=.*/SUBSYSLOCK=/;' ${CONFDIR}/$PRODUCT/$PRODUCT.conf
+	    else
+		echo "Set STARTUP_ENABLED=Yes in ${CONFDIR}/$PRODUCT/$PRODUCT.conf to enable"
+	    fi
 	else
 	    cant_autostart
 	fi

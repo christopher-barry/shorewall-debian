@@ -1,3 +1,57 @@
+Changes in 4.5.21 Final
+
+1)  Update release documents.
+
+2)  Enable 'monthdays' in the TIME column.
+
+3)  Use insserv on Debian.
+
+4)  Clean up uninstall.sh scripts
+
+5)  Display firewall's compiled version in status and version output.
+
+Changes in 4.5.21-RC1
+
+1)  Update release documents.
+
+2)  Correct handling of litedir
+
+3)  Add 'nostroute' and 'nohostroute' options to providers.
+
+4)  Fix some broken links in the Howtos.
+
+5)  Allow Perl code in an action to manipulate the current rule comment.
+
+Changes in 4.5.21-Beta3
+
+1)  Update release documents.
+
+2)  Apply Martin Gignac's ss/arp patch
+
+3)  Apply Thommas D's Gentoo installer patch
+
+Changes in 4.5.21-Beta2
+
+1)  Update release documents.
+
+2)  Validate default log levels to catch absense of LOG_TARGET support.
+
+3)  Apply several Shorewall-init patches from Thomas D.
+
+4)  Make Shorewall-init obey OPTIONS setting.
+
+5)  Modify /sbin/shorewall-init when $SHAREDIR isn't /usr/share
+
+6)  Correct -lite installer's checks for coreversion
+
+Changes in 4.5.21-Beta1
+
+1)  Update release documents.
+
+2)  Implement REJECT_ACTION option.
+
+3)  Use the ip[6]tables -w option when available.
+
 Changes in 4.5.20 Final
 
 1)  Update release documents.

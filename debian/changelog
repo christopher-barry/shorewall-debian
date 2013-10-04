@@ -1,8 +1,9 @@
-shorewall-lite (4.5.20-1~bpo70+1) wheezy; urgency=low
+shorewall-lite (4.5.21-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
+  * Remove linux-image from suggests
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 24 Sep 2013 20:51:30 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 03 Oct 2013 19:44:19 -0400
 
 shorewall-lite (4.5.20-1) unstable; urgency=low
 
