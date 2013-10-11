@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.21
+VERSION=4.5.21.1
 
 usage() # $1 = exit status
 {
@@ -385,7 +385,7 @@ else
 		mkdir -p ${DESTDIR}${SYSCONFDIR}/network/if-down.d
 	    elif [ $HOST = gentoo ]; then
 		# Gentoo does not support if-{up,down}.d
-		return
+		/bin/true
 	    else
 		mkdir -p ${DESTDIR}/etc/NetworkManager/dispatcher.d
 	    fi
@@ -454,7 +454,7 @@ if [ -z "$DESTDIR" ]; then
     if [ -n "$first_install" ]; then
 	if [ $HOST = debian ]; then
 	    if mywhich insserv; then
-		if insserv enable; then
+		if insserv ${INITDIR}/shorewall-init; then
 		    echo "Shorewall Init will start automatically at boot"
 		else
 		    cant_autostart
@@ -467,7 +467,7 @@ if [ -z "$DESTDIR" ]; then
 	elif [ $HOST = gentoo ]; then
 	    # On Gentoo, a service must be enabled manually by the user,
 	    # not by the installer
-	    return
+	    /bin/true
 	else
 	    if [ -n "$SYSTEMD" ]; then
 		if systemctl enable shorewall-init.service; then
