@@ -4474,7 +4474,7 @@ sub do_proto( $$$;$ )
 			    fatal_error "An inverted ICMP list may only contain a single type" if $invert;
 			    fatal_error "An ICMP type list is not allowed in this context"     if $restricted;
 			    $types = '';
-			    for my $type ( list_split( $ports, 'ICMP type list' ) ) {
+			    for my $type ( split_list( $ports, 'ICMP type list' ) ) {
 				$types = $types ? join( ',', $types, validate_icmp6( $type ) ) : $type;
 			    }
 			} else {
@@ -5006,7 +5006,7 @@ sub decode_tos( $$ ) {
     my $mask = have_capability( 'NEW_TOS_MATCH' ) ? 0xff : '';
     my $value;
 
-    if ( $tos =~ m"^(.+)/(.+)$" ) {
+    if ( $tos =~ m|^(.+)/(.+)$| ) {
 	require_capability 'NEW_TOS_MATCH', 'A mask', 's';
 	$value = numeric_value $1;
 	$mask  = numeric_value $2;
