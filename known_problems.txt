@@ -1,2 +1,27 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
+
+2)  The Shorewall Init installer (install.sh) fails on Gentoo systems.
+
+    Corrected in Shorewall 4.5.21.1.
+
+3)  The installers (install.sh) fail to start the products at boot time
+    on Debian and derivatives. This problem was introduced in Shorewall
+    4.5.21.
+
+    Corrected in Shorewall 4.5.21.1.
+
+4)  Multiple ICMP/ICMP6 types listed in a rule result in a Perl runtime
+    error on the compiler.
+
+    Corrected in Shorewall 4.5.21.1.
+
+5)  An attempt to specify RAS or Q.931 in the HELPER column is rejected
+    with an error.
+
+    Corrected in Shorewall 4.5.21.1.
+
+6) The 'nohostroute' provider option does not suppress the addition of
+   a host route in the default routing table when USE_DEFAULT_RT=Yes.
+
+   Corrected in Shorewall 4.5.21.1.
