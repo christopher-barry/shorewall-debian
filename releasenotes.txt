@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 5 . 2 1
+	            S H O R E W A L L  4 . 5 . 2 1 . 1
                    ------------------------------------
-                      O c t o b e r  0 4 ,  2 0 1 3
+                      O c t o b e r  0 8 ,  2 0 1 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,23 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.21.1
+
+1)  Problems with the Shorewall Init installer (install.sh) were
+    corrected. These problems affected initial Gentoo and Debian
+    installs.
+
+2)  A problem that prevented multiple ICMP/ICMP6 types to be specified
+    in a rule has been corrected.
+
+3)  Previously, an attempt to specify RAS or Q.931 in the HELPER column
+    was rejected with an error.
+
+4)  The 'nohostroute' provider option was not honored in the default
+    table when USE_DEFAULT_RT=Yes.
+
+4.5.21
 
 1)  ip[6]tables 1.4.20 introduced an incompatible change that causes
     the program to fail if there is another instance of either iptables
