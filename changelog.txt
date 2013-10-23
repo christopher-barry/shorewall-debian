@@ -1,3 +1,19 @@
+Changes in 4.5.21.2
+
+1)  Update release documents.
+
+2)  Correct Shorewall-init installer.
+
+3)  Fix RAQ/Q.931/netbios-ns handling.
+
+4)  Fixed a typo that prevented multiple icmp types.
+
+5)  Fix 'nohostroute' when USE_DEFAULT_RT=Yes.
+
+6)  Eradicate use of 'fgrep'.
+
+7)  Fix |<mark>.
+
 Changes in 4.5.21.1
 
 1)  Update release documents.
