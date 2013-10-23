@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '4.5.21.1'
+    VERSION => '4.5.21.2'
 };
 
 my %params;
@@ -58,7 +58,7 @@ my $rcfilename;
 
 unless ( defined $vendor ) {
     if ( -f '/etc/os-release' ) {
-	my $id = `cat /etc/os-release | grep ^ID`;
+	my $id = `cat /etc/os-release | grep ^ID=`;
 
 	chomp $id;
 
@@ -68,6 +68,8 @@ unless ( defined $vendor ) {
 	    $vendor = 'redhat';
 	} elsif ( $id eq 'opensuse' ) {
 	    $vendor = 'suse';
+	} elsif ( $id eq 'ubuntu' ) {
+	    $vendor = 'debian';
 	} else {
 	    $vendor = $id;
 	}
