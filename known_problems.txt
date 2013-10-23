@@ -25,3 +25,38 @@
    a host route in the default routing table when USE_DEFAULT_RT=Yes.
 
    Corrected in Shorewall 4.5.21.1.
+
+7)  The AutoBL action fails if the kernel and iptables does not support
+    the Recent Match '--reap' option.
+
+    Corrected in Shorewall 4.5.21.2.
+
+8)  The Shorewall-core installer reports an error from 'cp'
+    stating that it can not stat the shorewallrc file.
+
+    Workaround: Run the installer a second time.
+
+    Corrected in Shorewall 4.5.21.2.
+
+9)  When a non-root user attempts to execute 'version -a', the CLI
+    attempts to get the version of the compiled firewall resulting in
+    the following diagnostic when run by non-root:
+
+    	 /sbin/shorewall: /var/lib/shorewall/firewall: Permission denied
+
+    Corrected in Shorewall 4.5.21.2.
+
+10) Shorewall uses 'fgrep' making it unusable on on systems without
+    that utility.
+
+    Corrected in Shorewall 4.5.21.2.
+
+11) Placing |<mark> in the ACTION column of the tcrules file raises a
+    fatal compilation error. 
+
+
+    Corrected in Shorewall 4.5.21.2.
+
+12) The Shorewall-core installer fails when run on Ubuntu Raring.
+
+    Corrected in Shorewall 4.5.21.2.
