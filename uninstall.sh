@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.5.21.1
+VERSION=4.5.21.2
 
 usage() # $1 = exit status
 {
@@ -153,7 +153,7 @@ if [ -d ${CONFDIR}/ppp ]; then
     done
 
     for file in if-up.local if-down.local; do
-	if fgrep -q Shorewall-based ${CONFDIR}/ppp/$FILE; then
+	if grep -qF Shorewall-based ${CONFDIR}/ppp/$FILE; then
 	    remove_file ${CONFDIR}/ppp/$FILE
 	fi
     done
