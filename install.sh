@@ -22,7 +22,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.21.1
+VERSION=4.5.21.2
 
 usage() # $1 = exit status
 {
@@ -393,11 +393,12 @@ if [ -z "${DESTDIR}" ]; then
 
 	echo 'VARDIR=${VARLIB}/${PRODUCT}' >> $file
     fi
-
-    [ ! -f ~/.shorewallrc ] && cp ${SHAREDIR}/shorewall/shorewallrc ~/.shorewallrc
 fi
 
 [ $file != "${DESTDIR}${SHAREDIR}/shorewall/shorewallrc" ] && cp $file ${DESTDIR}${SHAREDIR}/shorewall/shorewallrc
+
+
+[ -z "${DESTDIR}" ] && [ ! -f ~/.shorewallrc ] && cp ${SHAREDIR}/shorewall/shorewallrc ~/.shorewallrc
 
 if [ ${SHAREDIR} != /usr/share ]; then
     for f in lib.*; do
