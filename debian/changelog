@@ -1,8 +1,8 @@
-shorewall (4.5.21.1-1~bpo70+1) wheezy; urgency=low
+shorewall (4.5.21.2-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version (Closes: #726306)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 11 Oct 2013 20:21:59 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Tue, 22 Oct 2013 20:45:07 -0400
 
 shorewall (4.5.21.1-1) unstable; urgency=low
 
