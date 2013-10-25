@@ -2,6 +2,14 @@ Changes in 4.5.21.2
 
 1)  Update release documents.
 
+2)  Make the Shorewall-init installer work on Ubuntu Raring.
+
+3)  Add logic in the installers to run update-rc.d.
+
+Changes in 4.5.21.2
+
+1)  Update release documents.
+
 2)  Correct Shorewall-init installer.
 
 3)  Fix RAQ/Q.931/netbios-ns handling.
