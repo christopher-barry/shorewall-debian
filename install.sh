@@ -23,7 +23,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.5.21.2
+VERSION=4.5.21.3
 
 usage() # $1 = exit status
 {
@@ -59,7 +59,6 @@ mywhich() {
 
     for dir in $(split $PATH); do
 	if [ -x $dir/$1 ]; then
-	    echo $dir/$1
 	    return 0
 	fi
     done
@@ -185,17 +184,14 @@ if [ -z "$BUILD" ]; then
 	    ;;
 	*)
 	    if [ -f /etc/os-release ]; then
-		eval $(cat /etc/os-release | grep ^ID)
+		eval $(cat /etc/os-release | grep ^ID=)
 
 		case $ID in
 		    fedora)
 			BUILD=redhat
 			;;
-		    debian)
+		    debian|ubuntu)
 			BUILD=debian
-			;;
-		    gentoo)
-			BUILD=gentoo
 			;;
 		    opensuse)
 			BUILD=suse
@@ -205,6 +201,8 @@ if [ -z "$BUILD" ]; then
 			;;
 		esac
 	    elif [ -f /etc/debian_version ]; then
+		BUILD=debian
+	    elif [ -f /etc/ubuntu_version ]; then
 		BUILD=debian
 	    elif [ -f /etc/gentoo-release ]; then
 		BUILD=gentoo
@@ -459,8 +457,13 @@ if [ -z "$DESTDIR" ]; then
 		else
 		    cant_autostart
 		fi
-	    elif rc-update add $PRODUCT default; then
-		echo "Shorewall Init will start automatically at boot"
+	    elif mywhich update-rc.d ; then
+		if update-rc.d $PRODUCT enable; then
+		    echo "$PRODUCT will start automatically at boot"
+		    echo "Set startup=1 in ${CONFDIR}/default/$PRODUCT to enable"
+		else
+		    cant_autostart
+		fi
 	    else
 		cant_autostart
 	    fi
