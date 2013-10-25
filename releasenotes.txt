@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	            S H O R E W A L L  4 . 5 . 2 1 . 2
+	            S H O R E W A L L  4 . 5 . 2 1 . 3
                    ------------------------------------
-                      O c t o b e r  2 1 ,  2 0 1 3
+                      O c t o b e r  2 5 ,  2 0 1 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,14 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.21.3
+
+1)  The Shorewall-init tarball installer now works correctly on recent
+    Ubuntu releases.
+
+2)  The installers now run update-rc.d on Debian-based systems that
+    don't have insserv installed.
 
 4.5.21.2
 
