@@ -60,3 +60,16 @@
 12) The Shorewall-core installer fails when run on Ubuntu Raring.
 
     Corrected in Shorewall 4.5.21.2.
+
+13) The Shorewall-init installer fails when run on Ubuntu Raring.
+
+    Workaround: Run as follows:
+
+    	BUILD=debian ./install.sh
+
+    Corrected in Shorewall 4.5.21.3.
+
+14) The tarball installers don't run update-rc.d on Debian-based
+    systems without insserv.
+
+    Corrected in Shorewall 4.5.21.3.
