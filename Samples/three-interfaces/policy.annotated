@@ -130,6 +130,9 @@
 #     to the ULOG or NFLOG target and will send to a separate log through use of
 #     ulogd (http://www.netfilter.org/projects/ulogd/index.html).
 # 
+#     For a description of log levels, see http://www.shorewall.net/
+#     shorewall_logging.html.
+# 
 #     If you don't want to log but need to specify the following column, place
 #     "-" here.
 # 
