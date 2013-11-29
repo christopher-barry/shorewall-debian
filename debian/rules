@@ -5,7 +5,13 @@
 #export DH_VERBOSE=1
 
 # shorewall version
-export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+export VFULL=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "=" | cut -f 1-3 -d "."`
+VMAJOR:=$(shell echo $(V) |cut -f 1 -d .)
+VMINOR:=$(shell echo $(V) |cut -f 2 -d .)
+VPATCH:=$(shell echo $(V) |cut -f 3 -d .)
+NEXTPATCH:=$(shell expr $(VPATCH) + 1 2>/dev/null || expr `echo $(VPATCH) | cut -f 1 -d - ` + 1)
+
 
 SRWL=$(CURDIR)/debian/shorewall6-lite
 
