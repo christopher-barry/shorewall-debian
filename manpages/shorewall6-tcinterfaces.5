@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcinterfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/25/2013
+.\"      Date: 11/23/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCINTERF" "5" "10/25/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCINTERF" "5" "11/23/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -123,21 +123,6 @@ Optional\&. If given specifies whether the interface is
 (facing toward the Internet) or
 \fBinternal\fR
 (facing toward a local network) and enables SFQ flow classification\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-Simple traffic shaping is only useful on interfaces where queuing occurs\&. As a consequence, internal interfaces seldom benefit from simple traffic shaping\&. VPN interfaces are an exception because the encapsulated packets are later transferred over a slower external link\&.
-.sp .5v
-.RE
 .RE
 .PP
 \fBIN\-BANDWIDTH (in_bandwidth)\fR \- {\-|\fIbandwidth\fR[:\fIburst\fR]|~\fIbandwidth\fR[:\fIinterval\fR:\fIdecay_interval\fR]}
