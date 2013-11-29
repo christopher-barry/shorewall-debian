@@ -5,7 +5,13 @@
 #export DH_VERBOSE=1
 
 # shorewall version
-export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+export VFULL=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "="`
+export V=`grep "^VERSION=" install.sh | head -n 1 | cut -f 2 -d "=" | cut -f 1-3 -d "."`
+VMAJOR:=$(shell echo $(V) |cut -f 1 -d .)
+VMINOR:=$(shell echo $(V) |cut -f 2 -d .)
+VPATCH:=$(shell echo $(V) |cut -f 3 -d .)
+NEXTPATCH:=$(shell expr $(VPATCH) + 1 2>/dev/null || expr `echo $(VPATCH) | cut -f 1 -d - ` + 1)
+
 
 SRWL=$(CURDIR)/debian/shorewall6-lite
 
@@ -25,6 +31,10 @@ override_dh_auto_clean:
 	rm -rf $(SRWL) shorewallrc
 
 override_dh_install:
+	echo 'shorewall:current=$(VMAJOR).$(VMINOR).$(VPATCH)~' \
+		>> debian/shorewall6-lite.substvars
+	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
+		>> debian/shorewall6-lite.substvars
 	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
 
 override_dh_fixperms:
