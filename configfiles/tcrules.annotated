@@ -249,7 +249,11 @@
 #         DIVERT marks the packet with a unique mark and exempts it from any
 #         rules that follow.
 # 
-#      8. DSCP(dscp)
+#      8. DROP
+# 
+#         Added in Shorewall 4.5.21.4. Causes matching packets to be discarded.
+# 
+#      9. DSCP(dscp)
 # 
 #         Added in Shorewall 4.5.1. Sets the Differentiated Services Code Point
 #         field in the IP header. The dscp value may be given as an even number
@@ -293,13 +297,13 @@
 # 
 #             POSTROUTING chain (default).
 # 
-#      9. IMQ(number)
+#     10. IMQ(number)
 # 
 #         Added in Shorewall 4.5.1. Specifies that the packet should be passed to
 #         the IMQ identified by number. Requires IMQ Target support in your
 #         kernel and iptables.
 # 
-#     10. IPMARK ‒ Assigns a mark to each matching packet based on the either the
+#     11. IPMARK ‒ Assigns a mark to each matching packet based on the either the
 #         source or destination IP address. By default, it assigns a mark value
 #         equal to the low-order 8 bits of the source address. Default values
 #         are:
@@ -368,13 +372,13 @@
 #         as in the example above so that all of your minor classes will have a
 #         value > 256.
 # 
-#     11. RESTORE[/mask] -- restore the packet's mark from the connection's mark
+#     12. RESTORE[/mask] -- restore the packet's mark from the connection's mark
 #         using the supplied mask if any. Your kernel and iptables must include
 #         CONNMARK support.
 # 
 #         As in 1) above, may be followed by :P or :F
 # 
-#     12. SAME Some websites run applications that require multiple connections
+#     13. SAME Some websites run applications that require multiple connections
 #         from a client browser. Where multiple 'balanced' providers are
 #         configured, this can lead to problems when some of the connections are
 #         routed through one provider and some through another. The SAME target
@@ -404,18 +408,18 @@
 #         same remote system then the new connection will use the same provider
 #         as the connection over which that last packet was sent.
 # 
-#     13. SAVE[/mask] -- save the packet's mark to the connection's mark using
+#     14. SAVE[/mask] -- save the packet's mark to the connection's mark using
 #         the supplied mask if any. Your kernel and iptables must include
 #         CONNMARK support.
 # 
 #         As in 1) above, may be followed by :P or :F
 # 
-#     14. STATE {NEW|RELATED|ESTABLISHED|INVALID} [,...]
+#     15. STATE {NEW|RELATED|ESTABLISHED|INVALID} [,...]
 # 
 #         Added in Shorewall 4.5.9. The rule will only match if the packet's
 #         connection is in one of the listed states.
 # 
-#     15. TOS(tos[/mask])
+#     16. TOS(tos[/mask])
 # 
 #         Added in Shorewall 4.5.1. Sets the Type of Service field in the IP
 #         header. The tos value may be given as an number (hex or decimal) or as
@@ -449,7 +453,7 @@
 # 
 #             POSTROUTING chain.
 # 
-#     16. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
+#     17. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
 # 
 #         Transparently redirects a packet without altering the IP header.
 #         Requires a local provider to be defined in shorewall-providers(5).
@@ -467,7 +471,7 @@
 #             server is listening. If omitted, the IP address of the interface on
 #             which the request arrives.
 # 
-#     17. TPROXY([port][,address]) -- FORMAT 2
+#     18. TPROXY([port][,address]) -- FORMAT 2
 # 
 #         Transparently redirects a packet without altering the IP header.
 #         Requires a tproxy provider to be defined in shorewall-providers(5).
@@ -481,7 +485,7 @@
 #             server is listening. If omitted, the IP address of the interface on
 #             which the request arrives.
 # 
-#     18. TTL([-|+]number)
+#     19. TTL([-|+]number)
 # 
 #         Added in Shorewall 4.4.24.
 # 

@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/25/2013
+.\"      Date: 11/23/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "10/25/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "11/23/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -375,6 +375,19 @@ Added in Shorewall 4\&.5\&.4 and only available when FORMAT is 2\&. Two DIVERT r
 .sp -1
 .IP "  8." 4.2
 .\}
+\fBDROP\fR
+.sp
+Added in Shorewall 4\&.5\&.21\&.4\&. Causes matching packets to be discarded\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 9.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  9." 4.2
+.\}
 \fBDSCP\fR(\fIdscp\fR)
 .sp
 Added in Shorewall 4\&.5\&.1\&. Sets the
@@ -431,11 +444,11 @@ POSTROUTING chain (default)\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04' 9.\h'+01'\c
+\h'-04'10.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "  9." 4.2
+.IP "10." 4.2
 .\}
 \fBIMQ\fR(\fInumber\fR)
 .sp
@@ -445,11 +458,11 @@ Added in Shorewall 4\&.5\&.1\&. Specifies that the packet should be passed to th
 .sp
 .RS 4
 .ie n \{\
-\h'-04'10.\h'+01'\c
+\h'-04'11.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "10." 4.2
+.IP "11." 4.2
 .\}
 \fBIPMARK\fR
 \(en Assigns a mark to each matching packet based on the either the source or destination IP address\&. By default, it assigns a mark value equal to the low\-order 8 bits of the source address\&. Default values are:
@@ -537,11 +550,11 @@ classes will have a value > 256\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04'11.\h'+01'\c
+\h'-04'12.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "11." 4.2
+.IP "12." 4.2
 .\}
 \fBRESTORE\fR[/\fImask\fR] \-\- restore the packet\*(Aqs mark from the connection\*(Aqs mark using the supplied mask if any\&. Your kernel and iptables must include CONNMARK support\&.
 .sp
@@ -553,11 +566,11 @@ or
 .sp
 .RS 4
 .ie n \{\
-\h'-04'12.\h'+01'\c
+\h'-04'13.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "12." 4.2
+.IP "13." 4.2
 .\}
 \fBSAME\fR
 Some websites run applications that require multiple connections from a client browser\&. Where multiple \*(Aqbalanced\*(Aq providers are configured, this can lead to problems when some of the connections are routed through one provider and some through another\&. The SAME target allows you to work around that problem\&. SAME may be used in the PREROUTING and OUTPUT chains\&. When used in PREROUTING, it causes matching connections from an individual local system to all use the same provider\&. For example:
@@ -595,11 +608,11 @@ If the firewall attempts a connection on TCP port 80 or 443 and it has sent a pa
 .sp
 .RS 4
 .ie n \{\
-\h'-04'13.\h'+01'\c
+\h'-04'14.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "13." 4.2
+.IP "14." 4.2
 .\}
 \fBSAVE\fR[/\fImask\fR] \-\- save the packet\*(Aqs mark to the connection\*(Aqs mark using the supplied mask if any\&. Your kernel and iptables must include CONNMARK support\&.
 .sp
@@ -611,11 +624,11 @@ or
 .sp
 .RS 4
 .ie n \{\
-\h'-04'14.\h'+01'\c
+\h'-04'15.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "14." 4.2
+.IP "15." 4.2
 .\}
 \fBSTATE\fR
 {\fBNEW\fR|\fBRELATED\fR|\fBESTABLISHED\fR|\fBINVALID\fR} [,\&.\&.\&.]
@@ -625,11 +638,11 @@ Added in Shorewall 4\&.5\&.9\&. The rule will only match if the packet\*(Aqs con
 .sp
 .RS 4
 .ie n \{\
-\h'-04'15.\h'+01'\c
+\h'-04'16.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "15." 4.2
+.IP "16." 4.2
 .\}
 \fBTOS\fR(\fItos\fR[/\fImask\fR])
 .sp
@@ -685,11 +698,11 @@ POSTROUTING chain\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04'16.\h'+01'\c
+\h'-04'17.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "16." 4.2
+.IP "17." 4.2
 .\}
 \fBTPROXY\fR(\fImark\fR[,[\fIport\fR][,[\fIaddress\fR]]]) \-\- FORMAT 1
 .sp
@@ -738,11 +751,11 @@ There are three parameters to TPROXY \- only the first (mark) is required:
 .sp
 .RS 4
 .ie n \{\
-\h'-04'17.\h'+01'\c
+\h'-04'18.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "17." 4.2
+.IP "18." 4.2
 .\}
 \fBTPROXY\fR([\fIport\fR][,\fIaddress\fR]) \-\- FORMAT 2
 .sp
@@ -778,11 +791,11 @@ There are three parameters to TPROXY \- neither is required:
 .sp
 .RS 4
 .ie n \{\
-\h'-04'18.\h'+01'\c
+\h'-04'19.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "18." 4.2
+.IP "19." 4.2
 .\}
 \fBTTL\fR([\fB\-\fR|\fB+\fR]\fInumber\fR)
 .sp
