@@ -304,7 +304,13 @@ our  %tccmd;
 				 mark      => NOMARK,
 				 mask      => '',
 				 connmark  => 0,
-			       }
+			       },
+		   DROP =>      { match     => sub( $ ) { $_[0] eq 'DROP' },
+				 target    => 'DROP',
+				 mark      => NOMARK,
+				 mask      => '',
+				 connmark  => 0
+			       },
 		 );
     }
 
@@ -559,7 +565,13 @@ our  %tccmd;
 					   }
 
 					   $cmd = '';
-				       }
+				       },
+		       DROP     => sub()
+		                       {
+					   assert ( $cmd eq 'DROP' );
+					   $target = 'DROP';
+					   $cmd = '';
+				       },
 		     );
 
     if ( $source ) {
@@ -2250,7 +2262,7 @@ sub process_traffic_shaping() {
 		    my $rule = "run_tc class add dev $device parent $devicenumber:$parent classid $classid hfsc";
 
 		    if ( $dmax ) {
-			my $umax = $tcref->{umax} ? "$tcref->{umax}b" : "\${${dev}_mtu}b";
+			my $umax = $tcref->{umax} ? "$tcref->{umax}b" : "\$(get_device_mtu $device)b";
 			$rule .= " sc umax $umax dmax ${dmax}ms";
 			$rule .= " rate $rate" if $rawrate;
 		    } else {
