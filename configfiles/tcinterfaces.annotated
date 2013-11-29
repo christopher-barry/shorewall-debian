@@ -65,13 +65,6 @@
 #     toward the Internet) or internal (facing toward a local network) and
 #     enables SFQ flow classification.
 # 
-#     Note
-# 
-#     Simple traffic shaping is only useful on interfaces where queuing occurs.
-#     As a consequence, internal interfaces seldom benefit from simple traffic
-#     shaping. VPN interfaces are an exception because the encapsulated packets
-#     are later transferred over a slower external link.
-# 
 # IN-BANDWIDTH (in_bandwidth) - {-|bandwidth[:burst]|~bandwidth[:interval:
 #     decay_interval]}
 # 
