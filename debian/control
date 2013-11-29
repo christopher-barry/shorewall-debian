@@ -10,7 +10,7 @@ Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
 
 Package: shorewall6-lite
 Architecture: all
-Depends: iptables (>= 1.4.1), iproute, ${misc:Depends}
+Depends: shorewall-core (>= ${shorewall:current}), iptables (>= 1.4.1), iproute, ${misc:Depends}
 Suggests: shorewall-doc, make
 Conflicts: ipmasq, knetfilter, firewall-easy, filtergen, uif, webmin-firewall, ipmenu, gnome-lokkit, guarddog, guidedog, ferm
 Recommends: wget

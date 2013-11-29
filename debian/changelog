@@ -1,6 +1,7 @@
 shorewall6-lite (4.5.21.4-1) unstable; urgency=low
 
   * New Upstream Version
+  * Explicitly express dependency on shorewall-core (Closes: #729233)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 28 Nov 2013 20:11:42 -0500
 
