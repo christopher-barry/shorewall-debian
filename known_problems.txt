@@ -54,7 +54,6 @@
 11) Placing |<mark> in the ACTION column of the tcrules file raises a
     fatal compilation error. 
 
-
     Corrected in Shorewall 4.5.21.2.
 
 12) The Shorewall-core installer fails when run on Ubuntu Raring.
@@ -73,3 +72,16 @@
     systems without insserv.
 
     Corrected in Shorewall 4.5.21.3.
+
+15) If an HFSC class is specified with dmax but not umax, then
+    the firewall fails to start with the messages:
+
+      Nov 14 13:42:42 Setting up Traffic Control...
+      HFSC: Illegal "umax"
+      HFSC: Illegal "sc"
+      ERROR: Command "tc class add dev eth1 parent 1:1 classid 1:110 hfsc sc
+         umax b dmax 150ms rate 1575kbit ul rate 3150kbit" Failed
+
+    Workaround: Specify a umax value equal to the device MTU.
+
+    Corrected in Shorewall 4.5.21.4.
