@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	            S H O R E W A L L  4 . 5 . 2 1 . 3
+	            S H O R E W A L L  4 . 5 . 2 1 . 4
                    ------------------------------------
-                      O c t o b e r  2 5 ,  2 0 1 3
+                      N o v e b e r  2 3 ,  2 0 1 3
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,24 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.21.4
+
+1)  The Broadcast actions have been corrected:
+
+    o --dst-type BROADCAST has been removed from the IPv6 version
+    o A superfluous DROP rule in the IPv4 version has been suppressed.
+
+2)  Previously, if an HFSC class was specified with dmax but not umax,
+    then the firewall would fail to start with the messages:
+
+      Nov 14 13:42:42 Setting up Traffic Control...
+      HFSC: Illegal "umax"
+      HFSC: Illegal "sc"
+      ERROR: Command "tc class add dev eth1 parent 1:1 classid 1:110 hfsc sc
+         umax b dmax 150ms rate 1575kbit ul rate 3150kbit" Failed
+
+    That problem has been corrected.
 
 4.5.21.3
 
@@ -116,6 +134,13 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.21.4
+
+1)  The tcrules file now supports DROP entries to allow early dropping
+    of DOS packets.
+
+4.5.21
 
 1)  When a REJECT target is specified, Shorewall normally handles the
     packet as follows:

@@ -1,4 +1,14 @@
-Changes in 4.5.21.2
+Changes in 4.5.21.4
+
+1)  Update release documents.
+
+2)  Add DROP support to the tcrules file.
+
+3)  Correct Broadcast actions.
+
+4)  Correct handling of HFSC classes with DMAX but no UMAX.
+
+Changes in 4.5.21.3
 
 1)  Update release documents.
 
