@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 11/23/2013
+.\"      Date: 12/19/2013
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "11/23/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\&.CONF" "5" "12/19/2013" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -70,6 +70,46 @@ For most Shorewall6 logging, a level of 6 (info) is appropriate\&. Shorewall6 lo
 If you have built your kernel with NFLOG target support, you may also specify a log level of NFLOG (must be all caps)\&. Rather than log its messages to syslogd, Shorewall6 will direct netfilter to log the messages via the NFLOG target which will send them to a process called \*(Aqulogd\*(Aq\&. ulogd is available with most Linux distributions (although it probably isn\*(Aqt installed by default)\&. Ulogd is also available from
 \m[blue]\fBhttp://www\&.netfilter\&.org/projects/ulogd/index\&.html\fR\m[]
 and can be configured to log all Shorewall6 message to their own log file
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+.PP
+If you want to specify parameters to ULOG or NFLOG (e\&.g\&., NFLOG(1,0,1)), then you must either quote the setting or you must escape the parentheses\&.
+.PP
+Examples:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+MACLIST_LOG_LEVEL="NFLOG(1,0,1)"
+.fi
+.if n \{\
+.RE
+.\}
+.PP
+or
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+MACLIST_LOG_LEVEL=NFLOG\e(1,0,1\e)
+.fi
+.if n \{\
+.RE
+.\}
+.sp .5v
+.RE
 .PP
 The following options may be set in shorewall6\&.conf\&.
 .PP

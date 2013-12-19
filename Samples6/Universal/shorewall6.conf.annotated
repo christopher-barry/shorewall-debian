@@ -45,7 +45,12 @@
 # available from http://www.netfilter.org/projects/ulogd/index.html and can be
 # configured to log all Shorewall6 message to their own log file
 # 
-# The following options may be set in shorewall6.conf.
+# Note
+# 
+# If you want to specify parameters to ULOG or NFLOG (e.g., NFLOG(1,0,1)), then
+# you must either quote the setting or you must escape the parentheses.
+# 
+# Examples:
 # 
 STARTUP_ENABLED=Yes
 #
