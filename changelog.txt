@@ -1,3 +1,9 @@
+Changes in 4.5.21.6
+
+1)  Update release documents.
+
+2)  Correct incorrect use of -g when jumping to a logging chain.
+
 Changes in 4.5.21.5
 
 1)  Update release documents.

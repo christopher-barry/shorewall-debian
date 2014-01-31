@@ -2,12 +2,12 @@
 .\"     Title: shorewall-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 12/19/2013
+.\"      Date: 01/30/2014
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-TCRULES" "5" "12/19/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\-TCRULES" "5" "01/30/2014" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -630,20 +630,6 @@ or
 .sp -1
 .IP "15." 4.2
 .\}
-\fBSTATE\fR
-{\fBNEW\fR|\fBRELATED\fR|\fBESTABLISHED\fR|\fBINVALID\fR} [,\&.\&.\&.]
-.sp
-Added in Shorewall 4\&.5\&.9\&. The rule will only match if the packet\*(Aqs connection is in one of the listed states\&.
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04'16.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "16." 4.2
-.\}
 \fBTOS\fR(\fItos\fR[/\fImask\fR])
 .sp
 Added in Shorewall 4\&.5\&.1\&. Sets the
@@ -698,11 +684,11 @@ POSTROUTING chain\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04'17.\h'+01'\c
+\h'-04'16.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "17." 4.2
+.IP "16." 4.2
 .\}
 \fBTPROXY\fR(\fImark\fR[,[\fIport\fR][,[\fIaddress\fR]]]) \-\- FORMAT 1
 .sp
@@ -751,11 +737,11 @@ There are three parameters to TPROXY \- only the first (mark) is required:
 .sp
 .RS 4
 .ie n \{\
-\h'-04'18.\h'+01'\c
+\h'-04'17.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "18." 4.2
+.IP "17." 4.2
 .\}
 \fBTPROXY\fR([\fIport\fR][,\fIaddress\fR]) \-\- FORMAT 2
 .sp
@@ -791,11 +777,11 @@ There are three parameters to TPROXY \- neither is required:
 .sp
 .RS 4
 .ie n \{\
-\h'-04'19.\h'+01'\c
+\h'-04'18.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "19." 4.2
+.IP "18." 4.2
 .\}
 \fBTTL\fR([\fB\-\fR|\fB+\fR]\fInumber\fR)
 .sp
@@ -1180,6 +1166,11 @@ value may be given as an even number (hex or decimal) or as the name of a DSCP c
 .RE
 .\}
 .RE
+.PP
+\fBSTATE\fR \-\- {\fBNEW\fR|\fBRELATED\fR|\fBESTABLISHED\fR|\fBINVALID\fR} [,\&.\&.\&.]
+.RS 4
+Added in Shorewall 4\&.5\&.9\&. The rule will only match if the packet\*(Aqs connection is in one of the listed states\&.
+.RE
 .SH "EXAMPLE"
 .PP
 Example 1:
@@ -1253,35 +1244,35 @@ shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blackl
 .IP " 1." 4
 shorewall-rules
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-rules.html
+\%http://www.shorewall.netshorewall-rules.html
 .RE
 .IP " 2." 4
 shorewall.conf
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall.conf.html
+\%http://www.shorewall.netshorewall.conf.html
 .RE
 .IP " 3." 4
 shorewall-tcdevices
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-tcdevices.html
+\%http://www.shorewall.netshorewall-tcdevices.html
 .RE
 .IP " 4." 4
 shorewall-tcclasses
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-tcclasses.html
+\%http://www.shorewall.netshorewall-tcclasses.html
 .RE
 .IP " 5." 4
 shorewall-providers
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-providers.html
+\%http://www.shorewall.netshorewall-providers.html
 .RE
 .IP " 6." 4
 shorewall-exclusion
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-exclusion.html
+\%http://www.shorewall.netshorewall-exclusion.html
 .RE
 .IP " 7." 4
 shorewall.conf
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall.conf
+\%http://www.shorewall.netmanpages/shorewall.conf
 .RE
