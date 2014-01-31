@@ -364,12 +364,7 @@
 # 
 #         As in 1) above, may be followed by :P or :F
 # 
-#     15. STATE {NEW|RELATED|ESTABLISHED|INVALID} [,...]
-# 
-#         Added in Shorewall 4.5.9. The rule will only match if the packet's
-#         connection is in one of the listed states.
-# 
-#     16. TOS(tos[/mask])
+#     15. TOS(tos[/mask])
 # 
 #         Added in Shorewall 4.5.1. Sets the Type of Service field in the IP
 #         header. The tos value may be given as an number (hex or decimal) or as
@@ -403,7 +398,7 @@
 # 
 #             POSTROUTING chain (default).
 # 
-#     17. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
+#     16. TPROXY(mark[,[port][,[address]]]) -- FORMAT 1
 # 
 #         Transparently redirects a packet without altering the IP header.
 #         Requires a local provider to be defined in shorewall6-providers(5).
@@ -421,7 +416,7 @@
 #             server is listening. If omitted, the IP address of the interface on
 #             which the request arrives.
 # 
-#     18. TPROXY([port][,[address]]]) -- FORMAT 2
+#     17. TPROXY([port][,[address]]]) -- FORMAT 2
 # 
 #         Transparently redirects a packet without altering the IP header.
 #         Requires a local provider to be defined in shorewall6-providers(5).
@@ -680,6 +675,11 @@
 #     randomly but with the given probability. The probability is a number 0 <
 #     probability <= 1 and may be expressed at up to 8 decimal points of
 #     precision.
+# 
+# STATE -- {NEW|RELATED|ESTABLISHED|INVALID} [,...]
+# 
+#     Added in Shorewall 4.5.9. The rule will only match if the packet's
+#     connection is in one of the listed states.
 # 
 # Example
 # 
