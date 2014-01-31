@@ -85,3 +85,26 @@
     Workaround: Specify a umax value equal to the device MTU.
 
     Corrected in Shorewall 4.5.21.4.
+
+16) The 'add' command previously fails if 'IPSET=' appears in the
+    shorewall.conf file.
+
+    Workaround: Specify the correct pathname in the IPSET= entry.
+
+    Corrected in Shorewall 4.5.21.5.
+
+16) When a non-terminating target specifies logging, the compiler
+    erroneously generates a 'goto' (-g) iptables command rather than a
+    'jump' (-j) command. This causes the wrong set of rules to be
+    traversed, usually the catchall 'REJECT' rule at the end of the
+    INPUT or FORWARD chain.
+
+    Corrected in Shorewall 4.5.21.6
+
+2)  When an interface containing a period (such as a VLAN interface)
+    is used in an 'add' or 'delete' command, the wrong ipset name was
+    generated, resulting in failure of the command.
+
+    Workaround: Replace the period in the interface with an underscore.
+
+    Corrected in Shorewall 4.5.21.6

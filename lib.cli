@@ -1546,7 +1546,7 @@ do_dump_command() {
 }
 
 dump_command() {
-    do_dump_command | dump_filter
+    do_dump_command $@ | dump_filter
 }
 
 #
@@ -1896,6 +1896,8 @@ add_command() {
 		ipset=6_${zone}_${interface};
 	    fi
 
+	    ipset=$(echo $ipset | sed 's/./_/g');
+
 	    if ! qt $IPSET -L $ipset; then
 		fatal_error "Zone $zone, interface $interface does not have a dynamic host list"
 	    fi
@@ -1983,6 +1985,8 @@ delete_command() {
 		interface=${host%%:*}
 		ipset=6_${zone}_${interface};
 	    fi
+
+	    ipset=$(echo $ipset | sed 's/./_/g');
 
 	    if ! qt $IPSET -L $ipset -n; then
 		fatal_error "Zone $zone, interface $interface does not have a dynamic host list"
@@ -3415,7 +3419,7 @@ usage() # $1 = exit status
     echo "   delete <interface>[:<host-list>] ... <zone>"
     echo "   disable <interface>"
     echo "   drop <address> ..."
-    echo "   dump [ -x ]"
+    echo "   dump [ -x ] [ -l ] [ -m ]"
     echo "   enable <interface>"
     echo "   forget [ <file name> ]"
     echo "   help"
