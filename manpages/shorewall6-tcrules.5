@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 12/19/2013
+.\"      Date: 01/30/2014
 .\"    Manual: [FIXME: manual]
 .\"    Source: [FIXME: source]
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCRULES" "5" "12/19/2013" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCRULES" "5" "01/30/2014" "[FIXME: source]" "[FIXME: manual]"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -572,20 +572,6 @@ or
 .sp -1
 .IP "15." 4.2
 .\}
-\fBSTATE\fR
-{\fBNEW\fR|\fBRELATED\fR|\fBESTABLISHED\fR|\fBINVALID\fR} [,\&.\&.\&.]
-.sp
-Added in Shorewall 4\&.5\&.9\&. The rule will only match if the packet\*(Aqs connection is in one of the listed states\&.
-.RE
-.sp
-.RS 4
-.ie n \{\
-\h'-04'16.\h'+01'\c
-.\}
-.el \{\
-.sp -1
-.IP "16." 4.2
-.\}
 \fBTOS\fR(\fItos\fR[/\fImask\fR])
 .sp
 Added in Shorewall 4\&.5\&.1\&. Sets the
@@ -640,11 +626,11 @@ POSTROUTING chain (default)\&.
 .sp
 .RS 4
 .ie n \{\
-\h'-04'17.\h'+01'\c
+\h'-04'16.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "17." 4.2
+.IP "16." 4.2
 .\}
 \fBTPROXY\fR(\fImark\fR[,[\fIport\fR][,[\fIaddress\fR]]]) \-\- FORMAT 1
 .sp
@@ -693,11 +679,11 @@ There are three parameters to TPROXY \- only the first (mark) is required:
 .sp
 .RS 4
 .ie n \{\
-\h'-04'18.\h'+01'\c
+\h'-04'17.\h'+01'\c
 .\}
 .el \{\
 .sp -1
-.IP "18." 4.2
+.IP "17." 4.2
 .\}
 \fBTPROXY\fR([\fIport\fR][,[\fIaddress\fR]]]) \-\- FORMAT 2
 .sp
@@ -1016,6 +1002,11 @@ is a number 0 <
 \fIprobability\fR
 <= 1 and may be expressed at up to 8 decimal points of precision\&.
 .RE
+.PP
+\fBSTATE\fR \-\- {\fBNEW\fR|\fBRELATED\fR|\fBESTABLISHED\fR|\fBINVALID\fR} [,\&.\&.\&.]
+.RS 4
+Added in Shorewall 4\&.5\&.9\&. The rule will only match if the packet\*(Aqs connection is in one of the listed states\&.
+.RE
 .SH "EXAMPLE"
 .PP
 Example 1:
@@ -1063,35 +1054,35 @@ shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-bl
 .IP " 1." 4
 shorewall6-rules
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-rules.html
+\%http://www.shorewall.netshorewall6-rules.html
 .RE
 .IP " 2." 4
 shorewall6.conf
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6.conf.html
+\%http://www.shorewall.netshorewall6.conf.html
 .RE
 .IP " 3." 4
 shorewall.conf
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall.conf.html
+\%http://www.shorewall.netshorewall.conf.html
 .RE
 .IP " 4." 4
 shorewall6-tcdevices
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-tcdevices.html
+\%http://www.shorewall.netshorewall6-tcdevices.html
 .RE
 .IP " 5." 4
 shorewall6-tcclasses
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-tcclasses.html
+\%http://www.shorewall.netshorewall6-tcclasses.html
 .RE
 .IP " 6." 4
 shorewall6-providers
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-providers.html
+\%http://www.shorewall.netshorewall6-providers.html
 .RE
 .IP " 7." 4
 shorewall6-exclusion
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-exclusion.html
+\%http://www.shorewall.netshorewall6-exclusion.html
 .RE
