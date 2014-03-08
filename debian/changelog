@@ -1,8 +1,8 @@
-shorewall-core (4.5.21.6-1~bpo70+1) wheezy; urgency=low
+shorewall-core (4.5.21.7-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 31 Jan 2014 10:58:04 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 08 Mar 2014 11:34:24 -0500
 
 shorewall-core (4.5.21.6-1) unstable; urgency=low
 
