@@ -63,19 +63,9 @@
 #         (and the firewall) is allowed. If dest is specified then routeback is
 #         redundant.
 # 
-#     critical
+#     notrack
 # 
-#         Allow traffic between the firewall and these hosts throughout '[re]
-#         start', 'stop' and 'clear'. Specifying critical on one or more entries
-#         will cause your firewall to be "totally open" for a brief window during
-#         each of those operations. Examples of where you might want to use this
-#         are:
-# 
-#           ● 'Ping' nodes with heartbeat.
-# 
-#           ● LDAP server(s) if you use LDAP Authentication
-# 
-#           ● NFS Server if you have an NFS-mounted root filesystem.
+#         The traffic will be exempted from connection tracking.
 # 
 # Note
 # 
