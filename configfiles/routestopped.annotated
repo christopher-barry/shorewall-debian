@@ -69,6 +69,11 @@
 # 
 #         The traffic will be exempted from connection tracking.
 # 
+#     Note
+# 
+#     The source and dest options work best when used in conjunction with
+#     ADMINISABSENTMINDED=Yes in shorewall6.conf(5).
+# 
 # PROTO (Optional) ‒ protocol-name-or-number
 # 
 #     Protocol.
