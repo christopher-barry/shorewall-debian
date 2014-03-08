@@ -1,8 +1,8 @@
-shorewall-init (4.5.21.6-1~bpo70+1) wheezy; urgency=low
+shorewall-init (4.5.21.7-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 31 Jan 2014 10:57:51 -0500
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 08 Mar 2014 11:33:44 -0500
 
 shorewall-init (4.5.21.6-1) unstable; urgency=low
 
