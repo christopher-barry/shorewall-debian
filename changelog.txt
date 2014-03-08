@@ -1,3 +1,11 @@
+Changes in 4.5.21.7
+
+1)  Update release documents.
+
+2)  Misc. documentation updates.
+
+3)  Correct behavior of ADMINISABSENTMINDED.
+
 Changes in 4.5.21.6
 
 1)  Update release documents.

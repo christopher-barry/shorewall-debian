@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
 	            S H O R E W A L L  4 . 5 . 2 1 . 6
                    ------------------------------------
-                      J a n u a r y  3 0 ,  2 0 1 4
+                      M a r c h  0 8 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,26 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.5.21.7
+
+1)  The help text for the 'dump' command has been updated to include
+    all valid options.
+
+2)  The behavior of ADMINISABSENTMINDED=No is corrected. Previously, 
+    'shorewall stop' would not block existing connections regardless of
+    the setting of this option. Beginning with this release, the
+    behavior of ADMINISABSENTMINDED=No depends on whether the routestopped
+    or the stoppedrules file defines the allow connections while the
+    firewall is stopped.
+
+    If there are entries in /etc/shorewall[6]/routestopped or if there
+    are no entries in /etc/shorewall[6]/stoppedrules, then the behavior
+    of ADMINISABSENTMINDED=No is as documented (existing connections
+    are blocked unles they are allowed by
+    /etc/shorewall[6]/routestopped).  If there are no entries in
+    /etc/shorewall[6]/stoppedrules, then the behavior is as if
+    ADMINISABSENTMINDED=Yes and a warning message is generated.
 
 4.5.21.6
 
