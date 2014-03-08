@@ -626,14 +626,32 @@ ADMINISABSENTMINDED=Yes
 #
 # ADMINISABSENTMINDED=[Yes|No]
 # 
-#     The value of this variable affects Shorewall's stopped state. When
-#     ADMINISABSENTMINDED=No, only traffic to/from those addresses listed in
-#     shorewall-routestopped(5) is accepted when Shorewall is stopped. When
-#     ADMINISABSENTMINDED=Yes, in addition to traffic to/from addresses in
-#     shorewall-routestopped(5), connections that were active when Shorewall
-#     stopped continue to work and all new connections from the firewall system
-#     itself are allowed. If this variable is not set or is given the empty value
-#     then ADMINISABSENTMINDED=No is assumed.
+#     The value of this variable affects Shorewall's stopped state. The behavior
+#     differs depending on whether shorewall-routestopped(5) or
+#     shorewall-stoppedrules(5) is used:
+# 
+#     routestopped
+# 
+#         When ADMINISABSENTMINDED=No, only traffic to/from those addresses
+#         listed in routestopped is accepted when Shorewall is stopped. When
+#         ADMINISABSENTMINDED=Yes, in addition to traffic to/from addresses in
+#         routestopped, connections that were active when Shorewall stopped
+#         continue to work and all new connections from the firewall system
+#         itself are allowed.
+# 
+#     stoppedrules
+# 
+#         If ADMINISABSENTMINDED=No, a warning message is issued and the setting
+#         is ignored.
+# 
+#         In addition to connections matching entries in stoppedrules, existing
+#         connections continue to work and all new connections from the firewall
+#         system itself are allowed. To sever all existing connections when the
+#         firewall is stopped, install the conntrack utility and place the
+#         command conntrack -F in the stopped user exit (/etc/shorewall/stopped).
+# 
+#     If this variable is not set or is given the empty value then
+#     ADMINISABSENTMINDED=No is assumed.
 # 
 IGNOREUNKNOWNVARIABLES=No
 #
