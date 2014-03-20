@@ -114,3 +114,21 @@
 
     Corrected in Shorewall 4.5.21.7 (but read the release notes
     carefully).
+
+19) If an rtrules entry duplicates a Shorewall-generated route rule but
+    has a lower priority than the generated one has (20000), then a
+    disable/enable sequence on the provider will result in duplicate
+    rules with priority 20000.
+
+    Workaround: Specify the 'loose' option and specify all needed route
+    rules for the provider in /etc/shorewall[6]/rtrules.
+
+    Corrected in Shorewall 4.5.21.8
+
+20) When 'shorewall[6] debug [re]start' is run, any error messages
+    generated because of ip[6]tables command errors do not include '-t
+    table'.
+
+    Corrected in Shorewall 4.5.21.8
+
+
