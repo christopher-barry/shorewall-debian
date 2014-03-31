@@ -131,4 +131,29 @@
 
     Corrected in Shorewall 4.5.21.8
 
+21) The output of 'shorewall show capabilities' always shows the
+    'Recent match --reap option' as 'Not Available'. 'shorewall show -f
+    capabilities' correctly reports the capability.
 
+    Corrected in Shorewall 4.5.21.9
+
+22) When a rules file section other than NEW begins with a ?COMMENT
+    directive, the comment erroneously appears in the rule which
+    jumps to the section chain as well as in the rules directly related
+    to the following entries.
+
+    Corrected in Shorewall 4.5.21.9
+
+23) Rule comments are omitted from the compiler's 'trace' output in
+    some cases.
+
+    Corrected in Shorewall 4.5.21.9
+
+24) When FASTACCEPT=Yes, ESTABLISHED,RELATED accept rules are
+    incorrectly omitted from an interfaces's _in and _fwd chains when
+    'rpfilter' is specified in the interfaces's entry in
+    /etc/shorewall[6]/interfaces.
+
+    Workaround: Set FASTACCEPT=No
+
+    Corrected in Shorewall 4.5.21.9
