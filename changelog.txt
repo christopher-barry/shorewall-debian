@@ -1,3 +1,15 @@
+Changes in 4.5.21.9
+
+1)  Update release documents.
+
+2)  Correct reporting of REAP_OPTION
+
+3)  Avoid spurious comments on jumps to section chains
+
+4)  Fix comment missing in trace output
+
+5)  Correct the behavior of rpfilter when FASTACCEPT=Yes
+
 Changes in 4.5.21.8
 
 1)  Update release documents.
