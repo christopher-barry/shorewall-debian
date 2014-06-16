@@ -1,6 +1,6 @@
 %define name shorewall-core
-%define version 4.5.21
-%define release 9
+%define version 4.6.1
+%define release 1
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -62,16 +62,40 @@ cp /usr/share/shorewall/shorewallrc ~/.shorewallrc
 %doc COPYING INSTALL changelog.txt releasenotes.txt
 
 %changelog
-* Mon Mar 31 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.5.21-9
-* Wed Mar 19 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.5.21-8
-* Thu Mar 06 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.5.21-7
-* Thu Jan 30 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.5.21-6
-* Thu Dec 19 2013 Tom Eastep tom@shorewall.net
-- Updated to 4.5.21-5
+* Sun Jun 08 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.1-1
+* Wed Jun 04 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.1-0base
+* Mon Jun 02 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-4
+* Fri May 23 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-3
+* Fri May 16 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-2
+* Fri May 16 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-1
+* Sat May 10 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0base
+* Wed May 07 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0RC3
+* Sun Apr 20 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0RC2
+* Sun Mar 23 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0RC1
+* Fri Mar 07 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta6
+* Sat Feb 15 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta5
+* Sat Feb 15 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta6
+* Tue Feb 04 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta4
+* Thu Jan 16 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta3
+* Wed Jan 01 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta2
+* Wed Nov 27 2013 Tom Eastep tom@shorewall.net
+- Updated to 4.6.0-0Beta1
 * Mon Nov 04 2013 Tom Eastep tom@shorewall.net
 - Updated to 4.5.21-4
 * Fri Oct 25 2013 Tom Eastep tom@shorewall.net
