@@ -2,27 +2,27 @@
 #
 # Script to install Shoreline Firewall
 #
-#     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
-#
-#     (c) 2000-2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2000-201,2014 - Tom Eastep (teastep@shorewall.net)
 #
 #       Shorewall documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.5.21.9
+VERSION=4.6.1.1
 
 #
 # Change to the directory containing this script
@@ -216,7 +216,7 @@ if [ -z "$BUILD" ]; then
 		eval $(cat /etc/os-release | grep ^ID)
 
 		case $ID in
-		    fedora)
+		    fedora|rhel)
 			BUILD=redhat
 			;;
 		    debian)
@@ -420,7 +420,7 @@ fi
 if [ -n "$SYSTEMD" ]; then
     mkdir -p ${DESTDIR}${SYSTEMD}
     [ -z "$SERVICEFILE" ] && SERVICEFILE=$PRODUCT.service
-    run_install $OWNERSHIP -m 600 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
+    run_install $OWNERSHIP -m 644 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     echo "Service file $SERVICEFILE installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
 fi
@@ -695,14 +695,14 @@ if [ ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/conntrack ]; then
 fi
 
 #
-# Install the TC Rules file
+# Install the Mangle file
 #
-run_install $OWNERSHIP -m 0644 tcrules           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
-run_install $OWNERSHIP -m 0644 tcrules.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
+run_install $OWNERSHIP -m 0644 mangle           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
+run_install $OWNERSHIP -m 0644 mangle.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
-if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/tcrules ]; then
-    run_install $OWNERSHIP -m 0600 tcrules${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/tcrules
-    echo "TC Rules file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/tcrules"
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/mangle ]; then
+    run_install $OWNERSHIP -m 0600 mangle${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/mangle
+    echo "Mangle file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/mangle"
 fi
 
 #

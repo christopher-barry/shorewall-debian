@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module contains the code that handles the /etc/shorewall/conntrack file.
 #
@@ -34,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_conntrack );
 our @EXPORT_OK = qw( handle_helper_rule );
-our $VERSION = '4.5_16';
+our $VERSION = '4.6_0';
 
 our %valid_ctevent = ( new        => 1,
 		       related    => 1,
@@ -46,6 +48,12 @@ our %valid_ctevent = ( new        => 1,
 		       mark       => 1,
 		       natseqinfo => 1,
 		       secmark    => 1 );
+
+our $family;
+
+sub initialize($) {
+    $family = shift;
+}
 
 #
 # Notrack
@@ -81,31 +89,64 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 	fatal_error 'USER/GROUP is not allowed unless the SOURCE zone is $FW or a Vserver zone' if $user ne '-' && $restriction != OUTPUT_RESTRICT;
     }
 
-    my $target = $action;
+    my $disposition = $action;
     my $exception_rule = '';
     my $rule = do_proto( $proto, $ports, $sports ) . do_user ( $user ) . do_condition( $switch , $chainref->{name} );
+    my $level = '';
+
+    if ( $action =~ /^(?:NFLOG|ULOG)/ ) {
+	$action = join( ":" , 'LOG', $action );
+    }
 
     if ( $action eq 'NOTRACK' ) {
 	#
 	# A patch that deimplements the NOTRACK target has been posted on the
 	# Netfilter development list
 	#
-	$action = 'CT --notrack' if have_capability 'CT_TARGET';
-    } elsif ( $action ne 'DROP' ) {
-	(  $target, my ( $option, $args, $junk ) ) = split ':', $action, 4;
+	if ( have_capability 'CT_TARGET' ) {
+	    $action = 'CT --notrack';
+	    $disposition = 'notrack';
+	}
+    } elsif ( $action =~ /^(DROP|LOG)(:(.+))?$/ ) {
+	if ( $2 ) {
+	    validate_level( $level = $3 );
+	    $action      = $1;
+	    $disposition = $1;
+	}
+    } elsif ( $action =~ /^IP(6)?TABLES\((.+)\)(:(.*))$/ ) {
+	if ( $family == F_IPV4 ) {
+	    fatal_error 'Invalid conntrack ACTION (IP6TABLES)' if $1;
+	} else {
+	    fatal_error "Invalid conntrack ACTION (IPTABLES)" unless $1;
+	}
 
-	fatal_error "Invalid notrack ACTION ( $action )" if $junk || $target ne 'CT';
+	my ( $tgt, $options ) = split( ' ', $2 );
+	my $target_type = $builtin_target{$tgt};
+	fatal_error "Unknown target ($tgt)" unless $target_type;
+	fatal_error "The $tgt TARGET is not allowed in the raw table" unless $target_type & RAW_TABLE;
+	$disposition = $tgt;
+	$action      = 2;
+	validate_level( $level = $3 ) if supplied $3;
+    } else {
+	(  $disposition, my ( $option, $args ), $level ) = split ':', $action, 4;
+
+	fatal_error "Invalid conntrack ACTION ( $action )" if $disposition ne 'CT';
+
+	validate_level( $level ) if supplied $level;
 
 	require_capability 'CT_TARGET', 'CT entries in the conntrack file', '';
 
 	if ( $option eq 'notrack' ) {
 	    fatal_error "Invalid conntrack ACTION ( $action )" if supplied $args;
 	    $action = 'CT --notrack';
+	    $disposition = 'notrack';
 	} else {
 	    fatal_error "Invalid or missing CT option and arguments" unless supplied $option && supplied $args;
 
 	    if ( $option eq 'helper' ) {
 		my $modifiers = '';
+
+		$disposition = "helper";
 
 		if ( $args =~ /^([-\w.]+)\((.+)\)$/ ) {
 		    $args      = $1;
@@ -149,8 +190,8 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 		 $dest ,
 		 '' ,
 		 $action ,
-		 '' ,
-		 $target ,
+		 $level || '' ,
+		 $disposition ,
 		 $exception_rule );
 
     progress_message "  Conntrack rule \"$currentline\" $done";
@@ -240,7 +281,9 @@ sub setup_conntrack() {
 		my ( $source, $dest, $protos, $ports, $sports, $user, $switch );
 
 		if ( $file_format == 1 ) {
-		    ( $source, $dest, $protos, $ports, $sports, $user, $switch ) = split_line1 'Conntrack File', { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, user => 5, switch => 6 };
+		    ( $source, $dest, $protos, $ports, $sports, $user, $switch ) =
+			split_line1( 'Conntrack File',
+				     { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, user => 5, switch => 6 } );
 		    $action = 'NOTRACK';
 		} else {
 		    ( $action, $source, $dest, $protos, $ports, $sports, $user, $switch ) = split_line1 'Conntrack File', { action => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, user => 6, switch => 7 };
@@ -269,11 +312,11 @@ sub setup_conntrack() {
 			}
 		    } elsif ( $action =~ s/:O$// ) {
 			process_conntrack_rule( $raw_table->{OUTPUT}, undef, $action, $source, $dest, $proto, $ports, $sports, $user, $switch );
-		    } elsif ( $action =~ s/:OP// || $action =~ s/:PO// ) {
+		    } elsif ( $action =~ s/:OP$// || $action =~ s/:PO// ) {
 			process_conntrack_rule( $raw_table->{PREROUTING}, undef, $action, $source, $dest, $proto, $ports, $sports, $user, $switch );
 			process_conntrack_rule( $raw_table->{OUTPUT},     undef, $action, $source, $dest, $proto, $ports, $sports, $user, $switch );
 		    } else {
-			$action =~ s/:P//;
+			$action =~ s/:P$//;
 			process_conntrack_rule( $raw_table->{PREROUTING}, undef, $action, $source, $dest, $proto, $ports, $sports, $user, $switch );
 		    }
 		}

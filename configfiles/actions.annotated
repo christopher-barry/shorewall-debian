@@ -34,6 +34,13 @@
 #         The action may be used as the rule target in an INLINE rule in
 #         shorewall-rules(5).
 # 
+#         Beginning with Shorewall 4.6.0, the Netfilter table(s) in which the 
+#         builtin can be used may be specified: filter, nat, mangle and raw. If
+#         no table name(s) are given, then filter is assumed. The table names
+#         follow builtin and are separated by commas; for example,
+#         "FOOBAR,filter,mangle" would specify FOOBAR as a builtin target that
+#         can be used in the filter and mangle tables.
+# 
 #     inline
 # 
 #         Causes the action body (defined in action.action-name) to be expanded

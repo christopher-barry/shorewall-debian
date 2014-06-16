@@ -37,7 +37,7 @@
 # 
 # MARK (Optional) - value
 # 
-#     A FWMARK value used in your shorewall-tcrules(5) file to direct packets to
+#     A FWMARK value used in your shorewall-mangle(5) file to direct packets to
 #     this provider.
 # 
 #     If HIGH_ROUTE_MARKS=Yes in shorewall.conf(5), then the value must be a
@@ -162,7 +162,7 @@
 #     tproxy
 # 
 #         Added in Shorewall 4.5.4. Used for supporting the TPROXY action in
-#         shorewall-tcrules(5). See http://www.shorewall.net/
+#         shorewall-mangle(5). See http://www.shorewall.net/
 #         Shorewall_Squid_Usage.html. When specified, the MARK, DUPLICATE and
 #         GATEWAY columns should be empty, INTERFACE should be set to 'lo' and
 #         tproxy should be the only OPTION. Only one tproxy provider is allowed.

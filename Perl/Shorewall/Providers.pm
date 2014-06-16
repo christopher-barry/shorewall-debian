@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MAS 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module deals with the /etc/shorewall/providers,
 #   /etc/shorewall/rtrules and /etc/shorewall/routes files.
@@ -416,7 +418,8 @@ sub process_a_provider( $ ) {
     my $pseudo = $_[0]; # When true, this is an optional interface that we are treating somewhat like a provider.
 
     my ($table, $number, $mark, $duplicate, $interface, $gateway,  $options, $copy ) =
-	split_line 'providers file', { table => 0, number => 1, mark => 2, duplicate => 3, interface => 4, gateway => 5, options => 6, copy => 7 };
+	split_line('providers file',
+		   { table => 0, number => 1, mark => 2, duplicate => 3, interface => 4, gateway => 5, options => 6, copy => 7 } );
 
     fatal_error "Duplicate provider ($table)" if $providers{$table};
 
@@ -1047,7 +1050,9 @@ CEOF
 }
 
 sub add_an_rtrule( ) {
-    my ( $source, $dest, $provider, $priority, $originalmark ) = split_line 'rtrules file', { source => 0, dest => 1, provider => 2, priority => 3 , mark => 4 };
+    my ( $source, $dest, $provider, $priority, $originalmark ) =
+	split_line( 'rtrules file',
+		    { source => 0, dest => 1, provider => 2, priority => 3 , mark => 4 } );
 
     our $current_if;
 
@@ -1137,7 +1142,9 @@ sub add_an_rtrule( ) {
 }
 
 sub add_a_route( ) {
-    my ( $provider, $dest, $gateway, $device ) = split_line 'routes file', { provider => 0, dest => 1, gateway => 2, device => 3 };
+    my ( $provider, $dest, $gateway, $device ) =
+	split_line( 'routes file',
+		    { provider => 0, dest => 1, gateway => 2, device => 3 } );
 
     our $current_if;
 

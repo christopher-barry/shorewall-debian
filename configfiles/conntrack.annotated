@@ -49,24 +49,23 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# ACTION - {NOTRACK|CT:helper:name[(arg=val[,...])|CT:notrack|DROP}[:
-#     chain-designator]
+# ACTION - {NOTRACK|CT:helper:name[(arg=val[,...])|CT:notrack|DROP|LOG|ULOG(
+#     ulog-parameters):NFLOG(nflog-parameters)|IPTABLES(target)}[log-level[:
+#     log-tag]][:chain-designator]
 # 
 #     This column is only present when FORMAT >= 2. Values other than NOTRACK or
 #     DROP require CT Target support in your iptables and kernel.
 # 
 #       ● NOTRACK or CT:notrack
 # 
-#         Disables connection tracking for this packet.
+#         Disables connection tracking for this packet. If a log-level is
+#         specified, the packet will also be logged at that level.
 # 
-#       ● DROP
-# 
-#         Added in Shorewall 4.5.10. Silently discard the packet.
-# 
-#       ● helper:name
+#       ● CT:helper:name
 # 
 #         Attach the helper identified by the name to this connection. This is
-#         more flexible than loading the conntrack helper with preset ports.
+#         more flexible than loading the conntrack helper with preset ports. If a
+#         log-level is specified, the packet will also be logged at that level.
 # 
 #         At this writing, the available helpers are:
 # 
@@ -125,6 +124,39 @@
 # 
 #             Only generate a new expectation events for this connection.
 # 
+#       ● DROP
+# 
+#         Added in Shorewall 4.5.10. Silently discard the packet. If a log-level
+#         is specified, the packet will also be logged at that level.
+# 
+#       ● IPTABLES(target)
+# 
+#         Added in Shorewall 4.6.0. Allows you to specify any iptables target
+#         with target options (e.g., "IPTABLES(AUDIT --type drop)"). If the
+#         target is not one recognized by Shorewall, the following error message
+#         will be issued:
+# 
+#         ERROR: Unknown target (target)
+# 
+#         This error message may be eliminated by adding target as a builtin
+#         action in shorewall-actions(5).
+# 
+#       ● LOG
+# 
+#         Added in Shoreawll 4.6.0. Logs the packet using the specified log-level
+#         and log-tag (if any). If no log-level is specified, then 'info' is
+#         assumed.
+# 
+#       ● NFLOG
+# 
+#         Added in Shoreawll 4.6.0. Queues the packet to a backend logging daemon
+#         using the NFLOG netfilter target with the specified nflog-parameters.
+# 
+#       ● ULOG
+# 
+#         Added in Shoreawll 4.6.0. Queues the packet to a backend logging daemon
+#         using the ULOG netfilter target with the specified ulog-parameters.
+# 
 #     When FORMAT = 1, this column is not present and the rule is processed as if
 #     NOTRACK had been entered in this column.
 # 
@@ -169,7 +201,7 @@
 # DEST ‒ {-|interface[:address-list]|address-list}
 # 
 #     where address-list is a comma-separated list of addresses (may contain
-#     exclusion - see shorewall6-exclusion (5)).
+#     exclusion - see shorewall-exclusion (5)).
 # 
 # PROTO ‒ protocol-name-or-number[,...]
 # 

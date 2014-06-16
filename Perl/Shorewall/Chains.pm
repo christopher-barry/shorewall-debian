@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #  This is the low-level iptables module. It provides the basic services
 #  of chain and rule creation. It is used by the higher level modules such
@@ -80,6 +82,11 @@ our @EXPORT = ( qw(
 		    add_interface_options
 		    state_match
 		    state_imatch
+                    split_action
+                    get_target_param
+                    get_target_param1
+                    get_inline_matches
+                    handle_inline
 
 		    STANDARD
 		    NATRULE
@@ -102,6 +109,11 @@ our @EXPORT = ( qw(
 		    USERBUILTIN
 		    INLINERULE
 		    OPTIONS
+                    IPTABLES
+                    FILTER_TABLE
+                    NAT_TABLE
+                    MANGLE_TABLE
+                    RAW_TABLE
 
 		    %chain_table
 		    %targets
@@ -392,26 +404,32 @@ our %nfobjects;
 #
 # Target Types
 #
-use constant { STANDARD     =>     0x1,       #defined by Netfilter
-	       NATRULE      =>     0x2,       #Involves NAT
-	       BUILTIN      =>     0x4,       #A built-in action
-	       NONAT        =>     0x8,       #'NONAT' or 'ACCEPT+'
-	       NATONLY      =>    0x10,       #'DNAT-' or 'REDIRECT-'
-	       REDIRECT     =>    0x20,       #'REDIRECT'
-	       ACTION       =>    0x40,       #An action (may be built-in)
-	       MACRO        =>    0x80,       #A Macro
-	       LOGRULE      =>   0x100,       #'LOG','NFLOG'
-	       NFQ          =>   0x200,       #'NFQUEUE'
-	       CHAIN        =>   0x400,       #Manual Chain
-	       SET          =>   0x800,       #SET
-	       AUDIT        =>  0x1000,       #A_ACCEPT, etc
-	       HELPER       =>  0x2000,       #CT:helper
-	       NFLOG        =>  0x4000,       #NFLOG or ULOG
-	       INLINE       =>  0x8000,       #Inline action
-	       STATEMATCH   => 0x10000,       #action.Invalid, action.Related, etc.
-	       USERBUILTIN  => 0x20000,       #Builtin action from user's actions file.
-	       INLINERULE   => 0x40000,       #INLINE
-	       OPTIONS      => 0x80000,       #Target Accepts Options
+use constant { STANDARD     =>      0x1,       #defined by Netfilter
+	       NATRULE      =>      0x2,       #Involves NAT
+	       BUILTIN      =>      0x4,       #A built-in action
+	       NONAT        =>      0x8,       #'NONAT' or 'ACCEPT+'
+	       NATONLY      =>     0x10,       #'DNAT-' or 'REDIRECT-'
+	       REDIRECT     =>     0x20,       #'REDIRECT'
+	       ACTION       =>     0x40,       #An action (may be built-in)
+	       MACRO        =>     0x80,       #A Macro
+	       LOGRULE      =>    0x100,       #'LOG','NFLOG'
+	       NFQ          =>    0x200,       #'NFQUEUE'
+	       CHAIN        =>    0x400,       #Manual Chain
+	       SET          =>    0x800,       #SET
+	       AUDIT        =>   0x1000,       #A_ACCEPT, etc
+	       HELPER       =>   0x2000,       #CT:helper
+	       NFLOG        =>   0x4000,       #NFLOG or ULOG
+	       INLINE       =>   0x8000,       #Inline action
+	       STATEMATCH   =>  0x10000,       #action.Invalid, action.Related, etc.
+	       USERBUILTIN  =>  0x20000,       #Builtin action from user's actions file.
+	       INLINERULE   =>  0x40000,       #INLINE
+	       OPTIONS      =>  0x80000,       #Target Accepts Options
+	       IPTABLES     => 0x100000,       #IPTABLES or IP6TABLES
+
+	       FILTER_TABLE =>  0x1000000,
+	       MANGLE_TABLE =>  0x2000000,
+	       RAW_TABLE    =>  0x4000000,
+	       NAT_TABLE    =>  0x8000000,
 	   };
 #
 # Valid Targets -- value is a combination of one or more of the above
@@ -432,7 +450,16 @@ use constant { NO_RESTRICT         => 0,   # FORWARD chain rule     - Both -i an
 	       ALL_RESTRICT        => 12,  # fw->fw rule            - neither -i nor -o allowed
 	       DESTIFACE_DISALLOW  => 32,  # Don't allow dest interface. Similar to INPUT_RESTRICT but generates a more relevant error message
 	       };
-
+#
+# Possible IPSET options
+#
+our %ipset_extensions = (
+    'nomatch'               => '--return-nomatch ',
+    'no-update-counters'    => '! --update-counters ',
+    'no-update-subcounters' => '! --update-subcounters ',
+    'packets'               => '',
+    'bytes'                 => '',
+    );
 #
 # See initialize() below for additional comments on these variables
 #
@@ -518,59 +545,59 @@ our $family;
 #
 # These are the current builtin targets
 #
-our %builtin_target = ( ACCEPT      => 1,
-			ACCOUNT     => 1,
-			AUDIT       => 1,
-			CHAOS       => 1,
-			CHECKSUM    => 1,
-			CLASSIFY    => 1,
-		        CLUSTERIP   => 1,
-			CONNMARK    => 1,
-			CONNSECMARK => 1,
-			COUNT       => 1,
-			CT          => 1,
-			DELUDE      => 1,
-			DHCPMAC     => 1,
-			DNAT        => 1,
-			DNETMAP     => 1,
-			DROP        => 1,
-			DSCP        => 1,
-			ECHO        => 1,
-			ECN         => 1,
-			HL          => 1,
-			IDLETIMER   => 1,
-			IPMARK      => 1,
-			LOG         => 1,
-			LOGMARK     => 1,
-			MARK        => 1,
-			MASQUERADE  => 1,
-			MIRROR      => 1,
-			NETMAP      => 1,
-			NFLOG       => 1,
-			NFQUEUE     => 1,
-			NOTRACK     => 1,
-			QUEUE       => 1,
-			RATEEST     => 1,
-			RAWDNAT     => 1,
-			RAWSNAT     => 1,
-			REDIRECT    => 1,
-			REJECT      => 1,
-			RETURN      => 1,
-			SAME        => 1,
-			SECMARK     => 1,
-			SET         => 1,
-			SNAT        => 1,
-			STEAL       => 1,
-			SYSRQ       => 1,
-			TARPIT      => 1,
-			TCPMSS      => 1,
-			TCPOPTSTRIP => 1,
-			TEE         => 1,
-			TOS         => 1,
-			TPROXY      => 1,
-			TRACE       => 1,
-			TTL         => 1,
-			ULOG        => 1,
+our %builtin_target = ( ACCEPT      => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			ACCOUNT     => STANDARD + MANGLE_TABLE,
+			AUDIT       => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			CHAOS       => STANDARD + FILTER_TABLE,
+			CHECKSUM    => STANDARD                            + MANGLE_TABLE,
+			CLASSIFY    => STANDARD                            + MANGLE_TABLE,
+		        CLUSTERIP   => STANDARD                            + MANGLE_TABLE + RAW_TABLE,
+			CONNMARK    => STANDARD                            + MANGLE_TABLE,
+			CONNSECMARK => STANDARD                            + MANGLE_TABLE,
+			COUNT       => STANDARD + FILTER_TABLE,
+			CT          => STANDARD                                           + RAW_TABLE,
+			DELUDE      => STANDARD + FILTER_TABLE,
+			DHCPMAC     => STANDARD                            + MANGLE_TABLE,
+			DNAT        => STANDARD                + NAT_TABLE,
+			DNETMAP     => STANDARD                + NAT_TABLE,
+			DROP        => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			DSCP        => STANDARD                            + MANGLE_TABLE,
+			ECHO        => STANDARD + FILTER_TABLE,
+			ECN         => STANDARD                            + MANGLE_TABLE,
+			HL          => STANDARD                            + MANGLE_TABLE,
+			IDLETIMER   => STANDARD,
+			IPMARK      => STANDARD                            + MANGLE_TABLE,
+			LOG         => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			LOGMARK     => STANDARD                            + MANGLE_TABLE,
+			MARK        => STANDARD + FILTER_TABLE             + MANGLE_TABLE,
+			MASQUERADE  => STANDARD                + NAT_TABLE,
+			MIRROR      => STANDARD + FILTER_TABLE,
+			NETMAP      => STANDARD                + NAT_TABLE,,
+			NFLOG       => STANDARD                            + MANGLE_TABLE + RAW_TABLE,
+			NFQUEUE     => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			NOTRACK     => STANDARD                                           + RAW_TABLE,
+			QUEUE       => STANDARD + FILTER_TABLE,
+			RATEEST     => STANDARD                            + MANGLE_TABLE,
+			RAWDNAT     => STANDARD                                           + RAW_TABLE,
+			RAWSNAT     => STANDARD                                           + RAW_TABLE,
+			REDIRECT    => STANDARD                + NAT_TABLE,
+			REJECT      => STANDARD + FILTER_TABLE,
+			RETURN      => STANDARD                            + MANGLE_TABLE + RAW_TABLE,
+			SAME        => STANDARD,
+			SECMARK     => STANDARD                            + MANGLE_TABLE,
+			SET         => STANDARD                            + MANGLE_TABLE + RAW_TABLE,
+			SNAT        => STANDARD                + NAT_TABLE,
+			STEAL       => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			SYSRQ       => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			TARPIT      => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			TCPMSS      => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			TCPOPTSTRIP => STANDARD                            + MANGLE_TABLE,
+			TEE         => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
+			TOS         => STANDARD                            + MANGLE_TABLE,
+			TPROXY      => STANDARD                            + MANGLE_TABLE,
+			TRACE       => STANDARD                                           + RAW_TABLE,
+			TTL         => STANDARD                            + MANGLE_TABLE,
+			ULOG        => STANDARD + FILTER_TABLE + NAT_TABLE + MANGLE_TABLE + RAW_TABLE,
 		        );
 
 our %ipset_exists;
@@ -798,12 +825,13 @@ sub get_opttype( $$ ) { # $option, $default
     $opttype{$_[0]} || $_[1];
 }
 
-# # Next a helper for setting an individual option
+#
+# Next a helper for setting an individual option
 #
 sub set_rule_option( $$$ ) {
     my ( $ruleref, $option, $value ) = @_;
 
-    assert( defined $value && reftype $ruleref , $value, $ruleref );
+    assert( defined $value && reftype $ruleref , $option, $ruleref );
 
     $ruleref->{simple} = 0;
     $ruleref->{complex} = 1 if reftype $value;
@@ -2043,6 +2071,7 @@ sub use_input_chain($$) {
     # Interface associated with a single zone -- Must use the interface chain if
     #                                            the zone has  multiple interfaces
     #                                            and this interface has option rules
+    #
     return 1 if $interfaceref->{options}{use_input_chain} && keys %{ zone_interfaces( $zone ) } > 1;
     #
     # Interface associated with a single zone -- use the zone's input chain if it has one
@@ -2305,7 +2334,7 @@ sub add_jump( $$$;$$$ ) {
     #
     # If the destination is a chain, mark it referenced
     #
-    $toref->{referenced} = 1, add_reference $fromref, $toref if $toref;
+    $toref->{referenced} = 1, add_reference( $fromref, $toref ) if $toref;
 
     my $param = $goto_ok && $toref && have_capability( 'GOTO_TARGET' ) ? 'g' : 'j';
 
@@ -2811,6 +2840,7 @@ sub initialize_chain_table($) {
 		    'WHITELIST'       => STANDARD,
 		    'HELPER'          => STANDARD + HELPER + NATONLY, #Actually RAWONLY
 		    'INLINE'          => INLINERULE,
+		    'IPTABLES'        => IPTABLES,
 		   );
 
 	for my $chain ( qw(OUTPUT PREROUTING) ) {
@@ -2875,6 +2905,7 @@ sub initialize_chain_table($) {
 		    'WHITELIST'       => STANDARD,
 		    'HELPER'          => STANDARD + HELPER + NATONLY, #Actually RAWONLY
 		    'INLINE'          => INLINERULE,
+		    'IP6TABLES'       => IPTABLES,
 		   );
 
 	for my $chain ( qw(OUTPUT PREROUTING) ) {
@@ -3153,6 +3184,7 @@ sub check_optimization( $ ) {
 # Perform Optimization
 #
 # When an unreferenced chain is found, it is deleted unless its 'dont_delete' flag is set.
+#
 sub optimize_level0() {
     for my $table ( qw/raw rawpost mangle nat filter/ ) {
 	my $tableref = $chain_table{$table};
@@ -4385,26 +4417,32 @@ sub do_proto( $$$;$ )
 
 		    if ( $ports ne '' ) {
 			$invert = $ports =~ s/^!// ? '! ' : '';
-			$sports = '', require_capability( 'MULTIPORT', "'=' in the SOURCE PORT(S) column", 's' ) if ( $srcndst = $sports eq '=' );
 
-			if ( $multiport || $ports =~ tr/,/,/ > 0 || $sports =~ tr/,/,/ > 0 ) {
-			    fatal_error "Port lists require Multiport support in your kernel/iptables" unless have_capability( 'MULTIPORT',1 );
+			if ( $ports =~ /^\+/ ) {
+			    $output .= $invert;
+			    $output .= get_set_flags( $ports, 'dst' );
+			} else {
+			    $sports = '', require_capability( 'MULTIPORT', "'=' in the SOURCE PORT(S) column", 's' ) if ( $srcndst = $sports eq '=' );
 
-			    if ( port_count ( $ports ) > 15 ) {
-				if ( $restricted ) {
-				    fatal_error "A port list in this file may only have up to 15 ports";
-				} elsif ( $invert ) {
-				    fatal_error "An inverted port list may only have up to 15 ports";
+			    if ( $multiport || $ports =~ tr/,/,/ > 0 || $sports =~ tr/,/,/ > 0 ) {
+				fatal_error "Port lists require Multiport support in your kernel/iptables" unless have_capability( 'MULTIPORT',1 );
+
+				if ( port_count ( $ports ) > 15 ) {
+				    if ( $restricted ) {
+					fatal_error "A port list in this file may only have up to 15 ports";
+				    } elsif ( $invert ) {
+					fatal_error "An inverted port list may only have up to 15 ports";
+				    }
 				}
-			    }
 
-			    $ports = validate_port_list $pname , $ports;
-			    $output .= ( $srcndst ? "-m multiport ${invert}--ports ${ports} " : "-m multiport ${invert}--dports ${ports} " );
-			    $multiport = 1;
-			}  else {
-			    fatal_error "Missing DEST PORT" unless supplied $ports;
-			    $ports   = validate_portpair $pname , $ports;
-			    $output .= ( $srcndst ? "-m multiport ${invert}--ports ${ports} " : "${invert}--dport ${ports} " );
+				$ports = validate_port_list $pname , $ports;
+				$output .= ( $srcndst ? "-m multiport ${invert}--ports ${ports} " : "-m multiport ${invert}--dports ${ports} " );
+				$multiport = 1;
+			    }  else {
+				fatal_error "Missing DEST PORT" unless supplied $ports;
+				$ports   = validate_portpair $pname , $ports;
+				$output .= ( $srcndst ? "-m multiport ${invert}--ports ${ports} " : "${invert}--dport ${ports} " );
+			    }
 			}
 		    } else {
 			$multiport ||= ( $sports =~ tr/,/,/ ) > 0 ;;
@@ -4416,9 +4454,13 @@ sub do_proto( $$$;$ )
 
 		    if ( $sports ne '' ) {
 			fatal_error "'=' in the SOURCE PORT(S) column requires one or more ports in the DEST PORT(S) column" if $sports eq '=';
-			$invert = $sports =~ s/^!// ? '! ' : '';
-			if ( $multiport ) {
 
+			$invert = $sports =~ s/^!// ? '! ' : '';
+
+			if ( $ports =~ /^\+/ ) {
+			    $output .= $invert;
+			    $output .= get_set_flags( $ports, 'dst' );
+			} elsif ( $multiport ) {
 			    if ( port_count( $sports ) > 15 ) {
 				if ( $restricted ) {
 				    fatal_error "A port list in this file may only have up to 15 ports";
@@ -4756,22 +4798,28 @@ sub verify_mark( $ ) {
     }
 }
 
-sub verify_small_mark( $ ) {
-    verify_mark ( (my $mark) = $_[0] );
-    fatal_error "Mark value ($mark) too large" if numeric_value( $mark ) > $globals{TC_MAX};
-}
-
 sub validate_mark( $ ) {
     my $mark = shift;
+    my $val;
     fatal_error "Missing MARK" unless supplied $mark;
 
     if ( $mark =~ '/' ) {
 	my @marks = split '/', $mark;
 	fatal_error "Invalid MARK ($mark)" unless @marks == 2;
 	verify_mark $_ for @marks;
+	$val = $marks[0];
     } else {
 	verify_mark $mark;
+	$val = $mark;
     }
+
+    return numeric_value $val if defined( wantarray );
+}
+
+sub verify_small_mark( $ ) {
+    my $val = validate_mark ( (my $mark) = $_[0] );
+    fatal_error "Mark value ($mark) too large" if numeric_value( $mark ) > $globals{TC_MAX};
+    $val;
 }
 
 #
@@ -5401,6 +5449,7 @@ sub iprange_match() {
 sub get_set_flags( $$ ) {
     my ( $setname, $option ) = @_;
     my $options = $option;
+    my $extensions = '';
 
     require_capability( 'IPSET_MATCH' , 'ipset names in Shorewall configuration files' , '' );
 
@@ -5408,20 +5457,71 @@ sub get_set_flags( $$ ) {
 
     $setname =~ s/^!//; # Caller has already taken care of leading !
 
-    if ( $setname =~ /^(.*)\[([1-6])\]$/ ) {
+    my $rest = '';
+
+    if ( $setname =~ /^(.*)\[([1-6])(?:,(.*))\]$/ ) {
 	$setname  = $1;
 	my $count = $2;
+	$rest     = $3;
+
 	$options .= ",$option" while --$count > 0;
-    } elsif ( $setname =~ /^(.*)\[((src|dst)(,(src|dst))*)\]$/ ) {
+    } elsif ( $setname =~ /^(.*)\[((?:src|dst)(?:,(?:src|dst))*)*(,?.+)?\]$/ ) {
 	$setname = $1;
-	$options = $2;
+	$rest = $3;
+
+	if ( supplied $2 ) {
+	    $options = $2;
+	    if ( supplied $rest ) {
+		fatal_error "Invalid Option List (${options}${rest})" unless $rest =~ s/^,//;
+	    }
+	}
 
 	my @options = split /,/, $options;
 	my %typemap = ( src => 'Source', dst => 'Destination' );
 
 	if ( $config{IPSET_WARNINGS} ) {
-	    for ( @options ) {
-		warning_message( "The '$_' ipset flag is used in a $typemap{$option} column" ), last unless $_ eq $option;
+	    warning_message( "The '$options[0]' ipset flag is used in a $option column" ), unless $options[0] eq $option;
+	}
+    }
+
+    if ( $rest ) {
+	my @extensions = split_list($rest, 'ipset option');
+
+	for ( @extensions ) {
+	    my ($extension, $relop, $value) = split /(<>|=|<|>)/, $_;
+
+	    my $match = $ipset_extensions{$extension};
+
+	    fatal_error "Unknown ipset option ($extension)" unless defined $match;
+	    
+	    require_capability ( ( $extension eq 'nomatch' ?
+				   'IPSET_MATCH_NOMATCH'    :
+				   'IPSET_MATCH_COUNTERS' ),
+				 "The '$extension' option",
+				 's' );
+	    if ( $match ) {
+		fatal_error "The $extension option does not require a value" if supplied $relop || supplied $value;
+		$extensions .= "$match ";
+	    } else {
+		my $val;
+		fatal_error "The $extension option requires a value" unless supplied $value;
+		fatal_error "Invalid number ($value)" unless defined ( $val = numeric_value($value) );
+		$extension = "--$extension";
+
+		if ( $relop eq '<' ) {
+		    $extension .= '-lt';
+		} elsif ( $relop eq '>' ) {
+		    $extension .= '-gt';
+		} elsif ( $relop eq '=' ) {
+		    $extension .= '-eq';
+		} else {
+		    $extension = join( ' ', '!',  $extension );
+		    $extension .= '-eq';
+		}
+
+		$extension = join( ' ', $extension, $value );
+
+		$extensions .= "$extension ";
 	    }
 	}
     }
@@ -5440,7 +5540,7 @@ sub get_set_flags( $$ ) {
 
     fatal_error "Invalid ipset name ($setname)" unless $setname =~ /^(6_)?[a-zA-Z][-\w]*/;
 
-    have_capability( 'OLD_IPSET_MATCH' ) ? "--set $setname $options " : "--match-set $setname $options ";
+    have_capability( 'OLD_IPSET_MATCH' ) ? "--set $setname $options " : "--match-set $setname $options $extensions";
 
 }
 
@@ -5756,13 +5856,13 @@ sub match_dest_net( $;$ ) {
 	for $net ( @sets ) {
 	    fatal_error "Expected ipset name ($net)" unless $net =~ /^(!?)(?:\+?)((?:6_)?[a-zA-Z][-\w]*(?:\[.*\])?)(?:\((.+)\))?$/;
 	    $result .= join( '', '-m set ', $1 ? '! ' : '', get_set_flags( $2, 'dst' ) );
-	}
 
-	if ( $3 ) {
-	    require_capability 'NFACCT_MATCH', "An nfacct object list ($3)", 's';
-	    for ( my @objects = split_list $3, 'nfacct' ) {
-		validate_nfobject( $_ );
-		$result .= do_nfacct( $_ );
+	    if ( $3 ) {
+		require_capability 'NFACCT_MATCH', "An nfacct object list ($3)", 's';
+		for ( my @objects = split_list $3, 'nfacct' ) {
+		    validate_nfobject( $_ );
+		    $result .= do_nfacct( $_ );
+		}
 	    }
 	}
 
@@ -8395,6 +8495,85 @@ sub initialize_switches() {
 	pop_indent;
 	emit "fi\n";
     }
+}
+
+#
+# Return ( action, level[:tag] ) from passed full action
+#
+sub split_action ( $ ) {
+    my $action = $_[0];
+
+    my @list   = split_list2( $action, 'ACTION' );
+
+    fatal_error "Invalid ACTION ($action)" if @list > 3;
+
+    ( shift @list, join( ':', @list ) );
+}
+
+#
+# Get inline matches and conditionally verify the absense of -j
+#
+sub get_inline_matches( $ ) {
+    if ( $_[0] ) {
+	fetch_inline_matches;
+    } else {
+	my $inline_matches = fetch_inline_matches;
+
+	fatal_error "-j is only allowed when the ACTION is INLINE with no parameter" if $inline_matches =~ /\s-j\s/;
+
+	$inline_matches;
+    }
+}
+
+#
+# Split the passed target into the basic target and parameter
+#
+sub get_target_param( $ ) {
+    my ( $target, $param ) = split '/', $_[0];
+
+    unless ( defined $param ) {
+	( $target, $param ) = ( $1, $2 ) if $target =~ /^(.*?)[(](.*)[)]$/;
+    }
+
+    ( $target, $param );
+}
+
+sub get_target_param1( $ ) {
+    my $target = $_[0];
+
+    if ( $target =~ /^(.*?)[(](.*)[)]$/ ) {
+	( $1, $2 );
+    } else {
+	( $target, '' );
+    }
+}
+
+sub handle_inline( $$$$$$ ) {
+    my ( $table, $tablename, $action, $basictarget, $param, $loglevel ) = @_;
+    my $inline_matches = get_inline_matches(1);
+    my $raw_matches = '';
+
+    if ( $inline_matches =~ /^(.*\s+)?-j\s+(.+) $/ ) {
+	$raw_matches .= $1 if supplied $1;
+	$action = $2;
+	my ( $target ) = split ' ', $action;
+	my $target_type = $builtin_target{$target};
+	fatal_error "Unknown jump target ($action)" unless $target_type;
+	fatal_error "The $target TARGET is not allowed in the $tablename table" unless $target_type & $table;
+	fatal_error "INLINE may not have a parameter when '-j' is specified in the free-form area" if $param ne '';
+    } else {
+	$raw_matches .= $inline_matches;
+	
+	if ( $param eq '' ) {
+	    $action = $loglevel ? 'LOG' : '';
+	} else {
+	    ( $action, $loglevel )   = split_action $param;
+	    ( $basictarget, $param ) = get_target_param $action;
+	    $param = '' unless defined $param;
+	}
+    }
+
+    return ( $action, $basictarget, $param, $loglevel, $raw_matches );
 }
 
 1;

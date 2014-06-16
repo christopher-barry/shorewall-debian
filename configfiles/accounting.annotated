@@ -45,7 +45,11 @@
 # 
 # Section headers have the form:
 # 
-# SECTION section-name
+# [?]SECTION section-name
+# 
+# The optional "?" was added in Shorewalll 4.6.0 and is preferred. Existing
+# configurations may be converted to use this form using the shorewall update
+# command.
 # 
 # When sections are enabled:
 # 

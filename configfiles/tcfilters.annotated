@@ -36,15 +36,23 @@
 #     followed by a class number defined for that interface in
 #     shorewall-tcclasses(5).
 # 
-# SOURCE - {-|address}
+# SOURCE - {-|address|+ipset}
 # 
 #     Source of the packet. May be a host or network address. DNS names are not
-#     allowed.
+#     allowed. Beginning with Shorewall 4.6.0, an ipset name (prefixed with '+')
+#     may be used if your kernel and ip6tables have the Basic Ematchcapability.
+#     The ipset name may optionally be followed by a number or a comma separated
+#     list of src and/or dst enclosed in square brackets ([...]). See
+#     shorewall-ipsets(5) for details.
 # 
-# DEST - {-|address}}
+# DEST - {-|address|+ipset}
 # 
 #     Destination of the packet. May be a host or network address. DNS names are
-#     not allowed.
+#     not allowed. Beginning with Shorewall 4.6.0, an ipset name (prefixed with
+#     '+') may be used if your kernel and ip6tables have the Basic Ematch
+#     capability. The ipset name may optionally be followed by a number or a
+#     comma separated list of src and/or dst enclosed in square brackets ([...]).
+#     See shorewall-ipsets(5) for details.
 # 
 #     You may exclude certain hosts from the set already defined through use of
 #     an exclusion (see shorewall-exclusion(5)).
@@ -158,5 +166,5 @@
 #            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-reply      10
 # 
 ########################################################################################################
-#INTERFACE:	SOURCE		DEST		PROTO	DEST	SOURCE   TOS		LENGTH	PRIORITY
+#INTERFACE:	SOURCE		DEST		PROTO	DEST	SOURCE	TOS		LENGTH	PRIORITY
 #CLASS							PORT(S)	PORT(S)

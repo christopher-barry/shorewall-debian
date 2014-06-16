@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module is responsible for lower level configuration file handling.
 #   It also exports functions for generating warning and error messages.
@@ -70,7 +72,7 @@ our @EXPORT = qw(
 		 get_action_disposition
 		 set_action_disposition
 		 set_action_param
-		 get_inline_matches
+		 fetch_inline_matches
 		 set_inline_matches
 
                  set_comment
@@ -125,6 +127,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       split_list2
 				       split_line
 				       split_line1
+				       split_line2
 				       first_entry
 				       open_file
 				       close_file
@@ -152,6 +155,10 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       no_comment
 				       macro_comment
 				       dump_mark_layout
+                                       set_section_function
+                                       section_warning
+                                       clear_section_function
+                                       directive_callback
 
 				       $product
 				       $Product
@@ -200,6 +207,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       SUPPRESS_WHITESPACE
 				       CONFIG_CONTINUATION
 				       DO_INCLUDE
+                                       DO_SECTION
 				       NORMAL_READ
 
 				       OPTIMIZE_POLICY_MASK
@@ -222,7 +230,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5.20-Beta1';
+our $VERSION = '4.6.0-Beta1';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -322,6 +330,10 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		                 => 'Owner Name Match',
 		 IPSET_MATCH     => 'Ipset Match',
 		 OLD_IPSET_MATCH => 'Old Ipset Match',
+		 IPSET_MATCH_NOMATCH
+                                 => 'Ipset Match nomatch',
+		 IPSET_MATCH_COUNTERS
+                                 => 'Ipset Match counters',
 		 IPSET_V5        => 'Version 5 ipsets',
 		 CONNMARK        => 'CONNMARK Target',
 		 XCONNMARK       => 'Extended CONNMARK Target',
@@ -365,6 +377,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 CONDITION_MATCH => 'Condition Match',
 		 IPTABLES_S      => 'iptables -S',
 		 BASIC_FILTER    => 'Basic Filter',
+		 BASIC_EMATCH    => 'Basic Filter ematch',
 		 CT_TARGET       => 'CT Target',
 		 STATISTIC_MATCH =>
 		                    'Statistics Match',
@@ -548,6 +561,9 @@ our $nocomment;              # When true, ignore [?]COMMENT in the current file
 our $warningcount;           # Used to suppress duplicate warnings about missing COMMENT support
 our $warningcount1;          # Used to suppress duplicate warnings about COMMENT being deprecated
 our $warningcount2;          # Used to suppress duplicate warnings about FORMAT being deprecated
+our $warningcount3;          # Used to suppress duplicate warnings about SECTION being deprecated
+our $checkinline;            # The -i option to check/compile/etc.
+our $directive_callback;     # Function to call in compiler_directive
 
 our $shorewall_dir;          # Shorewall Directory; if non-empty, search here first for files.
 
@@ -626,10 +642,13 @@ use constant { PLAIN_READ          => 0,     # No read_a_line options
 	       CONFIG_CONTINUATION => 32,    # Suppress leading whitespace if
                                              # continued line ends in ',' or ':'
 	       DO_INCLUDE          => 64,    # Look for INCLUDE <filename>
+               DO_SECTION          => 128,   # Look for [?]SECTION <section> 
                NORMAL_READ         => -1     # All options
 	   };
 
 our %variables; # Symbol table for expanding shell variables
+
+our $section_function; #Function Reference for handling ?section
 
 sub process_shorewallrc($$);
 sub add_variables( \% );
@@ -670,6 +689,8 @@ sub initialize( $;$$) {
     $ifstack        = 0;
     @ifstack        = ();
     $embedded       = 0;
+    $directive_callback
+	            = 0;
     #
     # Contents of last COMMENT line.
     #
@@ -677,6 +698,7 @@ sub initialize( $;$$) {
     $warningcount  = 0;
     $warningcount1 = 0;
     $warningcount2 = 0;
+    $warningcount3 = 0;
     #
     # Misc Globals
     #
@@ -687,8 +709,8 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "4.5.21.9",
-		    CAPVERSION              => 40515 ,
+		    VERSION                 => "4.6.1.1",
+		    CAPVERSION              => 40600 ,
 		  );
     #
     # From shorewall.conf file
@@ -824,6 +846,8 @@ sub initialize( $;$$) {
 	  CHAIN_SCRIPTS => undef,
 	  TRACK_RULES => undef,
 	  REJECT_ACTION => undef,
+	  INLINE_MATCHES => undef,
+	  BASIC_FILTERS => undef,
 	  #
 	  # Packet Disposition
 	  #
@@ -892,6 +916,8 @@ sub initialize( $;$$) {
 	       OWNER_NAME_MATCH => undef,
 	       IPSET_MATCH => undef,
 	       OLD_IPSET_MATCH => undef,
+	       IPSET_MATCH_NOMATCH => undef,
+	       IPSET_MATCH_COUNTERS => undef,
 	       IPSET_V5 => undef,
 	       CONNMARK => undef,
 	       XCONNMARK => undef,
@@ -935,6 +961,7 @@ sub initialize( $;$$) {
 	       CONDITION_MATCH => undef,
 	       IPTABLES_S => undef,
 	       BASIC_FILTER => undef,
+	       BASIC_EMATCH => undef,
 	       CT_TARGET => undef,
 	       STATISTIC_MATCH => undef,
 	       IMQ_TARGET => undef,
@@ -1973,6 +2000,57 @@ sub split_list3( $$ ) {
     @list2;
 }
 
+sub split_columns( $ ) {
+    my ($list) = @_;
+
+    return split ' ', $list unless $list =~ /\(/;
+
+    my @list1 = split ' ', $list;
+    my @list2;
+    my $element   = '';
+    my $opencount = 0;
+
+    for ( @list1 ) {
+	my $count;
+
+	if ( ( $count = tr/(/(/ ) > 0 ) {
+	    $opencount += $count;
+	    if ( $element eq '' ) {
+		$element = $_;
+	    } else {
+		$element = join( ' ', $element, $_ );
+	    }
+
+	    if ( ( $count = tr/)/)/ ) > 0 ) {
+		if ( ! ( $opencount -= $count ) ) {
+		     push @list2 , $element;
+		     $element = '';
+		} else {
+		    fatal_error "Mismatched parentheses ($_)" if $opencount < 0;
+		}
+	    }
+	} elsif ( ( $count =  tr/)/)/ ) > 0 ) {
+	    $element = join (' ', $element, $_ );
+	    if ( ! ( $opencount -= $count ) ) {
+		 push @list2 , $element;
+		 $element = '';
+	    } else {
+		fatal_error "Mismatched parentheses ($_)" if $opencount < 0;
+	    }
+	} elsif ( $element eq '' ) {
+	    push @list2 , $_;
+	} else {
+	    $element = join ' ', $element , $_;
+	}
+    }
+
+    unless ( $opencount == 0 ) {
+	fatal_error "Mismatched parentheses ($list)";
+    }
+
+    @list2;
+}
+
 #
 # Determine if a value has been supplied
 #
@@ -1990,8 +2068,10 @@ sub supplied( $ ) {
 #    Handles all of the supported forms of column/pair specification
 #    Handles segragating raw iptables input in INLINE rules
 #
-sub split_line1( $$;$$ ) {
-    my ( $description, $columnsref, $nopad, $maxcolumns ) = @_;
+sub split_line2( $$;$$$ ) {
+    my ( $description, $columnsref, $nopad, $maxcolumns, $inline ) = @_;
+
+    my $inlinematches = $config{INLINE_MATCHES};
 
     unless ( defined $maxcolumns ) {
 	my @maxcolumns = ( keys %$columnsref );
@@ -2010,7 +2090,9 @@ sub split_line1( $$;$$ ) {
 	#
 	fatal_error "Only one semicolon (';') allowed on a line" if defined $rest;
 
-	if ( $currentline =~ /^\s*INLINE(?:\(.*\)|:.*)?\s/) {
+	if ( $inlinematches ) {
+	    fatal_error "The $description does not support inline matches (INLINE_MATCHES=Yes)" unless $inline;
+
 	    $inline_matches = $pairs;
 
 	    if ( $columns =~ /^(\s*|.*[^&@%]){(.*)}\s*$/ ) {
@@ -2022,6 +2104,26 @@ sub split_line1( $$;$$ ) {
 	    } else {
 		$pairs = '';
 	    }
+	} elsif ( $inline ) {
+	    #
+	    # This file supports INLINE or IPTABLES
+	    #
+	    if ( $currentline =~ /^\s*INLINE(?:\(.*\)|:.*)?\s/ || $currentline =~ /^\s*IP6?TABLES(?:\(.*\)|:.*)?\s/ ) {
+		$inline_matches = $pairs;
+
+		if ( $columns =~ /^(\s*|.*[^&@%]){(.*)}\s*$/ ) {
+		    #
+		    # Pairs are enclosed in curly brackets.
+		    #
+		    $columns = $1;
+		    $pairs   = $2;
+		} else {
+		    warning_message "This entry needs to be changed before INLINE_MATCHES can be set to Yes" if $checkinline;
+		    $pairs = '';
+		}
+	    } 
+	} elsif ( $checkinline ) {
+	    warning_message "This entry needs to be changed before INLINE_MATCHES can be set to Yes";
 	}
     } elsif ( $currentline =~ /^(\s*|.*[^&@%]){(.*)}$/ ) {
 	#
@@ -2036,7 +2138,7 @@ sub split_line1( $$;$$ ) {
     fatal_error "Shorewall Configuration file entries may not contain double quotes, single back quotes or backslashes" if $columns =~ /["`\\]/;
     fatal_error "Non-ASCII gunk in file" if $columns =~ /[^\s[:print:]]/;
 
-    my @line = split( ' ', $columns );
+    my @line = split_columns( $columns );
 
     $nopad = {} unless $nopad;
 
@@ -2078,6 +2180,10 @@ sub split_line1( $$;$$ ) {
     }
 
     @line;
+}
+
+sub split_line1( $$;$$ ) {
+    &split_line2( @_, undef );
 }
 
 sub split_line($$) {
@@ -2151,6 +2257,24 @@ sub macro_comment( $ ) {
 }
 
 #
+# Set/clear $section_function
+#
+sub set_section_function( \& ) {
+    $section_function = $_[0];
+}
+
+sub clear_section_function() {
+    $section_function = undef;
+}
+
+#
+# Generate a SECTION warning
+#
+sub section_warning() {
+    warning_message "'SECTION' is deprecated in favor of '?SECTION' - consider running '$product update -D'" unless $warningcount3++; 
+}    
+
+#
 # Open a file, setting $currentfile. Returns the file's absolute pathname if the file
 # exists, is non-empty  and was successfully opened. Terminates with a fatal error
 # if the file exists, is non-empty, but the open fails.
@@ -2202,7 +2326,8 @@ sub push_include() {
 			  $file_format,
 			  $max_format,
 			  $comment,
-			  $nocomment ];
+			  $nocomment,
+			  $section_function ];
 }
 
 #
@@ -2225,11 +2350,13 @@ sub pop_include() {
 	  $file_format,
 	  $max_format,
 	  $comment,
-	  $nocomment ) = @$arrayref;
+	  $nocomment,
+	  $section_function ) = @$arrayref;
     } else {
 	$currentfile       = undef;
 	$currentlinenumber = 'EOF';
 	clear_comment;
+	clear_section_function;
     }
 }
 
@@ -2368,6 +2495,13 @@ sub evaluate_expression( $$$ ) {
 }
 
 #
+# Set callback
+#
+sub directive_callback( $ ) {
+    $directive_callback = shift;
+}
+
+#
 # Each entry in @ifstack consists of a 4-tupple
 #
 # [0] = The keyword (IF,ELSIF or ELSE)
@@ -2395,127 +2529,128 @@ sub process_compiler_directive( $$$$ ) {
 
     my ( $lastkeyword, $prioromit, $included, $lastlinenumber ) = @ifstack ? @{$ifstack[-1]} : ('', 0, 0, 0 );
 
-    my %directives = ( IF => sub() {
-			   directive_error( "Missing IF expression" , $filename, $linenumber ) unless supplied $expression;
-			   my $nextomitting = $omitting || ! evaluate_expression( $expression , $filename, $linenumber );
-			   push @ifstack, [ 'IF', $omitting, ! $nextomitting, $linenumber ];
-			   $omitting = $nextomitting;
-		       } ,
+    my %directives =
+	( IF => sub() {
+	    directive_error( "Missing IF expression" , $filename, $linenumber ) unless supplied $expression;
+	    my $nextomitting = $omitting || ! evaluate_expression( $expression , $filename, $linenumber );
+	    push @ifstack, [ 'IF', $omitting, ! $nextomitting, $linenumber ];
+	    $omitting = $nextomitting;
+	  } ,
 
-		       ELSIF => sub() {
-			   directive_error( "?ELSIF has no matching ?IF" , $filename, $linenumber ) unless @ifstack > $ifstack && $lastkeyword =~ /IF/;
-			   directive_error( "Missing IF expression" , $filename, $linenumber ) unless $expression;
-			   if ( $omitting && ! $included ) {
-			       #
-			       # We can only change to including if we were previously omitting
-			       #
-			       $omitting = $prioromit || ! evaluate_expression( $expression , $filename, $linenumber );
-			       $included = ! $omitting;
-			   } else {
-			       #
-			       # We have already included -- so we don't want to include this part
-			       #
-			       $omitting = 1;
-			   }
-			   $ifstack[-1] = [ 'ELSIF', $prioromit, $included, $lastlinenumber ];
-		       } ,
+	  ELSIF => sub() {
+	      directive_error( "?ELSIF has no matching ?IF" , $filename, $linenumber ) unless @ifstack > $ifstack && $lastkeyword =~ /IF/;
+	      directive_error( "Missing IF expression" , $filename, $linenumber ) unless $expression;
+	      if ( $omitting && ! $included ) {
+		  #
+		  # We can only change to including if we were previously omitting
+		  #
+		  $omitting = $prioromit || ! evaluate_expression( $expression , $filename, $linenumber );
+		  $included = ! $omitting;
+	      } else {
+		  #
+		  # We have already included -- so we don't want to include this part
+		  #
+		  $omitting = 1;
+	      }
+	      $ifstack[-1] = [ 'ELSIF', $prioromit, $included, $lastlinenumber ];
+	  } ,
 
-		       ELSE => sub() {
-			   directive_error( "Invalid ?ELSE" , $filename, $linenumber ) unless $expression eq '';
-			   directive_error( "?ELSE has no matching ?IF" , $filename, $linenumber ) unless @ifstack > $ifstack && $lastkeyword =~ /IF/;
-			   $omitting = $included || ! $omitting unless $prioromit;
-			   $ifstack[-1] = [ 'ELSE', $prioromit, 1, $lastlinenumber ];
-		       } ,
+	  ELSE => sub() {
+	      directive_error( "Invalid ?ELSE" , $filename, $linenumber ) unless $expression eq '';
+	      directive_error( "?ELSE has no matching ?IF" , $filename, $linenumber ) unless @ifstack > $ifstack && $lastkeyword =~ /IF/;
+	      $omitting = $included || ! $omitting unless $prioromit;
+	      $ifstack[-1] = [ 'ELSE', $prioromit, 1, $lastlinenumber ];
+	  } ,
 
-		       ENDIF => sub() {
-			   directive_error( "Invalid ?ENDIF" , $filename, $linenumber ) unless $expression eq '';
-			   directive_error( q(Unexpected "?ENDIF" without matching ?IF or ?ELSE) , $filename, $linenumber ) if @ifstack <= $ifstack;
-			   $omitting = $prioromit;
-			   pop @ifstack;
-		       } ,
+	  ENDIF => sub() {
+	      directive_error( "Invalid ?ENDIF" , $filename, $linenumber ) unless $expression eq '';
+	      directive_error( q(Unexpected "?ENDIF" without matching ?IF or ?ELSE) , $filename, $linenumber ) if @ifstack <= $ifstack;
+	      $omitting = $prioromit;
+	      pop @ifstack;
+	  } ,
 
-		       SET => sub() {
-			   unless ( $omitting ) {
-			       directive_error( "Missing SET variable", $filename, $linenumber ) unless supplied $expression;
-			       ( my $var , $expression ) = split ' ', $expression, 2;
-			       directive_error( "Invalid SET variable ($var)", $filename, $linenumber) unless $var =~ /^(\$)?([a-zA-Z]\w*)$/ || $var =~ /^(@)(\d+|[a-zA-Z]\w*)/;
-			       directive_error( "Missing SET expression"     , $filename, $linenumber) unless supplied $expression;
+	  SET => sub() {
+	      unless ( $omitting ) {
+		  directive_error( "Missing SET variable", $filename, $linenumber ) unless supplied $expression;
+		  ( my $var , $expression ) = split ' ', $expression, 2;
+		  directive_error( "Invalid SET variable ($var)", $filename, $linenumber) unless $var =~ /^(\$)?([a-zA-Z]\w*)$/ || $var =~ /^(@)(\d+|[a-zA-Z]\w*)/;
+		  directive_error( "Missing SET expression"     , $filename, $linenumber) unless supplied $expression;
 
-			       if ( ( $1 || '' ) eq '@' ) {
-				   $var = $2;
-				   $var = numeric_value( $var ) if $var =~ /^\d/;
-				   $var = $2 || 'chain';
-				   directive_error( "Shorewall variables may only be SET in the body of an action", $filename, $linenumber ) unless $actparms{0};
-				   my $val = $actparms{$var} = evaluate_expression ( $expression,
-										     $filename,
-										     $linenumber );
-				   $parmsmodified = 1;
-			       } else {
-				   $variables{$2} = evaluate_expression( $expression,
-									 $filename,
-									 $linenumber );
-			       }
-			   }
-		       } ,
+		  if ( ( $1 || '' ) eq '@' ) {
+		      $var = $2;
+		      $var = numeric_value( $var ) if $var =~ /^\d/;
+		      $var = $2 || 'chain';
+		      directive_error( "Shorewall variables may only be SET in the body of an action", $filename, $linenumber ) unless $actparms{0};
+		      my $val = $actparms{$var} = evaluate_expression ( $expression,
+									$filename,
+									$linenumber );
+		      $parmsmodified = 1;
+		  } else {
+		      $variables{$2} = evaluate_expression( $expression,
+							    $filename,
+							    $linenumber );
+		  }
+	      }
+	  } ,
 
-		       FORMAT => sub() {
-			   unless ( $omitting ) {
-			       directive_error( "?FORMAT is not allowed in this file",      $filename, $linenumber ) unless $max_format > 1;
-			       directive_error( "Missing format",                           $filename, $linenumber ) unless supplied $expression;
-			       directive_error( "Invalid format ($expression)",             $filename, $linenumber ) unless $expression =~ /^\d+$/;
-			       directive_error( "Format must be between 1 and $max_format", $filename, $linenumber ) unless $expression && $expression <= $max_format;
-			       $file_format = $expression;
-			   }
-		       } ,
+	  'FORMAT' => sub() {
+	      unless ( $omitting ) {
+		  directive_error( "?FORMAT is not allowed in this file",      $filename, $linenumber ) unless $max_format > 1;
+		  directive_error( "Missing format",                           $filename, $linenumber ) unless supplied $expression;
+		  directive_error( "Invalid format ($expression)",             $filename, $linenumber ) unless $expression =~ /^\d+$/;
+		  directive_error( "Format must be between 1 and $max_format", $filename, $linenumber ) unless $expression && $expression <= $max_format;
+		  $file_format = $expression;
+	      }
+	  } ,
 
-		       RESET => sub() {
-			   unless ( $omitting ) {
-			       my $var = $expression;
-			       directive_error( "Missing RESET variable", $filename, $linenumber)        unless supplied $var;
-			       directive_error( "Invalid RESET variable ($var)", $filename, $linenumber) unless $var =~ /^(\$)?([a-zA-Z]\w*)$/ || $var =~ /^(@)(\d+|[a-zA-Z]\w*)/;
+	  RESET => sub() {
+	      unless ( $omitting ) {
+		  my $var = $expression;
+		  directive_error( "Missing RESET variable", $filename, $linenumber)        unless supplied $var;
+		  directive_error( "Invalid RESET variable ($var)", $filename, $linenumber) unless $var =~ /^(\$)?([a-zA-Z]\w*)$/ || $var =~ /^(@)(\d+|[a-zA-Z]\w*)/;
 
-			       if ( ( $1 || '' ) eq '@' ) {
-				   $var = numeric_value( $var ) if $var =~ /^\d/;
-				   $var = $2 || 'chain';
-				   directive_error( "Shorewall variables may only be RESET in the body of an action", $filename, $linenumber ) unless $actparms{0};
-				   if ( exists $actparms{$var} ) {
-				       if ( $var =~ /^loglevel|logtag|chain|disposition|caller$/ ) {
-					   $actparms{$var} = '';
-				       } else {
-					   delete $actparms{$var}
-				       }
-				   } else {
-				       directive_warning( "Shorewall variable $2 does not exist", $filename, $linenumber );
-				   }
+		  if ( ( $1 || '' ) eq '@' ) {
+		      $var = numeric_value( $var ) if $var =~ /^\d/;
+		      $var = $2 || 'chain';
+		      directive_error( "Shorewall variables may only be RESET in the body of an action", $filename, $linenumber ) unless $actparms{0};
+		      if ( exists $actparms{$var} ) {
+			  if ( $var =~ /^loglevel|logtag|chain|disposition|caller$/ ) {
+			      $actparms{$var} = '';
+			  } else {
+			      delete $actparms{$var}
+			  }
+		      } else {
+			  directive_warning( "Shorewall variable $2 does not exist", $filename, $linenumber );
+		      }
 
-			       } else {
-				   if ( exists $variables{$2} ) {
-				       delete $variables{$2};
-				   } else {
-				       directive_warning( "Shell variable $2 does not exist", $filename, $linenumber );
-				   }
-			       }
-			   }
-		       } ,
+		  } else {
+		      if ( exists $variables{$2} ) {
+			  delete $variables{$2};
+		      } else {
+			  directive_warning( "Shell variable $2 does not exist", $filename, $linenumber );
+		      }
+		  }
+	      }
+	  } ,
 
-		       COMMENT => sub() {
-			   unless ( $omitting ) {
-			       if ( $comments_allowed ) {
-				   unless ( $nocomment ) {
-				       if ( have_capability( 'COMMENTS' ) ) {
-					   ( $comment = $line ) =~ s/^\s*\?COMMENT\s*//;
-					   $comment =~ s/\s*$//;
-				       } else {
-					   directive_warning( "COMMENTs ignored -- require comment support in iptables/Netfilter" , $filename, $linenumber ) unless $warningcount++;
-				       }
-				   }
-			       } else {
-				   directive_error ( "?COMMENT is not allowed in this file", $filename, $linenumber );
-			       }
-			   }
-		       }
+	  COMMENT => sub() {
+	      unless ( $omitting ) {
+		  if ( $comments_allowed ) {
+		      unless ( $nocomment ) {
+			  if ( have_capability( 'COMMENTS' ) ) {
+			      ( $comment = $line ) =~ s/^\s*\?COMMENT\s*//;
+			      $comment =~ s/\s*$//;
+			  } else {
+			      directive_warning( "COMMENTs ignored -- require comment support in iptables/Netfilter" , $filename, $linenumber ) unless $warningcount++;
+			  }
+		      }
+		  } else {
+		      directive_error ( "?COMMENT is not allowed in this file", $filename, $linenumber );
+		  }
+	      }
+	  }
 
-		     );
+	);
 
     if ( my $function = $directives{$keyword} ) {
 	$function->();
@@ -2523,7 +2658,11 @@ sub process_compiler_directive( $$$$ ) {
 	assert( 0, $keyword );
     }
 
-    $omitting;
+    if ( $directive_callback ) {
+        $directive_callback->( $keyword, $line ) 
+    } else {
+        $omitting;
+    }
 }
 
 #
@@ -2795,6 +2934,7 @@ EOF
 sub push_open( $;$$$ ) {
     my ( $file, $max , $ca, $nc ) = @_;
     push_include;
+    clear_section_function;
     my @a = @includestack;
     push @openstack, \@a;
     @includestack = ();
@@ -2857,6 +2997,8 @@ sub embedded_shell( $ ) {
     fatal_error "INCLUDEs nested too deeply" if @includestack >= 4;
     my ( $command, $linenumber ) = ( "/bin/sh -c '$currentline", $currentlinenumber );
 
+    $directive_callback->( 'SHELL', $currentline ) if $directive_callback;
+
     if ( $multiline ) {
 	#
 	# Multi-line script
@@ -2867,6 +3009,7 @@ sub embedded_shell( $ ) {
 	my $last = 0;
 
 	while ( read_a_line( PLAIN_READ ) ) {
+	    $directive_callback->( 'SHELL', $currentline ) if $directive_callback;
 	    last if $last = $currentline =~ s/^\s*\??END(\s+SHELL)?\s*(?:;\s*)?$//i;
 	    $command .= "$currentline\n";
 	}
@@ -2891,6 +3034,8 @@ sub embedded_perl( $ ) {
 
     my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\nuse Shorewall::Config (qw/shorewall/);\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
 
+    $directive_callback->( 'PERL', $currentline ) if $directive_callback;
+
     if ( $multiline ) {
 	#
 	# Multi-line script
@@ -2901,6 +3046,7 @@ sub embedded_perl( $ ) {
 	my $last = 0;
 
 	while ( read_a_line( PLAIN_READ ) ) {
+	    $directive_callback->( 'PERL', $currentline ) if $directive_callback;
 	    last if $last = $currentline =~ s/^\s*\??END(\s+PERL)?\s*(?:;\s*)?//i;
 	    $command .= "$currentline\n";
 	}
@@ -2958,7 +3104,7 @@ sub embedded_perl( $ ) {
 #
 # Return inline matches
 #
-sub get_inline_matches() {
+sub fetch_inline_matches() {
     "$inline_matches ";
 }
 
@@ -3242,6 +3388,7 @@ sub read_a_line($) {
 
 	    if ( $comments_allowed && $currentline =~ /^\s*COMMENT\b/ ) {
 		process_comment unless $nocomment;
+		$directive_callback->( 'COMMENT', $currentline ) if $directive_callback;
 		$currentline = '';
 		$currentlinenumber = 0;
 		next
@@ -3253,6 +3400,7 @@ sub read_a_line($) {
 		fatal_error( "Invalid format ($format)" )                 unless $format =~ /\d+/;
 		fatal_error( "Format must be between 1 and $max_format" ) unless $format && $format <= $max_format;
 		$file_format = $format;
+		$directive_callback->( 'FORMAT', $currentline ) if $directive_callback;
 		$currentline = '';
 		$currentlinenumber = 0;
 		next
@@ -3288,6 +3436,13 @@ sub read_a_line($) {
 		}
 
 		$currentline = '';
+            } elsif ( ( $options & DO_SECTION ) && $currentline =~ /^\s*\?SECTION\s+(.*)/i ) {
+                my $sectionname = $1;
+                fatal_error "Invalid SECTION name ($sectionname)" unless $sectionname =~ /^[-_\da-zA-Z]+$/;
+                fatal_error "This file does not allow ?SECTION" unless $section_function;
+                $section_function->($sectionname);
+                $directive_callback->( 'SECTION', $currentline ) if $directive_callback;
+                $currentline = '';
 	    } else {
 		fatal_error "Non-ASCII gunk in file" if ( $options && CHECK_GUNK ) && $currentline =~ /[^\s[:print:]]/;
 		print "IN===> $currentline\n" if $debug;
@@ -3958,11 +4113,15 @@ sub IPSet_Match() {
 
     $ipset = which $ipset unless $ipset =~ '/';
 
+    $capabilities{IPSET_MATCH_NOMATCH} = $capabilities{IPSET_MATCH_COUNTERS} = 0;
+
     if ( $ipset && -x $ipset ) {
 	qt( "$ipset -X $sillyname" );
 
 	if ( qt( "$ipset -N $sillyname iphash" ) || qt( "$ipset -N $sillyname hash:ip family $fam") ) {
 	    if ( qt1( "$iptables $iptablesw -A $sillyname -m set --match-set $sillyname src -j ACCEPT" ) ) {
+		$capabilities{IPSET_MATCH_NOMATCH}  = qt1( "$iptables $iptablesw -A $sillyname -m set --match-set $sillyname src --return-nomatch -j ACCEPT" );
+		$capabilities{IPSET_MATCH_COUNTERS} = qt1( "$iptables $iptablesw -A $sillyname -m set --match-set $sillyname src --packets-lt 100 -j ACCEPT" );
 		qt1( "$iptables $iptablesw -F $sillyname" );
 		$result = ! ( $capabilities{OLD_IPSET_MATCH} = 0 );
 	    } else {
@@ -3974,6 +4133,14 @@ sub IPSet_Match() {
     }
 
     $result;
+}
+
+sub IPSet_Match_Nomatch() {
+    have_capability 'IPSET_MATCH' && $capabilities{IPSET_MATCH_NOMATCH};
+}
+
+sub IPSet_Match_Counters() {
+    have_capability 'IPSET_MATCH' && $capabilities{IPSET_MATCH_COUNTGERS};
 }
 
 sub IPSET_V5() {
@@ -4133,6 +4300,10 @@ sub Basic_Filter() {
     $tc && system( "$tc filter add basic help 2>&1 | grep -q ^Usage" ) == 0;
 }
 
+sub Basic_Ematch() {
+    $tc && have_capability( 'BASIC_FILTER' ) && system( "$tc filter add basic help 2>&1 | egrep -q match" ) == 0;
+}
+
 sub Fwmark_Rt_Mask() {
     $ip && system( "$ip rule add help 2>&1 | grep -q /MASK" ) == 0;
 }
@@ -4235,6 +4406,7 @@ our %detect_capability =
       AUDIT_TARGET => \&Audit_Target,
       ADDRTYPE => \&Addrtype,
       BASIC_FILTER => \&Basic_Filter,
+      BASIC_EMATCH => \&Basic_Ematch,
       CHECKSUM_TARGET => \&Checksum_Target,
       CLASSIFY_TARGET => \&Classify_Target,
       CONDITION_MATCH => \&Condition_Match,
@@ -4264,6 +4436,8 @@ our %detect_capability =
       IPP2P_MATCH => \&Ipp2p_Match,
       IPRANGE_MATCH => \&IPRange_Match,
       IPSET_MATCH => \&IPSet_Match,
+      IPSET_MATCH_NOMATCH => \&IPSet_Match_Nomatch,
+      IPSET_MATCH_COUNTERS => \&IPSet_Match_Counters,
       IRC_HELPER => \&IRC_Helper,
       IRC0_HELPER => \&IRC0_Helper,
       OLD_IPSET_MATCH => \&Old_IPSet_Match,
@@ -4446,6 +4620,7 @@ sub determine_capabilities() {
 	$capabilities{CONDITION_MATCH} = detect_capability( 'CONDITION_MATCH' );
 	$capabilities{IPTABLES_S}      = detect_capability( 'IPTABLES_S' );
 	$capabilities{BASIC_FILTER}    = detect_capability( 'BASIC_FILTER' );
+	$capabilities{BASIC_EMATCH}    = detect_capability( 'BASIC_EMATCH' );
 	$capabilities{CT_TARGET}       = detect_capability( 'CT_TARGET' );
 	$capabilities{STATISTIC_MATCH} = detect_capability( 'STATISTIC_MATCH' );
 	$capabilities{IMQ_TARGET}      = detect_capability( 'IMQ_TARGET' );
@@ -4667,7 +4842,9 @@ EOF
 		progress_message3 "No update required to configuration file $configfile";
 	    }
 
-	    exit 0 unless $directives || -f find_file 'blacklist';
+	    exit 0 unless ( $directives ||
+			    -f find_file 'blacklist' ||
+			    -f find_file 'tcrules' );
 	}
     } else {
 	fatal_error "$fn does not exist";
@@ -5078,12 +5255,13 @@ sub convert_to_directives() {
 			    # writeable regular file
 			    #
 			    my $result = system << "EOF";
-perl -pi.bak -e '/^\\s*FORMAT\\s*/ && s/FORMAT/?FORMAT/;
-                 if ( /^\\s*COMMENT\\s+/ ) {
-                     s/COMMENT/?COMMENT/;
-                 } elsif ( /^\\s*COMMENT\\s*\$/ ) {
-                     s/COMMENT/?COMMENT/;
-                 }' $file
+			    perl -pi.bak -e '/^\\s*FORMAT\\s+/ && s/FORMAT/?FORMAT/;
+                                             /^\\s*SECTION\\s+/ && s/SECTION/?SECTION/;
+                                             if ( /^\\s*COMMENT\\s+/ ) {
+                                                 s/COMMENT/?COMMENT/;
+                                             } elsif ( /^\\s*COMMENT\\s*\$/ ) {
+                                                 s/COMMENT/?COMMENT/;
+                                             }' $file
 EOF
 			    if ( $result == 0 ) {
 				if ( system( "diff -q $file ${file}.bak > /dev/null" ) ) {
@@ -5094,7 +5272,7 @@ EOF
 				    warning message "Unable to rename ${file}.bak to $file:$!";
 				}
 			    } else {
-				warning_message ("Unable to update file ${file}.bak:$!" );
+				warning_message ("Unable to update file $file" );
 			    }
 			} else {
 			    warning_message( "$file skipped (not writeable)" ) unless -d _;
@@ -5114,9 +5292,9 @@ EOF
 # - Read the capabilities file, if any
 # - establish global hashes %params, %config , %globals and %capabilities
 #
-sub get_configuration( $$$$ ) {
+sub get_configuration( $$$$$ ) {
 
-    my ( $export, $update, $annotate, $directives ) = @_;
+    ( my ( $export, $update, $annotate, $directives ) , $checkinline ) = @_;
 
     $globals{EXPORT} = $export;
 
@@ -5141,7 +5319,7 @@ sub get_configuration( $$$$ ) {
     # get_capabilities requires that the true settings of these options be established
     #
     default 'MODULE_PREFIX', 'ko ko.gz o o.gz gz';
-    default_yes_no 'LOAD_HELPERS_ONLY'          , '';
+    default_yes_no 'LOAD_HELPERS_ONLY'          , 'Yes';
 
     get_capabilities( $export );
 
@@ -5434,6 +5612,10 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'MARK_IN_FORWARD_CHAIN'      , '';
     default_yes_no 'CHAIN_SCRIPTS'              , 'Yes';
     default_yes_no 'TRACK_RULES'                , '';
+    default_yes_no 'INLINE_MATCHES'             , '';
+    default_yes_no 'BASIC_FILTERS'              , '';
+
+    require_capability( 'BASIC_EMATCH', 'BASIC_FILTERS=Yes', 's' ) if $config{BASIC_FILTERS};
 
     if ( $val = $config{REJECT_ACTION} ) {
 	fatal_error "Invalid Reject Action Name ($val)" unless $val =~ /^[a-zA-Z][\w-]*$/;
@@ -5530,7 +5712,7 @@ sub get_configuration( $$$$ ) {
     if ( supplied ( $val = $config{ZONE2ZONE} ) ) {
 	fatal_error "Invalid ZONE2ZONE value ( $val )" unless $val =~ /^[2-]$/;
     } else {
-	$config{ZONE2ZONE} = '2';
+	$config{ZONE2ZONE} = '-';
     }
 
     default 'BLACKLIST_DISPOSITION'    , 'DROP';
