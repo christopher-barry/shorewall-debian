@@ -1,15 +1,16 @@
 #
 # Shorewall 4.5 -- /usr/share/shorewall/lib.cli.
 #
-#     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
-#
-#     (c) 1999-2013 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2014 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
+#       This program is part of Shorewall.
+#
 #	This program is free software; you can redistribute it and/or modify
-#	it under the terms of Version 2 of the GNU General Public License
-#	as published by the Free Software Foundation.
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
 #	This program is distributed in the hope that it will be useful,
 #	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,15 +18,14 @@
 #	GNU General Public License for more details.
 #
 #	You should have received a copy of the GNU General Public License
-#	along with this program; if not, write to the Free Software
-#	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 # This library contains the command processing code common to /sbin/shorewall[6] and
 # /sbin/shorewall[6]-lite. In Shorewall and Shorewall6, the lib.cli-std library is 
 # loaded after this one and replaces some of the functions declared here.
 #
 
-SHOREWALL_CAPVERSION=40515
+SHOREWALL_CAPVERSION=40600
 
 [ -n "${g_program:=shorewall}" ]
 
@@ -252,7 +252,15 @@ show_classifiers() {
 
 	if [ -n "$qdisc" ]; then
 	    echo Device $device:
-	    tc -s filter ls dev $device
+	    qt tc -s filter ls root dev $device && tc -s filter ls root dev $device | grep -v '^$'
+	    tc filter show dev $device
+	    tc class show dev $device | fgrep 'leaf ' | fgrep -v ' hfsc' | sed 's/^.*leaf //;s/ .*//' | while read class; do
+		if [ -n "$class" ]; then
+		    echo
+		    echo Node $class
+		    tc filter show dev $device parent $class
+		fi
+	    done
 	    echo
 	fi
     }
@@ -2269,6 +2277,8 @@ determine_capabilities() {
     OWNER_NAME_MATCH=
     IPSET_MATCH=
     OLD_IPSET_MATCH=
+    IPSET_MATCH_NOMATCH=
+    IPSET_MATCH_COUNTERS=
     IPSET_V5=
     CONNMARK=
     XCONNMARK=
@@ -2313,6 +2323,7 @@ determine_capabilities() {
     CONDITION_MATCH=
     IPTABLES_S=
     BASIC_FILTER=
+    BASIC_EMATCH=
     CT_TARGET=
     STATISTIC_MATCH=
     IMQ_TARGET=
@@ -2556,6 +2567,8 @@ determine_capabilities() {
 
 	    if [ -n "$have_ipset" ]; then
 		if qt $g_tool -A $chain -m set --match-set $chain src -j ACCEPT; then
+		    qt $g_tool -A $chain -m set --match-set $chain src --return-nomatch  -j ACCEPT && IPSET_MATCH_NOMATCH=Yes
+		    qt $g_tool -A $chain -m set --match-set $chain src --packets-lt 100  -j ACCEPT && IPSET_MATCH_COUNTERS=Yes
 		    qt $g_tool -F $chain
 		    IPSET_MATCH=Yes
 		elif qt $g_tool -A $chain -m set --set $chain src -j ACCEPT; then
@@ -2639,8 +2652,15 @@ determine_capabilities() {
     qt $g_tool -F $chain1
     qt $g_tool -X $chain1
 
-    [ -n "$TC" ] && $TC filter add flow help 2>&1 | grep -q ^Usage && FLOW_FILTER=Yes
-    [ -n "$TC" ] && $TC filter add basic help 2>&1 | grep -q ^Usage && BASIC_FILTER=Yes
+    if [ -n "$TC" ]; then
+	$TC filter add flow help 2>&1 | grep -q ^Usage && FLOW_FILTER=Yes
+
+	if $TC filter add basic help 2>&1 | grep -q ^Usage; then
+	    BASIC_FILTER=Yes
+	    $TC filter add basic help 2>&1 | egrep -q match && BASIC_EMATCH=Yes
+	fi
+    fi
+
     [ -n "$IP" ] && $IP rule add help 2>&1 | grep -q /MASK && FWMARK_RT_MASK=Yes
 
     CAPVERSION=$SHOREWALL_CAPVERSION
@@ -2690,7 +2710,9 @@ report_capabilities_unsorted() {
     report_capability "Owner Name Match (OWNER_NAME_MATCH)" $OWNER_NAME_MATCH
     if [ -n "$IPSET_MATCH" ]; then
 	report_capability "Ipset Match (IPSET_MATCH)" $IPSET_MATCH
-	[ -n "$OLD_IPSET_MATCH" ] && report_capability "OLD_Ipset Match (OLD_IPSET_MATCH)" $OLD_IPSET_MATCH
+	[ -n "$OLD_IPSET_MATCH" ]     && report_capability "OLD_Ipset Match (OLD_IPSET_MATCH)"           $OLD_IPSET_MATCH
+	[ -n "$IPSET_MATCH_NOMATCH" ] && report_capability "Ipset Match Nomatch (IPSET_MATCH_NOMATCH)"   $IPSET_MATCH_NOMATCH
+	[ -n "$IPSET_MATCH_NOMATCH" ] && report_capability "Ipset Match Counters (IPSET_MATCH_COUNTERS)" $IPSET_MATCH_COUNTERS
     fi
     report_capability "CONNMARK Target (CONNMARK)" $CONNMARK
     [ -n "$CONNMARK" ] && report_capability "Extended CONNMARK Target (XCONNMARK)" $XCONNMARK
@@ -2769,6 +2791,7 @@ report_capabilities_unsorted() {
     fi
 
     report_capability "Basic Filter (BASIC_FILTER)" $BASIC_FILTER
+    report_capability "Basic Ematch (BASIC_EMATCH)" $BASIC_EMATCH
     report_capability "CT Target (CT_TARGET)" $CT_TARGET
 
     echo "   Kernel Version (KERNELVERSION): $KERNELVERSION"
@@ -2812,6 +2835,8 @@ report_capabilities_unsorted1() {
     report_capability1 OWNER_NAME_MATCH
     report_capability1 IPSET_MATCH
     report_capability1 OLD_IPSET_MATCH
+    report_capability1 IPSET_MATCH_NOMATCH
+    report_capability1 IPSET_MATCH_COUNTERS
     report_capability1 CONNMARK
     report_capability1 XCONNMARK
     report_capability1 CONNMARK_MATCH
@@ -2855,6 +2880,7 @@ report_capabilities_unsorted1() {
     report_capability1 CONDITION_MATCH
     report_capability1 IPTABLES_S
     report_capability1 BASIC_FILTER
+    report_capability1 BASIC_EMATCH
     report_capability1 CT_TARGET
     report_capability1 STATISTIC_MATCH
     report_capability1 IMQ_TARGET
@@ -2917,11 +2943,11 @@ show_status() {
     fi
 
     if [ $VERBOSITY -ge 1 ]; then 
-	echo "State:$state"
 	if [ -f $g_firewall ]; then
-	    echo $g_echo_n "$g_firewall was compiled by Shorewall version "
-	    $g_firewall version
+	    state="$state ($g_firewall compiled by Shorewall version $($g_firewall version))"
 	fi
+	echo "State:$state"
+	echo
     fi
 
 }
@@ -2929,7 +2955,6 @@ show_status() {
 status_command() {
     [ $VERBOSITY -ge 1 ] && echo "${g_product}-$SHOREWALL_VERSION Status at $g_hostname - $(date)" && echo
     show_status
-    [ $VERBOSITY -ge 1 ] && echo
     exit $status
 }
 
@@ -3510,6 +3535,9 @@ shorewall_cli() {
     g_conditional=
     g_file=
     g_doing="Compiling"
+    g_directives=
+    g_inline=
+    g_tcrules=
 
     VERBOSE=
     VERBOSITY=1
