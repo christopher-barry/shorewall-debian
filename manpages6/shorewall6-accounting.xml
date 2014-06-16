@@ -6,6 +6,8 @@
     <refentrytitle>shorewall6-accounting</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -50,7 +52,7 @@
     </itemizedlist>
 
     <para>The new structure is enabled by sectioning the accounting file in a
-    manner similar to the <ulink url="manpages/shorewall-rules.html">rules
+    manner similar to the <ulink url="/manpages6/shorewall6-rules.html">rules
     file</ulink>. The sections are <emphasis role="bold">INPUT</emphasis>,
     <emphasis role="bold">OUTPUT</emphasis> and <emphasis
     role="bold">FORWARD</emphasis> and must appear in that order (although any
@@ -79,8 +81,12 @@
 
     <para>Section headers have the form:</para>
 
-    <para><option>SECTION</option>
+    <para><option>[?]SECTION</option>
     <replaceable>section-name</replaceable></para>
+
+    <para>The optional "?" was added in Shorewalll 4.6.0 and is preferred.
+    Existing configurations may be converted to use this form using the
+    <command>shorewall6 update</command> command.</para>
 
     <para>When sections are enabled:</para>
 
@@ -820,14 +826,14 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/Accounting.html">http://shorewall.net/Accounting.html
+    url="/Accounting.html">http://www.shorewall.net/Accounting.html
     </ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/shorewall_logging.html">http://shorewall.net/shorewall_logging.html</ulink></para>
+    url="/shorewall_logging.html">http://www.shorewall.net/shorewall_logging.html</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall6(8), shorewall6-actions(5), shorewall6-blacklist(5),
     shorewall6-hosts(5), shorewall6-interfaces(5), shorewall6-maclist(5),
@@ -835,7 +841,7 @@
     shorewall6-providers(5), shorewall6-rtrules(5),
     shorewall6-routestopped(5), shorewall6-rules(5), shorewall6.conf(5),
     shorewall6-secmarks(5), shorewall6-tcclasses(5), shorewall6-tcdevices(5),
-    shorewall6-tcrules(5), shorewall6-tos(5), shorewall6-tunnels(5),
+    shorewall6-mangle(5), shorewall6-tos(5), shorewall6-tunnels(5),
     shorewall6-zones(5)</para>
   </refsect1>
 </refentry>

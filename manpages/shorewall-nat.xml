@@ -6,6 +6,8 @@
     <refentrytitle>shorewall-nat</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -29,10 +31,10 @@
     <warning>
       <para>If all you want to do is simple port forwarding, do NOT use this
       file. See <ulink
-      url="../FAQ.htm#faq1">http://www.shorewall.net/FAQ.htm#faq1</ulink>.
-      Also, in many cases, Proxy ARP (<ulink
-      url="shorewall-proxyarp.html">shorewall-proxyarp</ulink>(5)) is a better
-      solution that one-to-one NAT.</para>
+      url="/FAQ.htm#faq1">http://www.shorewall.net/FAQ.htm#faq1</ulink>. Also,
+      in many cases, Proxy ARP (<ulink
+      url="/manpages/shorewall-proxyarp.html">shorewall-proxyarp</ulink>(5))
+      is a better solution that one-to-one NAT.</para>
     </warning>
 
     <para>The columns in the file are as follows (where the column name is
@@ -72,7 +74,8 @@
         <listitem>
           <para>Interfaces that have the <emphasis
           role="bold">EXTERNAL</emphasis> address. If ADD_IP_ALIASES=Yes in
-          <ulink url="shorewall.conf.html">shorewall.conf</ulink>(5),
+          <ulink
+          url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5),
           Shorewall will automatically add the EXTERNAL address to this
           interface. Also if ADD_IP_ALIASES=Yes, you may follow the interface
           name with ":" and a <emphasis>digit</emphasis> to indicate that you
@@ -83,12 +86,12 @@
           </emphasis></para>
 
           <para>Each interface must match an entry in <ulink
-          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5).
+          url="/manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>(5).
           Shorewall allows loose matches to wildcard entries in <ulink
-          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5). For
-          example, <filename class="devicefile">ppp0</filename> in this file
-          will match a <ulink
-          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)
+          url="/manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>(5).
+          For example, <filename class="devicefile">ppp0</filename> in this
+          file will match a <ulink
+          url="/manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>(5)
           entry that defines <filename
           class="devicefile">ppp+</filename>.</para>
 
@@ -134,6 +137,80 @@
   </refsect1>
 
   <refsect1>
+    <title>RESTRICTIONS</title>
+
+    <para>DNAT rules always preempt one-to-one NAT rules. This has subtile
+    consequences when there are sub-zones on an
+    <replaceable>interface</replaceable>. Consider the following:</para>
+
+    <para><filename>/etc/shorewall/zones</filename>:</para>
+
+    <programlisting>#ZONE   TYPE    OPTIONS                 IN                      OUT
+#                                       OPTIONS                 OPTIONS
+fw      firewall
+net     ipv4
+loc     ipv4
+smc:net ipv4</programlisting>
+
+    <para><filename>/etc/shorewall/interfaces</filename>:</para>
+
+    <programlisting>#ZONE   INTERFACE       OPTIONS
+net     eth0            dhcp,tcpflags,nosmurfs,routefilter,logmartians,sourceroute=0
+loc     eth1            tcpflags,nosmurfs,routefilter,logmartians</programlisting>
+
+    <para><filename>/etc/shorewall/hosts</filename>:</para>
+
+    <programlisting>#ZONE   HOST(S)                                 OPTIONS
+smc     eth0:10.1.10.0/24</programlisting>
+
+    <para><filename>/etc/shorewall/nat</filename>:</para>
+
+    <programlisting>#EXTERNAL       INTERFACE       INTERNAL        ALL             LOCAL
+#                                               INTERFACES
+10.1.10.100     eth0            172.20.1.100
+</programlisting>
+
+    <para>Note that the EXTERNAL address is in the <emphasis
+    role="bold">smc</emphasis> zone.</para>
+
+    <para><filename>/etc/shorewall/rules</filename>:</para>
+
+    <programlisting>#ACTION         SOURCE          DEST            PROTO   DEST    SOURCE          ORIGINAL        RATE            USER/   MARK    CONNLIMIT       TIME            HEADERS     SWITCH           HELPER
+#                                                       PORT    PORT(S)         DEST            LIMIT           GROUP
+?SECTION ALL
+?SECTION ESTABLISHED
+?SECTION RELATED
+?SECTION INVALID
+?SECTION UNTRACKED
+?SECTION NEW
+...
+DNAT            net             loc:172.20.1.4  tcp     80</programlisting>
+
+    <para>For the one-to-one NAT to work correctly in this configuration, one
+    of two approaches can be taken:</para>
+
+    <orderedlist>
+      <listitem>
+        <para>Define a CONTINUE policy with <emphasis
+        role="bold">smc</emphasis> as the SOURCE zone (preferred):</para>
+
+        <programlisting>#SOURCE		DEST		POLICY		LOG LEVEL	LIMIT:BURST
+<emphasis role="bold">smc		$FW		CONTINUE</emphasis>
+loc		net		ACCEPT
+net		all		DROP		info
+# THE FOLLOWING POLICY MUST BE LAST
+all		all		REJECT		info
+</programlisting>
+      </listitem>
+
+      <listitem>
+        <para>Set IMPLICIT_CONTINUE=Yes in <ulink
+        url="manpages/shorewall.conf.html">shorewall.conf(5)</ulink>.</para>
+      </listitem>
+    </orderedlist>
+  </refsect1>
+
+  <refsect1>
     <title>FILES</title>
 
     <para>/etc/shorewall/nat</para>
@@ -143,10 +220,10 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/NAT.htm">http://shorewall.net/NAT.htm</ulink></para>
+    url="/NAT.htm">http://www.shorewall.net/NAT.htm</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
@@ -155,7 +232,7 @@
     shorewall-providers(5), shorewall-proxyarp(5), shorewall-rtrules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
-    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),
+    shorewall-mangle(5), shorewall-tos(5), shorewall-tunnels(5),
     shorewall-zones(5)</para>
   </refsect1>
 </refentry>

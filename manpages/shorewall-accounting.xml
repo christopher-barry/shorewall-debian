@@ -6,6 +6,8 @@
     <refentrytitle>shorewall-accounting</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -50,7 +52,7 @@
     </itemizedlist>
 
     <para>The new structure is enabled by sectioning the accounting file in a
-    manner similar to the <ulink url="manpages/shorewall-rules.html">rules
+    manner similar to the <ulink url="/manpages/shorewall-rules.html">rules
     file</ulink>. The sections are <emphasis role="bold">INPUT</emphasis>,
     <emphasis role="bold">OUTPUT</emphasis> and <emphasis
     role="bold">FORWARD</emphasis> and must appear in that order (although any
@@ -79,8 +81,12 @@
 
     <para>Section headers have the form:</para>
 
-    <para><option>SECTION</option>
+    <para><option>[?]SECTION</option>
     <replaceable>section-name</replaceable></para>
+
+    <para>The optional "?" was added in Shorewalll 4.6.0 and is preferred.
+    Existing configurations may be converted to use this form using the
+    <command>shorewall update</command> command.</para>
 
     <para>When sections are enabled:</para>
 
@@ -291,7 +297,7 @@
                 the iptaccount utility are only available when <ulink
                 url="http://xtables-addons.sourceforge.net/">xtables-addons</ulink>
                 is installed. See <ulink
-                url="http://www.shorewall.net/Accounting.html#perIP">http://www.shorewall.net/Accounting.html#perIP</ulink>
+                url="/Accounting.html#perIP">http://www.shorewall.net/Accounting.html#perIP</ulink>
                 for additional information.</para>
               </listitem>
             </varlistentry>
@@ -784,14 +790,14 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/Accounting.html">http://shorewall.net/Accounting.html
+    url="/Accounting.html">http://www.shorewall.net/Accounting.html
     </ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/shorewall_logging.html">http://shorewall.net/shorewall_logging.html</ulink></para>
+    url="/shorewall_logging.html">http://www.shorewall.net/shorewall_logging.html</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-actions(5), shorewall-blacklist(5),
     shorewall-hosts(5), shorewall_interfaces(5), shorewall-ipsets(5),
@@ -800,7 +806,7 @@
     shorewall-providers(5), shorewall-proxyarp(5), shorewall-rtrules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
-    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),
+    shorewall-mangle(5), shorewall-tos(5), shorewall-tunnels(5),
     shorewall-zones(5)</para>
   </refsect1>
 </refentry>
