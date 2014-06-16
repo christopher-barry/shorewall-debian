@@ -6,6 +6,8 @@
     <refentrytitle>shorewall6-conntrack</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -88,7 +90,7 @@
         role="bold">NOTRACK</emphasis>|<emphasis
         role="bold">CT</emphasis>:<emphasis
         role="bold">helper</emphasis>:<replaceable>name</replaceable>[(<replaceable>arg</replaceable>=<replaceable>val</replaceable>[,...])|<emphasis
-        role="bold">CT:notrack</emphasis>|DROP}[:<replaceable>chain-designator</replaceable>]</term>
+        role="bold">CT:notrack</emphasis>|DROP|LOG|ULOG(<replaceable>ulog-parameters</replaceable>):NFLOG(<replaceable>nflog-parameters</replaceable>)|IPTABLES(<replaceable>target</replaceable>)}[<replaceable>log-level</replaceable>[:<replaceable>log-tag</replaceable>]][:<replaceable>chain-designator</replaceable>]</term>
 
         <listitem>
           <para>This column is only present when FORMAT &gt;= 2. Values other
@@ -100,23 +102,19 @@
               <para><option>NOTRACK</option> or
               <option>CT:notrack</option></para>
 
-              <para>Disables connection tracking for this packet.</para>
+              <para>Disables connection tracking for this packet. If a
+              <replaceable>log-level</replaceable> is specified, the packet
+              will also be logged at that level.</para>
             </listitem>
 
             <listitem>
-              <para><option>DROP</option></para>
-
-              <para>Added in Shorewall 4.5.10. Silently discard the
-              packet.</para>
-            </listitem>
-
-            <listitem>
-              <para><option>helper</option>:<replaceable>name</replaceable></para>
+              <para><option>CT:helper</option>:<replaceable>name</replaceable></para>
 
               <para>Attach the helper identified by the
               <replaceable>name</replaceable> to this connection. This is more
-              flexible than loading the conntrack helper with preset
-              ports.</para>
+              flexible than loading the conntrack helper with preset ports. If
+              a <replaceable>log-level</replaceable> is specified, the packet
+              will also be logged at that level.</para>
 
               <para>At this writing, the available helpers are:</para>
 
@@ -172,14 +170,6 @@
                   <listitem>
                     <para>Requires that the pptp netfilter helper is
                     present.</para>
-                  </listitem>
-                </varlistentry>
-
-                <varlistentry>
-                  <term></term>
-
-                  <listitem>
-                    <para></para>
                   </listitem>
                 </varlistentry>
 
@@ -253,6 +243,58 @@
                 </listitem>
               </itemizedlist>
             </listitem>
+
+            <listitem>
+              <para><option>DROP</option></para>
+
+              <para>Added in Shorewall 4.5.10. Silently discard the packet. If
+              a <replaceable>log-level</replaceable> is specified, the packet
+              will also be logged at that level.</para>
+            </listitem>
+
+            <listitem>
+              <para><option>IPTABLES</option>(<replaceable>target</replaceable>)</para>
+
+              <para>Added in Shorewall 4.6.0. Allows you to specify any
+              iptables <replaceable>target</replaceable> with target options
+              (e.g., "IPTABLES(AUDIT --type drop)"). If the target is not one
+              recognized by Shorewall, the following error message will be
+              issued:</para>
+
+              <simplelist>
+                <member>ERROR: Unknown target
+                (<replaceable>target</replaceable>)</member>
+              </simplelist>
+
+              <para>This error message may be eliminated by adding
+              <replaceable>target</replaceable> as a builtin action in <ulink
+              url="/manpages/shorewall-actions.html">shorewall-actions</ulink>(5).</para>
+            </listitem>
+
+            <listitem>
+              <para><option>LOG</option></para>
+
+              <para>Added in Shoreawll 4.6.0. Logs the packet using the
+              specified <replaceable>log-level</replaceable> and<replaceable>
+              log-tag </replaceable>(if any). If no log-level is specified,
+              then 'info' is assumed.</para>
+            </listitem>
+
+            <listitem>
+              <para><option>NFLOG</option></para>
+
+              <para>Added in Shoreawll 4.6.0. Queues the packet to a backend
+              logging daemon using the NFLOG netfilter target with the
+              specified <replaceable>nflog-parameters</replaceable>.</para>
+            </listitem>
+
+            <listitem>
+              <para><option>ULOG</option></para>
+
+              <para>Added in Shoreawll 4.6.0. Queues the packet to a backend
+              logging daemon using the ULOG netfilter target with the
+              specified <replaceable>ulog-parameters</replaceable>.</para>
+            </listitem>
           </itemizedlist>
 
           <para>When FORMAT = 1, this column is not present and the rule is
@@ -304,7 +346,7 @@
           <replaceable>interface</replaceable> is an interface to that zone,
           and <replaceable>address-list</replaceable> is a comma-separated
           list of addresses (may contain exclusion - see <ulink
-          url="shorewall-exclusion.html">shorewall-exclusion</ulink>
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>
           (5)).</para>
 
           <para>Beginning with Shorewall 4.5.7, <option>all</option> can be
@@ -325,7 +367,8 @@
           <para>Where <replaceable>interface</replaceable> is an interface to
           that zone, and <replaceable>address-list</replaceable> is a
           comma-separated list of addresses (may contain exclusion - see
-          <ulink url="shorewall-exclusion.html">shorewall-exclusion</ulink>
+          <ulink
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>
           (5)).</para>
 
           <para>COMMENT is only allowed in format 1; the remainder of the line
@@ -341,7 +384,8 @@
         <listitem>
           <para>where <replaceable>address-list</replaceable> is a
           comma-separated list of addresses (may contain exclusion - see
-          <ulink url="shorewall-exclusion.html">shorewall6-exclusion</ulink>
+          <ulink
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>
           (5)).</para>
         </listitem>
       </varlistentry>
@@ -492,7 +536,7 @@ DROP:PO                       -                  1.2.3.4
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
@@ -501,7 +545,7 @@ DROP:PO                       -                  1.2.3.4
     shorewall-providers(5), shorewall-proxyarp(5), shorewall-rtrules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
-    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),
+    shorewall-mangle(5), shorewall-tos(5), shorewall-tunnels(5),
     shorewall-zones(5)</para>
   </refsect1>
 </refentry>

@@ -6,6 +6,8 @@
     <refentrytitle>shorewall-routestopped</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -25,7 +27,7 @@
     <title>Description</title>
 
     <para>This file is deprecated in favor of the <ulink
-    url="shorewall-stoppedrules.html">shorewall-stoppedrules</ulink>(5)
+    url="/manpages/shorewall-stoppedrules.html">shorewall-stoppedrules</ulink>(5)
     file.</para>
 
     <para>This file is used to define the hosts that are accessible when the
@@ -84,7 +86,7 @@
                 themselves. Beginning with Shorewall 4.4.9, this option is
                 automatically set if <emphasis
                 role="bold">routeback</emphasis> is specified in <ulink
-                url="shorewall-interfaces.html">shorewall-interfaces</ulink>
+                url="/manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>
                 (5) or if the rules compiler detects that the interface is a
                 bridge.</para>
               </listitem>
@@ -118,7 +120,7 @@
             </varlistentry>
 
             <varlistentry>
-              <term>notrack</term>
+              <term><emphasis role="bold">notrack</emphasis></term>
 
               <listitem>
                 <para>The traffic will be exempted from connection
@@ -126,6 +128,13 @@
               </listitem>
             </varlistentry>
           </variablelist>
+
+          <note>
+            <para>The <emphasis role="bold">source</emphasis> and <emphasis
+            role="bold">dest</emphasis> options work best when used in
+            conjunction with ADMINISABSENTMINDED=Yes in <ulink
+            url="shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
+          </note>
         </listitem>
       </varlistentry>
 
@@ -176,7 +185,7 @@
       <para>The <emphasis role="bold">source</emphasis> and <emphasis
       role="bold">dest</emphasis> options work best when used in conjunction
       with ADMINISABSENTMINDED=Yes in <ulink
-      url="shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+      url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5).</para>
     </note>
   </refsect1>
 
@@ -210,10 +219,10 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/starting_and_stopping_shorewall.htm">http://shorewall.net/starting_and_stopping_shorewall.htm</ulink></para>
+    url="/starting_and_stopping_shorewall.htm">http://www.shorewall.net/starting_and_stopping_shorewall.htm</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
@@ -222,7 +231,7 @@
     shorewall-policy(5), shorewall-providers(5), shorewall-proxyarp(5),
     shorewall-rtrules(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
-    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),
+    shorewall-mangle(5), shorewall-tos(5), shorewall-tunnels(5),
     shorewall-zones(5)</para>
   </refsect1>
 </refentry>

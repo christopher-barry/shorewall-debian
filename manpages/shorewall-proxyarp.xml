@@ -6,6 +6,8 @@
     <refentrytitle>shorewall-proxyarp</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -132,10 +134,10 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/ProxyARP.htm">http://shorewall.net/ProxyARP.htm</ulink></para>
+    url="/ProxyARP.htm">http://www.shorewall.net/ProxyARP.htm</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
@@ -144,7 +146,7 @@
     shorewall-policy(5), shorewall-providers(5), shorewall-rtrules(5),
     shorewall-routestopped(5), shorewall-rules(5), shorewall.conf(5),
     shorewall-secmarks(5), shorewall-tcclasses(5), shorewall-tcdevices(5),
-    shorewall-tcrules(5), shorewall-tos(5), shorewall-tunnels(5),
+    shorewall-mangle(5), shorewall-tos(5), shorewall-tunnels(5),
     shorewall-zones(5)</para>
   </refsect1>
 </refentry>

@@ -145,13 +145,19 @@
 
       <para>Entries in <filename>/etc/shorewall/providers</filename> can
       specify that outgoing connections are to be load-balanced between the
-      two ISPs. Entries in <filename>/etc/shorewall/tcrules</filename> and
+      two ISPs. Entries in <filename>/etc/shorewall/mangle</filename> and
       <filename>/etc/shorewall/rtrules</filename> can be used to direct
       particular outgoing connections to one ISP or the other. Use of
-      <filename>/etc/shorewall/tcrules</filename> is not required for
+      <filename>/etc/shorewall/mangle</filename> (or
+      <filename>/etc/shorewall/tcrules</filename>) is not required for
       <filename>/etc/shorewall/providers</filename> to work, but in most
       cases, you must select a unique MARK value for each provider so
       Shorewall can set up the correct marking rules for you.</para>
+
+      <important>
+        <para><filename>/etc/shorewall/mangle</filename> superceded
+        <filename>/etc/shorewall/tcrules</filename> in Shorewall 4.6.0.</para>
+      </important>
 
       <para>When you use the <emphasis role="bold">track</emphasis> option in
       <filename>/etc/shorewall/providers</filename>, connections from the
@@ -168,7 +174,7 @@
         <para>This feature uses <ulink url="traffic_shaping.htm">packet
         marking</ulink> to control the routing. As a consequence, there are
         some restrictions concerning entries in
-        <filename>/etc/shorewall/tcrules</filename>:</para>
+        <filename>/etc/shorewall/mangle</filename>:</para>
 
         <itemizedlist>
           <listitem>
@@ -182,6 +188,14 @@
             set HIGH_ROUTE_MARKS=Yes (PROVIDER_OFFSET &gt; 0 with Shorewall
             4.4.26 and later) in
             <filename>/etc/shorewall/shorewall.conf</filename>.</para>
+
+            <note>
+              <para>In Shorewall 4.4.26, the HIGH_ROUTE_MARKS and
+              WIDE_TC_MARKS options in
+              <filename>/etc/shorewall/shorewall.conf</filename> were replaced
+              by the PROVIDER_OFFSET and TC_BITS options. Look <ulink
+              url="PacketMarking.html#Values">here</ulink> for details.</para>
+            </note>
           </listitem>
 
           <listitem>
@@ -230,11 +244,11 @@
           <term>MARK</term>
 
           <listitem>
-            <para>A mark value used in your /etc/shorewall/tcrules file to
-            direct packets to this provider. Shorewall will also mark
-            connections that have seen input from this provider with this
-            value and will restore the packet mark in the PREROUTING CHAIN.
-            Mark values must be in the range 1-255.</para>
+            <para>A mark value used in your<filename> /etc/shorewall/mangle
+            </filename>file to direct packets to this provider. Shorewall will
+            also mark connections that have seen input from this provider with
+            this value and will restore the packet mark in the PREROUTING
+            CHAIN. Mark values must be in the range 1-255.</para>
 
             <para>Alternatively, you may set HIGH_ROUTE_MARKS=Yes
             (PROVIDER_OFFSET &gt; 0 with Shorewall 4.4.26 and later) in
@@ -411,7 +425,7 @@
                     have multiple Internet connections, we recommend that you
                     specify <emphasis role="bold">balance</emphasis> even if
                     you don't need it. You can still use entries in
-                    <filename>/etc/shorewall/tcrules</filename> and
+                    <filename>/etc/shorewall/mangle</filename> and
                     <filename>/etc/shorewall/rtrules</filename> to force all
                     traffic to one provider or another.<note>
                         <para>If you don't heed this advice then please read
@@ -638,7 +652,7 @@
           packets with a connection mark have their packet mark set to the
           value of the associated connection mark; packets marked in this way
           bypass any prerouting rules that you create in
-          <filename>/etc/shorewall/tcrules</filename>. This ensures that
+          <filename>/etc/shorewall/mangle</filename>. This ensures that
           packets associated with connections from outside are always routed
           out of the correct interface.</para>
         </listitem>
@@ -675,7 +689,7 @@
       <para>The bottom line is that if you want traffic to go out through a
       particular provider then you <emphasis>must </emphasis>mark that traffic
       with the provider's MARK value in
-      <filename>/etc/shorewall/tcrules</filename> and you must do that marking
+      <filename>/etc/shorewall/mangle</filename> and you must do that marking
       in the PREROUTING chain; or, you must provide the appropriate rules in
       <filename>/etc/shorewall/rtrules</filename>.</para>
     </section>
@@ -727,7 +741,7 @@ eth1             0.0.0.0/0            130.252.99.27</programlisting>
         <para>Entries in <filename>/etc/shorewall/masq</filename> have no
         effect on which ISP a particular connection will be sent through. That
         is rather the purpose of entries in
-        <filename>/etc/shorewall/tcrules</filename> and
+        <filename>/etc/shorewall/mangle</filename> and
         <filename>/etc/shorewall/rtrules</filename>.</para>
       </warning>
     </section>
@@ -777,7 +791,7 @@ Feb  9 17:23:45 gw.ilinx kernel: ll header: 00:a0:24:2a:1f:72:00:13:5f:07:97:05:
         <listitem>
           <para>You are redirecting traffic from the firewall system out of
           one interface or the other using packet marking in your
-          <filename>/etc/shorewall/tcrules</filename> file. A better approach
+          <filename>/etc/shorewall/mangle</filename> file. A better approach
           is to configure the application to use the appropriate local IP
           address (the IP address of the interface that you want the
           application to use). See <link linkend="Local">below</link>.</para>
@@ -841,18 +855,31 @@ eth1             0.0.0.0/0         130.252.99.27</programlisting>
       <para>This continues the example in the preceding section.</para>
 
       <para>Now suppose that you want to route all outgoing SMTP traffic from
-      your local network through ISP 2. You would make this entry in <ulink
-      url="traffic_shaping.htm">/etc/shorewall/tcrules</ulink> (and if you are
-      running a version of Shorewall earlier than 3.0.0, you would set
-      TC_ENABLED=Yes in <ulink
-      url="???">/etc/shorewall/shorewall.conf</ulink>).</para>
+      your local network through ISP 2. If you are running Shorewall 4.6.0 or
+      later, you would make this entry in <ulink
+      url="traffic_shaping.htm">/etc/shorewall/mangle</ulink>.</para>
 
-      <programlisting>#MARK           SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
+      <programlisting>#ACTION         SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
 #                                                               PORT(S)
-2:P             &lt;local network&gt; 0.0.0.0/0       tcp     25</programlisting>
+MARK(2):P       &lt;local network&gt; 0.0.0.0/0       tcp     25</programlisting>
 
       <para>Note that traffic from the firewall itself must be handled in a
       different rule:</para>
+
+      <programlisting>#MARK           SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
+#                                                               PORT(S)
+MARK(2)         $FW             0.0.0.0/0       tcp     25</programlisting>
+
+      <para>If you are running a Shorewall version earlier than 4.6.0, the
+      above rules in <ulink
+      url="manpages/shorewall-tcrules.html">/etc/shorewall/tcrules</ulink>
+      would be:</para>
+
+      <programlisting>#ACTION         SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
+#                                                               PORT(S)
+2:P             &lt;local network&gt; 0.0.0.0/0       tcp     25</programlisting>
+
+      <para>And for traffic from the firewall:</para>
 
       <programlisting>#MARK           SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
 #                                                               PORT(S)
@@ -940,7 +967,7 @@ eth3             0.0.0.0/0         16.105.78.4</programlisting></para>
       particular provider</title>
 
       <para>As <link linkend="Applications">noted above</link>, separate
-      entries in <filename>/etc/shorewall/tcrules</filename> are required for
+      entries in <filename>/etc/shorewall/mangle</filename> are required for
       traffic originating from the firewall.</para>
 
       <para>Experience has shown that in some cases, problems occur with
@@ -986,7 +1013,7 @@ lo          -         shorewall       1000</programlisting>
 
       <para>The <filename>rtrules</filename> file allows assigning certain
       traffic to a particular provider just as entries in the
-      <filename>tcrules</filename> file. The difference between the two files
+      <filename>mangle</filename> file. The difference between the two files
       is that entries in <filename>rtrules</filename> are independent of
       Netfilter.</para>
 
@@ -1690,7 +1717,7 @@ ISP2    2       2       -               eth1            130.252.99.254  track   
       except when you explicitly direct it to use the other provider via
       <ulink url="manpages/shorewall-rtrules.html">shorewall-rtrules</ulink>
       (5) or <ulink
-      url="manpages/shorewall-tcrules.html">shorewall-tcrules</ulink>
+      url="manpages/shorewall-tcrules.html">shorewall-mangle</ulink>
       (5).</para>
 
       <para>Example (send all traffic through the 'shorewall' provider unless
@@ -1868,7 +1895,8 @@ ONBOOT=yes</programlisting>
       <ulink
       url="manpages/shorewall-providers.html">shorewall-providers</ulink> (5)
       is available in the form of a PROBABILITY column in <ulink
-      url="???">shorewall-tcrules</ulink> (5). This feature requires the
+      url="manpages/shorewall-mangle.html">shorewall-mangle</ulink>(5) (<ulink
+      url="???">shorewall-tcrules</ulink>) (5). This feature requires the
       <firstterm>Statistic Match</firstterm> capability in your iptables and
       kernel.</para>
 
@@ -2210,9 +2238,11 @@ AVG_RTT=${13}
 if [ -f /usr/share/shorewall-lite/lib.base ]; then
     VARDIR=/var/lib/shorewall-lite
     STATEDIR=/etc/shorewall-lite
+    TOOL=/sbin/shorewall-lite
 else
     VARDIR=/var/lib/shorewall
     STATEDIR=/etc/shorewall
+    TOOL=/sbin/shorewall
 fi
 
 [ -f ${STATEDIR}/vardir ] &amp;&amp; . ${STATEDIR}/vardir
@@ -2249,9 +2279,9 @@ EOM
 # [ ${STATE} = up ] &amp;&amp; state=0 || state=1
 # echo $state &gt; ${VARDIR}/${DEVICE}.status
 
-/sbin/shorewall restart -f &gt;&gt; /var/log/lsm 2&gt;&amp;1
+$TOOL restart -f &gt;&gt; /var/log/lsm 2&gt;&amp;1
 
-/sbin/shorewall show routing &gt;&gt; /var/log/lsm
+$TOOL show routing &gt;&gt; /var/log/lsm
 
 exit 0
 
@@ -2283,9 +2313,11 @@ AVG_RTT=${13}
 if [ -f /usr/share/shorewall-lite/lib.base ]; then
     VARDIR=/var/lib/shorewall-lite
     STATEDIR=/etc/shorewall-lite
+    TOOL=/sbin/shorewall-lite
 else
     VARDIR=/var/lib/shorewall
     STATEDIR=/etc/shorewall
+    TOOL=/sbin/shorewall
 fi
 
 [ -f ${STATEDIR}/vardir ] &amp;&amp; . ${STATEDIR}/vardir
@@ -2325,7 +2357,7 @@ else
    ${VARDIR}/firewall disable ${DEVICE}
 fi
 </emphasis>
-/sbin/shorewall show routing &gt;&gt; /var/log/lsm
+$TOOL show routing &gt;&gt; /var/log/lsm
 
 exit 0
 
@@ -2481,12 +2513,20 @@ wireless       3        3    -         wlan0                172.20.1.1   track,o
       (only two are currently used) through the <emphasis
       role="bold">avvanta</emphasis> provider.</para>
 
-      <para>Here is the tcrules file (MARK_IN_FORWARD_CHAIN=No in
-      <filename>shorewall.conf</filename>):<programlisting>#MARK           SOURCE          DEST            PROTO   PORT(S)         CLIENT  USER    TEST    LENGTH  TOS     CONNBYTES       HELPER
+      <para>Here is the mangle file (MARK_IN_FORWARD_CHAIN=No in
+      <filename>shorewall.conf</filename>):<programlisting>#ACTION               SOURCE          DEST            PROTO   DEST            SOURCE  USER    TEST    LENGTH  TOS     CONNBYTES       HELPER
+#                                                             PORT(S)         PORT(S) 
+MARK(2)               $FW             0.0.0.0/0       tcp     21
+MARK(2)               $FW             0.0.0.0/0       tcp     -               -       -       -       -       -       -               ftp
+MARK(2)               $FW             0.0.0.0/0       tcp     119</programlisting></para>
+
+      <para>Here are the equivalent tcrules entries:</para>
+
+      <programlisting>#MARK           SOURCE          DEST            PROTO   PORT(S)         CLIENT  USER    TEST    LENGTH  TOS     CONNBYTES       HELPER
 #                                                                       PORT(S) 
 2               $FW             0.0.0.0/0       tcp     21
 2               $FW             0.0.0.0/0       tcp     -               -       -       -       -       -       -               ftp
-2               $FW             0.0.0.0/0       tcp     119</programlisting></para>
+2               $FW             0.0.0.0/0       tcp     119</programlisting>
 
       <para>These rules:</para>
 
@@ -2499,6 +2539,14 @@ wireless       3        3    -         wlan0                172.20.1.1   track,o
           <para>Use <emphasis role="bold">avvanta</emphasis> for NTTP</para>
         </listitem>
       </itemizedlist>
+
+      <para>The same rules converted to use the mangle file are:</para>
+
+      <programlisting>#ACTION         SOURCE          DEST            PROTO   PORT(S)         CLIENT  USER    TEST    LENGTH  TOS     CONNBYTES       HELPER
+#                                                                       PORT(S) 
+MARK(2)         $FW             0.0.0.0/0       tcp     21
+MARK(2)         $FW             0.0.0.0/0       tcp     -               -       -       -       -       -       -               ftp
+MARK(2)         $FW             0.0.0.0/0       tcp     119</programlisting>
 
       <para>The remaining files are for a rather standard two-interface config
       with a bridge as the local interface.</para>
@@ -2536,7 +2584,7 @@ wlan0                   192.168.0.0/24</programlisting><note>
   <section id="Complete">
     <title>A Complete Working Example</title>
 
-    <para>This section describes the network at shorewall.net in late 2012.
+    <para>This section describes the network at shorewall.net in late 2013.
     The configuration is as follows:</para>
 
     <itemizedlist>
@@ -2571,7 +2619,7 @@ wlan0                   192.168.0.0/24</programlisting><note>
 
     <para>The network is pictured in the following diagram:</para>
 
-    <graphic fileref="images/Network2012a.png" />
+    <graphic fileref="images/Network2013.png" />
 
     <section>
       <title>IPv4 Configuration</title>
@@ -2707,17 +2755,18 @@ dmz             ip           #LXC Containers</programlisting>
       <para><filename>/etc/shorewall/interfaces</filename>:</para>
 
       <programlisting>#ZONE  INTERFACE   OPTIONS
-loc    INT_IF      dhcp,physical=$INT_IF,required,wait=5,routefilter,nets=172.20.1.0/24
-net    COMB_IF     optional,sourceroute=0,routefilter=0,arp_ignore=1,proxyarp=0,physical=$COMB_IF,upnp,nosmurfs,tcpflags
-net    COMC_IF     optional,sourceroute=0,routefilter=0,arp_ignore=1,proxyarp=0,physical=$COMC_IF,upnp,nosmurfs,tcpflags,dhcp
-vpn    TUN_IF+     physical=tun+,ignore=1
-dmz    br0         routeback,proxyarp=1
--      lo          ignore</programlisting>
+loc    INT_IF           dhcp,physical=$INT_IF,ignore=1,wait=5,routefilter,nets=172.20.1.0/24,routeback
+net    COMB_IF          optional,sourceroute=0,routefilter=0,arp_ignore=1,proxyarp=0,physical=$COMB_IF,upnp,nosmurfs,tcpflags
+net    COMC_IF          optional,sourceroute=0,routefilter=0,arp_ignore=1,proxyarp=0,physical=$COMC_IF,upnp,nosmurfs,tcpflags,dhcp
+vpn    TUN_IF+          physical=tun+,ignore=1
+dmz    br0              routeback,proxyarp=1,required,wait=30
+</programlisting>
 
       <para><filename>/etc/shorewall/hosts:</filename></para>
 
       <programlisting>#ZONE   HOST(S)                                 OPTIONS
-smc     COMB_IF:10.1.10.0/24</programlisting>
+smc     COMB_IF:10.1.10.0/24
+smc     COMC_IF:10.0.0.0/24</programlisting>
 
       <para><filename>/etc/shorewall/providers</filename>:</para>
 
@@ -2746,29 +2795,29 @@ Squid             3        -       -          lo          -             tproxy
 70.90.191.121       -                ComcastB  1000
 70.90.191.123       -                ComcastB  1000
 &amp;COMC_IF            -                ComcastC  1000
-172.20.1.145        -                ComcastC  1000
-172.20.1.146        -                ComcastC  1000
-br0                 -                ComcastB  11000</programlisting>
+br0                 -                ComcastB  11000
+172.20.1.191        -                ComcastB  1000
+</programlisting>
 
       <para>For reference, this configuration generates these routing
       rules:</para>
 
       <programlisting>root@gateway:~# ip rule ls
-0:     from all lookup local 
-999:   from all lookup main 
-1000:  from 70.90.191.121 lookup ComcastB 
-1000:  from 70.90.191.123 lookup ComcastB 
-1000:  from 67.170.121.6 lookup ComcastC 
-1000:  from 172.20.1.145 lookup ComcastC 
-1000:  from 172.20.1.146 lookup ComcastC 
-10000: from all fwmark 0x10000/0x30000 lookup ComcastB 
-10001: from all fwmark 0x20000/0x30000 lookup ComcastC 
-11000: from all iif br0 lookup ComcastB 
-32765: from all lookup balance 
-32767: from all lookup default 
+0:      from all lookup local 
+1:      from all fwmark 0x80000/0x80000 lookup TProxy 
+999:    from all lookup main 
+1000:   from 70.90.191.121 lookup ComcastB 
+1000:   from 70.90.191.123 lookup ComcastB 
+1000:   from 172.20.1.191 lookup ComcastB 
+1000:   from 10.0.0.4 lookup ComcastC 
+10000:  from all fwmark 0x10000/0x30000 lookup ComcastB 
+10001:  from all fwmark 0x20000/0x30000 lookup ComcastC 
+11000:  from all iif br0 lookup ComcastB 
+32765:  from all lookup balance 
+32767:  from all lookup default 
 root@gateway:~# </programlisting>
 
-      <para><filename>/etc/shorewall/tcrules</filename> is not used to support
+      <para><filename>/etc/shorewall/mangle</filename> is not used to support
       Multi-ISP:</para>
 
       <programlisting>#MARK                           SOURCE        DEST          PROTO  DEST    SOURCE  
@@ -2784,7 +2833,7 @@ SAME:P                          INT_IF        -             tcp    80,443
    ?if $PROXYDMZ
       TPROXY(3129,172.20.1.254) br0           -             tcp    80
    ?endif
-?endof
+?endif
 </programlisting>
     </section>
 
