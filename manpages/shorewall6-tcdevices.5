@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcdevices
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCDEVICE" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-TCDEVICE" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -106,7 +106,7 @@ The columns in the file are as follows (where the column name is followed by a d
 .RS 4
 Name of
 \fIinterface\fR\&. Each interface may be listed only once in this file\&. You may NOT specify the name of an alias (e\&.g\&., eth0:0) here; see
-\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]\&\s-2\u[1]\d\s+2
 .sp
 You may NOT specify wildcards here, e\&.g\&. if you have multiple ppp interfaces, you need to put them all in here!
 .sp
@@ -135,7 +135,7 @@ more accurate; often for fast lines, the enforced rate is well below the specifi
 \fIbandwidth\fR\&.
 .sp
 What is described above creates a rate/burst policing filter\&. Beginning with Shorewall 4\&.4\&.25, a rate\-estimated policing filter may be configured instead\&. Rate\-estimated filters should be used with Ethernet adapters that have Generic Receive Offload enabled by default\&. See
-\m[blue]\fBShorewall FAQ 97a\fR\m[]\&\s-2\u[1]\d\s+2\&.
+\m[blue]\fBShorewall FAQ 97a\fR\m[]\&\s-2\u[2]\d\s+2\&.
 .sp
 To create a rate\-estimated filter, precede the bandwidth with a tilde ("~")\&. The optional interval and decay_interval determine how often the rate is estimated and how many samples are retained for estimating\&. Please see
 \m[blue]\fBhttp://ace\-host\&.stuart\&.id\&.au/russell/files/tc/doc/estimators\&.txt\fR\m[]
@@ -147,14 +147,14 @@ for details\&.
 The outgoing
 \fIbandwidth\fR
 of that interface\&. This is the maximum speed your connection can handle\&. It is also the speed you can refer as "full" if you define the tc classes in
-\m[blue]\fBshorewall6\-tcclasses\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. Outgoing traffic above this rate will be dropped\&.
+\m[blue]\fBshorewall6\-tcclasses\fR\m[]\&\s-2\u[3]\d\s+2(5)\&. Outgoing traffic above this rate will be dropped\&.
 .RE
 .PP
 \fBOPTIONS\fR \- {\fB\-\fR|\fB{classify\fR|htb|\fBhfsc\fR|\fBlinklayer\fR={\fBethernet\fR|\fBatm\fR|\fBadsl\fR}|\fBtsize\fR=\fItsize\fR|\fBmtu\fR=\fImtu\fR|\fBmpu\fR=\fImpu\fR|\fBoverhead\fR=\fIoverhead\fR} ,\&.\&.\&.}
 .RS 4
 \fBclassify\fR
 \(em When specified, Shorewall will not generate tc or Netfilter rules to classify traffic based on packet marks\&. You must do all classification using CLASSIFY rules in
-\m[blue]\fBshorewall\-tcrules\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[4]\d\s+2(5)\&.
 .sp
 \fBhtb\fR
 \- Use the
@@ -214,24 +214,34 @@ Suppose you are using PPP over Ethernet (DSL) and ppp0 is the interface for this
 .PP
 tc\-hfsc (7)
 .PP
-\m[blue]\fBhttp://shorewall\&.net/traffic_shaping\&.htm\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/traffic_shaping\&.htm\fR\m[]\&\s-2\u[5]\d\s+2
 .PP
 \m[blue]\fBhttp://ace\-host\&.stuart\&.id\&.au/russell/files/tc/doc/estimators\&.txt\fR\m[]
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
+http://www.shorewall.net/FAQ.htm#faq18
+.RS 4
+\%http://www.shorewall.net/FAQ.htm#faq18
+.RE
+.IP " 2." 4
 Shorewall FAQ 97a
 .RS 4
 \%http://www.shorewall.net/FAQ.htm#faq97a
 .RE
-.IP " 2." 4
+.IP " 3." 4
 shorewall6-tcclasses
 .RS 4
-\%http://www.shorewall.netshorewall6-tcclasses.html
+\%http://www.shorewall.net/manpages6/shorewall6-tcclasses.html
 .RE
-.IP " 3." 4
-shorewall-tcrules
+.IP " 4." 4
+shorewall6-tcrules
 .RS 4
-\%http://www.shorewall.netshorewall-tcrules.html
+\%http://www.shorewall.net/manpages6/shorewall6-tcrules.html
+.RE
+.IP " 5." 4
+http://www.shorewall.net/traffic_shaping.htm
+.RS 4
+\%http://www.shorewall.net/traffic_shaping.htm
 .RE

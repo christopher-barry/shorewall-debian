@@ -57,7 +57,7 @@
 #     The name of a network interface. The interface must be defined in
 #     shorewall6-interfaces(5). Shorewall allows loose matches to wildcard
 #     entries in shorewall6-interfaces(5). For example, ppp0 in this file will
-#     match a shorewall6-interfaces(8) entry that defines ppp+.
+#     match a shorewall6-interfaces(5) entry that defines ppp+.
 # 
 # NET2 - network-address
 # 

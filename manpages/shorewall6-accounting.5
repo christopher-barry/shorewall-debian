@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ACCOUNTI" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-ACCOUNTI" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -111,8 +111,12 @@ and
 .PP
 Section headers have the form:
 .PP
-\fBSECTION\fR
+\fB[?]SECTION\fR
 \fIsection\-name\fR
+.PP
+The optional "?" was added in Shorewalll 4\&.6\&.0 and is preferred\&. Existing configurations may be converted to use this form using the
+\fBshorewall6 update\fR
+command\&.
 .PP
 When sections are enabled:
 .sp
@@ -769,21 +773,31 @@ may be used as wildcards\&. Omitted trailing columns are also treated as wildcar
 /etc/shorewall6/accounting
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://shorewall\&.net/Accounting\&.html\fR\m[]\&\s-2\u[2]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/Accounting\&.html\fR\m[]\&\s-2\u[2]\d\s+2
 .PP
-\m[blue]\fBhttp://shorewall\&.net/shorewall_logging\&.html\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[3]\d\s+2
 .PP
-\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[4]\d\s+2
 .PP
-shorewall6(8), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 rules file
 .RS 4
-\%http://www.shorewall.netmanpages/shorewall-rules.html
+\%http://www.shorewall.net/manpages6/shorewall6-rules.html
 .RE
 .IP " 2." 4
-http://shorewall.net/Accounting.html
+http://www.shorewall.net/Accounting.html
 .RS 4
-\%http://shorewall.net/Accounting.html
+\%http://www.shorewall.net/Accounting.html
+.RE
+.IP " 3." 4
+http://www.shorewall.net/shorewall_logging.html
+.RS 4
+\%http://www.shorewall.net/shorewall_logging.html
+.RE
+.IP " 4." 4
+http://www.shorewall.net/configuration_file_basics.htm#Pairs
+.RS 4
+\%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE

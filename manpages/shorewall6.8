@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Administrative Commands
+.\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6" "8" "06/15/2014" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -35,11 +35,11 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBcheck\ |\ ck\ \fR] [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fB\-r\fR] [\fB\-T\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBcheck\ |\ ck\ \fR] [\fB\-e\fR] [\fB\-d\fR] [\fB\-p\fR] [\fB\-r\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBclear\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBcompile\ |\ co\ \fR] [\fB\-e\fR] [\fB\-d\fR] [\fB\-T\fR] [\fIdirectory\fR] [\fIpathname\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBcompile\ |\ co\ \fR] [\fB\-e\fR] [\fB\-d\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR] [\fIpathname\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBdelete\ {\fR \fIinterface\fR[:\fIhost\-list\fR]... \fIzone\ |\ zone\ host\-list\ \fR\fB}\fR
 .HP \w'\fBshorewall\fR\ 'u
@@ -59,7 +59,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBiptrace\fR \fIiptables\ match\ expression\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR] \fIsystem\fR
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBlogdrop\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -69,15 +69,15 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBnoiptrace\fR \fIiptables\ match\ expression\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrefresh\fR\ [\fB\-n\fR]\ [\fB\-d\fR]\ [\fB\-T\fR]\ [\-\fBD\fR\ \fIdirectory\fR\ ]\ [\fIchain\fR...] 
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrefresh\fR\ [\fB\-n\fR]\ [\fB\-d\fR]\ [\fB\-T\fR]\ [\fB\-i\fR]\ [\-\fBD\fR\ \fIdirectory\fR\ ]\ [\fIchain\fR...] 
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreject\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBreload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBreload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR] \fIsystem\fR
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreset\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
 .HP \w'\fBshorewall6\fR\ 'u
@@ -99,7 +99,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBshow\ |\ list\ |\ ls\ \fR] [\fB\-m\fR] \fBlog\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstart\fR [\fB\-n\fR] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR
 .HP \w'\fBshorewall6\fR\ 'u
@@ -107,7 +107,7 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBtry\fR \fIdirectory\fR [\fItimeout\fR]
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBupdate\fR [\fB\-b\fR] [\fB\-d\fR] [\fB\-r\fR] [\fB\-T\fR] [\fB\-a\fR] [\fB\-D\fR] [\fIdirectory\fR]
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBupdate\fR [\fB\-b\fR] [\fB\-d\fR] [\fB\-r\fR] [\fB\-T\fR] [\fB\-a\fR] [\fB\-D\fR] [\fB\-i\fR] [\fB\-t\fR] [\fB\-A\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBversion\fR\ [\fB\-a\fR] 
 .SH "DESCRIPTION"
@@ -120,7 +120,7 @@ The
 and
 \fBdebug\fR
 options are used for debugging\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm#Trace\fR\m[]\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm#Trace\fR\m[]\&\s-2\u[1]\d\s+2\&.
 .PP
 The nolock
 \fBoption\fR
@@ -135,7 +135,7 @@ control the amount of output that the command produces\&. They consist of a sequ
 \fBv\fR
 and
 \fBq\fR\&. If the options are omitted, the amount of output is determined by the setting of the VERBOSITY parameter in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. Each
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. Each
 \fBv\fR
 adds one to the effective verbosity and each
 \fBq\fR
@@ -161,7 +161,7 @@ Added in Shorewall 4\&.4\&.21\&. Adds a list of hosts or subnets to a dynamic zo
 The
 \fIinterface\fR
 argument names an interface defined in the
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&. A
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[3]\d\s+2(5) file\&. A
 \fIhost\-list\fR
 is comma\-separated list whose elements are host or network addresses\&..if n \{\
 .sp
@@ -190,7 +190,7 @@ and run the same command again\&. Then enter the correct command\&.
 .sp
 Beginning with Shorewall 4\&.5\&.9, the
 \fBdynamic_shared\fR
-zone option (\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[3]\d\s+2(5)) allows a single ipset to handle entries for multiple interfaces\&. When that option is specified for a zone, the
+zone option (\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[4]\d\s+2(5)) allows a single ipset to handle entries for multiple interfaces\&. When that option is specified for a zone, the
 \fBadd\fR
 command has the alternative syntax in which the
 \fIzone\fR
@@ -239,6 +239,9 @@ option was added in Shorewall 4\&.5\&.2 and causes the compiler to print the gen
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.4\&.20 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[2]\d\s+2\&.
 .RE
 .PP
 \fBclear\fR
@@ -287,6 +290,9 @@ command\-line option\&.
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.4\&.20 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[2]\d\s+2\&.
 .RE
 .PP
 \fBdelete\fR
@@ -298,13 +304,13 @@ command\&.
 The
 \fIinterface\fR
 argument names an interface defined in the
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file\&. A
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[3]\d\s+2(5) file\&. A
 \fIhost\-list\fR
 is comma\-separated list whose elements are a host or network address\&.
 .sp
 Beginning with Shorewall 4\&.5\&.9, the
 \fBdynamic_shared\fR
-zone option (\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[3]\d\s+2(5)) allows a single ipset to handle entries for multiple interfaces\&. When that option is specified for a zone, the
+zone option (\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[4]\d\s+2(5)) allows a single ipset to handle entries for multiple interfaces\&. When that option is specified for a zone, the
 \fBdelete\fR
 command has the alternative syntax in which the
 \fIzone\fR
@@ -324,7 +330,7 @@ name must be given\&.
 Beginning with Shorewall 4\&.5\&.10, this command may be used with any optional network interface\&.
 \fIinterface\fR
 may be either the logical or physical name of the interface\&. The command removes any routes added from
-\m[blue]\fBshorewall6\-routes\fR\m[]\&\s-2\u[4]\d\s+2(5) and any traffic shaping configuration for the interface\&.
+\m[blue]\fBshorewall6\-routes\fR\m[]\&\s-2\u[5]\d\s+2(5) and any traffic shaping configuration for the interface\&.
 .RE
 .PP
 \fBdrop\fR
@@ -362,7 +368,7 @@ Beginning with Shorewall 4\&.5\&.10, this command may be used with any optional 
 may be either the logical or physical name of the interface\&. The command sets
 /proc
 entries for the interface, adds any route specified in
-\m[blue]\fBshorewall6\-routes\fR\m[]\&\s-2\u[4]\d\s+2(5) and installs the interface\*(Aqs traffic shaping configuration, if any\&.
+\m[blue]\fBshorewall6\-routes\fR\m[]\&\s-2\u[5]\d\s+2(5) and installs the interface\*(Aqs traffic shaping configuration, if any\&.
 .RE
 .PP
 \fBexport\fR
@@ -395,7 +401,7 @@ Deletes /var/lib/shorewall6/\fIfilename\fR
 and /var/lib/shorewall6/save\&. If no
 \fIfilename\fR
 is given then the file specified by RESTOREFILE in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5) is assumed\&.
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) is assumed\&.
 .RE
 .PP
 \fBhelp\fR
@@ -465,20 +471,23 @@ rather than "root"\&.
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBlogdrop\fR
 .RS 4
 Causes traffic from the listed
 \fIaddress\fRes to be logged then discarded\&. Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL setting in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2
 (5)\&.
 .RE
 .PP
 \fBlogwatch\fR
 .RS 4
 Monitors the log file specified by the LOGFILE option in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5) and produces an audible alarm when new Shorewall6 messages are logged\&. The
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) and produces an audible alarm when new Shorewall6 messages are logged\&. The
 \fB\-m\fR
 option causes the MAC address of each packet source to be displayed if that information is available\&. The
 \fIrefresh\-interval\fR
@@ -490,7 +499,7 @@ specifies the time in seconds between screen refreshes\&. You can enter a negati
 .RS 4
 Causes traffic from the listed
 \fIaddress\fRes to be logged then rejected\&. Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL setting in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2
 (5)\&.
 .RE
 .PP
@@ -535,6 +544,9 @@ The
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .sp
 The \-\fBD\fR
 option was added in Shorewall 4\&.5\&.3 and causes Shorewall to look in the given
@@ -605,6 +617,9 @@ rather than "root"\&.
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBreset [\fR\fB\fIchain\fR\fR\fB, \&.\&.\&.]\fR
@@ -645,7 +660,7 @@ option suppresses the compilation step and simply reused the compiled script whi
 The
 \fB\-c\fR
 option was added in Shorewall 4\&.4\&.20 and performs the compilation step unconditionally, overriding the AUTOMAKE setting in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. When both
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. When both
 \fB\-f\fR
 and
 \fB\-c \fRare present, the result is determined by the option that appears last\&.
@@ -653,6 +668,9 @@ and
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBrestore\fR
@@ -665,7 +683,7 @@ names a restore file in /var/lib/shorewall6 created using
 \fBshorewall6 save\fR; if no
 \fIfilename\fR
 is given then Shorewall6 will be restored from the file specified by the RESTOREFILE option in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBsafe\-restart\fR
@@ -716,7 +734,7 @@ and
 commands\&. If
 \fIfilename\fR
 is not given then the state is saved in the file specified by the RESTOREFILE option in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBshow\fR
@@ -802,7 +820,7 @@ Displays the system\*(Aqs IPv6 configuration\&.
 \fBlog\fR
 .RS 4
 Displays the last 20 Shorewall6 messages from the log file specified by the LOGFILE option in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. The
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. The
 \fB\-m\fR
 option causes the MAC address of each packet source to be displayed if that information is available\&.
 .RE
@@ -856,14 +874,14 @@ is included in the command, Shorewall6 will look in that
 first for configuration files\&. If
 \fB\-f\fR
 is specified, the saved configuration specified by the RESTOREFILE option in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5) will be restored if that saved configuration exists and has been modified more recently than the files in /etc/shorewall6\&. When
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5) will be restored if that saved configuration exists and has been modified more recently than the files in /etc/shorewall6\&. When
 \fB\-f\fR
 is given, a
 \fIdirectory\fR
 may not be specified\&.
 .sp
 Update: In Shorewall6 4\&.4\&.20, a new LEGACY_FASTSTART option was added to
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. When LEGACY_FASTSTART=No, the modification times of files in /etc/shorewall6 are compared with that of /var/lib/shorewall6/firewall (the compiled script that last started/restarted the firewall)\&.
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. When LEGACY_FASTSTART=No, the modification times of files in /etc/shorewall6 are compared with that of /var/lib/shorewall6/firewall (the compiled script that last started/restarted the firewall)\&.
 .sp
 The
 \fB\-n\fR
@@ -872,7 +890,7 @@ option causes Shorewall6 to avoid updating the routing table(s)\&.
 The
 \fB\-c\fR
 option was added in Shorewall 4\&.4\&.20 and performs the compilation step unconditionally, overriding the AUTOMAKE setting in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. When both
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. When both
 \fB\-f\fR
 and
 \fB\-c \fRare present, the result is determined by the option that appears last\&.
@@ -880,14 +898,17 @@ and
 The
 \fB\-T\fR
 option was added in Shorewall 4\&.5\&.3 and causes a Perl stack trace to be included with each compiler\-generated error and warning message\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBstop\fR
 .RS 4
 Stops the firewall\&. All existing connections, except those listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[5]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[5]\d\s+2(5) or by ADMINISABSENTMINDED\&.
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[6]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[6]\d\s+2(5) or by ADMINISABSENTMINDED\&.
 .RE
 .PP
 \fBstatus\fR
@@ -951,19 +972,113 @@ file to be annotated with documentation\&.
 .sp
 The
 \fB\-b\fR
-option was added in Shorewall 4\&.4\&.26 and causes legacy blacklisting rules (\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[6]\d\s+2
-(5) ) to be converted to entries in the blrules file (\m[blue]\fBshorewall6\-blrules\fR\m[]\&\s-2\u[7]\d\s+2
+option was added in Shorewall 4\&.4\&.26 and causes legacy blacklisting rules (\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[7]\d\s+2
+(5) ) to be converted to entries in the blrules file (\m[blue]\fBshorewall6\-blrules\fR\m[]\&\s-2\u[8]\d\s+2
 (5) )\&. The blacklist keyword is removed from
-\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[3]\d\s+2
+\m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[4]\d\s+2
 (5),
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[3]\d\s+2
 (5) and
-\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[8]\d\s+2
+\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&. The unmodified files are saved with a \&.bak suffix\&.
 .sp
 The
 \fB\-D\fR
 option was added in Shorewall 4\&.5\&.11\&. When this option is specified, the compiler will walk through the directories in the CONFIG_PATH replacing FORMAT and COMMENT entries to compiler directives (e\&.g\&., ?FORMAT and ?COMMENT\&. When a file is updated, the original is saved in a \&.bak file in the same directory\&.
+.sp
+The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the line current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[2]\d\s+2\&.
+.sp
+The
+\fB\-t\fR
+option was added in Shorewall 4\&.6\&.0\&. When specified,
+\fB\-t\fR
+causes
+\m[blue]\fBshorewall6\-tcrules(5)\fR\m[]\&\s-2\u[10]\d\s+2
+to be converted to
+\m[blue]\fBshorewall6\-mangle(5)\fR\m[]\&\s-2\u[11]\d\s+2\&. The old file is renamed with a \&.bak suffix\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBImportant\fR
+.ps -1
+.br
+There are some notable restrictions with the
+\fB\-t\fR
+option:
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 1.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  1." 4.2
+.\}
+Converted rules will be appended to the existing
+mangle
+file; if there is no
+mangle
+file in the CONFIG_PATH, one will be created in
+/etc/shorewall6\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 2.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  2." 4.2
+.\}
+Existing comments in the
+tcrules
+file will not be transferred to the
+mangle
+file\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 3.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  3." 4.2
+.\}
+INCLUDEd files will be expanded inline in the
+mangle
+file\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 4.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  4." 4.2
+.\}
+Columns in the
+mangle
+file will be separated by a single tab character; there is no attempt made to otherwise align the columns\&.
+.RE
+.sp .5v
+.RE
+The
+\fB\-A\fR
+option was added in Shorewall 4\&.6\&.0 and is equivalent to specifying the
+\fB\-b\fR,
+\fB\-D\fR
+and the
+\fB\-t\fR
+options\&.
 .sp
 For a description of the other options, see the
 \fBcheck\fR
@@ -991,47 +1106,67 @@ command returns exit status as follows:
 4 \- Unknown state; usually means that the firewall has never been started\&.
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]\&\s-2\u[12]\d\s+2
 .PP
 shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
-shorewall6.conf
+http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace
 .RS 4
-\%http://www.shorewall.netshorewall6.conf.html
+\%http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace
 .RE
 .IP " 2." 4
-shorewall6-interfaces
+shorewall6.conf
 .RS 4
-\%http://www.shorewall.netshorewall6-interfaces.html
+\%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
 .IP " 3." 4
-shorewall6-zones
+shorewall6-interfaces
 .RS 4
-\%http://www.shorewall.netshorewall6-zones.html
+\%http://www.shorewall.net/manpages6/shorewall6-interfaces.html
 .RE
 .IP " 4." 4
-shorewall6-routes
+shorewall6-zones
 .RS 4
-\%http://www.shorewall.netshorewall6-routes.html
+\%http://www.shorewall.net/manpages6/shorewall6-zones.html
 .RE
 .IP " 5." 4
-shorewall6-routestopped
+shorewall6-routes
 .RS 4
-\%http://www.shorewall.netshorewall6-routestopped.html
+\%http://www.shorewall.net/manpages6/shorewall6-routes.html
 .RE
 .IP " 6." 4
-shorewall6-blacklist
+shorewall6-routestopped
 .RS 4
-\%http://www.shorewall.netshorewall6-blacklist.html
+\%http://www.shorewall.net/manpages6/shorewall6-routestopped.html
 .RE
 .IP " 7." 4
-shorewall6-blrules
+shorewall6-blacklist
 .RS 4
-\%http://www.shorewall.netshorewall6-blrules.html
+\%http://www.shorewall.net/manpages6/shorewall6-blacklist.html
 .RE
 .IP " 8." 4
+shorewall6-blrules
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-blrules.html
+.RE
+.IP " 9." 4
 shorewall6-hosts
 .RS 4
-\%http://www.shorewall.netshorewall6-hosts.html
+\%http://www.shorewall.net/manpages6/shorewall6-hosts.html
+.RE
+.IP "10." 4
+shorewall6-tcrules(5)
+.RS 4
+\%http://www.shorewall.netshorewall6-tcrules.html
+.RE
+.IP "11." 4
+shorewall6-mangle(5)
+.RS 4
+\%http://www.shorewall.netshorewall6-mangle.html
+.RE
+.IP "12." 4
+http://www.shorewall.net/starting_and_stopping_shorewall.htm
+.RS 4
+\%http://www.shorewall.net/starting_and_stopping_shorewall.htm
 .RE
