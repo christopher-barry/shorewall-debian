@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty ofs
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module contains those routines that don't seem to fit well elsewhere. It
 #   was carved from the Rules module in 4.4.16.
@@ -46,7 +48,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_21';
+our $VERSION = '4.6_1';
 
 our $family;
 
@@ -82,7 +84,9 @@ sub process_tos() {
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ($src, $dst, $proto, $ports, $sports , $tos, $mark ) = split_line 'tos file entry', { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, tos => 5, mark => 6 } ;
+	    my ($src, $dst, $proto, $ports, $sports , $tos, $mark ) =
+		split_line( 'tos file entry',
+			    { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, tos => 5, mark => 6 } );
 
 	    $first_entry = 0;
 
@@ -153,7 +157,10 @@ sub setup_ecn()
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ($interface, $hosts ) = split_line1 'ecn file entry', { interface => 0, host => 1, hosts => 1 }, {}, 2;
+	    my ($interface, $hosts ) = split_line1( 'ecn file entry',
+						    { interface => 0, host => 1, hosts => 1 },
+						    {},
+						    2 );
 
 	    fatal_error 'INTERFACE must be specified' if $interface eq '-';
 	    fatal_error "Unknown interface ($interface)" unless known_interface $interface;
@@ -240,7 +247,8 @@ sub setup_blacklist() {
 		    $first_entry = 0;
 		}
 
-		my ( $networks, $protocol, $ports, $options ) = split_line 'blacklist file', { networks => 0, proto => 1, port => 2, options => 3 };
+		my ( $networks, $protocol, $ports, $options ) = split_line( 'blacklist file',
+									    { networks => 0, proto => 1, port => 2, options => 3 } );
 
 		if ( $options eq '-' ) {
 		    $options = 'src';
@@ -400,7 +408,9 @@ sub convert_blacklist() {
 	first_entry "Converting $fn...";
 
 	while ( read_a_line( NORMAL_READ ) ) {
-	    my ( $networks, $protocol, $ports, $options ) = split_line 'blacklist file', { networks => 0, proto => 1, port => 2, options => 3 };
+	    my ( $networks, $protocol, $ports, $options ) =
+		split_line( 'blacklist file',
+			    { networks => 0, proto => 1, port => 2, options => 3 } );
 
 	    if ( $options eq '-' ) {
 		$options = 'src';
@@ -560,7 +570,8 @@ sub process_routestopped() {
 	while ( read_a_line ( NORMAL_READ ) ) {
 
 	    my ($interface, $hosts, $options , $proto, $ports, $sports ) =
-		split_line 'routestopped file', { interface => 0, hosts => 1, options => 2, proto => 3, dport => 4, sport => 5 };
+		split_line( 'routestopped file',
+			    { interface => 0, hosts => 1, options => 2, proto => 3, dport => 4, sport => 5 } );
 
 	    my $interfaceref;
 
@@ -692,16 +703,17 @@ sub process_stoppedrules() {
 	    $result = 1;
 
 	    my ( $target, $source, $dest, $protos, $ports, $sports ) = 
-		split_line1 'stoppedrules file', { target => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5 };
+		split_line1( 'stoppedrules file',
+			     { target => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5 } );
 
-	    fatal_error( "Invalid TARGET ($target)" ) unless $target =~ /^(?:ACCEPT|NOTRACK)$/;
+	    fatal_error( "Invalid TARGET ($target)" ) unless $target =~ /^(?:ACCEPT|DROP|NOTRACK)$/;
 
 	    my $tableref;
-
+	    my $raw;
 	    my $chainref;
 	    my $restriction = NO_RESTRICT;
 
-	    if ( $target eq 'NOTRACK' ) {
+	    if ( $raw = ( $target eq 'NOTRACK' || $target eq 'DROP' ) ) {
 		$tableref = $raw_table;
 		require_capability 'RAW_TABLE', 'NOTRACK', 's';
 		$chainref = $raw_table->{PREROUTING};
@@ -711,21 +723,21 @@ sub process_stoppedrules() {
 	    }
 
 	    if ( $source eq $fw ) {
-		$chainref = ( $target eq 'NOTRACK' ? $raw_table : $filter_table)->{OUTPUT};
+		$chainref = ( $raw ? $raw_table : $filter_table)->{OUTPUT};
 		$source = '';
 		$restriction = OUTPUT_RESTRICT;
 	    } elsif ( $source =~ s/^($fw):// ) {
-		$chainref = ( $target eq 'NOTRACK' ? $raw_table : $filter_table)->{OUTPUT};
+		$chainref = ( $raw ? $raw_table : $filter_table)->{OUTPUT};
 		$restriction = OUTPUT_RESTRICT;
 	    }
 
 	    if ( $dest eq $fw ) {
-		fatal_error "\$FW may not be specified as the destination of a NOTRACK rule" if $target eq 'NOTRACK';
+		fatal_error "\$FW may not be specified as the destination of a NOTRACK or DROP rule" if $raw;
 		$chainref = $filter_table->{INPUT};
 		$dest = '';
 		$restriction = INPUT_RESTRICT;
 	    } elsif ( $dest =~ s/^($fw):// ) {
-		fatal_error "\$FW may not be specified as the destination of a NOTRACK rule" if $target eq 'NOTRACK';
+		fatal_error "\$FW may not be specified as the destination of a NOTRACK or DROP rule" if $raw;
 		$chainref = $filter_table->{INPUT};
 		$restriction = INPUT_RESTRICT;
 	    }
@@ -763,8 +775,8 @@ sub process_stoppedrules() {
 
 sub setup_mss();
 
-sub add_common_rules ( $ ) {
-    my $upgrade = shift;
+sub add_common_rules ( $$ ) {
+    my ( $upgrade_blacklist, $upgrade_tcrules ) = @_;
     my $interface;
     my $chainref;
     my $target;
@@ -917,8 +929,8 @@ sub add_common_rules ( $ ) {
 	    
     run_user_exit1 'initdone';
 
-    if ( $upgrade ) {
-	exit 0 unless convert_blacklist;
+    if ( $upgrade_blacklist ) {
+	exit 0 unless convert_blacklist || $upgrade_tcrules;
     } else {
 	setup_blacklist;
     }
@@ -1228,7 +1240,9 @@ sub setup_mac_lists( $ ) {
 
 	    while ( read_a_line( NORMAL_READ ) ) {
 
-		my ( $original_disposition, $interface, $mac, $addresses  ) = split_line1 'maclist file', { disposition => 0, interface => 1, mac => 2, addresses => 3 };
+		my ( $original_disposition, $interface, $mac, $addresses  ) =
+		    split_line1( 'maclist file',
+				 { disposition => 0, interface => 1, mac => 2, addresses => 3 } );
 
 		my ( $disposition, $level, $remainder) = split( /:/, $original_disposition, 3 );
 

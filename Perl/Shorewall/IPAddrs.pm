@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module provides interfaces for dealing with IPv4 addresses, protocol names, and
 #   port names. It also exports functions for validating protocol- and port- (service)
@@ -56,6 +58,7 @@ our @EXPORT = ( qw( ALLIPv4
 		  validate_address
 		  validate_net
 		  decompose_net
+		  decompose_net_u32
 		  compare_nets
 		  validate_host
 		  validate_range
@@ -79,7 +82,7 @@ our @EXPORT = ( qw( ALLIPv4
 		  validate_icmp6
 		 ) );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.5_17';
+our $VERSION = '4.6_0';
 
 #
 # Some IPv4/6 useful stuff
@@ -299,6 +302,48 @@ sub decompose_net( $ ) {
     ( $net, my $vlsm ) = validate_net( $net , 0 );
     ( ( $family == F_IPV4 ? encodeaddr( $net) : normalize_6addr( $net ) )  , $vlsm );
 
+}
+
+#
+# This function returns an array of (mask, address) pairs. For IPv4, only one 
+# pair is returned. For IPv6, one pair is returned for every 32 bits of the VLSM.
+#
+# For example, a /64 network will return two pairs; a /80 would return 3.
+#
+sub decompose_net_u32( $ ) {
+    my ( $net, $vlsm ) = validate_net( $_[0] , 0 );
+
+    assert( wantarray );
+
+    if ( $family == F_IPV4 ) {
+	$vlsm = ( 0xffffffff << ( 32 - $vlsm ) ) & 0xffffffff;
+	return ( in_hex8( $vlsm ) , in_hex8( $net ) );
+    }
+    #
+    # Split the address into 16-bit hex numbers
+    #
+    my @addr = split( ':', normalize_6addr( $net ) );
+    #
+    # Replace each element by its numeric value
+    #
+    no warnings;
+    $_ = oct( '0x' . $_ ) for @addr;
+    use warnings;
+
+    my @result;
+
+    while ( $vlsm >= 32 ) {
+	push @result, in_hex8( 0xffffff );
+	push @result, in_hex8( ( shift( @addr ) << 16 ) | shift( @addr ) );
+	$vlsm -= 32;
+    }
+
+    if ( $vlsm ) {
+	push @result, in_hex8( ( 0xffffffff << ( 32 - $vlsm ) ) & 0xffffffff );
+	push @result, in_hex8( ( $addr[0] << 16) | $addr[1] );
+    }
+
+    @result;
 }
 
 sub compare_nets( $$ ) {
@@ -649,7 +694,7 @@ sub resolve_6dnsname( $ ) {
     }
 
     @addrs;
-} 
+}
 
 sub validate_6net( $$ ) {
     my ( $net, $allow_name ) = @_;

@@ -1,15 +1,16 @@
 #
 # Shorewall 4.5 -- /usr/share/shorewall/lib.cli-std.
 #
-#     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
-#
-#     (c) 1999-2013 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2014 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
+#       This program is part of Shorewall.
+#
 #	This program is free software; you can redistribute it and/or modify
-#	it under the terms of Version 2 of the GNU General Public License
-#	as published by the Free Software Foundation.
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
 #	This program is distributed in the hope that it will be useful,
 #	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -17,8 +18,7 @@
 #	GNU General Public License for more details.
 #
 #	You should have received a copy of the GNU General Public License
-#	along with this program; if not, write to the Free Software
-#	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 # This library contains the command processing code common to /sbin/shorewall and /sbin/shorewall6.
 #
@@ -422,6 +422,8 @@ compiler() {
     [ -n "$g_convert" ] && options="$options --convert"
     [ -n "$g_annotate" ] && options="$options --annotate"
     [ -n "$g_directives" ] && options="$options --directives"
+    [ -n "$g_tcrules" ] && options="$options --tcrules"
+    [ -n "$g_inline" ] && options="$options --inline"
 
     if [ -n "$PERL" ]; then
 	if [ ! -x "$PERL" ]; then
@@ -527,6 +529,10 @@ start_command() {
 			T*)
 			    g_confess=Yes
 			    option=${option#T}
+			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
 			    ;;
 			*)
 			    usage 1
@@ -642,6 +648,10 @@ compile_command() {
 			    g_confess=Yes
 			    option=${option#T}
 			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
+			    ;;
 			-)
 			    finished=1
 			    option=
@@ -732,6 +742,10 @@ check_command() {
 			    g_confess=Yes
 			    option=${option#T}
 			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -812,6 +826,10 @@ update_command() {
 			    g_confess=Yes
 			    option=${option#T}
 			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
+			    ;;
 			a*)
 			    g_annotate=Yes
 			    option=${option#a}
@@ -823,6 +841,17 @@ update_command() {
 			D*)
 			    g_directives=Yes
 			    option=${option#D}
+			    ;;
+			t*)
+			    g_tcrules=Yes
+			    option=${option#t}
+			    ;;
+			A*)
+			    g_inline=Yes
+			    g_convert=Yes
+			    g_directives=Yes
+			    g_tcrules=Yes
+			    option=${option#A}
 			    ;;
 			*)
 			    usage 1
@@ -909,6 +938,10 @@ restart_command() {
 			T*)
 			    g_confess=Yes
 			    option=${option#T}
+			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
 			    ;;
 			*)
 			    usage 1
@@ -1004,6 +1037,10 @@ refresh_command() {
 			T*)
 			    g_confess=Yes
 			    option=${option#T}
+			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
 			    ;;
 			D)
 			    if [ $# -gt 1 ]; then
@@ -1394,6 +1431,10 @@ reload_command() # $* = original arguments less the command.
 			    g_confess=Yes
 			    option=${option#T}
 			    ;;
+			i*)
+			    g_inline=Yes
+			    option=${option#i}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -1583,9 +1624,9 @@ usage() # $1 = exit status
     echo "where <command> is one of:"
     echo "   add <interface>[:<host-list>] ... <zone>"
     echo "   allow <address> ..."
-    echo "   [ check | ck ] [ -e ] [ -r ] [ -p ] [ -r ] [ -T ] [ <directory> ]"
+    echo "   [ check | ck ] [ -e ] [ -r ] [ -p ] [ -r ] [ -T ] [ -i ] [ <directory> ]"
     echo "   clear"
-    echo "   [ compile | co ] [ -e ] [ -p ] [ -t ] [ -c ] [ -d ] [ -T ] [ <directory name> ] [ <path name> ]"
+    echo "   [ compile | co ] [ -e ] [ -p ] [ -t ] [ -c ] [ -d ] [ -T ] [ -i ] [ <directory name> ] [ <path name> ]"
     echo "   delete <interface>[:<host-list>] ... <zone>"
     echo "   disable <interface>"
     echo "   drop <address> ..."
@@ -1608,7 +1649,7 @@ usage() # $1 = exit status
 	echo "   iptrace <ip6tables match expression>"
     fi
 
-    echo "   load [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ <directory> ] <system>"
+    echo "   load [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ -i ] [ <directory> ] <system>"
     echo "   logdrop <address> ..."
     echo "   logreject <address> ..."
     echo "   logwatch [<refresh interval>]"
@@ -1621,9 +1662,9 @@ usage() # $1 = exit status
 
     echo "   refresh [ -d ] [ -n ] [ -T ] [ -D <directory> ] [ <chain>... ]"
     echo "   reject <address> ..."
-    echo "   reload [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ <directory> ] <system>"
+    echo "   reload [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ -i ] [ <directory> ] <system>"
     echo "   reset [ <chain> ... ]"
-    echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ] [ -T ] [ <directory> ]"
+    echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ] [ -T ] [ -i ] [ <directory> ]"
     echo "   restore [ -n ] [ <file name> ]"
     echo "   safe-restart [ -t <timeout> ] [ <directory> ]"
     echo "   safe-start [ -t <timeout> ] [ <directory> ]"
@@ -1653,11 +1694,11 @@ usage() # $1 = exit status
     echo "   [ show | list | ls ] tc [ device ]"
     echo "   [ show | list | ls ] vardir"
     echo "   [ show | list | ls ] zones"
-    echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ -T ] [ <directory> ]"
+    echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ -T ] [ -i ] [ <directory> ]"
     echo "   status"
     echo "   stop"
     echo "   try <directory> [ <timeout> ]"
-    echo "   update [ -a ] [ -b ] [ -r ] [ -T ] [ -D ] [ <directory> ]"
+    echo "   update [ -a ] [ -b ] [ -r ] [ -T ] [ -D ] [ -i ] [-t] [-A] [ <directory> ]"
     echo "   version [ -a ]"
     echo
     exit $1

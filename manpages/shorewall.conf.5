@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL\&.CONF" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -365,7 +365,11 @@ The macros for those applications requiring a helper automatically specify the a
 .PP
 \fBAUTOMAKE=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
-If set, the behavior of the \*(Aqstart\*(Aq command is changed; if no files in /etc/shorewall have been changed since the last successful
+If set, the behavior of the
+\fBstart\fR
+and
+\fBrestart\fR
+commands are changed; if no files in /etc/shorewall have been changed since the last successful
 \fBstart\fR
 or
 \fBrestart\fR
@@ -374,6 +378,34 @@ command, then the compilation step is skipped and the compiled script that execu
 or
 \fBrestart\fR
 command is used\&. The default is AUTOMAKE=No\&.
+.RE
+.PP
+\fBBASIC_FILTERS=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall\-4\&.6\&.0\&. When set to
+\fBYes\fR, causes entries in
+\m[blue]\fBshorewall\-tcfilters(5)\fR\m[]\&\s-2\u[9]\d\s+2
+to generate a basic filter rather than a u32 filter\&. This setting requires the
+Basic Ematch
+capability in your kernel and iptables\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+One of the advantages of basic filters is that ipset matches are supported in newer iproute2 and kernel versions\&. Because Shorewall cannot reliably detect this capability, use of basic filters is controlled by this option\&.
+.sp .5v
+.RE
+The default value is
+\fBNo\fR
+which causes u32 filters to be generated\&.
 .RE
 .PP
 \fBBLACKLIST=\fR[{\fBALL\fR|\fB\fIstate\fR\fR\fB[,\&.\&.\&.]\fR}]
@@ -398,7 +430,7 @@ The BLACKLIST_DISPOSITION setting has no effect on entries in the BLACKLIST sect
 (5)\&. It determines the disposition of packets sent to the
 \fBblacklog\fR
 target of
-\m[blue]\fBshorewall\-blrules\fR\m[]\&\s-2\u[9]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-blrules\fR\m[]\&\s-2\u[10]\d\s+2(5)\&.
 .RE
 .PP
 \fBBLACKLIST_LOG_LEVEL=\fR[\fIlog\-level\fR]
@@ -406,7 +438,7 @@ target of
 Formerly named BLACKLIST_LOGLEVEL\&. This parameter determines if packets from blacklisted hosts are logged and it determines the syslog level that they are to be logged at\&. Its value is a syslog level (Example: BLACKLIST_LOG_LEVEL=debug)\&. If you do not assign a value or if you assign an empty value then packets from blacklisted hosts are not logged\&. The setting determines the log level of packets sent to the
 \fBblacklog\fR
 target of
-\m[blue]\fBshorewall\-blrules\fR\m[]\&\s-2\u[9]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-blrules\fR\m[]\&\s-2\u[10]\d\s+2(5)\&.
 .RE
 .PP
 \fBBLACKLISTNEWONLY=\fR{\fBYes\fR|\fBNo\fR}
@@ -653,7 +685,7 @@ net     all  DROP   info
 .RE
 .\}
 .sp
-then the chain name is \*(Aqnet2all\*(Aq which is also the chain named in Shorewall log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
+then the chain name is \*(Aqnet\-all\*(Aq (\*(Aqnet2all if ZONE2ZONE=2) which is also the chain named in Shorewall log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
 .RE
 .PP
 \fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
@@ -714,14 +746,14 @@ Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the
 Added in Shorewall 4\&.5\&.4\&. Specifies the pathname of the directory containing the
 GeoIP Match
 database\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&. If not specified, the default value is
+\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&\s-2\u[13]\d\s+2\&. If not specified, the default value is
 /usr/share/xt_geoip/LE
 which is the default location of the little\-endian database\&.
 .RE
 .PP
 \fBHELPERS\fR=[\fIhelper\fR[,\fIhelper\fR\&.\&.\&.]]
 .RS 4
-Added in Shorewall 4\&.5\&.7\&. This option lists the Netfilter application helps that are to be enabled\&. If not specified, the default is to enable all helpers\&.
+Added in Shorewall 4\&.5\&.7\&. This option lists the Netfilter application helpers that are to be enabled\&. If not specified, the default is to enable all helpers\&.
 .sp
 Possible values for
 \fIhelper\fR
@@ -949,10 +981,18 @@ When this option is set to
 \fBYes\fR, it causes subzones to be treated differently with respect to policies\&.
 .sp
 Subzones are defined by following their name with ":" and a list of parent zones (in
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[13]\d\s+2(5))\&. Normally, you want to have a set of special rules for the subzone and if a connection doesn\*(Aqt match any of those subzone\-specific rules then you want the parent zone rules and policies to be applied; see
-\m[blue]\fBshorewall\-nesting\fR\m[]\&\s-2\u[14]\d\s+2(5)\&. With IMPLICIT_CONTINUE=Yes, that happens automatically\&.
+\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[14]\d\s+2(5))\&. Normally, you want to have a set of special rules for the subzone and if a connection doesn\*(Aqt match any of those subzone\-specific rules then you want the parent zone rules and policies to be applied; see
+\m[blue]\fBshorewall\-nesting\fR\m[]\&\s-2\u[15]\d\s+2(5)\&. With IMPLICIT_CONTINUE=Yes, that happens automatically\&.
 .sp
 If IMPLICIT_CONTINUE=No or if IMPLICIT_CONTINUE is not set, then subzones are not subject to this special treatment\&. With IMPLICIT_CONTINUE=Yes, an implicit CONTINUE policy may be overridden by including an explicit policy (one that does not specify "all" in either the SOURCE or the DEST columns)\&.
+.RE
+.PP
+\fBINLINE_MATCHES=\fR{\fBYes\fR|\fBNo\fR}
+.RS 4
+Added in Shorewall 4\&.6\&.0\&. Traditionally in
+\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[8]\d\s+2(5), a semicolon separates column\-oriented specifications on the left from
+\m[blue]\fBalternative specificaitons\fR\m[]\&\s-2\u[16]\d\s+2
+on the right\&.\&. When INLINE_MATCHES=Yes is specified, the specifications on the right are interpreted as if INLINE had been specified in the ACTION column\&. If not specified or if specified as the empty value, the value \*(AqNo\*(Aq is assumed for backward compatibility\&.
 .RE
 .PP
 \fBINVALID_DISPOSITION=[A_DROP|A_REJECT|DROP|REJECT|CONTINUE]\fR
@@ -965,7 +1005,7 @@ Added in Shorewall 4\&.5\&.13\&. Shorewall has traditionally passed INVALID pack
 \fBINVALID_LOG_LEVEL=\fR\fIlog\-level\fR
 .RS 4
 Added in Shorewall 4\&.5\&.13\&. Packets in the INVALID state that do not match any rule in the INVALID section of
-\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[15]\d\s+2
+\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[8]\d\s+2
 (5) are logged at this level\&. The default value is empty which means no logging is performed\&.
 .RE
 .PP
@@ -999,7 +1039,7 @@ If this variable is not set or is given an empty value (IP_FORWARD="") then IP_F
 .PP
 \fBIPSECFILE=zones\fR
 .RS 4
-This option indicates that zone\-related ipsec information is found in the zones file (\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[13]\d\s+2(5))\&. The option indicates to the compiler that this is not a legacy configuration where the ipsec information was contained in a separate file\&. The value of this option must not be changed and the option must not be deleted\&.
+This option indicates that zone\-related ipsec information is found in the zones file (\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[14]\d\s+2(5))\&. The option indicates to the compiler that this is not a legacy configuration where the ipsec information was contained in a separate file\&. The value of this option must not be changed and the option must not be deleted\&.
 .RE
 .PP
 \fBIPSET\fR=[\fIpathname\fR]
@@ -1066,7 +1106,7 @@ Added in Shorewall 4\&.4\&.20\&. If not specified, the default is Yes which pres
 \fBstart \-f\fR
 (the modification times of the files in
 /etc/shorewall
-are compare with that of
+are compared with that of
 /var/lib/shorewall/restore)\&. If set to No, then the times are compared with that of /var/lib/shorewall/firewall, which is consistent with the way that
 \fBrestart \-f\fR
 works\&.
@@ -1096,14 +1136,14 @@ to 1 with the exception of
 which sets both of the above to one\&. If you do not enable martian logging for all interfaces, you may still enable it for individual interfaces using the
 \fBlogmartians\fR
 interface option in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)\&.
 .sp
 The value
 \fBKeep\fR
 causes Shorewall to ignore the option\&. If the option is set to
 \fBYes\fR, then martians are logged on all interfaces\&. If the option is set to
 \fBNo\fR, then martian logging is disabled on all interfaces except those specified in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)\&.
 .RE
 .PP
 \fBLOG_VERBOSITY=\fR[\fInumber\fR]
@@ -1206,7 +1246,7 @@ This parameter tells the /sbin/shorewall program where to look for Shorewall mes
 \fBshow log\fR, and
 \fBhits\fR
 commands\&. If not assigned or if assigned an empty value, /var/log/messages is assumed\&. For further information, see
-\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[18]\d\s+2\&.
 .RE
 .PP
 \fBLOGFORMAT=\fR[\fB"\fR\fIformattemplate\fR\fB"\fR]
@@ -1237,7 +1277,7 @@ If the LOGFORMAT value contains the substring \(lq%d\(rq then the logging rule n
 .ps -1
 .br
 The setting of LOGFORMAT has an effect of the permitted length of zone names\&. See
-\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[13]\d\s+2
+\m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[14]\d\s+2
 (5)\&.
 .sp .5v
 .RE
@@ -1347,13 +1387,13 @@ This problem can be worked around by setting MACLIST_TABLE=mangle which will cau
 \fBMACLIST_TTL=[\fR\fInumber\fR]
 .RS 4
 The performance of configurations with a large numbers of entries in
-\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[17]\d\s+2(5) can be improved by setting the MACLIST_TTL variable in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[18]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[19]\d\s+2(5) can be improved by setting the MACLIST_TTL variable in
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[20]\d\s+2(5)\&.
 .sp
 If your iptables and kernel support the "Recent Match" (see the output of "shorewall check" near the top), you can cache the results of a \*(Aqmaclist\*(Aq file lookup and thus reduce the overhead associated with MAC Verification\&.
 .sp
 When a new connection arrives from a \*(Aqmaclist\*(Aq interface, the packet passes through then list of entries for that interface in
-\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[17]\d\s+2(5)\&. If there is a match then the source IP address is added to the \*(AqRecent\*(Aq set for that interface\&. Subsequent connection attempts from that IP address occurring within $MACLIST_TTL seconds will be accepted without having to scan all of the entries\&. After $MACLIST_TTL from the first accepted connection request from an IP address, the next connection request from that IP address will be checked against the entire list\&.
+\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[19]\d\s+2(5)\&. If there is a match then the source IP address is added to the \*(AqRecent\*(Aq set for that interface\&. Subsequent connection attempts from that IP address occurring within $MACLIST_TTL seconds will be accepted without having to scan all of the entries\&. After $MACLIST_TTL from the first accepted connection request from an IP address, the next connection request from that IP address will be checked against the entire list\&.
 .sp
 If MACLIST_TTL is not specified or is specified as empty (e\&.g, MACLIST_TTL="" or is specified as zero then \*(Aqmaclist\*(Aq lookups will not be cached)\&.
 .RE
@@ -1482,7 +1522,7 @@ When set to Yes, causes Shorewall to null\-route the IPv4 address ranges reserve
 When combined with route filtering (ROUTE_FILTER=Yes or
 \fBroutefilter\fR
 in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)), this option ensures that packets with an RFC1918 source address are only accepted from interfaces having known routes to networks using such addresses\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)), this option ensures that packets with an RFC1918 source address are only accepted from interfaces having known routes to networks using such addresses\&.
 .sp
 Beginning with Shorewall 4\&.5\&.15, you may specify
 \fBblackhole\fR,
@@ -1490,7 +1530,7 @@ Beginning with Shorewall 4\&.5\&.15, you may specify
 or
 \fBprohibit\fR
 to set the type of route to be created\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/MultiISP\&.html#null_routing\fR\m[]\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/MultiISP\&.html#null_routing\fR\m[]\&\s-2\u[21]\d\s+2\&.
 .RE
 .PP
 \fBOPTIMIZE=\fR[\fIvalue\fR]
@@ -1510,7 +1550,7 @@ Beginning with Shorewall 4\&.5\&.20, you may specify OPTIMIZE=All to enable all 
 .IP \(bu 2.3
 .\}
 Optimization category 1 \- Traditionally, Shorewall has created rules for
-\m[blue]\fBthe complete matrix of host groups defined by the zones, interfaces and hosts files\fR\m[]\&\s-2\u[19]\d\s+2\&. Any traffic that didn\*(Aqt correspond to an element of that matrix was rejected in one of the built\-in chains\&. When the matrix is sparse, this results in lots of largely useless rules\&.
+\m[blue]\fBthe complete matrix of host groups defined by the zones, interfaces and hosts files\fR\m[]\&\s-2\u[22]\d\s+2\&. Any traffic that didn\*(Aqt correspond to an element of that matrix was rejected in one of the built\-in chains\&. When the matrix is sparse, this results in lots of largely useless rules\&.
 .sp
 These extra rules can be eliminated by setting the 1 bit in OPTIMIZE\&.
 .sp
@@ -1965,7 +2005,7 @@ INLINE          \-       \-       \-       ; \-j REJECT
 \fBREQUIRE_INTERFACE=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 Added in Shorewall 4\&.4\&.10\&. The default is No\&. If set to Yes, at least one optional interface must be up in order for the firewall to be in the started state\&. Intended to be used with the
-\m[blue]\fBShorewall Init Package\fR\m[]\&\s-2\u[20]\d\s+2\&.
+\m[blue]\fBShorewall Init Package\fR\m[]\&\s-2\u[23]\d\s+2\&.
 .RE
 .PP
 \fBRESTORE_DEFAULT_ROUTE=\fR[\fBYes\fR|\fBNo\fR]
@@ -2023,7 +2063,7 @@ The value
 causes Shorewall to ignore the option\&. If the option is set to
 \fBYes\fR, then route filtering occurs on all interfaces\&. If the option is set to
 \fBNo\fR, then route filtering is disabled on all interfaces except those specified in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)\&.
 .if n \{\
 .sp
 .\}
@@ -2037,7 +2077,7 @@ causes Shorewall to ignore the option\&. If the option is set to
 .ps -1
 .br
 If you need to disable route filtering on any interface, then you must set ROUTE_FILTER=No then set routefilter=1 or routefilter=2 on those interfaces where you want route filtering\&. See
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5) for additional details\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5) for additional details\&.
 .sp .5v
 .RE
 .RE
@@ -2047,7 +2087,7 @@ If you need to disable route filtering on any interface, then you must set ROUTE
 Added in Shorewall 4\&.5\&.7\&. Determines the disposition of packets entering from interfaces the
 \fBrpfilter\fR
 option (see
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5))\&. Packets disposed of by this option are those whose response packets would not be sent through the same interface receiving the packet\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5))\&. Packets disposed of by this option are those whose response packets would not be sent through the same interface receiving the packet\&.
 .RE
 .PP
 \fBRPFILTER_LOG_LEVEL=\fR\fIlog\-level\fR
@@ -2083,11 +2123,11 @@ commands\&.
 Added in Shorewall 4\&.4\&.20\&. Determines the disposition of packets matching the
 \fBsfilter\fR
 option (see
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)) and of
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)) and of
 hairpin
 packets on interfaces without the
 \fBrouteback\fR
-option\&.\&\s-2\u[21]\d\s+2
+option\&.\&\s-2\u[24]\d\s+2
 interfaces without the routeback option\&.
 .RE
 .PP
@@ -2096,11 +2136,11 @@ interfaces without the routeback option\&.
 Added on Shorewall 4\&.4\&.20\&. Determines the logging of packets matching the
 \fBsfilter\fR
 option (see
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)) and of
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)) and of
 hairpin
 packets on interfaces without the
 \fBrouteback\fR
-option\&.\&\s-2\u[22]\d\s+2
+option\&.\&\s-2\u[25]\d\s+2
 interfaces without the routeback option\&. The default is
 \fBinfo\fR\&. If you don\*(Aqt wish for these packets to be logged, use SFILTER_LOG_LEVEL=none\&.
 .RE
@@ -2113,13 +2153,13 @@ This option is used to specify the shell program to be used to run the Shorewall
 \fBSMURF_DISPOSITION=\fR[\fBDROP\fR|A_DROP]
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. The default setting is DROP which causes smurf packets (see the nosmurfs option in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)) to be dropped\&. A_DROP causes the packets to be audited prior to being dropped and requires AUDIT_TARGET support in the kernel and iptables\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)) to be dropped\&. A_DROP causes the packets to be audited prior to being dropped and requires AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
 \fBSMURF_LOG_LEVEL=\fR[\fIlog\-level\fR]
 .RS 4
 Specifies the logging level for smurf packets (see the nosmurfs option in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
 .RE
 .PP
 \fBSTARTUP_ENABLED=\fR{\fBYes\fR|\fBNo\fR}
@@ -2173,8 +2213,8 @@ or
 then traffic shaping is not enabled\&.
 .sp
 If you set TC_ENABLED=Simple (Shorewall 4\&.4\&.6 and later), simple traffic shaping using
-\m[blue]\fBshorewall\-tcinterfaces\fR\m[]\&\s-2\u[23]\d\s+2(5) and
-\m[blue]\fBshorewall\-tcpri\fR\m[]\&\s-2\u[24]\d\s+2(5) is enabled\&.
+\m[blue]\fBshorewall\-tcinterfaces\fR\m[]\&\s-2\u[26]\d\s+2(5) and
+\m[blue]\fBshorewall\-tcpri\fR\m[]\&\s-2\u[27]\d\s+2(5) is enabled\&.
 .sp
 If you set TC_ENABLED=Internal or internal or leave the option empty then Shorewall will use its builtin traffic shaper (tc4shorewall written by Arne Bernin\&.
 .sp
@@ -2184,7 +2224,7 @@ Beginning with Shorewall 4\&.4\&.15, you can set TC_ENABLED=Shared\&. This allow
 \fBTC_EXPERT=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Normally, Shorewall tries to protect users from themselves by preventing PREROUTING and OUTPUT tcrules from being applied to packets that have been marked by the \*(Aqtrack\*(Aq option in
-\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[25]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[28]\d\s+2(5)\&.
 .sp
 If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall will not include these cautionary checks\&.
 .RE
@@ -2192,7 +2232,7 @@ If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall will not
 \fBTC_PRIOMAP\fR=\fImap\fR
 .RS 4
 Added in Shorewall 4\&.4\&.6\&. Determines the mapping of a packet\*(Aqs TOS field to priority bands\&. See
-\m[blue]\fBshorewall\-tcpri\fR\m[]\&\s-2\u[24]\d\s+2(5)\&. The
+\m[blue]\fBshorewall\-tcpri\fR\m[]\&\s-2\u[27]\d\s+2(5)\&. The
 \fImap\fR
 consists of 16 space\-separated digits with values 1, 2 or 3\&. A value of 1 corresponds to Linux priority 0, 2 to Linux priority 1, and 3 to Linux Priority 2\&. The first entry gives the priority of TOS value 0, the second of TOS value 1, and so on\&. See tc\-prio(8) for additional information\&.
 .sp
@@ -2204,7 +2244,7 @@ The default setting is TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2 2 2"\&.
 Determines the disposition of TCP packets that fail the checks enabled by the
 \fBtcpflags\fR
 interface option (see
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[16]\d\s+2(5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[17]\d\s+2(5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
 .sp
 A_DROP and A_REJECT are audited versions of DROP and REJECT respectively and were added in Shorewall 4\&.4\&.20\&. They require AUDIT_TARGET in the kernel and iptables\&.
 .RE
@@ -2219,7 +2259,7 @@ Determines the syslog level for logging packets that fail the checks enabled by 
 Added in Shorewall 4\&.4\&.3\&. When set to Yes, causes the
 \fBtrack\fR
 option to be assumed on all providers defined in
-\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[25]\d\s+2(5)\&. May be overridden on an individual provider through use of the
+\m[blue]\fBshorewall\-providers\fR\m[]\&\s-2\u[28]\d\s+2(5)\&. May be overridden on an individual provider through use of the
 \fBnotrack\fR
 option\&. The default value is \*(AqNo\*(Aq\&.
 .sp
@@ -2257,7 +2297,7 @@ Added in Shorewall 4\&.5\&.13\&. Packets in the UNTRACKED state that do not matc
 .PP
 \fBUSE_DEFAULT_RT=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
-When set to \*(AqYes\*(Aq, this option causes the Shorewall multi\-ISP feature to create a different set of routing rules which are resilient to changes in the main routing table\&. Such changes can occur for a number of reasons, VPNs going up and down being an example\&. The idea is to send packets through the main table prior to applying any of the Shorewall\-generated routing rules\&. So changes to the main table will affect the routing of packets by default\&.
+When set to \*(AqYes\*(Aq, this option causes the Shorewall multi\-ISP feature to create a set of routing rules which are resilient to changes in the main routing table\&. Such changes can occur for a number of reasons, VPNs going up and down being an example\&. The idea is to send packets through the main table prior to applying any of the Shorewall\-generated routing rules\&. So changes to the main table will affect the routing of packets by default\&.
 .sp
 When USE_DEFAULT_RT=Yes:
 .sp
@@ -2270,7 +2310,7 @@ When USE_DEFAULT_RT=Yes:
 .IP "  1." 4.2
 .\}
 Both the DUPLICATE and the COPY columns in
-\m[blue]\fBproviders\fR\m[]\&\s-2\u[25]\d\s+2(5) file must remain empty (or contain "\-")\&.
+\m[blue]\fBproviders\fR\m[]\&\s-2\u[28]\d\s+2(5) file must remain empty (or contain "\-")\&.
 .RE
 .sp
 .RS 4
@@ -2307,7 +2347,7 @@ is specified\&.
 .IP "  4." 4.2
 .\}
 Packets are sent through the main routing table by a rule with priority 999\&. In
-\m[blue]\fBrouting_rules\fR\m[]\&\s-2\u[26]\d\s+2(5), the range 1\-998 may be used for inserting rules that bypass the main table\&.
+\m[blue]\fBrouting_rules\fR\m[]\&\s-2\u[29]\d\s+2(5), the range 1\-998 may be used for inserting rules that bypass the main table\&.
 .RE
 .sp
 .RS 4
@@ -2349,7 +2389,7 @@ may be specified for interfaces whose configuration is managed by dhcpcd\&. Shor
 You should disable all default route management outside of Shorewall\&. If a default route is added to the main table while Shorewall is started, then all policy routing will stop working (except for those routing rules in the priority range 1\-998)\&.
 .RE
 .sp
-If USE_DEFAULT_RT is not set or if it is set to the empty string then USE_DEFAULT_RT=No is assumed\&.
+Prior to Shorewall 4\&.6\&.0, if USE_DEFAULT_RT was not set or if it was set to the empty string then USE_DEFAULT_RT=No was assumed\&. Beginning with Shorewall 4\&.6\&.0, the default is USE_DEFAULT_RT=Yes and use of USE_DEFAULT_RT=No is deprecated\&.
 .RE
 .PP
 \fBUSE_PHYSICAL_NAMES=\fR[\fBYes\fR|\fBNo\fR]
@@ -2434,7 +2474,7 @@ Added in Shorewall 4\&.4\&.26\&. When non\-zero, enables automatic packet markin
 .PP
 \fBZONE2ZONE\fR={\fB2\fR|\fB\-\fR}
 .RS 4
-Added in Shorewall 4\&.4\&.4\&. This option determines how Shorewall constructs chain names involving zone names and/or \*(Aqall\*(Aq\&. The default is \*(Aq2\*(Aq (e\&.g\&., fw2net)\&.
+Added in Shorewall 4\&.4\&.4\&. This option determines how Shorewall constructs chain names involving zone names and/or \*(Aqall\*(Aq\&. Beginning with Shorewall 4\&.6\&.0, the default is \*(Aq\-\*(Aq (e\&.g\&., fw\-net); prior to that release, the default was \*(Aq2\*(Aq (e\&.g\&., fw2net)\&.
 .RE
 .SH "FILES"
 .PP
@@ -2446,22 +2486,22 @@ shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blackl
 .IP " 1." 4
 shorewall-policy
 .RS 4
-\%http://www.shorewall.netshorewall-policy.html
+\%http://www.shorewall.net/manpages/shorewall-policy.html
 .RE
 .IP " 2." 4
 shorewall-accounting
 .RS 4
-\%http://www.shorewall.netshorewall-accounting.html
+\%http://www.shorewall.net/manpages/shorewall-accounting.html
 .RE
 .IP " 3." 4
 shorewall-nat
 .RS 4
-\%http://www.shorewall.netshorewall-nat.html
+\%http://www.shorewall.net/manpages/shorewall-nat.html
 .RE
 .IP " 4." 4
 shorewall-masq
 .RS 4
-\%http://www.shorewall.netshorewall-masq.html
+\%http://www.shorewall.net/manpages/shorewall-masq.html
 .RE
 .IP " 5." 4
 shorewall-routestopped
@@ -2476,94 +2516,109 @@ shorewall-stoppedrules
 .IP " 7." 4
 shorewall-conntrack
 .RS 4
-\%http://www.shorewall.netshorewall-conntrack.html
+\%http://www.shorewall.net/manpages/shorewall-conntrack.html
 .RE
 .IP " 8." 4
 shorewall-rules
 .RS 4
-\%http://www.shorewall.netshorewall-rules.html
+\%http://www.shorewall.net/manpages/shorewall-rules.html
 .RE
 .IP " 9." 4
-shorewall-blrules
+shorewall-tcfilters(5)
 .RS 4
-\%http://www.shorewall.netshorewall-blrules.html
+\%http://www.shorewall.netshorewall-tcfilters.html
 .RE
 .IP "10." 4
 shorewall-blrules
 .RS 4
-\%http://www.shorewall.net???
+\%http://www.shorewall.net/manpages/shorewall-blrules.html
 .RE
 .IP "11." 4
 shorewall-tcrules
 .RS 4
-\%http://www.shorewall.netshorewall-tcrules.html
+\%http://www.shorewall.net/manpages/shorewall-tcrules.html
 .RE
 .IP "12." 4
 Shorewall6
 .RS 4
-\%http://www.shorewall.net../IPv6Support.html
+\%http://www.shorewall.net/IPv6Support.html
 .RE
 .IP "13." 4
-shorewall-zones
+http://www.shorewall.net/ISO-3661.html
 .RS 4
-\%http://www.shorewall.netshorewall-zones.html
+\%http://www.shorewall.net/ISO-3661.html
 .RE
 .IP "14." 4
-shorewall-nesting
+shorewall-zones
 .RS 4
-\%http://www.shorewall.netshorewall-nesting.html
+\%http://www.shorewall.net/manpages/shorewall-zones.html
 .RE
 .IP "15." 4
-shorewall-rules
+shorewall-nesting
 .RS 4
-\%http://www.shorewall.netmanpages/shorewall-rules.html
+\%http://www.shorewall.net/manpages/shorewall-nesting.html
 .RE
 .IP "16." 4
-shorewall-interfaces
+alternative specificaitons
 .RS 4
-\%http://www.shorewall.netshorewall-interfaces.html
+\%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE
 .IP "17." 4
-shorewall-maclist
+shorewall-interfaces
 .RS 4
-\%http://www.shorewall.netshorewall-maclist.html
+\%http://www.shorewall.net/manpages/shorewall-interfaces.html
 .RE
 .IP "18." 4
-shorewall.conf
+http://www.shorewall.net/shorewall_logging.html
 .RS 4
-\%http://www.shorewall.netshorewall.conf.html
+\%http://www.shorewall.net/shorewall_logging.html
 .RE
 .IP "19." 4
-the complete matrix of host groups defined by the zones, interfaces and hosts files
+shorewall-maclist
 .RS 4
-\%http://www.shorewall.net../ScalabilityAndPerformance.html
+\%http://www.shorewall.net/manpages/shorewall-maclist.html
 .RE
 .IP "20." 4
-Shorewall Init Package
+shorewall.conf
 .RS 4
-\%http://www.shorewall.netshorewall-init.html
+\%http://www.shorewall.net/manpages/shorewall.conf.html
 .RE
 .IP "21." 4
-Hairpin packets are packets that are routed out of the same interface that they arrived on.
-.IP "22." 4
-Hairpin packets are packets that are routed out of the same interface that they arrived on.
-.IP "23." 4
-shorewall-tcinterfaces
+http://www.shorewall.net/MultiISP.html#null_routing
 .RS 4
-\%http://www.shorewall.netshorewall-tcinterfaces.html
+\%http://www.shorewall.net/MultiISP.html#null_routing
+.RE
+.IP "22." 4
+the complete matrix of host groups defined by the zones, interfaces and hosts files
+.RS 4
+\%http://www.shorewall.net/ScalabilityAndPerformance.html
+.RE
+.IP "23." 4
+Shorewall Init Package
+.RS 4
+\%http://www.shorewall.net/manpages/shorewall-init.html
 .RE
 .IP "24." 4
+Hairpin packets are packets that are routed out of the same interface that they arrived on.
+.IP "25." 4
+Hairpin packets are packets that are routed out of the same interface that they arrived on.
+.IP "26." 4
+shorewall-tcinterfaces
+.RS 4
+\%http://www.shorewall.net/manpages/shorewall-tcinterfaces.html
+.RE
+.IP "27." 4
 shorewall-tcpri
 .RS 4
-\%http://www.shorewall.netshorewall-tcpri.html
+\%http://www.shorewall.net/manpages/shorewall-tcpri.html
 .RE
-.IP "25." 4
+.IP "28." 4
 shorewall-providers
 .RS 4
-\%http://www.shorewall.netshorewall-providers.html
+\%http://www.shorewall.net/manpages/shorewall-providers.html
 .RE
-.IP "26." 4
+.IP "29." 4
 routing_rules
 .RS 4
-\%http://www.shorewall.netshorewall-routing_rules.html
+\%http://www.shorewall.net/manpages/shorewall-routing_rules.html
 .RE

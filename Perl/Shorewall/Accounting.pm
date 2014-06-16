@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module contains the code that handles the /etc/shorewall/accounting
 #   file.
@@ -35,7 +37,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.5_16';
+our $VERSION = '4.6_0';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
@@ -243,7 +245,7 @@ sub process_accounting_rule1( $$$$$$$$$$$ ) {
 		}
 	    }
 	} elsif ( $action eq 'INLINE' ) {
-	    $rule .= get_inline_matches;
+	    $rule .= get_inline_matches(1);
 	} else {
 	    ( $action, my $cmd ) = split /:/, $action;
 
@@ -424,19 +426,21 @@ sub process_accounting_rule1( $$$$$$$$$$$ ) {
 sub process_accounting_rule( ) {
 
     my ($action, $chain, $source, $dest, $protos, $ports, $sports, $user, $mark, $ipsec, $headers ) =
-	split_line1 'Accounting File', { action => 0, chain => 1, source => 2, dest => 3, proto => 4, dport => 5, sport => 6, user => 7, mark => 8, ipsec => 9, headers => 10 };
-
+	split_line2( 'Accounting File',
+		     { action => 0, chain => 1, source => 2, dest => 3, proto => 4, dport => 5, sport => 6, user => 7, mark => 8, ipsec => 9, headers => 10 },
+		     {},    #nopad
+		     undef, #Max columns
+		     1 );
     my $nonempty = 0;
 
-    for my $proto ( split_list $protos, 'Protocol' ) {
-	fatal_error 'ACTION must be specified' if $action eq '-';
+    fatal_error 'ACTION must be specified' if $action eq '-';
 
-	if ( $action eq 'SECTION' ) {
-	    process_section( $chain );
-	} else {
-	    for my $proto ( split_list $protos, 'Protocol' ) {
-		$nonempty |= process_accounting_rule1( $action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers );
-	    }
+    if ( $action eq 'SECTION' ) {
+	section_warning;
+	process_section( $chain );
+    } else {
+	for my $proto ( split_list $protos, 'Protocol' ) {
+	    $nonempty |= process_accounting_rule1( $action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers );
 	}
     }
 
@@ -447,11 +451,15 @@ sub setup_accounting() {
 
     if ( my $fn = open_file 'accounting', 1, 1 ) {
 
+	set_section_function( &process_section );
+
 	first_entry "$doing $fn...";
 
 	my $nonEmpty = 0;
 
 	$nonEmpty |= process_accounting_rule while read_a_line( NORMAL_READ );
+
+	clear_section_function;
 
 	if ( $nonEmpty ) {
 	    my $tableref = $chain_table{$acctable};

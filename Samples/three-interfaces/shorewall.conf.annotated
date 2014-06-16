@@ -651,6 +651,23 @@ ADMINISABSENTMINDED=Yes
 #     If this variable is not set or is given the empty value then
 #     ADMINISABSENTMINDED=No is assumed.
 # 
+BASIC_FILTERS=No
+#
+# BASIC_FILTERS=[Yes|No]
+# 
+#     Added in Shorewall-4.6.0. When set to Yes, causes entries in
+#     shorewall-tcfilters(5) to generate a basic filter rather than a u32 filter.
+#     This setting requires the Basic Ematch capability in your kernel and
+#     iptables.
+# 
+#     Note
+# 
+#     One of the advantages of basic filters is that ipset matches are supported
+#     in newer iproute2 and kernel versions. Because Shorewall cannot reliably
+#     detect this capability, use of basic filters is controlled by this option.
+# 
+#     The default value is No which causes u32 filters to be generated.
+# 
 IGNOREUNKNOWNVARIABLES=No
 #
 # IGNOREUNKNOWNVARIABLES=[Yes|No]
@@ -701,11 +718,11 @@ AUTOMAKE=No
 #
 # AUTOMAKE=[Yes|No]
 # 
-#     If set, the behavior of the 'start' command is changed; if no files in /etc
-#     /shorewall have been changed since the last successful start or restart
-#     command, then the compilation step is skipped and the compiled script that
-#     executed the last start or restart command is used. The default is AUTOMAKE
-#     =No.
+#     If set, the behavior of the start and restart commands are changed; if no
+#     files in /etc/shorewall have been changed since the last successful start
+#     or restart command, then the compilation step is skipped and the compiled
+#     script that executed the last start or restart command is used. The default
+#     is AUTOMAKE=No.
 # 
 BLACKLIST="NEW,INVALID,UNTRACKED"
 #
@@ -860,12 +877,13 @@ EXPAND_POLICIES=Yes
 #     #                   LEVEL
 #     net     all  DROP   info
 # 
-#     then the chain name is 'net2all' which is also the chain named in Shorewall
-#     log messages generated as a result of the policy. If EXPAND_POLICIES=Yes,
-#     then Shorewall will create a separate chain for each pair of zones covered
-#     by the policy. This makes the resulting log messages easier to interpret
-#     since the chain in the messages will have a name of the form 'a2b' where
-#     'a' is the SOURCE zone and 'b' is the DEST zone.
+#     then the chain name is 'net-all' ('net2all if ZONE2ZONE=2) which is also
+#     the chain named in Shorewall log messages generated as a result of the
+#     policy. If EXPAND_POLICIES=Yes, then Shorewall will create a separate chain
+#     for each pair of zones covered by the policy. This makes the resulting log
+#     messages easier to interpret since the chain in the messages will have a
+#     name of the form 'a2b' where 'a' is the SOURCE zone and 'b' is the DEST
+#     zone.
 # 
 EXPORTMODULES=Yes
 #
@@ -914,9 +932,9 @@ HELPERS=
 #
 # HELPERS=[helper[,helper...]]
 # 
-#     Added in Shorewall 4.5.7. This option lists the Netfilter application helps
-#     that are to be enabled. If not specified, the default is to enable all
-#     helpers.
+#     Added in Shorewall 4.5.7. This option lists the Netfilter application
+#     helpers that are to be enabled. If not specified, the default is to enable
+#     all helpers.
 # 
 #     Possible values for helper are:
 # 
@@ -967,6 +985,17 @@ IMPLICIT_CONTINUE=No
 #     are not subject to this special treatment. With IMPLICIT_CONTINUE=Yes, an
 #     implicit CONTINUE policy may be overridden by including an explicit policy
 #     (one that does not specify "all" in either the SOURCE or the DEST columns).
+# 
+INLINE_MATCHES=Yes
+#
+# INLINE_MATCHES={Yes|No}
+# 
+#     Added in Shorewall 4.6.0. Traditionally in shorewall-rules(5), a semicolon
+#     separates column-oriented specifications on the left from alternative
+#     specificaitons on the right.. When INLINE_MATCHES=Yes is specified, the
+#     specifications on the right are interpreted as if INLINE had been specified
+#     in the ACTION column. If not specified or if specified as the empty value,
+#     the value 'No' is assumed for backward compatibility.
 # 
 IPSET_WARNINGS=Yes
 #
@@ -1032,7 +1061,7 @@ LEGACY_FASTSTART=No
 # 
 #     Added in Shorewall 4.4.20. If not specified, the default is Yes which
 #     preserves the legacy behavior of start -f (the modification times of the
-#     files in /etc/shorewall are compare with that of /var/lib/shorewall/
+#     files in /etc/shorewall are compared with that of /var/lib/shorewall/
 #     restore). If set to No, then the times are compared with that of /var/lib/
 #     shorewall/firewall, which is consistent with the way that restart -f works.
 # 
@@ -1507,17 +1536,16 @@ TRACK_RULES=No
 #     Setting this option to Yes requires the Comments capability in iptables and
 #     kernel.
 # 
-USE_DEFAULT_RT=No
+USE_DEFAULT_RT=Yes
 #
 # USE_DEFAULT_RT=[Yes|No]
 # 
 #     When set to 'Yes', this option causes the Shorewall multi-ISP feature to
-#     create a different set of routing rules which are resilient to changes in
-#     the main routing table. Such changes can occur for a number of reasons,
-#     VPNs going up and down being an example. The idea is to send packets
-#     through the main table prior to applying any of the Shorewall-generated
-#     routing rules. So changes to the main table will affect the routing of
-#     packets by default.
+#     create a set of routing rules which are resilient to changes in the main
+#     routing table. Such changes can occur for a number of reasons, VPNs going
+#     up and down being an example. The idea is to send packets through the main
+#     table prior to applying any of the Shorewall-generated routing rules. So
+#     changes to the main table will affect the routing of packets by default.
 # 
 #     When USE_DEFAULT_RT=Yes:
 # 
@@ -1547,8 +1575,10 @@ USE_DEFAULT_RT=No
 #         started, then all policy routing will stop working (except for those
 #         routing rules in the priority range 1-998).
 # 
-#     If USE_DEFAULT_RT is not set or if it is set to the empty string then
-#     USE_DEFAULT_RT=No is assumed.
+#     Prior to Shorewall 4.6.0, if USE_DEFAULT_RT was not set or if it was set to
+#     the empty string then USE_DEFAULT_RT=No was assumed. Beginning with
+#     Shorewall 4.6.0, the default is USE_DEFAULT_RT=Yes and use of
+#     USE_DEFAULT_RT=No is deprecated.
 # 
 USE_PHYSICAL_NAMES=No
 #
@@ -1592,13 +1622,14 @@ WARNOLDCAPVERSION=Yes
 #     of the capabilities supported by the compiler. When WARNOLDCAPVERSION is
 #     set to No, no warning is issued.
 # 
-ZONE2ZONE=2
+ZONE2ZONE=-
 #
 # ZONE2ZONE={2|-}
 # 
 #     Added in Shorewall 4.4.4. This option determines how Shorewall constructs
-#     chain names involving zone names and/or 'all'. The default is '2' (e.g.,
-#     fw2net).
+#     chain names involving zone names and/or 'all'. Beginning with Shorewall
+#     4.6.0, the default is '-' (e.g., fw-net); prior to that release, the
+#     default was '2' (e.g., fw2net).
 # 
 ###############################################################################
 #			P A C K E T   D I S P O S I T I O N

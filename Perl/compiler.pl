@@ -2,15 +2,16 @@
 #
 #     The Shoreline Firewall Packet Filtering Firewall Compiler - V4.4
 #
-#     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
-#
-#     (c) 2007,2008,2009,2010,2011 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007,2008,2009,2010,2011,2014 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
+#       This program is part of Shorewall.
+#
 #	This program is free software; you can redistribute it and/or modify
-#	it under the terms of Version 2 of the GNU General Public License
-#	as published by the Free Software Foundation.
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
 #	This program is distributed in the hope that it will be useful,
 #	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +19,7 @@
 #	GNU General Public License for more details.
 #
 #	You should have received a copy of the GNU General Public License
-#	along with this program; if not, write to the Free Software
-#	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 # Usage:
 #
@@ -40,6 +40,8 @@
 #         --shorewallrc=<path>        # Path to global shorewallrc file.
 #         --shorewallrc1=<path>       # Path to export shorewallrc file.
 #         --config_path=<path-list>   # Search path for config files
+#         --inline                    # Update alternative column specifications
+#         --tcrules                   # Create mangle from tcrules
 #
 use strict;
 use FindBin;
@@ -73,10 +75,11 @@ usage: compiler.pl [ <option> ... ] [ <filename> ]
     [ --shorewallrc=<pathname> ]
     [ --shorewallrc1=<pathname> ]
     [ --config_path=<path-list> ]
-
+    [ --inline ]
+    [ --tcrules ]
 _EOF_
 
-    exit shift @_;
+exit shift @_;
 }
 
 #
@@ -102,6 +105,8 @@ my $directives    = 0;
 my $config_path   = '';
 my $shorewallrc   = '';
 my $shorewallrc1  = '';
+my $inline        = 0;
+my $tcrules       = 0;
 
 Getopt::Long::Configure ('bundling');
 
@@ -134,6 +139,8 @@ my $result = GetOptions('h'               => \$help,
 			'u'               => \$update,
 			'update'          => \$update,
 			'convert'         => \$convert,
+			'inline'          => \$inline,
+			'tcrules'         => \$tcrules,
 			'config_path=s'   => \$config_path,
 			'shorewallrc=s'   => \$shorewallrc,
 			'shorewallrc1=s'  => \$shorewallrc1,
@@ -162,4 +169,6 @@ compiler( script          => $ARGV[0] || '',
 	  config_path     => $config_path,
 	  shorewallrc     => $shorewallrc,
 	  shorewallrc1    => $shorewallrc1,
+	  inline          => $inline,
+	  tcrules         => $tcrules,
 	);
