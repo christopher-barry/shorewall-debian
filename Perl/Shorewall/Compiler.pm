@@ -8,9 +8,12 @@
 #
 #	Complete documentation is available at http://shorewall.net
 #
+#       This program is part of Shorewall.
+#
 #	This program is free software; you can redistribute it and/or modify
-#	it under the terms of Version 2 of the GNU General Public License
-#	as published by the Free Software Foundation.
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
 #	This program is distributed in the hope that it will be useful,
 #	but WITHOUT ANY WARRANTY; without even the implied warranty of
@@ -18,8 +21,7 @@
 #	GNU General Public License for more details.
 #
 #	You should have received a copy of the GNU General Public License
-#	along with this program; if not, write to the Free Software
-#	Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 package Shorewall::Compiler;
 require Exporter;
@@ -43,7 +45,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.5_21';
+our $VERSION = '4.6_1';
 
 our $export;
 
@@ -68,6 +70,7 @@ sub initialize_package_globals( $$$ ) {
     Shorewall::Proxyarp::initialize($family);
     Shorewall::IPAddrs::initialize($family);
     Shorewall::Misc::initialize($family);
+    Shorewall::Raw::initialize($family);
 }
 
 #
@@ -374,21 +377,20 @@ sub generate_script_3($) {
 
     emit '';
 
+    emit ( 'if [ "$COMMAND" = refresh ]; then' ,
+	   '   run_refresh_exit' ,
+	   'else' ,
+	   '    run_init_exit',
+	   'fi',
+	   '' );
+
     load_ipsets;
     create_nfobjects;
+    verify_address_variables;
+    save_dynamic_chains;
+    mark_firewall_not_started;
 
     if ( $family == F_IPV4 ) {
-	emit ( 'if [ "$COMMAND" = refresh ]; then' ,
-	       '   run_refresh_exit' ,
-	       'else' ,
-	       '    run_init_exit',
-	       'fi',
-	       '' );
-
-	verify_address_variables;
-	save_dynamic_chains;
-	mark_firewall_not_started;
-
 	emit ( '',
 	       'delete_proxyarp',
 	       ''
@@ -407,16 +409,15 @@ sub generate_script_3($) {
 	emit "disable_ipv6\n" if $config{DISABLE_IPV6};
 
     } else {
-	emit ( 'if [ "$COMMAND" = refresh ]; then' ,
-	       '   run_refresh_exit' ,
-	       'else' ,
-	       '    run_init_exit',
-	       'fi',
-	       '' );
-
-	verify_address_variables;
-	save_dynamic_chains;
-	mark_firewall_not_started;
+	if ( have_capability( 'NAT_ENABLED' ) ) {
+	    emit(  'if [ -f ${VARDIR}/nat ]; then',
+		   '    while read external interface; do',
+		   '        del_ip_addr $external $interface',
+		   '    done < ${VARDIR}/nat',
+		   '',
+		   '    rm -f ${VARDIR}/nat',
+		   "fi\n" );
+	}
 
 	emit ('',
 	       'delete_proxyndp',
@@ -581,8 +582,8 @@ EOF
 #
 sub compiler {
 
-    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate , $convert, $config_path, $shorewallrc                      , $shorewallrc1 , $directives ) =
-       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        , 0       , ''          , '/usr/share/shorewall/shorewallrc', ''            , 0 );
+    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate , $convert, $config_path, $shorewallrc                      , $shorewallrc1 , $directives, $inline, $tcrules ) =
+       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        , 0       , ''          , '/usr/share/shorewall/shorewallrc', ''            , 0 ,          0 ,      0 );
 
     $export         = 0;
     $test           = 0;
@@ -620,7 +621,9 @@ sub compiler {
 		  update        => { store => \$update,        validate=> \&validate_boolean    } ,
 		  convert       => { store => \$convert,       validate=> \&validate_boolean    } ,
 		  annotate      => { store => \$annotate,      validate=> \&validate_boolean    } ,
+		  inline        => { store => \$inline,        validate=> \&validate_boolean    } ,
 		  directives    => { store => \$directives,    validate=> \&validate_boolean    } ,
+		  tcrules       => { store => \$tcrules,       validate=> \&validate_boolean    } ,
 		  config_path   => { store => \$config_path } ,
 		  shorewallrc   => { store => \$shorewallrc } ,
 		  shorewallrc1  => { store => \$shorewallrc1 } ,
@@ -659,7 +662,7 @@ sub compiler {
     #
     #                      S H O R E W A L L . C O N F  A N D  C A P A B I L I T I E S
     #
-    get_configuration( $export , $update , $annotate , $directives );
+    get_configuration( $export , $update , $annotate , $directives , $inline );
     #
     # Create a temp file to hold the script
     #
@@ -727,7 +730,7 @@ sub compiler {
     #
     # Do all of the zone-independent stuff (mostly /proc)
     #
-    add_common_rules( $convert );
+    add_common_rules( $convert, $tcrules );
     #
     # More /proc
     #
@@ -790,7 +793,7 @@ sub compiler {
     #
     # TCRules and Traffic Shaping
     #
-    setup_tc;
+    setup_tc( $tcrules );
 
     if ( $scriptfilename || $debug ) {
 	pop_indent;
@@ -816,7 +819,7 @@ sub compiler {
     #
     # Setup Nat
     #
-    setup_nat if $family == F_IPV4;
+    setup_nat;
     #
     # Setup NETMAP
     #

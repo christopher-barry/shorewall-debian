@@ -23,8 +23,12 @@
 # use a DNAT rule instead.
 # 
 # The rules file is divided into sections. Each section is introduced by a
-# "Section Header" which is a line beginning with SECTION and followed by the
+# "Section Header" which is a line beginning with [?]SECTION and followed by the
 # section name.
+# 
+# The optional "?" was added in Shorewalll 4.6.0 and is preferred. Existing
+# configurations may be converted to use this form using the shorewall update
+# command.
 # 
 # Sections are as follows and must appear in the order listed:
 # 
@@ -271,6 +275,17 @@
 #             For example, if addresses are specified in the SOURCE and/or DEST
 #             columns, their generated matches will appear after those specified
 #             using ';'.
+# 
+#     IPTABLES({target [option ...])
+# 
+#         This action allows you to specify an iptables target with options
+#         (e.g., 'IPTABLES(MARK --set-xmark 0x01/0xff)'. If the target is not one
+#         recognized by Shorewall, the following error message will be issued:
+# 
+#         ERROR: Unknown target (target)
+# 
+#         This error message may be eliminated by adding the target as a builtin
+#         action in shorewall-actions(5).
 # 
 #     LOG:level
 # 
@@ -577,7 +592,7 @@
 #     list of protocol-numbers and/or protocol names.
 # 
 # DEST PORT(S) (dport) - {-|port-name-number-or-range[,port-name-number-or-range
-#     ]...}
+#     ]...|+ipset}
 # 
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
@@ -606,8 +621,11 @@
 #     2. No port ranges are included or your kernel and iptables contain extended
 #     multi-port match support.
 # 
+#     Beginning with Shorewall 4.6.0, an ipset name can be specified in this
+#     column. This is intended to be used with bitmap:port ipsets.
+# 
 # SOURCE PORT(S) (sport) - {-|port-name-number-or-range[,
-#     port-name-number-or-range]...}
+#     port-name-number-or-range]...|+ipset}
 # 
 #     Optional port(s) used by the client. If omitted, any source port is
 #     acceptable. Specified as a comma- separated list of port names, port
@@ -636,6 +654,9 @@
 # 
 #     2. No port ranges are included or your kernel and iptables contain extended
 #     multi-port match support.
+# 
+#     Beginning with Shorewall 4.6.0, an ipset name can be specified in this
+#     column. This is intended to be used with bitmap:port ipsets.
 # 
 # ORIGINAL DEST (origdest) - [-|address[,address]...[exclusion]|exclusion]
 # 
@@ -669,8 +690,8 @@
 #     addresses 192.168.1.0-182.168.1.15 and 192.168.1.32-192.168.1.255. See
 #     shorewall-exclusion(5).
 # 
-#     See http://shorewall.net/PortKnocking.html for an example of using an entry
-#     in this column with a user-defined action rule.
+#     See http://www.shorewall.net/PortKnocking.html for an example of using an
+#     entry in this column with a user-defined action rule.
 # 
 # RATE LIMIT (rate) - [-|[{s|d}:[[name]:]]]rate/{sec|min|hour|day}[:burst]
 # 
@@ -952,7 +973,7 @@
 #     DNAT and REDIRECT rules with zones defined with wildcard interfaces (those
 #     ending with '+'. Here is an example:
 # 
-#     shorewall-zones(8):
+#     shorewall-zones(5):
 # 
 #             #ZONE       TYPE    OPTIONS
 #             fw          firewall
@@ -960,7 +981,7 @@
 #             dmz         ipv4
 #             loc         ipv4
 # 
-#     shorewall-interfaces(8):
+#     shorewall-interfaces(5):
 # 
 #             #ZONE       INTERFACE       BROADCAST      OPTIONS
 #             net         ppp0
@@ -968,7 +989,7 @@
 #             dmz         eth2            detect
 #             -           ppp+                           # Addresses are assigned from 192.168.3.0/24
 # 
-#     shorewall-host(8):
+#     shorewall-host(5):
 # 
 #             #ZONE       HOST(S)              OPTIONS
 #             loc         ppp+:192.168.3.0/24
@@ -1051,12 +1072,12 @@
 ######################################################################################################################################################################################################
 #ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME		HEADERS		SWITCH		HELPER
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
-#SECTION ALL
-#SECTION ESTABLISHED
-#SECTION RELATED
-#SECTION INVALID
-#SECTION UNTRACKED
-SECTION NEW
+?SECTION ALL
+?SECTION ESTABLISHED
+?SECTION RELATED
+?SECTION INVALID
+?SECTION UNTRACKED
+?SECTION NEW
 Invalid(DROP)	net		$FW		tcp
 SSH(ACCEPT)	net		$FW
 Ping(ACCEPT)	net		$FW

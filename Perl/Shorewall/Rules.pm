@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module handles policies and rules. It contains:
 #
@@ -58,13 +60,14 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize process_rule );
-our $VERSION = '4.5_21';
+our $VERSION = '4.6_0';
 #
 # Globals are documented in the initialize() function
 #
 our %sections;
 
 our $section;
+our $next_section;
 
 use constant { NULL_SECTION          => 0x00,
                BLACKLIST_SECTION     => 0x01,
@@ -109,7 +112,6 @@ our %section_rmap = ( ALL_SECTION ,        'ALL',
 		      INVALID_SECTION,     'INVALID',
 		      UNTRACKED_SECTION,   'UNTRACKED',
 		      NEW_SECTION,         'NEW' );
-
 
 our @policy_chains;
 
@@ -201,6 +203,14 @@ our %statetable;
 #
 our $statematch;
 #
+# Avoid duplicate format-1 macro warnings
+#
+our %fmt1macrowarn;
+#
+# Avoid duplicate format-1 action warnings
+#
+our %fmt1actionwarn;
+#
 # Rather than initializing globals in an INIT block or during declaration,
 # we initialize them in a function. This is done for two reasons:
 #
@@ -238,7 +248,8 @@ sub initialize( $ ) {
     #
     # Current rules file section.
     #
-    $section  = NULL_SECTION;
+    $section      = NULL_SECTION;
+    $next_section = NULL_SECTION;
     #
     # Macro=><macro file> mapping
     #
@@ -276,6 +287,9 @@ sub initialize( $ ) {
     } else {
 	@builtins = qw/dropBcast allowBcast dropNotSyn rejNotSyn/;
     }
+
+    %fmt1macrowarn  = ();
+    %fmt1actionwarn = ();
 }
 
 #
@@ -300,19 +314,6 @@ sub new_rules_chain( $ ) {
 ###############################################################################
 # Functions moved from the former Policy Module
 ###############################################################################
-#
-# Split the passed target into the basic target and parameter (previously duplicated in this file)
-#
-sub get_target_param( $ ) {
-    my ( $target, $param ) = split '/', $_[0];
-
-    unless ( defined $param ) {
-	( $target, $param ) = ( $1, $2 ) if $target =~ /^(.*?)[(](.*)[)]$/;
-    }
-
-    ( $target, $param );
-}
-
 #
 # Convert a chain into a policy chain.
 #
@@ -1106,19 +1107,6 @@ sub finish_section ( $ ) {
 # Functions moved from the Actions module in 4.4.16
 ################################################################################
 #
-# Return ( action, level[:tag] ) from passed full action
-#
-sub split_action ( $ ) {
-    my $action = $_[0];
-
-    my @list   = split_list2( $action, 'ACTION' );
-
-    fatal_error "Invalid ACTION ($action)" if @list > 3;
-
-    ( shift @list, join( ':', @list ) );
-}
-
-#
 # Create a normalized action name from the passed pieces.
 #
 # Internally, action invocations are uniquely identified by a 4-tuple that
@@ -1675,12 +1663,19 @@ sub process_action($$) {
 	my ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper );
 
 	if ( $file_format == 1 ) {
+	    warning_message( "FORMAT-1 actions are deprecated and support will be dropped in a future release" ) unless $fmt1actionwarn{$action}++;
+
 	    ($target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) =
-		split_line1 'action file', { target => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, rate => 6, user => 7, mark => 8 }, $rule_commands;
+		split_line1( 
+		    'action file',
+		    { target => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, rate => 6, user => 7, mark => 8 },
+		    $rule_commands );
 	    $origdest = $connlimit = $time = $headers = $condition = $helper = '-';
 	} else {
 	    ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper )
-		= split_line1 'action file', \%rulecolumns, $action_commands;
+		= split_line1( 'action file',
+			       \%rulecolumns,
+			       $action_commands );
 	}
 
 	fatal_error 'TARGET must be specified' if $target eq '-';
@@ -1747,12 +1742,20 @@ sub process_actions() {
 	open_file( $file, 2 );
 
 	while ( read_a_line( NORMAL_READ ) ) {
-	    my ( $action, $options ) = split_line 'action file' , { action => 0, options => 1 };
+	    my ( $action, $options ) = split_line2( 'action file',
+						    { action => 0, options => 1 },
+						    {},    #Nopad
+						    undef, #Columns
+						    1 );   #Allow inline matches
 
 	    my $type     = ( $action eq $config{REJECT_ACTION} ? INLINE : ACTION );
 	    my $noinline = 0;
 	    my $nolog    = ( $type == INLINE ) || 0;
 	    my $builtin  = 0;
+	    my $raw      = 0;
+	    my $mangle   = 0;
+	    my $filter   = 0;
+	    my $nat      = 0;
 
 	    if ( $action =~ /:/ ) {
 		warning_message 'Default Actions are now specified in /etc/shorewall/shorewall.conf';
@@ -1771,6 +1774,14 @@ sub process_actions() {
 			$nolog = 1;
 		    } elsif ( $_ eq 'builtin' ) {
 			$builtin = 1;
+		    } elsif ( $_ eq 'mangle' ) {
+			$mangle = 1;
+		    } elsif ( $_ eq 'raw' ) {
+			$raw = 1;
+		    } elsif ( $_ eq 'filter' ) {
+			$filter = 1;
+		    } elsif ( $_ eq 'nat' ) {
+			$nat = 1;
 		    } else {
 			fatal_error "Invalid option ($_)";
 		    }
@@ -1795,9 +1806,24 @@ sub process_actions() {
 	    }
 
 	    if ( $builtin ) {
-		$targets{$action}         = USERBUILTIN + OPTIONS;
-		$builtin_target{$action}  = 1;
+		my $actiontype = USERBUILTIN | OPTIONS;
+		$actiontype   |= MANGLE_TABLE if $mangle;
+		$actiontype   |= RAW_TABLE    if $raw;
+		$actiontype   |= NAT_TABLE    if $nat;
+		#
+		# For backward compatibility, we assume that user-defined builtins are valid in the filter table
+		#
+		$actiontype |= FILTER_TABLE if $filter || ! ($mangle || $raw || $nat);
+
+		if ( $builtin_target{$action} ) {
+		    $builtin_target{$action} |= $actiontype;
+		} else {
+		    $builtin_target{$action}  = $actiontype;
+		}
+
+		$targets{$action} = $actiontype;
 	    } else {
+		fatal_error "Table names are only allowed for builtin actions" if $mangle || $raw || $nat || $filter;
 		new_action $action, $type, $noinline, $nolog;
 
 		my $actionfile = find_file( "action.$action" );
@@ -1890,7 +1916,14 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
 	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark, $mconnlimit, $mtime, $mheaders, $mcondition, $mhelper);
 
 	if ( $file_format == 1 ) {
-	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser ) = split_line1 'macro file', \%rulecolumns, $rule_commands;
+	    warning_message( "FORMAT-1 macros are deprecated and support will be dropped in a future release" ) unless $fmt1macrowarn{$macro}++;
+
+	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser ) = 
+		split_line2( 'macro file',
+			     \%rulecolumns,
+			     $rule_commands,
+			     undef, #Columns
+			     1 );   #Allow inline matches
 	    ( $morigdest, $mmark, $mconnlimit, $mtime, $mheaders, $mcondition, $mhelper ) = qw/- - - - - - -/;
 	} else {
 	    ( $mtarget,
@@ -1907,7 +1940,11 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
 	      $mtime,
 	      $mheaders,
 	      $mcondition,
-	      $mhelper ) = split_line1 'macro file', \%rulecolumns, $rule_commands;
+	      $mhelper ) = split_line2( 'macro file',
+					\%rulecolumns,
+					$rule_commands,
+					undef, #Columns
+					1 );   #Allow inline matches
 	}
 
 	fatal_error 'TARGET must be specified' if $mtarget eq '-';
@@ -2032,7 +2069,12 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$) {
 	      $mtime,
 	      $mheaders,
 	      $mcondition,
-	      $mhelper ) = split_line1 'inline action file', \%rulecolumns, $rule_commands;
+	      $mhelper ) = split_line2( 'inline action file',
+					\%rulecolumns,
+					$rule_commands,
+					undef, #Columns
+					1 );   #Allow inline matches
+
 
 	fatal_error 'TARGET must be specified' if $mtarget eq '-';
 
@@ -2157,7 +2199,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
     my ( $basictarget, $param ) = get_target_param $action;
     my $optimize = $wildcard ? ( $basictarget =~ /!$/ ? 0 : $config{OPTIMIZE} & 5 ) : 0;
     my $actiontype;
-    my $inaction  = ''; # Set to true when we are process rules in an action file
+    my $inaction  = ''; # Set to true when we are processing rules in an action file
     my $inchain   = ''; # Set to true when a chain reference is passed.
     my $normalized_target;
     my $normalized_action;
@@ -2172,25 +2214,9 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
     $param = '' unless defined $param;
 
     if ( $basictarget eq 'INLINE' ) {
-	my $inline_matches = get_inline_matches;
-
-	if ( $inline_matches =~ /^(.*\s+)?-j\s+(.+) $/ ) {
-	    $raw_matches .= $1 if supplied $1;
-	    $action = $2;
-	    my ( $target ) = split ' ', $action;
-	    fatal_error "Unknown jump target ($action)" unless $targets{$target} || $target eq 'MARK';
-	    fatal_error "INLINE may not have a parameter when '-j' is specified in the free-form area" if $param ne '';
-	} else {
-	    $raw_matches .= $inline_matches;
-
-	    if ( $param eq '' ) {
-		$action = $loglevel ? 'LOG' : '';
-	    } else {
-		( $action, $loglevel )   = split_action $param;
-		( $basictarget, $param ) = get_target_param $action;
-		$param = '' unless defined $param;
-	    }
-	}
+	( $action, $basictarget, $param, $loglevel, $raw_matches ) = handle_inline( FILTER_TABLE, 'filter', $action, $basictarget, $param, $loglevel );
+    } elsif ( $config{INLINE_MATCHES} ) {
+	$raw_matches = get_inline_matches(0);
     }
     #
     # Determine the validity of the action
@@ -2253,7 +2279,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	validate_level( $action );
 	$loglevel = supplied $loglevel ? join( ':', $action, $loglevel ) : $action;
 	$action   = 'LOG';
-    } elsif ( ! ( $actiontype & (ACTION | INLINE) ) ) {
+    } elsif ( ! ( $actiontype & (ACTION | INLINE | IPTABLES ) ) ) {
 	fatal_error "'builtin' actions may only be used in INLINE rules" if $actiontype == USERBUILTIN;
 	fatal_error "The $basictarget TARGET does not accept a parameter" unless $param eq '';
     }
@@ -2263,7 +2289,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
     #
     fatal_error "The +, - and ! modifiers are not allowed in the blrules file" if $action =~ s/[-+!]$// && $blacklist;
     
-    unless ( $actiontype & ( ACTION | INLINE) ) {
+    unless ( $actiontype & ( ACTION | INLINE | IPTABLES ) ) {
 	#
 	# Catch empty parameter list
 	#
@@ -2341,6 +2367,32 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		  fatal_error "HELPER requires require that the helper be specified in the HELPER column" if $helper eq '-';
 		  fatal_error "HELPER rules may only appear in the NEW section" unless $section == NEW_SECTION;
 		  $action = ''; } ,
+
+	      IPTABLES => sub {
+		  if ( $param ) {
+		      fatal_error "Unknown ACTION (IPTABLES)" unless $family == F_IPV4;
+		      my ( $tgt, $options ) = split / /, $param;
+		      my $target_type = $builtin_target{$tgt};
+		      fatal_error "Unknown target ($tgt)" unless $target_type;
+		      fatal_error "The $tgt TARGET is now allowed in the filter table" unless $target_type & FILTER_TABLE;
+		      $action = $param;
+		  } else {
+		      $action = '';
+		  }
+	      },
+
+	      IP6TABLES => sub {
+		  if ( $param ) {
+		      fatal_error "Unknown ACTION (IP6TABLES)" unless $family == F_IPV6;
+		      my ( $tgt, $options ) = split / /, $param;
+		      my $target_type = $builtin_target{$tgt};
+		      fatal_error "Unknown target ($tgt)" unless $target_type;
+		      fatal_error "The $tgt TARGET is now allowed in the filter table" unless $target_type & FILTER_TABLE;
+		      $action = $param;
+		  } else {
+		      $action = '';
+		  }
+	      },
 	    );
 
 	my $function = $functions{ $bt };
@@ -2766,7 +2818,6 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 
 	verify_audit( $action ) if $actiontype & AUDIT;
 
-	
 	expand_rule( $chainref ,
 		     $restriction ,
 		     '' ,
@@ -3031,22 +3082,35 @@ sub process_section ($) {
     if ( $sect eq 'BLACKLIST' ) {
 	fatal_error "The BLACKLIST section has been eliminated. Please move your BLACKLIST rules to the 'blrules' file";
     } elsif ( $sect eq 'ESTABLISHED' ) {
-	$sections{ALL} = 1;
+        $sections{ALL} = 1;
     } elsif ( $sect eq 'RELATED' ) {
-	@sections{'ALL','ESTABLISHED'} = ( 1, 1);
-	finish_section 'ESTABLISHED';
+        @sections{'ALL','ESTABLISHED'} = ( 1, 1);
     } elsif ( $sect eq 'INVALID' ) {
-	@sections{'ALL','ESTABLISHED','RELATED'} = ( 1, 1, 1 );
-	finish_section ( 'ESTABLISHED,RELATED' );
+        @sections{'ALL','ESTABLISHED','RELATED'} = ( 1, 1, 1 );
     } elsif ( $sect eq 'UNTRACKED' ) {
-	@sections{'ALL','ESTABLISHED','RELATED', 'INVALID' } = ( 1, 1, 1, 1 );
-	finish_section ( 'ESTABLISHED,RELATED,INVALID' );
+        @sections{'ALL','ESTABLISHED','RELATED', 'INVALID' } = ( 1, 1, 1, 1 );
     } elsif ( $sect eq 'NEW' ) {
-	@sections{'ALL','ESTABLISHED','RELATED','INVALID','UNTRACKED', 'NEW'} = ( 1, 1, 1, 1, 1, 1 );
+        @sections{'ALL','ESTABLISHED','RELATED','INVALID','UNTRACKED', 'NEW'} = ( 1, 1, 1, 1, 1, 1 );
+    }
+
+
+
+    $next_section = $section_map{$sect};
+}
+
+sub next_section() {
+    
+    if ( $next_section == RELATED_SECTION ) {
+	finish_section 'ESTABLISHED';
+    } elsif ( $next_section == INVALID_SECTION ) {
+	finish_section ( 'ESTABLISHED,RELATED' );
+    } elsif ( $next_section == UNTRACKED_SECTION ) {
+	finish_section ( 'ESTABLISHED,RELATED,INVALID' );
+    } elsif ( $next_section == NEW_SECTION ) {
 	finish_section ( 'ESTABLISHED,RELATED,INVALID,UNTRACKED' );
     }
 
-    $section = $section_map{$sect};
+    $section = $next_section;
 }
 
 #
@@ -3119,16 +3183,21 @@ sub build_zone_list( $$$\$\$ ) {
 #
 sub process_raw_rule ( ) {
     my ( $target, $source, $dest, $protos, $ports, $sports, $origdest, $ratelimit, $users, $mark, $connlimit, $time, $headers, $condition, $helper )
-	= split_line1 'rules file', \%rulecolumns, $rule_commands;
+	= split_line2( 'rules file',
+		       \%rulecolumns,
+		       $rule_commands,
+		       undef, #Columns
+		       1 );   #Allow inline matches
+
 
     fatal_error 'ACTION must be specified' if $target eq '-';
 
-    process_section( $source ), return 1 if $target eq 'SECTION';
+    section_warning, process_section( $source ), return 1 if $target eq 'SECTION';
     #
     # Section Names are optional so once we get to an actual rule, we need to be sure that
     # we close off any missing sections.
     #
-    process_section( 'NEW' ) unless $section;
+    next_section if $section != $next_section;
 
     if ( $source =~ /^none(:.*)?$/i || $dest =~ /^none(:.*)?$/i ) {
 	progress_message "Rule \"$currentline\" ignored.";
@@ -3291,7 +3360,7 @@ sub process_rules( $ ) {
     #
     # Process the blrules file
     #
-    $section = BLACKLIST_SECTION;
+    $section = $next_section = BLACKLIST_SECTION;
 
     my $fn = open_file( 'blrules', 1, 1 );
 
@@ -3320,7 +3389,8 @@ sub process_rules( $ ) {
 	process_raw_rule while read_a_line( NORMAL_READ );
     }
 
-    $section = NULL_SECTION;
+    $section      = NULL_SECTION;
+    $next_section = NEW_SECTION;
 
     add_interface_options( $blrules );
 
@@ -3333,14 +3403,18 @@ sub process_rules( $ ) {
 
     if ( $fn ) {
 
+	set_section_function( &process_section );
+
 	first_entry "$doing $fn...";
 
 	process_raw_rule while read_a_line( NORMAL_READ );
+
+	clear_section_function;
     }
     #
     # No need to finish the NEW section since no rules need to be generated
     #
-    $section = DEFAULTACTION_SECTION;
+    $section = $next_section = DEFAULTACTION_SECTION;
 }
 
 1;

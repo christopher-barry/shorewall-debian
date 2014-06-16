@@ -83,10 +83,10 @@
 # MARK - {-|value}
 # 
 #     The mark value which is an integer in the range 1-255. You set mark values
-#     in the shorewall-tcrules(5) file, marking the traffic you want to fit in
-#     the classes defined in here. Must be specified as '-' if the classify
-#     option is given for the interface in shorewall-tcdevices(5) and you are
-#     running Shorewall 4.5.5 or earlier.
+#     in the shorewall-mangle(5) file, marking the traffic you want to fit in the
+#     classes defined in here. Must be specified as '-' if the classify option is
+#     given for the interface in shorewall-tcdevices(5) and you are running
+#     Shorewall 4.5.5 or earlier.
 # 
 #     You can use the same marks for different interfaces.
 # 
@@ -238,7 +238,7 @@
 #         The 'RATE' and 'CEIL' parameters apply to each instance of the class.
 #         So the total RATE represented by an entry with 'occurs' will be the
 #         listed RATE multiplied by number. For additional information, see
-#         tcrules (5).
+#         shorewall-tcrules (5).
 # 
 #     flow=keys
 # 
@@ -438,4 +438,4 @@
 # 
 ###############################################################################
 #INTERFACE:CLASS	MARK	RATE:		CEIL	PRIORITY	OPTIONS
-#                               DMAX:UMAX
+#				DMAX:UMAX

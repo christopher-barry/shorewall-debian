@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the shope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module contains the code which deals with /etc/shorewall/zones,
 #   /etc/shorewall/interfaces and /etc/shorewall/hosts.
@@ -104,7 +106,7 @@ our @EXPORT = ( qw( NOTHING
 	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.5_20';
+our $VERSION = '4.6_0';
 
 #
 # IPSEC Option types
@@ -349,7 +351,7 @@ sub initialize( $$ ) {
 				  rpfilter    => SIMPLE_IF_OPTION,
 				  sfilter     => IPLIST_IF_OPTION,
 				  sourceroute => BINARY_IF_OPTION,
-				  tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
+				  tcpflags    => BINARY_IF_OPTION + IF_OPTION_HOST,
 				  upnp        => SIMPLE_IF_OPTION,
 				  upnpclient  => SIMPLE_IF_OPTION,
 				  mss         => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
@@ -387,13 +389,14 @@ sub initialize( $$ ) {
 				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    optional    => SIMPLE_IF_OPTION,
+				    optional    => SIMPLE_IF_OPTION,
 				    proxyndp    => BINARY_IF_OPTION,
 				    required    => SIMPLE_IF_OPTION,
 				    routeback   => BINARY_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_HOST + IF_OPTION_VSERVER,
 				    rpfilter    => SIMPLE_IF_OPTION,
 				    sfilter     => IPLIST_IF_OPTION,
 				    sourceroute => BINARY_IF_OPTION,
-				    tcpflags    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
+				    tcpflags    => BINARY_IF_OPTION + IF_OPTION_HOST,
 				    mss         => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				    forward     => BINARY_IF_OPTION,
 				    physical    => STRING_IF_OPTION + IF_OPTION_HOST,
@@ -503,7 +506,8 @@ sub process_zone( \$ ) {
     my @parents;
 
     my ($zone, $type, $options, $in_options, $out_options ) =
-	split_line 'zones file', { zone => 0, type => 1, options => 2, in_options => 3, out_options => 4 };
+	split_line( 'zones file',
+		    { zone => 0, type => 1, options => 2, in_options => 3, out_options => 4 } );
 
     fatal_error 'ZONE must be specified' if $zone eq '-';
 
@@ -800,9 +804,9 @@ sub single_interface( $ ) {
     @keys == 1 ? $keys[0] : '';
 }
 
-sub add_group_to_zone($$$$$)
+sub add_group_to_zone($$$$$$)
 {
-    my ($zone, $type, $interface, $networks, $options) = @_;
+    my ($zone, $type, $interface, $networks, $options, $inherit_options) = @_;
     my $hostsref;
     my $typeref;
     my $interfaceref;
@@ -813,6 +817,15 @@ sub add_group_to_zone($$$$$)
     $zoneref->{interfaces}{$interface} = 1;
     $zoneref->{destonly} ||= $interfaceref->{options}{destonly};
     $options->{destonly} ||= $interfaceref->{options}{destonly};
+
+    if ( $inherit_options && $type== $zonetype && $type != IPSEC ) {
+	#
+	# Make 'find_hosts_by_option()' work correctly for this zone
+	#
+	for ( qw/blacklist maclist nosmurfs tcpflags/ ) {
+	    $options->{$_} = $interfaceref->{options}{$_} if $interfaceref->{options}{$_} && ! exists $options->{$_}; 
+	}
+    }
 
     $interfaceref->{zones}{$zone} = 1;
 
@@ -847,13 +860,6 @@ sub add_group_to_zone($$$$$)
 		if ( $host eq ALLIP ) {
 		    fatal_error "Duplicate Host Group ($interface:$host) in zone $zone" if @newnetworks;
 		    $interfaces{$interface}{zone} = $zone;
-		    #
-		    # Make 'find_hosts_by_option()' work correctly for this zone
-		    #
-		    for ( qw/blacklist maclist nosmurfs tcpflags/ ) {
-			$options->{$_} = $interfaceref->{options}{$_} if $interfaceref->{options}{$_};
-		    }
-
 		    $allip = 1;
 		}
 	    }
@@ -1079,9 +1085,12 @@ sub process_interface( $$ ) {
     my $bridge = '';
 
     if ( $file_format == 1 ) {
-	($zone, $originalinterface, $bcasts, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, broadcast => 2, options => 3 };
+	($zone, $originalinterface, $bcasts, $options ) =
+	    split_line1( 'interfaces file',
+			 { zone => 0, interface => 1, broadcast => 2, options => 3 } );
     } else {
-	($zone, $originalinterface, $options ) = split_line1 'interfaces file', { zone => 0, interface => 1, options => 2 };
+	($zone, $originalinterface, $options ) = split_line1( 'interfaces file',
+							      { zone => 0, interface => 1, options => 2 } );
 	$bcasts = '-';
     }
 
@@ -1349,6 +1358,8 @@ sub process_interface( $$ ) {
 	while ( my ( $option, $value ) = each( %options ) ) {
 	    fatal_error "The $option option may not be specified with 'unmanaged'" if $prohibitunmanaged{$option};
 	}
+    } else {
+	$options{tcpflags} = $hostoptionsref->{tcpflags} = 1 unless exists $options{tcpflags};
     }
 
     $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
@@ -1400,12 +1411,13 @@ sub process_interface( $$ ) {
 	}
 
 	$netsref ||= [ allip ];
-	add_group_to_zone( $zone, $zoneref->{type}, $interface, $netsref, $hostoptionsref );
+	add_group_to_zone( $zone, $zoneref->{type}, $interface, $netsref, $hostoptionsref , 1);
 	add_group_to_zone( $zone,
 			   $zoneref->{type},
 			   $interface,
 			   $family == F_IPV4 ? [ IPv4_MULTICAST ] : [ IPv6_MULTICAST ] ,
-			   { destonly => 1 } ) if $hostoptionsref->{multicast} && $interfaces{$interface}{zone} ne $zone;
+			   { destonly => 1 },
+			   0) if $hostoptionsref->{multicast} && $interfaces{$interface}{zone} ne $zone;
     }
 
     progress_message "  Interface \"$currentline\" Validated";
@@ -1939,7 +1951,10 @@ sub verify_required_interfaces( $ ) {
 #
 sub process_host( ) {
     my $ipsec = 0;
-    my ($zone, $hosts, $options ) = split_line1 'hosts file', { zone => 0, host => 1, hosts => 1, options => 2 }, {}, 3;
+    my ($zone, $hosts, $options ) = split_line1( 'hosts file',
+						 { zone => 0, host => 1, hosts => 1, options => 2 },
+						 {},
+						 3 );
 
     fatal_error 'ZONE must be specified'  if $zone eq '-';
     fatal_error 'HOSTS must be specified' if $hosts eq '-';
@@ -2065,7 +2080,7 @@ sub process_host( ) {
     #
     $interface = '%vserver%' if $type & VSERVER;
 
-    add_group_to_zone( $zone, $type , $interface, [ split_list( $hosts, 'host' ) ] , $optionsref);
+    add_group_to_zone( $zone, $type , $interface, [ split_list( $hosts, 'host' ) ] , $optionsref, 1 );
 
     progress_message "   Host \"$currentline\" validated";
 

@@ -7,18 +7,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module contains code for dealing with the /etc/shorewall/masq,
 #   /etc/shorewall/nat and /etc/shorewall/netmap files.
@@ -40,7 +42,7 @@ our @EXPORT_OK = ();
 
 Exporter::export_ok_tags('rules');
 
-our $VERSION = '4.5_18';
+our $VERSION = '4.6_0';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -66,11 +68,21 @@ sub process_one_masq1( $$$$$$$$$$ )
     my $add_snat_aliases = $family == F_IPV4 && $config{ADD_SNAT_ALIASES};
     my $destnets = '';
     my $baserule = '';
+    my $inlinematches = '';
 
     #
     # Leading '+'
     #
     $pre_nat = 1 if $interfacelist =~ s/^\+//;
+    #
+    # Check for INLINE
+    #
+    if ( $interfacelist =~ /^INLINE\((.+)\)$/ ) {
+	$interfacelist = $1;
+	$inlinematches = get_inline_matches(0);
+    } elsif ( $config{INLINE_MATCHES} ) {
+	$inlinematches = get_inline_matches(0);
+    }	
     #
     # Parse the remaining part of the INTERFACE column
     #
@@ -325,7 +337,7 @@ sub process_one_masq1( $$$$$$$$$$ )
 	expand_rule( $chainref ,
 		     POSTROUTE_RESTRICT ,
 		     '' ,
-		     $baserule . $rule ,
+		     $baserule . $inlinematches . $rule ,
 		     $networks ,
 		     $destnets ,
 		     $origdest ,
@@ -366,7 +378,11 @@ sub process_one_masq1( $$$$$$$$$$ )
 sub process_one_masq( )
 {
     my ($interfacelist, $networks, $addresses, $protos, $ports, $ipsec, $mark, $user, $condition, $origdest ) =
-	split_line1 'masq file', { interface => 0, source => 1, address => 2, proto => 3, port => 4, ipsec => 5, mark => 6, user => 7, switch => 8, origdest => 9 };
+	split_line2( 'masq file',
+		     { interface => 0, source => 1, address => 2, proto => 3, port => 4, ipsec => 5, mark => 6, user => 7, switch => 8, origdest => 9 },
+		     {},    #Nopad
+		     undef, #Columns
+		     1 );   #Allow inline matches
 
     fatal_error 'INTERFACE must be specified' if $interfacelist eq '-';
 
@@ -481,7 +497,9 @@ sub setup_nat() {
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ( $external, $interfacelist, $internal, $allints, $localnat ) = split_line1 'nat file', { external => 0, interface => 1, internal => 2, allints => 3, local => 4 };
+	    my ( $external, $interfacelist, $internal, $allints, $localnat ) =
+		split_line1( 'nat file',
+			     { external => 0, interface => 1, internal => 2, allints => 3, local => 4 } );
 
 	    ( $interfacelist, my $digit ) = split /:/, $interfacelist;
 
@@ -511,7 +529,9 @@ sub setup_netmap() {
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ( $type, $net1, $interfacelist, $net2, $net3, $proto, $dport, $sport ) = split_line 'netmap file', { type => 0, net1 => 1, interface => 2, net2 => 3, net3 => 4, proto => 5, dport => 6, sport => 7 };
+	    my ( $type, $net1, $interfacelist, $net2, $net3, $proto, $dport, $sport ) =
+		split_line( 'netmap file',
+			    { type => 0, net1 => 1, interface => 2, net2 => 3, net3 => 4, proto => 5, dport => 6, sport => 7 } );
 
 	    $net3 = ALLIP if $net3 eq '-';
 
@@ -613,7 +633,7 @@ sub setup_netmap() {
 }
 
 #
-# Called from process_rule1 to add a rule to the NAT table
+# Called from process_rule to add a rule to the NAT table
 #
 sub handle_nat_rule( $$$$$$$$$$$$$ ) {
     my ( $dest,           # <server>[:port]
@@ -667,6 +687,11 @@ sub handle_nat_rule( $$$$$$$$$$$$$ ) {
 	#
 	$server = $dest;
     }
+
+    #
+    # Check for list in $server
+    #
+    fatal_error "An address list ($server) is not allowed in the DEST column of a $action RULE" if $server =~ /,/;
     #
     # Generate the target
     #

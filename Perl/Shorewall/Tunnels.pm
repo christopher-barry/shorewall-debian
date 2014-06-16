@@ -6,18 +6,20 @@
 #
 #       Complete documentation is available at http://shorewall.net
 #
-#       This program is free software; you can redistribute it and/or modify
-#       it under the terms of Version 2 of the GNU General Public License
-#       as published by the Free Software Foundation.
+#       This program is part of Shorewall.
 #
-#       This program is distributed in the hope that it will be useful,
-#       but WITHOUT ANY WARRANTY; without even the implied warranty of
-#       MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-#       GNU General Public License for more details.
+#	This program is free software; you can redistribute it and/or modify
+#	it under the terms of the GNU General Public License as published by the
+#       Free Software Foundation, either version 2 of the license or, at your
+#       option, any later version.
 #
-#       You should have received a copy of the GNU General Public License
-#       along with this program; if not, write to the Free Software
-#       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+#	This program is distributed in the hope that it will be useful,
+#	but WITHOUT ANY WARRANTY; without even the implied warranty of
+#	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#	GNU General Public License for more details.
+#
+#	You should have received a copy of the GNU General Public License
+#	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 #   This module handles the /etc/shorewall/tunnels file.
 #
@@ -34,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_tunnels );
 our @EXPORT_OK = ( );
-our $VERSION = '4.5_11';
+our $VERSION = '4.6_0';
 
 #
 # Here starts the tunnel stuff -- we really should get rid of this crap...
@@ -291,7 +293,11 @@ sub setup_tunnels() {
 
 	while ( read_a_line( NORMAL_READ ) ) {
 
-	    my ( $kind, $zone, $gateway, $gatewayzones ) = split_line1 'tunnels file', { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 , gateway_zones => 3 }, {}, 4;
+	    my ( $kind, $zone, $gateway, $gatewayzones ) =
+		split_line1( 'tunnels file',
+			     { type => 0, zone => 1, gateway => 2, gateways => 2, gateway_zone => 3 , gateway_zones => 3 },
+			     {},
+			     4 );
 
 	    fatal_error 'TYPE must be specified' if $kind eq '-';
 
