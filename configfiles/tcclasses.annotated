@@ -79,7 +79,7 @@
 # MARK - {-|value}
 # 
 #     The mark value which is an integer in the range 1-255. You set mark values
-#     in the shorewall6-tcrules(5) file, marking the traffic you want to fit in
+#     in the shorewall6-mangle(5) file, marking the traffic you want to fit in
 #     the classes defined in here. Must be specified as '-' if the classify
 #     option is given for the interface in shorewall6-tcdevices(5) and you are
 #     running Shorewall 4.5 5 or earlier.

@@ -26,9 +26,15 @@
 # 
 # ACTION - ACCEPT|NOTRACK
 # 
-#     Determines the disposition of the packet. ACCEPT means that the packet will
-#     be accepted. NOTRACK indicates that no conntrack entry should be created
-#     for the packet. NOTRACK does not imply ACCEPT.
+#     Determines the disposition of the packet.
+# 
+#     ACCEPT means that the packet will be accepted.
+# 
+#     NOTRACK indicates that no conntrack entry should be created for the packet.
+#     NOTRACK does not imply ACCEPT.
+# 
+#     DROP was added in Shorewall 4.6.0 and causes the packet to be dropped in
+#     the raw table's PREROUTING chain.
 # 
 # SOURCE - [-|[$FW|interface]|[{$FW|interface}[:address[,address]...]]|[address[,
 #     address]...]
@@ -48,7 +54,7 @@
 # 
 #     $FW matches packets addressed the firewall itself, while interface
 #     specifies packets arriving on the named interface. Neither may be specified
-#     if the target is NOTRACK.
+#     if the target is NOTRACK or DROP.
 # 
 #     This column may also include a comma-separated list of IP/subnet addresses.
 #     If your kernel and iptables include iprange match support, IP address

@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\&.CONF" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -180,14 +180,14 @@ Added in Shorewall 4\&.4\&.7\&. If set to Yes, Shorewall6 accounting is enabled 
 \fBACCOUNTING_TABLE=\fR[\fBfilter\fR|\fBmangle\fR]
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. This setting determines which Netfilter table the accounting rules are added in\&. By default, ACCOUNTING_TABLE=filter is assumed\&. See also
-\m[blue]\fBshorewall\-accounting\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-accounting\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
 \fBADMINISABSENTMINDED=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 The value of this variable affects Shorewall\*(Aqs stopped state\&. The behavior differs depending on whether
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[4]\d\s+2(5) or
-\m[blue]\fBshorewall6\-stoppedrules\fR\m[]\&\s-2\u[5]\d\s+2(5) is used:
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[3]\d\s+2(5) or
+\m[blue]\fBshorewall6\-stoppedrules\fR\m[]\&\s-2\u[4]\d\s+2(5) is used:
 .PP
 routestopped
 .RS 4
@@ -258,7 +258,7 @@ Either:
 .IP "  1." 4.2
 .\}
 Modify
-\m[blue]\fBshorewall6\-conntrack\fR\m[]\&\s-2\u[6]\d\s+2
+\m[blue]\fBshorewall6\-conntrack\fR\m[]\&\s-2\u[5]\d\s+2
 (5) to only apply helpers where they are required; or
 .RE
 .sp
@@ -271,7 +271,7 @@ Modify
 .IP "  2." 4.2
 .\}
 Specify the appropriate helper in the HELPER column in
-\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5)\&.
 .if n \{\
 .sp
@@ -298,7 +298,7 @@ If set, the behavior of the
 \fBstart\fR
 and
 \fBrestart\fR
-commands is change; if no files in
+commands is changed; if no files in
 /etc/shorewall
 have been changed since the last successful
 \fBstart\fR
@@ -315,6 +315,34 @@ The setting of the AUTOMAKE option is ignored if the
 or
 \fBrestart\fR
 command includes a directory name (e\&.g\&.,\fB shorewall6 restart /etc/shorewall\&.new\fR)\&.
+.RE
+.PP
+\fBBASIC_FILTERS=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall\-4\&.6\&.0\&. When set to
+\fBYes\fR, causes entries in
+\m[blue]\fBshorewall6\-tcfilters(5)\fR\m[]\&\s-2\u[7]\d\s+2
+to generate a basic filter rather than a u32 filter\&. This setting requires the
+Basic Ematch
+capability in your kernel and iptables\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+One of the advantages of basic filters is that ipset matches are supported in newer iproute2 and kernel versions\&. Because Shorewall6 cannot reliably detect this capability, use of basic filters is controlled by this option\&.
+.sp .5v
+.RE
+The default value is
+\fBNo\fR
+which causes u32 filters to be generated\&.
 .RE
 .PP
 \fBBLACKLIST=\fR[{\fBALL\fR|\fB\fIstate\fR\fR\fB[,\&.\&.\&.]\fR}]
@@ -350,10 +378,10 @@ When set to
 \fBYes\fR
 or
 \fByes\fR, blacklists are only consulted for new connections, for packets in the INVALID connection state (such as a TCP SYN,ACK when there has been no corresponding SYN), and for packets that are UNTRACKED due to entries in
-\m[blue]\fBshorewall6\-conntrack\fR\m[]\&\s-2\u[9]\d\s+2(5)\&. This includes entries in the
+\m[blue]\fBshorewall6\-conntrack\fR\m[]\&\s-2\u[5]\d\s+2(5)\&. This includes entries in the
 \m[blue]\fBshorewall6\-blrules\fR\m[]\&\s-2\u[8]\d\s+2
 (5) file and in the BLACKLIST section of
-\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5)\&.
 .sp
 When set to
@@ -406,7 +434,7 @@ that you specify\&.
 If this option is set to
 \fBNo\fR
 then Shorewall6 won\*(Aqt clear the current traffic control rules during [re]start\&. This setting is intended for use by people that prefer to configure traffic shaping when the network interfaces come up rather than when the firewall is started\&. If that is what you want to do, set TC_ENABLED=Yes and CLEAR_TC=No and do not supply an /etc/shorewall6/tcstart file\&. That way, your traffic shaping rules can still use the \(lqfwmark\(rq classifier based on packet marking defined in
-\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[10]\d\s+2(5)\&. If not specified, CLEAR_TC=No is assumed\&.
+\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[9]\d\s+2(5)\&. If not specified, CLEAR_TC=No is assumed\&.
 .if n \{\
 .sp
 .\}
@@ -420,7 +448,7 @@ then Shorewall6 won\*(Aqt clear the current traffic control rules during [re]sta
 .ps -1
 .br
 If you also run Shorewall and if you have TC_ENABLED=Internal in your
-\m[blue]\fBshorewall\-conf\fR\m[]\&\s-2\u[11]\d\s+2(5), then you will want CLEAR_TC=No in this file\&.
+\m[blue]\fBshorewall\-conf\fR\m[]\&\s-2\u[10]\d\s+2(5), then you will want CLEAR_TC=No in this file\&.
 .sp .5v
 .RE
 .RE
@@ -543,7 +571,7 @@ net     all  DROP   info
 .RE
 .\}
 .sp
-then the chain name is \*(Aqnet2all\*(Aq which is also the chain named in Shorewall log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
+then the chain name is \*(Aqnet\-all\*(Aq ("net2all" if ZONE2ZONE=2) which is also the chain named in Shorewall log messages generated as a result of the policy\&. If EXPAND_POLICIES=Yes, then Shorewall will create a separate chain for each pair of zones covered by the policy\&. This makes the resulting log messages easier to interpret since the chain in the messages will have a name of the form \*(Aqa2b\*(Aq where \*(Aqa\*(Aq is the SOURCE zone and \*(Aqb\*(Aq is the DEST zone\&.
 .RE
 .PP
 \fBEXPORTMODULES=\fR[\fBYes\fR|\fBNo\fR]
@@ -576,7 +604,7 @@ The default is EXPORTPARAMS=Yes which is the recommended setting unless you are 
 Normally, Shorewall6 defers accepting ESTABLISHED/RELATED packets until these packets reach the chain in which the original connection was accepted\&. So for packets going from the \*(Aqloc\*(Aq zone to the \*(Aqnet\*(Aq zone, ESTABLISHED/RELATED packets are ACCEPTED in the \*(Aqloc2net\*(Aq chain\&.
 .sp
 If you set FASTACCEPT=Yes, then ESTABLISHED/RELATED packets are accepted early in the INPUT, FORWARD and OUTPUT chains\&. If you set FASTACCEPT=Yes then you may not include rules in the ESTABLISHED or RELATED sections of
-\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2(5)\&.
 .if n \{\
 .sp
 .\}
@@ -604,14 +632,14 @@ Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the
 Added in Shorewall 4\&.5\&.4\&. Specifies the pathname of the directory containing the
 GeoIP Match
 database\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&. If not specified, the default value is
+\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&\s-2\u[11]\d\s+2\&. If not specified, the default value is
 /usr/share/xt_geoip/LE
 which is the default location of the little\-endian database\&.
 .RE
 .PP
 \fBHELPERS\fR=[\fIhelper\fR[,\fIhelper\fR\&.\&.\&.]]
 .RS 4
-Added in Shorewall 4\&.5\&.7\&. This option lists the Netfilter application helps that are to be enabled\&. If not specified, the default is to enable all helpers\&.
+Added in Shorewall 4\&.5\&.7\&. This option lists the Netfilter application helpers that are to be enabled\&. If not specified, the default is to enable all helpers\&.
 .sp
 Possible values for
 \fIhelper\fR
@@ -837,17 +865,25 @@ Subzones are defined by following their name with ":" and a list of parent zones
 If IMPLICIT_CONTINUE=No or if IMPLICIT_CONTINUE is not set, then subzones are not subject to this special treatment\&. With IMPLICIT_CONTINUE=Yes, an implicit CONTINUE policy may be overridden by including an explicit policy (one that does not specify "all" in either the SOURCE or the DEST columns)\&.
 .RE
 .PP
+\fBINLINE_MATCHES=\fR{\fBYes\fR|\fBNo\fR}
+.RS 4
+Added in Shorewall 4\&.6\&.0\&. Traditionally in
+\m[blue]\fBshorewall6\-rules(5)\fR\m[]\&\s-2\u[6]\d\s+2, a semicolon separates column\-oriented specifications on the left from
+\m[blue]\fBalternative specificaitons\fR\m[]\&\s-2\u[14]\d\s+2
+on the right\&.\&. When INLINE_MATCHES=Yes is specified, the specifications on the right are interpreted as if INLINE had been specified in the ACTION column\&. If not specified or if specified as the empty value, the value \*(AqNo\*(Aq is assumed for backward compatibility\&.
+.RE
+.PP
 \fBINVALID_DISPOSITION=[A_DROP|A_REJECT|DROP|REJECT|CONTINUE]\fR
 .RS 4
 Added in Shorewall 4\&.5\&.13\&. Shorewall has traditionally passed INVALID packets through the NEW section of
-\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5)\&. When a packet in INVALID state fails to match any rule in the INVALID section, the packet is disposed of based on this setting\&. The default value is CONTINUE for compatibility with earlier versions\&.
 .RE
 .PP
 \fBINVALID_LOG_LEVEL=\fR\fIlog\-level\fR
 .RS 4
 Added in Shorewall 4\&.5\&.13\&. Packets in the INVALID state that do not match any rule in the INVALID section of
-\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[14]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5) are logged at this level\&. The default value is empty which means no logging is performed\&.
 .RE
 .PP
@@ -942,7 +978,7 @@ Added in Shorewall6 4\&.4\&.20\&. If not specified, the default is Yes which pre
 \fBstart \-f\fR
 (the modification times of the files in
 /etc/shorewall6
-are compare with that of
+are compared with that of
 /var/lib/shorewall6/restore)\&. If set to No, then the times are compared with that of /var/lib/shorewall6/firewall, which is consistent with the way that
 \fBrestart \-f\fR
 works\&.
@@ -1198,13 +1234,13 @@ This problem can be worked around by setting MACLIST_TABLE=mangle which will cau
 \fBMACLIST_TTL=[\fR\fInumber\fR]
 .RS 4
 The performance of configurations with a large numbers of entries in
-\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[15]\d\s+2(5) can be improved by setting the MACLIST_TTL variable in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[16]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-maclist\fR\m[]\&\s-2\u[15]\d\s+2(5) can be improved by setting the MACLIST_TTL variable in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[16]\d\s+2(5)\&.
 .sp
 If your iptables and kernel support the "Recent Match" (see the output of "shorewall check" near the top), you can cache the results of a \*(Aqmaclist\*(Aq file lookup and thus reduce the overhead associated with MAC Verification\&.
 .sp
 When a new connection arrives from a \*(Aqmaclist\*(Aq interface, the packet passes through then list of entries for that interface in
-\m[blue]\fBshorewall\-maclist\fR\m[]\&\s-2\u[15]\d\s+2(5)\&. If there is a match then the source IP address is added to the \*(AqRecent\*(Aq set for that interface\&. Subsequent connection attempts from that IP address occurring within $MACLIST_TTL seconds will be accepted without having to scan all of the entries\&. After $MACLIST_TTL from the first accepted connection request from an IP address, the next connection request from that IP address will be checked against the entire list\&.
+\m[blue]\fBshorewall6\-maclist\fR\m[]\&\s-2\u[15]\d\s+2(5)\&. If there is a match then the source IP address is added to the \*(AqRecent\*(Aq set for that interface\&. Subsequent connection attempts from that IP address occurring within $MACLIST_TTL seconds will be accepted without having to scan all of the entries\&. After $MACLIST_TTL from the first accepted connection request from an IP address, the next connection request from that IP address will be checked against the entire list\&.
 .sp
 If MACLIST_TTL is not specified or is specified as empty (e\&.g, MACLIST_TTL="" or is specified as zero then \*(Aqmaclist\*(Aq lookups will not be cached)\&.
 .RE
@@ -1627,14 +1663,14 @@ Shell variables that will be set when the commands are invoked are as follows:.R
 \fBRELATED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]\fR
 .RS 4
 Added in Shorewall 4\&.4\&.27\&. Shorewall has traditionally ACCEPTed RELATED packets that don\*(Aqt match any rule in the RELATED section of
-\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5)\&. Concern about the safety of this practice resulted in the addition of this option\&. When a packet in RELATED state fails to match any rule in the RELATED section, the packet is disposed of based on this setting\&. The default value is ACCEPT for compatibility with earlier versions\&.
 .RE
 .PP
 \fBRELATED_LOG_LEVEL=\fR\fIlog\-level\fR
 .RS 4
 Added in Shorewall 4\&.4\&.27\&. Packets in the related state that do not match any rule in the RELATED section of
-\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[18]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5) are logged at this level\&. The default value is empty which means no logging is performed\&.
 .RE
 .PP
@@ -1749,7 +1785,7 @@ INLINE          \-       \-       \-       ; \-j REJECT
 \fBREQUIRE_INTERFACE=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
 Added in Shorewall 4\&.4\&.10\&. The default is No\&. If set to Yes, at least one optional interface must be up in order for the firewall to be in the started state\&. Intended to be used with the
-\m[blue]\fBShorewall Init Package\fR\m[]\&\s-2\u[19]\d\s+2\&.
+\m[blue]\fBShorewall Init Package\fR\m[]\&\s-2\u[18]\d\s+2\&.
 .RE
 .PP
 \fBRESTORE_ROUTEMARKS=\fR[\fBYes\fR|\fBNo\fR]
@@ -1776,7 +1812,7 @@ commands\&.
 Added in Shorewall 4\&.5\&.7\&. Determines the disposition of packets entering from interfaces with the
 \fBrpfilter\fR
 option (see
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[20]\d\s+2(5))\&. Packets disposed of by this option are those whose response packets would not be sent through the same interface receiving the packet\&.
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[19]\d\s+2(5))\&. Packets disposed of by this option are those whose response packets would not be sent through the same interface receiving the packet\&.
 .RE
 .PP
 \fBRPFILTER_LOG_LEVEL=\fR\fIlog\-level\fR
@@ -1793,13 +1829,13 @@ This option is used to specify the shell program to be used to interpret the com
 \fBSMURF_DISPOSITION=\fR[\fBDROP\fR|A_DROP]
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. The default setting is DROP which causes smurf packets (see the nosmurfs option in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[20]\d\s+2(5)) to be dropped\&. A_DROP causes the packets to be audited prior to being dropped and requires AUDIT_TARGET support in the kernel and ip6tables\&.
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[19]\d\s+2(5)) to be dropped\&. A_DROP causes the packets to be audited prior to being dropped and requires AUDIT_TARGET support in the kernel and ip6tables\&.
 .RE
 .PP
 \fBSMURF_LOG_LEVEL=\fR[\fIlog\-level\fR]
 .RS 4
 Specifies the logging level for smurf packets (see the nosmurfs option in
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[21]\d\s+2(5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[19]\d\s+2(5))\&. If set to the empty value ( SMURF_LOG_LEVEL="" ) then smurfs are not logged\&.
 .RE
 .PP
 \fBSFILTER_DISPOSITION=\fR[\fBDROP\fR|\fBREJECT\fR|A_DROP|A_REJECT]
@@ -1807,11 +1843,11 @@ Specifies the logging level for smurf packets (see the nosmurfs option in
 Added in Shorewall 4\&.4\&.20\&. Determines the disposition of packets matching the
 \fBsfilter\fR
 option (see
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[21]\d\s+2(5)) and of
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[19]\d\s+2(5)) and of
 hairpin
 packets on interfaces without the
 \fBrouteback\fR
-option\&.\&\s-2\u[22]\d\s+2
+option\&.\&\s-2\u[20]\d\s+2
 interfaces without the routeback option\&.
 .RE
 .PP
@@ -1820,11 +1856,11 @@ interfaces without the routeback option\&.
 Added on Shorewall 4\&.4\&.20\&. Determines the logging of packets matching the
 \fBsfilter\fR
 option (see
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[21]\d\s+2(5)) and of
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[19]\d\s+2(5)) and of
 hairpin
 packets on interfaces without the
 \fBrouteback\fR
-option\&.\&\s-2\u[23]\d\s+2
+option\&.\&\s-2\u[21]\d\s+2
 interfaces without the routeback option\&. The default is
 \fBinfo\fR\&. If you don\*(Aqt wish for these packets to be logged, use SFILTER_LOG_LEVEL=none\&.
 .RE
@@ -1887,7 +1923,7 @@ tcdevices
 and
 tcclasses
 files\&. This allows the compiler to have access to your Shorewall traffic shaping configuration so that it can validate CLASSIFY rules in
-\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[24]\d\s+2
+\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&.
 .if n \{\
 .sp
@@ -1902,7 +1938,7 @@ files\&. This allows the compiler to have access to your Shorewall traffic shapi
 .ps -1
 .br
 If you also run Shorewall and if you have TC_ENABLED=Internal in your
-\m[blue]\fBshorewall\-conf\fR\m[]\&\s-2\u[11]\d\s+2(5), then you will want TC_ENABLED=No or TC_ENABLED=Shared in this file\&.
+\m[blue]\fBshorewall\-conf\fR\m[]\&\s-2\u[10]\d\s+2(5), then you will want TC_ENABLED=No or TC_ENABLED=Shared in this file\&.
 .sp .5v
 .RE
 .RE
@@ -1910,7 +1946,7 @@ If you also run Shorewall and if you have TC_ENABLED=Internal in your
 \fBTC_EXPERT=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
 Normally, Shorewall6 tries to protect users from themselves by preventing PREROUTING and OUTPUT tcrules from being applied to packets that have been marked by the \*(Aqtrack\*(Aq option in
-\m[blue]\fBshorewall6\-providers\fR\m[]\&\s-2\u[25]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-providers\fR\m[]\&\s-2\u[22]\d\s+2(5)\&.
 .sp
 If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall6 will not include these cautionary checks\&.
 .RE
@@ -1918,7 +1954,7 @@ If you know what you are doing, you can set TC_EXPERT=Yes and Shorewall6 will no
 \fBTC_PRIOMAP\fR=\fImap\fR
 .RS 4
 Added in Shorewall 4\&.4\&.6\&. Determines the mapping of a packet\*(Aqs TOS field to priority bands\&. See
-\m[blue]\fBshorewall6\-tcpri\fR\m[]\&\s-2\u[26]\d\s+2(5)\&. The
+\m[blue]\fBshorewall6\-tcpri\fR\m[]\&\s-2\u[23]\d\s+2(5)\&. The
 \fImap\fR
 consists of 16 space\-separated digits with values 1, 2 or 3\&. A value of 1 corresponds to Linux priority 0, 2 to Linux priority 1, and 3 to Linux Priority 2\&. The first entry gives the priority of TOS value 0, the second of TOS value 1, and so on\&. See tc\-prio(8) for additional information\&.
 .sp
@@ -1930,7 +1966,7 @@ The default setting is TC_PRIOMAP="2 3 3 3 2 3 1 1 2 2 2 2 2 2 2 2"\&.
 Determines the disposition of TCP packets that fail the checks enabled by the
 \fBtcpflags\fR
 interface option (see
-\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[21]\d\s+2(5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[19]\d\s+2(5)) and must have a value of ACCEPT (accept the packet), REJECT (send an RST response) or DROP (ignore the packet)\&. If not set or if set to the empty value (e\&.g\&., TCP_FLAGS_DISPOSITION="") then TCP_FLAGS_DISPOSITION=DROP is assumed\&.
 .RE
 .PP
 \fBTCP_FLAGS_LOG_LEVEL=\fR[\fIlog\-level\fR]
@@ -1943,13 +1979,13 @@ Determines the syslog level for logging packets that fail the checks enabled by 
 Added in Shorewall 4\&.4\&.3\&. When set to Yes, causes the
 \fBtrack\fR
 option to be assumed on all providers defined in
-\m[blue]\fBshorewall6\-providers\fR\m[]\&\s-2\u[25]\d\s+2(5)\&. May be overridden on an individual provider through use of the
+\m[blue]\fBshorewall6\-providers\fR\m[]\&\s-2\u[22]\d\s+2(5)\&. May be overridden on an individual provider through use of the
 \fBnotrack\fR
 option\&. The default value is \*(AqNo\*(Aq\&.
 .sp
 Beginning in Shorewall 4\&.4\&.6, setting this option to \*(AqYes\*(Aq also simplifies PREROUTING rules in
-\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[10]\d\s+2(5)\&. Previously, when TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \*(Aqmain\*(Aq routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The
-\m[blue]\fBshorewall6\-rtrules\fR\m[]\&\s-2\u[27]\d\s+2(5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
+\m[blue]\fBshorewall6\-tcrules\fR\m[]\&\s-2\u[9]\d\s+2(5)\&. Previously, when TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq provider interfaces were unconditionally passed to the PREROUTING tcrules\&. This was done so that tcrules could reset the packet mark to zero, thus allowing the packet to be routed using the \*(Aqmain\*(Aq routing table\&. Using the main table allowed dynamic routes (such as those added for VPNs) to be effective\&. The
+\m[blue]\fBshorewall6\-rtrules\fR\m[]\&\s-2\u[24]\d\s+2(5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
 .RE
 .PP
 \fBTRACK_RULES=\fR{\fBYes\fR|\fBNo\fR}
@@ -1969,20 +2005,20 @@ capability in ip6tables and kernel\&.
 \fBUNTRACKED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]\fR
 .RS 4
 Added in Shorewall 4\&.5\&.13\&. Shorewall has traditionally passed UNTRACKED packets through the NEW section of
-\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5)\&. When a packet in UNTRACKED state fails to match any rule in the UNTRACKED section, the packet is disposed of based on this setting\&. The default value is CONTINUE for compatibility with earlier versions\&.
 .RE
 .PP
 \fBUNTRACKED_LOG_LEVEL=\fR\fIlog\-level\fR
 .RS 4
 Added in Shorewall 4\&.5\&.13\&. Packets in the UNTRACKED state that do not match any rule in the UNTRACKED section of
-\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[18]\d\s+2
+\m[blue]\fBshorewall6\-rules\fR\m[]\&\s-2\u[6]\d\s+2
 (5) are logged at this level\&. The default value is empty which means no logging is performed\&.
 .RE
 .PP
 \fBUSE_DEFAULT_RT=\fR[\fBYes\fR|\fBNo\fR]
 .RS 4
-Added in Shorewall6 4\&.4\&.25\&. When set to \*(AqYes\*(Aq, this option causes the Shorewall6 multi\-ISP feature to create a different set of routing rules which are resilient to changes in the main routing table\&. Such changes can occur for a number of reasons, VPNs going up and down being an example\&. The idea is to send packets through the main table prior to applying any of the Shorewall6\-generated routing rules\&. So changes to the main table will affect the routing of packets by default\&.
+Added in Shorewall6 4\&.4\&.25\&. When set to \*(AqYes\*(Aq, this option causes the Shorewall6 multi\-ISP feature to create a set of routing rules which are resilient to changes in the main routing table\&. Such changes can occur for a number of reasons, VPNs going up and down being an example\&. The idea is to send packets through the main table prior to applying any of the Shorewall6\-generated routing rules\&. So changes to the main table will affect the routing of packets by default\&.
 .sp
 When USE_DEFAULT_RT=Yes:
 .sp
@@ -1995,7 +2031,7 @@ When USE_DEFAULT_RT=Yes:
 .IP "  1." 4.2
 .\}
 Both the DUPLICATE and the COPY columns in
-\m[blue]\fBshorewall6\-providers\fR\m[]\&\s-2\u[25]\d\s+2(5) file must remain empty (or contain "\-")\&.
+\m[blue]\fBshorewall6\-providers\fR\m[]\&\s-2\u[22]\d\s+2(5) file must remain empty (or contain "\-")\&.
 .RE
 .sp
 .RS 4
@@ -2032,7 +2068,7 @@ is specified\&.
 .IP "  4." 4.2
 .\}
 Packets are sent through the main routing table by a rule with priority 999\&. In
-\m[blue]\fBshorewall6\-routing_rules\fR\m[]\&\s-2\u[28]\d\s+2(5), the range 1\-998 may be used for inserting rules that bypass the main table\&.
+\m[blue]\fBshorewall6\-routing_rules\fR\m[]\&\s-2\u[25]\d\s+2(5), the range 1\-998 may be used for inserting rules that bypass the main table\&.
 .RE
 .sp
 .RS 4
@@ -2059,7 +2095,7 @@ may not be specified\&.
 You should disable all default route management outside of Shorewall6\&. If a default route is added to the main table while Shorewall is started, then all policy routing will stop working (except for those routing rules in the priority range 1\-998)\&.
 .RE
 .sp
-If USE_DEFAULT_RT is not set or if it is set to the empty string then USE_DEFAULT_RT=No is assumed\&.
+Prior to Shorewall 4\&.6\&.0, if USE_DEFAULT_RT was not set or if it was set to the empty string then USE_DEFAULT_RT=No was assumed\&. Beginning with Shorewall 4\&.6\&.0, the default is USE_DEFAULT_RT=Yes and use of USE_DEFAULT_RT=No is deprecated\&.
 .RE
 .PP
 \fBUSE_PHYSICAL_NAMES=\fR[\fBYes\fR|\fBNo\fR]
@@ -2144,7 +2180,7 @@ Added in Shorewall 4\&.4\&.26\&. When non\-zero, enables automatic packet markin
 .PP
 \fBZONE2ZONE\fR={\fB2\fR|\fB\-\fR}
 .RS 4
-Added in Shorewall 4\&.4\&.4\&. This option determines how Shorewall constructs chain names involving zone names and/or \*(Aqall\*(Aq\&. The default is \*(Aq2\*(Aq (e\&.g\&., fw2net)\&.
+Added in Shorewall 4\&.4\&.4\&. This option determines how Shorewall constructs chain names involving zone names and/or \*(Aqall\*(Aq\&. Beginning with Shorewall 4\&.6\&.0, the default is \*(Aq\-\*(Aq (e\&.g\&., fw\-net); prior to that release, the default was \*(Aq2\*(Aq (e\&.g\&., fw2net)\&.
 .RE
 .SH "FILES"
 .PP
@@ -2156,134 +2192,119 @@ shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-bl
 .IP " 1." 4
 shorewall6-policy
 .RS 4
-\%http://www.shorewall.netshorewall6-policy.html
+\%http://www.shorewall.net/manpages6/shorewall6-policy.html
 .RE
 .IP " 2." 4
 shorewall6-accounting
 .RS 4
-\%http://www.shorewall.netshorewall6-accounting.html
+\%http://www.shorewall.net/manpages6/shorewall6-accounting.html
 .RE
 .IP " 3." 4
-shorewall-accounting
-.RS 4
-\%http://www.shorewall.netshorewall-accounting.html
-.RE
-.IP " 4." 4
 shorewall6-routestopped
 .RS 4
 \%http://www.shorewall.netshorewall-routestopped.html
 .RE
-.IP " 5." 4
+.IP " 4." 4
 shorewall6-stoppedrules
 .RS 4
 \%http://www.shorewall.netshorewall-stoppedrules.html
 .RE
-.IP " 6." 4
+.IP " 5." 4
 shorewall6-conntrack
 .RS 4
-\%http://www.shorewall.netshorewall-conntrack.html
+\%http://www.shorewall.net/manpages6/shorewall6-conntrack.html
 .RE
-.IP " 7." 4
+.IP " 6." 4
 shorewall6-rules
 .RS 4
-\%http://www.shorewall.netshorewall6-rules.html
+\%http://www.shorewall.net/manpages6/shorewall6-rules.html
+.RE
+.IP " 7." 4
+shorewall6-tcfilters(5)
+.RS 4
+\%http://www.shorewall.netshorewall6-tcfilters.html
 .RE
 .IP " 8." 4
 shorewall6-blrules
 .RS 4
-\%http://www.shorewall.netshorewall6-blrules.html
+\%http://www.shorewall.net/manpages6/shorewall6-blrules.html
 .RE
 .IP " 9." 4
-shorewall6-conntrack
-.RS 4
-\%http://www.shorewall.netshorewall6-conntrack.html
-.RE
-.IP "10." 4
 shorewall6-tcrules
 .RS 4
-\%http://www.shorewall.netshorewall6-tcrules.html
+\%http://www.shorewall.net/manpages6/shorewall6-tcrules.html
 .RE
-.IP "11." 4
+.IP "10." 4
 shorewall-conf
 .RS 4
-\%http://www.shorewall.net../manpages/shorewall.conf.html
+\%http://www.shorewall.net/manpages/shorewall.conf.html
+.RE
+.IP "11." 4
+http://www.shorewall.net/ISO-3661.html
+.RS 4
+\%http://www.shorewall.net/ISO-3661.html
 .RE
 .IP "12." 4
 shorewall6-zones
 .RS 4
-\%http://www.shorewall.netshorewall6-zones.html
+\%http://www.shorewall.net/manpages6/shorewall6-zones.html
 .RE
 .IP "13." 4
 shorewall6-nesting
 .RS 4
-\%http://www.shorewall.netshorewall6-nesting.html
+\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
 .RE
 .IP "14." 4
-shorewall-rules
+alternative specificaitons
 .RS 4
-\%http://www.shorewall.netmanpages/shorewall6-rules.html
+\%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE
 .IP "15." 4
-shorewall-maclist
+shorewall6-maclist
 .RS 4
-\%http://www.shorewall.netshorewall-maclist.html
+\%http://www.shorewall.net/manpages6/shorewall6-maclist.html
 .RE
 .IP "16." 4
-shorewall.conf
+shorewall6.conf
 .RS 4
-\%http://www.shorewall.netshorewall.conf.html
+\%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
 .IP "17." 4
 the complete matrix of host groups defined by the zones, interfaces and hosts files
 .RS 4
-\%http://www.shorewall.net../ScalabilityAndPerformance.html
+\%http://www.shorewall.net/ScalabilityAndPerformance.html
 .RE
 .IP "18." 4
-shorewall6-rules
-.RS 4
-\%http://www.shorewall.netmanpages/shorewall-rules.html
-.RE
-.IP "19." 4
 Shorewall Init Package
 .RS 4
-\%http://www.shorewall.net../Manpages/shorewall-init.html
+\%http://www.shorewall.net/manpages/shorewall-init.html
 .RE
-.IP "20." 4
-shorewall-interfaces
-.RS 4
-\%http://www.shorewall.netshorewall-interfaces.html
-.RE
-.IP "21." 4
+.IP "19." 4
 shorewall6-interfaces
 .RS 4
-\%http://www.shorewall.netshorewall6-interfaces.html
+\%http://www.shorewall.net/manpages6/shorewall6-interfaces.html
 .RE
+.IP "20." 4
+Hairpin packets are packets that are routed out of the same interface that they arrived on.
+.IP "21." 4
+Hairpin packets are packets that are routed out of the same interface that they arrived on.
 .IP "22." 4
-Hairpin packets are packets that are routed out of the same interface that they arrived on.
-.IP "23." 4
-Hairpin packets are packets that are routed out of the same interface that they arrived on.
-.IP "24." 4
-shorewall6-tcrules
-.RS 4
-\%http://www.shorewall.netshorewall-tcrules.html
-.RE
-.IP "25." 4
 shorewall6-providers
 .RS 4
-\%http://www.shorewall.netshorewall6-providers.html
+\%http://www.shorewall.net/manpages6/shorewall6-providers.html
 .RE
-.IP "26." 4
+.IP "23." 4
 shorewall6-tcpri
 .RS 4
-\%http://www.shorewall.netshorewall6-tcpri.html
+\%http://www.shorewall.net/manpages6/shorewall6-tcpri.html
 .RE
-.IP "27." 4
+.IP "24." 4
 shorewall6-rtrules
 .RS 4
-\%http://www.shorewall.netshorewall6-rtrules.html
+\%http://www.shorewall.net/manpages6/shorewall6-rtrules.html
 .RE
-.IP "28." 4
+.IP "25." 4
 shorewall6-routing_rules
 .RS 4
-\%http://www.shorewall.netshorewall6-routing_rules.html
+\%http://www.shorewall.net/manpages6/shorewall6-routing_rules.html
 .RE

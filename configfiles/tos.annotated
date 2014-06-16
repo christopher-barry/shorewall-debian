@@ -7,7 +7,7 @@
 # 
 # This file defines rules for setting Type Of Service (TOS). Its use is
 # deprecated, beginning in Shorewall 4.5.1, in favor of the TOS target in
-# shorewall6-tcrules (5).
+# shorewall6-mangle (5).
 # 
 # The columns in the file are as follows.
 # 

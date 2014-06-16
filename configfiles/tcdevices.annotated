@@ -106,7 +106,7 @@
 # 
 #     classify ― When specified, Shorewall will not generate tc or Netfilter
 #     rules to classify traffic based on packet marks. You must do all
-#     classification using CLASSIFY rules in shorewall-tcrules(5).
+#     classification using CLASSIFY rules in shorewall6-tcrules(5).
 # 
 #     htb - Use the Hierarchical Token Bucket queuing discipline. This is the
 #     default.

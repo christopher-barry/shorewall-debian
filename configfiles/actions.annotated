@@ -7,7 +7,7 @@
 #
 # Please see http://shorewall.net/Actions.html for additional information.
 #
-###############################################################################
+########################################################################################
 # 
 # This file allows you to define new ACTIONS for use in rules (see
 # shorewall6-rules(5)). You define the ip6tables rules to be performed in an
@@ -33,6 +33,13 @@
 #         supported by your ip6tables but is not directly supported by Shorewall.
 #         The action may be used as the rule target in an INLINE rule in
 #         shorewall6-rules(5).
+# 
+#         Beginning with Shorewall 4.6.0, the Netfilter table(s) in which the 
+#         builtin can be used may be specified: filter, nat, mangle and raw. If
+#         no table name(s) are given, then filter is assumed. The table names
+#         follow builtin and are separated by commas; for example,
+#         "FOOBAR,filter,mangle" would specify FOOBAR as a builtin target that
+#         can be used in the filter and mangle tables.
 # 
 #     inline
 # 
@@ -67,5 +74,6 @@
 #         used within the action body to apply those logging options only to a
 #         subset of the rules.
 # 
-###############################################################################
 ########################################################################################
+#ACTION    OPTIONS              COMMENT (place '# ' below the 'C' in comment followed by
+#                               v        a comment describing the action)
