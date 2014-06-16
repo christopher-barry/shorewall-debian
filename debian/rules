@@ -30,5 +30,5 @@ override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall-init -Xvar/lib/shorewall-init
 
 override_dh_installinit:
-	dh_installinit --onlyscripts --no-start -u"start 38 S ."
+	dh_installinit --onlyscripts --no-start -u"start 38 S . 02 0 6"
 

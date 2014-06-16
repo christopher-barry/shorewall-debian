@@ -1,8 +1,10 @@
-shorewall-init (4.5.21.9-1~bpo70+1) wheezy; urgency=low
+shorewall-init (4.6.1.1-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
+  * Install missing symlinks for stopping shorewall-init (thanks to
+    Matt Darfeuille for reporting the problem)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 31 Mar 2014 15:33:57 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 16 Jun 2014 08:20:51 -0400
 
 shorewall-init (4.5.21.9-1) unstable; urgency=low
 
