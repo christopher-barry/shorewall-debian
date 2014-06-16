@@ -24,6 +24,8 @@
 
       <year>2009</year>
 
+      <year>2014</year>
+
       <holder>Thomas M. Eastep</holder>
     </copyright>
 
@@ -74,7 +76,8 @@
 
       <listitem>
         <para>Packets are marked based on the contents of your
-        <filename>/etc/shorewall/tcrules</filename> file and the setting of
+        <filename>/etc/shorewall/mangle</filename>
+        (<filename>/etc/shorewall/tcrules</filename>) file and the setting of
         MARK_IN_FORWARD_CHAIN in
         <filename>/etc/shorewall/shorewall.conf</filename>. This occurs in the
         <emphasis role="bold">tcpre</emphasis> chain of the

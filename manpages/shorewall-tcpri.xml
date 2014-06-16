@@ -6,6 +6,8 @@
     <refentrytitle>shorewall-tcpri</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -25,12 +27,13 @@
 
     <para>This file is used to specify the priority of traffic for simple
     traffic shaping (TC_ENABLED=Simple in <ulink
-    url="shorewall.conf.html">shorewall.conf</ulink>(5)). The priority band of
-    each packet is determined by the <emphasis role="bold">last</emphasis>
-    entry that the packet matches. If a packet doesn't match any entry in this
-    file, then its priority will be determined by its TOS field. The default
-    mapping is as follows but can be changed by setting the TC_PRIOMAP option
-    in <ulink url="shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+    url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5)). The
+    priority band of each packet is determined by the <emphasis
+    role="bold">last</emphasis> entry that the packet matches. If a packet
+    doesn't match any entry in this file, then its priority will be determined
+    by its TOS field. The default mapping is as follows but can be changed by
+    setting the TC_PRIOMAP option in <ulink
+    url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5).</para>
 
     <programlisting>TOS     Bits  Means                    Linux Priority    BAND
 ------------------------------------------------------------
@@ -63,7 +66,7 @@
           <para>Classifies matching traffic as High Priority (1), Medium
           Priority (2) or Low Priority (3). For those interfaces listed in
           <ulink
-          url="shorewall-tcinterfaces.html">shorewall-tcinterfaces</ulink>(5),
+          url="/manpages/shorewall-tcinterfaces.html">shorewall-tcinterfaces</ulink>(5),
           Priority 2 traffic will be deferred so long and there is Priority 1
           traffic queued and Priority 3 traffic will be deferred so long as
           there is Priority 1 or Priority 2 traffic to send.</para>
@@ -131,8 +134,8 @@
         [<replaceable>helper</replaceable>]</term>
 
         <listitem>
-          <para>Optional. Names a Netfilter protocol helper module such as ftp,
-          sip, amanda, etc. A packet will match if it was accepted by the
+          <para>Optional. Names a Netfilter protocol helper module such as
+          ftp, sip, amanda, etc. A packet will match if it was accepted by the
           named helper module. You can also append "-" and a port number to
           the helper module name (e.g., ftp-21) to specify the port number
           that the original connection was made on.</para>
@@ -151,7 +154,7 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>prio(8), shorewall(8), shorewall-accounting(5),
     shorewall-actions(5), shorewall-blacklist(5), shorewall-hosts(5),
@@ -160,7 +163,7 @@
     shorewall-params(5), shorewall-policy(5), shorewall-providers(5),
     shorewall-proxyarp(5), shorewall-rtrules(5), shorewall-routestopped(5),
     shorewall-rules(5), shorewall.conf(5), shorewall-secmarks(5),
-    shorewall-tcclasses(5), shorewall-tcdevices(5), shorewall-tcrules(5),
+    shorewall-tcclasses(5), shorewall-tcdevices(5), shorewall-mangle(5),
     shorewall-tos(5), shorewall-tunnels(5), shorewall-zones(5)</para>
   </refsect1>
 </refentry>

@@ -6,6 +6,8 @@
     <refentrytitle>shorewall6</refentrytitle>
 
     <manvolnum>8</manvolnum>
+
+    <refmiscinfo>Administrative Commands</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -65,6 +67,8 @@
 
       <arg><option>-T</option></arg>
 
+      <arg><option>-i</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -93,6 +97,8 @@
       <arg><option>-d</option></arg>
 
       <arg><option>-T</option></arg>
+
+      <arg><option>-i</option></arg>
 
       <arg><replaceable>directory</replaceable></arg>
 
@@ -242,6 +248,8 @@
 
       <arg><option>-T</option></arg>
 
+      <arg><option>-i</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
 
       <arg choice="plain"><replaceable>system</replaceable></arg>
@@ -309,7 +317,7 @@
       <arg>-<replaceable>options</replaceable></arg>
 
       <arg
-      choice="plain"><option>refresh</option><arg><option>-n</option></arg><arg><option>-d</option></arg><arg><option>-T</option></arg><arg>-<option>D</option>
+      choice="plain"><option>refresh</option><arg><option>-n</option></arg><arg><option>-d</option></arg><arg><option>-T</option></arg><arg><option>-i</option></arg><arg>-<option>D</option>
       <replaceable>directory</replaceable> </arg><arg
       rep="repeat"><replaceable>chain</replaceable></arg></arg>
     </cmdsynopsis>
@@ -344,6 +352,8 @@
 
       <arg><option>-T</option></arg>
 
+      <arg><option>-i</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
 
       <arg choice="plain"><replaceable>system</replaceable></arg>
@@ -377,6 +387,8 @@
       <arg><option>-c</option></arg>
 
       <arg><option>-T</option></arg>
+
+      <arg><option>-i</option></arg>
 
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
@@ -546,6 +558,8 @@
 
       <arg><option>-T</option></arg>
 
+      <arg><option>-i</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -606,6 +620,12 @@
 
       <arg><option>-D</option></arg>
 
+      <arg><option>-i</option></arg>
+
+      <arg><option>-t</option></arg>
+
+      <arg><option>-A</option></arg>
+
       <arg><replaceable>directory</replaceable></arg>
     </cmdsynopsis>
 
@@ -633,7 +653,7 @@
 
     <para>The <option>trace</option> and <option>debug</option> options are
     used for debugging. See <ulink
-    url="http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace">http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace</ulink>.</para>
+    url="/starting_and_stopping_shorewall.htm#Trace">http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace</ulink>.</para>
 
     <para>The nolock <option>option</option> prevents the command from
     attempting to acquire the Shorewall6 lockfile. It is useful if you need to
@@ -645,9 +665,9 @@
     role="bold">v</emphasis> and <emphasis role="bold">q</emphasis>. If the
     options are omitted, the amount of output is determined by the setting of
     the VERBOSITY parameter in <ulink
-    url="shorewall6.conf.html">shorewall6.conf</ulink>(5). Each <emphasis
-    role="bold">v</emphasis> adds one to the effective verbosity and each
-    <emphasis role="bold">q</emphasis> subtracts one from the effective
+    url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5). Each
+    <emphasis role="bold">v</emphasis> adds one to the effective verbosity and
+    each <emphasis role="bold">q</emphasis> subtracts one from the effective
     VERBOSITY. Alternatively, <emphasis role="bold">v</emphasis> may be
     followed immediately with one of -1,0,1,2 to specify a specify VERBOSITY.
     There may be no white-space between <emphasis role="bold">v</emphasis> and
@@ -673,7 +693,7 @@
 
           <para>The <emphasis>interface</emphasis> argument names an interface
           defined in the <ulink
-          url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
+          url="/manpages6/shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
           file. A <emphasis>host-list</emphasis> is comma-separated list whose
           elements are host or network addresses.<caution>
               <para>The <command>add</command> command is not very robust. If
@@ -687,10 +707,10 @@
 
           <para>Beginning with Shorewall 4.5.9, the <emphasis
           role="bold">dynamic_shared</emphasis> zone option (<ulink
-          url="shorewall6-zones.html">shorewall6-zones</ulink>(5)) allows a
-          single ipset to handle entries for multiple interfaces. When that
-          option is specified for a zone, the <command>add</command> command
-          has the alternative syntax in which the
+          url="/manpages6/shorewall6-zones.html">shorewall6-zones</ulink>(5))
+          allows a single ipset to handle entries for multiple interfaces.
+          When that option is specified for a zone, the <command>add</command>
+          command has the alternative syntax in which the
           <replaceable>zone</replaceable> name precedes the
           <replaceable>host-list</replaceable>.</para>
         </listitem>
@@ -737,6 +757,13 @@
           <para>The <option>-T</option> option was added in Shorewall 4.4.20
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf(5)</ulink>.</para>
         </listitem>
       </varlistentry>
 
@@ -797,6 +824,13 @@
           <para>The <option>-T</option> option was added in Shorewall 4.4.20
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf(5)</ulink>.</para>
         </listitem>
       </varlistentry>
 
@@ -810,17 +844,17 @@
 
           <para>The <emphasis>interface</emphasis> argument names an interface
           defined in the <ulink
-          url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
+          url="/manpages6/shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
           file. A <emphasis>host-list</emphasis> is comma-separated list whose
           elements are a host or network address.</para>
 
           <para>Beginning with Shorewall 4.5.9, the <emphasis
           role="bold">dynamic_shared</emphasis> zone option (<ulink
-          url="shorewall6-zones.html">shorewall6-zones</ulink>(5)) allows a
-          single ipset to handle entries for multiple interfaces. When that
-          option is specified for a zone, the <command>delete</command>
-          command has the alternative syntax in which the
-          <replaceable>zone</replaceable> name precedes the
+          url="/manpages6/shorewall6-zones.html">shorewall6-zones</ulink>(5))
+          allows a single ipset to handle entries for multiple interfaces.
+          When that option is specified for a zone, the
+          <command>delete</command> command has the alternative syntax in
+          which the <replaceable>zone</replaceable> name precedes the
           <replaceable>host-list</replaceable>.</para>
         </listitem>
       </varlistentry>
@@ -839,8 +873,8 @@
           any optional network interface. <replaceable>interface</replaceable>
           may be either the logical or physical name of the interface. The
           command removes any routes added from <ulink
-          url="shorewall6-routes.html">shorewall6-routes</ulink>(5) and any
-          traffic shaping configuration for the interface.</para>
+          url="/manpages6/shorewall6-routes.html">shorewall6-routes</ulink>(5)
+          and any traffic shaping configuration for the interface.</para>
         </listitem>
       </varlistentry>
 
@@ -886,8 +920,8 @@
           may be either the logical or physical name of the interface. The
           command sets <filename>/proc</filename> entries for the interface,
           adds any route specified in <ulink
-          url="shorewall6-routes.html">shorewall6-routes</ulink>(5) and
-          installs the interface's traffic shaping configuration, if
+          url="/manpages6/shorewall6-routes.html">shorewall6-routes</ulink>(5)
+          and installs the interface's traffic shaping configuration, if
           any.</para>
         </listitem>
       </varlistentry>
@@ -923,7 +957,7 @@
           <para>Deletes /var/lib/shorewall6/<emphasis>filename</emphasis> and
           /var/lib/shorewall6/save. If no <emphasis>filename</emphasis> is
           given then the file specified by RESTOREFILE in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5) is
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5) is
           assumed.</para>
         </listitem>
       </varlistentry>
@@ -1001,6 +1035,13 @@
           <para>The <option>-T</option> option was added in Shorewall 4.5.3
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -1011,7 +1052,8 @@
           <para>Causes traffic from the listed <emphasis>address</emphasis>es
           to be logged then discarded. Logging occurs at the log level
           specified by the BLACKLIST_LOGLEVEL setting in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink> (5).</para>
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>
+          (5).</para>
         </listitem>
       </varlistentry>
 
@@ -1020,7 +1062,8 @@
 
         <listitem>
           <para>Monitors the log file specified by the LOGFILE option in
-          <ulink url="shorewall6.conf.html">shorewall6.conf</ulink>(5) and
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5) and
           produces an audible alarm when new Shorewall6 messages are logged.
           The <emphasis role="bold">-m</emphasis> option causes the MAC
           address of each packet source to be displayed if that information is
@@ -1040,7 +1083,8 @@
           <para>Causes traffic from the listed <emphasis>address</emphasis>es
           to be logged then rejected. Logging occurs at the log level
           specified by the BLACKLIST_LOGLEVEL setting in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink> (5).</para>
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>
+          (5).</para>
         </listitem>
       </varlistentry>
 
@@ -1087,6 +1131,13 @@
           <para>The <option>-T</option> option was added in Shorewall 4.5.3
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
 
           <para>The -<option>D</option> option was added in Shorewall 4.5.3
           and causes Shorewall to look in the given
@@ -1141,6 +1192,13 @@
           <para>The <option>-T</option> option was added in Shorewall 4.5.3
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -1185,13 +1243,20 @@
           <para>The <option>-c</option> option was added in Shorewall 4.4.20
           and performs the compilation step unconditionally, overriding the
           AUTOMAKE setting in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When both
-          <option>-f</option> and <option>-c </option>are present, the result
-          is determined by the option that appears last.</para>
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).
+          When both <option>-f</option> and <option>-c </option>are present,
+          the result is determined by the option that appears last.</para>
 
           <para>The <option>-T</option> option was added in Shorewall 4.5.3
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -1206,7 +1271,7 @@
           role="bold">shorewall6 save</emphasis>; if no
           <emphasis>filename</emphasis> is given then Shorewall6 will be
           restored from the file specified by the RESTOREFILE option in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -1268,7 +1333,7 @@
           role="bold">shorewall6 -f start</emphasis> commands. If
           <emphasis>filename</emphasis> is not given then the state is saved
           in the file specified by the RESTOREFILE option in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -1395,8 +1460,8 @@
               <listitem>
                 <para>Displays the last 20 Shorewall6 messages from the log
                 file specified by the LOGFILE option in <ulink
-                url="shorewall6.conf.html">shorewall6.conf</ulink>(5). The
-                <emphasis role="bold">-m</emphasis> option causes the MAC
+                url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).
+                The <emphasis role="bold">-m</emphasis> option causes the MAC
                 address of each packet source to be displayed if that
                 information is available.</para>
               </listitem>
@@ -1487,16 +1552,16 @@
           for configuration files. If <emphasis role="bold">-f</emphasis> is
           specified, the saved configuration specified by the RESTOREFILE
           option in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5) will be
-          restored if that saved configuration exists and has been modified
-          more recently than the files in /etc/shorewall6. When <emphasis
-          role="bold">-f</emphasis> is given, a
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5)
+          will be restored if that saved configuration exists and has been
+          modified more recently than the files in /etc/shorewall6. When
+          <emphasis role="bold">-f</emphasis> is given, a
           <replaceable>directory</replaceable> may not be specified.</para>
 
           <para>Update: In Shorewall6 4.4.20, a new LEGACY_FASTSTART option
           was added to <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When
-          LEGACY_FASTSTART=No, the modification times of files in
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).
+          When LEGACY_FASTSTART=No, the modification times of files in
           /etc/shorewall6 are compared with that of
           /var/lib/shorewall6/firewall (the compiled script that last
           started/restarted the firewall).</para>
@@ -1507,13 +1572,20 @@
           <para>The <option>-c</option> option was added in Shorewall 4.4.20
           and performs the compilation step unconditionally, overriding the
           AUTOMAKE setting in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5). When both
-          <option>-f</option> and <option>-c </option>are present, the result
-          is determined by the option that appears last.</para>
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).
+          When both <option>-f</option> and <option>-c </option>are present,
+          the result is determined by the option that appears last.</para>
 
           <para>The <option>-T</option> option was added in Shorewall 4.5.3
           and causes a Perl stack trace to be included with each
           compiler-generated error and warning message.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
         </listitem>
       </varlistentry>
 
@@ -1523,12 +1595,12 @@
         <listitem>
           <para>Stops the firewall. All existing connections, except those
           listed in <ulink
-          url="shorewall6-routestopped.html">shorewall6-routestopped</ulink>(5)
+          url="/manpages6/shorewall6-routestopped.html">shorewall6-routestopped</ulink>(5)
           or permitted by the ADMINISABSENTMINDED option in <ulink
-          url="shorewall6.conf.html">shorewall6.conf</ulink>(5), are taken
-          down. The only new traffic permitted through the firewall is from
-          systems listed in <ulink
-          url="shorewall6-routestopped.html">shorewall6-routestopped</ulink>(5)
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5),
+          are taken down. The only new traffic permitted through the firewall
+          is from systems listed in <ulink
+          url="/manpages6/shorewall6-routestopped.html">shorewall6-routestopped</ulink>(5)
           or by ADMINISABSENTMINDED.</para>
         </listitem>
       </varlistentry>
@@ -1596,13 +1668,15 @@
 
           <para>The <option>-b</option> option was added in Shorewall 4.4.26
           and causes legacy blacklisting rules (<ulink
-          url="shorewall6-blacklist.html">shorewall6-blacklist</ulink> (5) )
-          to be converted to entries in the blrules file (<ulink
-          url="shorewall6-blrules.html">shorewall6-blrules</ulink> (5) ). The
-          blacklist keyword is removed from <ulink
-          url="shorewall6-zones.html">shorewall6-zones</ulink> (5), <ulink
-          url="shorewall6-interfaces.html">shorewall-interfaces</ulink> (5)
-          and <ulink url="shorewall6-hosts.html">shorewall6-hosts</ulink> (5).
+          url="/manpages6/shorewall6-blacklist.html">shorewall6-blacklist</ulink>
+          (5) ) to be converted to entries in the blrules file (<ulink
+          url="/manpages6/shorewall6-blrules.html">shorewall6-blrules</ulink>
+          (5) ). The blacklist keyword is removed from <ulink
+          url="/manpages6/shorewall6-zones.html">shorewall6-zones</ulink> (5),
+          <ulink
+          url="/manpages6/shorewall6-interfaces.html">shorewall6-interfaces</ulink>
+          (5) and <ulink
+          url="/manpages6/shorewall6-hosts.html">shorewall6-hosts</ulink> (5).
           The unmodified files are saved with a .bak suffix.</para>
 
           <para>The <option>-D</option> option was added in Shorewall 4.5.11.
@@ -1611,6 +1685,56 @@
           to compiler directives (e.g., ?FORMAT and ?COMMENT. When a file is
           updated, the original is saved in a .bak file in the same
           directory.</para>
+
+          <para>The -i option was added in Shorewall 4.6.0 and causes a
+          warning message to be issued if the line current line contains
+          alternative input specifications following a semicolon (";"). Such
+          lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
+          <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf(5)</ulink>.</para>
+
+          <para>The <option>-t</option> option was added in Shorewall 4.6.0.
+          When specified, <option>-t</option> causes <ulink
+          url="shorewall6-tcrules.html">shorewall6-tcrules(5)</ulink> to be
+          converted to <ulink
+          url="shorewall6-mangle.html">shorewall6-mangle(5)</ulink>. The old
+          file is renamed with a .bak suffix.</para>
+
+          <important>
+            <para>There are some notable restrictions with the
+            <option>-t</option> option:</para>
+
+            <orderedlist>
+              <listitem>
+                <para>Converted rules will be appended to the existing
+                <filename>mangle</filename> file; if there is no
+                <filename>mangle</filename> file in the CONFIG_PATH, one will
+                be created in <filename
+                class="directory">/etc/shorewall6</filename>.</para>
+              </listitem>
+
+              <listitem>
+                <para>Existing comments in the <filename>tcrules</filename>
+                file will not be transferred to the
+                <filename>mangle</filename> file.</para>
+              </listitem>
+
+              <listitem>
+                <para>INCLUDEd files will be expanded inline in the
+                <filename>mangle</filename> file.</para>
+              </listitem>
+
+              <listitem>
+                <para>Columns in the <filename>mangle</filename> file will be
+                separated by a single tab character; there is no attempt made
+                to otherwise align the columns.</para>
+              </listitem>
+            </orderedlist>
+          </important>
+
+          <para>The <option>-A</option> option was added in Shorewall 4.6.0
+          and is equivalent to specifying the <option>-b</option>,
+          <option>-D</option> and the <option>-t</option> options.</para>
 
           <para>For a description of the other options, see the <emphasis
           role="bold">check</emphasis> command above.</para>
@@ -1650,7 +1774,7 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://www.shorewall.net/starting_and_stopping_shorewall.htm">http://www.shorewall.net/starting_and_stopping_shorewall.htm</ulink></para>
+    url="/starting_and_stopping_shorewall.htm">http://www.shorewall.net/starting_and_stopping_shorewall.htm</ulink></para>
 
     <para>shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-interfaces(5),

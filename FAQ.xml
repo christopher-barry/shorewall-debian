@@ -247,7 +247,7 @@ DNAT    net:<emphasis>address</emphasis>   loc:<emphasis>local-IP-address</empha
         <itemizedlist>
           <listitem>
             <para>You are trying to test from inside your firewall (no, that
-            won't work -- see <xref linkend="faq2"/>).</para>
+            won't work -- see <xref linkend="faq2" />).</para>
           </listitem>
 
           <listitem>
@@ -708,7 +708,7 @@ loc      eth1         detect       <emphasis role="bold">routeback</emphasis>   
           <para>In <filename>/etc/shorewall/masq</filename>:</para>
 
           <programlisting>#INTERFACE              SOURCE          ADDRESS         PROTO   PORT(S)
-<emphasis role="bold">eth1:192.168.1.5        eth1            192.168.1.254   tcp     www</emphasis></programlisting>
+<emphasis role="bold">eth1:192.168.1.5        192.168.1.0/24  192.168.1.254   tcp     www</emphasis></programlisting>
 
           <para>Note: The technique described here is known as
           <firstterm>hairpinning NAT</firstterm> and is described in section 6
@@ -718,7 +718,7 @@ loc      eth1         detect       <emphasis role="bold">routeback</emphasis>   
           source:</para>
 
           <programlisting>#INTERFACE              SOURCE          ADDRESS         PROTO   PORT(S)
-eth1:192.168.1.5        eth1            <emphasis role="bold">130.151.100.69</emphasis>  tcp     www</programlisting>
+eth1:192.168.1.5        192.168.1.0/24  <emphasis role="bold">130.151.100.69</emphasis>  tcp     www</programlisting>
         </listitem>
 
         <listitem>
@@ -745,6 +745,12 @@ DNAT       loc           loc:192.168.1.5    tcp      www         -         <emph
           <para>Using this technique, you will want to configure your
           DHCP/PPPoE/PPTP/… client to automatically restart Shorewall each
           time that you get a new IP address.</para>
+
+          <note>
+            <para>If your local interface is a bridge, see <link
+            linkend="faq2e">FAQ 2e</link> for additional configuration
+            steps.</para>
+          </note>
 
           <note>
             <para>For optional interfaces, use the function <emphasis
@@ -915,6 +921,59 @@ DNAT       loc           dmz:192.168.2.4    tcp      80          -         <emph
         INTERFACES column of each entry in <ulink
         url="manpages/shorewall-nat.html">/etc/shorewall/nat</ulink>.</para>
       </section>
+
+      <section id="faq2e">
+        <title>(FAQ 2e) I have the situation in FAQ 2 but my local interface
+        is a bridge and the solution in FAQ 2 doesn't work</title>
+
+        <para><emphasis role="bold">Answer</emphasis>: Assume that the bridge
+        is br0 and that eth2 is the bridge port that connects to the LAN
+        containing 192.168.1.5</para>
+
+        <para>In addition to the steps in FAQ 2 (replacing eth1 with br0), you
+        also need to:</para>
+
+        <orderedlist>
+          <listitem>
+            <para>Set the <firstterm>hairpin</firstterm> option on
+            eth2.</para>
+
+            <programlisting>brctl hairpin br0 eth2 on</programlisting>
+
+            <para>On Debian and derivitives, you can place that command in
+            /etc/network/interfaces as a post-up command:</para>
+
+            <programlisting>auto br0
+iface br0 inet static
+        bridge_ports    eth2
+        bridge_fd       0
+        bridge_maxwait  0
+        address         192.168.1.1
+        netmask         255.255.255.0
+        <emphasis role="bold">post-up /sbin/brctl hairpin br0 eth2 on</emphasis></programlisting>
+          </listitem>
+
+          <listitem>
+            <para>Install ebtables if it is not already installed.</para>
+          </listitem>
+
+          <listitem>
+            <para>Be sure that all traffic going out of eth2 has the correct
+            MAC address.</para>
+
+            <programlisting>ebtables -t nat -A POSTROUTING -o eth2 -j snat --to-source <emphasis>br0-MAC-address</emphasis> </programlisting>
+
+            <para>where br0-MAC-address is the MAC address of br0.</para>
+
+            <para>Here's a working example of /etc/shorewall/start that
+            executes the above command.</para>
+
+            <programlisting>if [ $(ebtables -t nat -L POSTROUTING | wc -l) -lt 4 ]; then
+   <emphasis role="bold">ebtables -t nat -A POSTROUTING -o eth2 -j snat --to-source 0:19:21:d0:61:65</emphasis>
+fi</programlisting>
+          </listitem>
+        </orderedlist>
+      </section>
     </section>
   </section>
 
@@ -939,6 +998,12 @@ DNAT       loc           dmz:192.168.2.4    tcp      80          -         <emph
         <option>blacklist</option> option in <ulink
         url="manpages/shorewall-interfaces.html"><filename>/etc/shorewall/interfaces</filename></ulink>
         to implement blacklisting by destination IP address.</para>
+      </note>
+
+      <note>
+        <para>Beginning with Shorewall 4.4.26, you can use <ulink
+        url="manpages/shorewall-blrules.html">/etc/shorewall/blrules</ulink>
+        to implement arbitrary blacklist rules.</para>
       </note>
     </section>
 
@@ -2267,9 +2332,10 @@ gateway:~# </programlisting>
       <para><emphasis role="bold">Answer:</emphasis> Suppose that you want all
       traffic to go out through ISP1 (mark 1) unless you specify otherwise.
       Then simply add these two rules as the first marking rules in your
-      <filename>/etc/shorewall/tcrules</filename> file:</para>
+      <filename>/etc/shorewall/mangle</filename>
+      (<filename>/etc/shorewall/tcrules</filename>) file:</para>
 
-      <programlisting>#MARK         SOURCE           DEST
+      <programlisting>#ACTION       SOURCE           DEST
 1:P           0.0.0.0/0
 1             $FW
 <emphasis>other MARK rules</emphasis></programlisting>
@@ -2974,7 +3040,7 @@ Shorewall has detected the following iptables/netfilter capabilities:
    Persistent SNAT: Available
 gateway:~# </programlisting>
 
-      <para/>
+      <para></para>
     </section>
 
     <section id="faq19">
@@ -3166,6 +3232,17 @@ EXT_IF:192.168.1.1	     	0.0.0.0/0		192.168.1.254
           instructions in that email.</para>
         </listitem>
       </orderedlist>
+    </section>
+
+    <section>
+      <title id="faq102">(FAQ 102) What is 'qt'? I see it in some of the older
+      documentation.</title>
+
+      <para><emphasis role="bold">Answer</emphasis>: 'qt' stands for 'quiet';
+      qt() is a shell function that accepts a command with arguments as
+      parameters. It redirects both standard out and standard error to
+      /dev/null. It is defined in the Shorewall-core shell library
+      lib.common.</para>
     </section>
   </section>
 </article>

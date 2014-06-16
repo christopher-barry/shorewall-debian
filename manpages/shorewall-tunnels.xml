@@ -6,6 +6,8 @@
     <refentrytitle>shorewall-tunnels</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -27,8 +29,8 @@
     encrypted) traffic to pass between the Shorewall system and a remote
     gateway. Traffic flowing through the tunnel is handled using the normal
     zone/policy/rule mechanism. See <ulink
-    url="http://www.shorewall.net/VPNBasics.html">http://www.shorewall.net/VPNBasics.html</ulink>
-    for details.</para>
+    url="/VPNBasics.html">http://www.shorewall.net/VPNBasics.html</ulink> for
+    details.</para>
 
     <para>The columns in the file are as follows.</para>
 
@@ -143,8 +145,8 @@
 
           <para>Beginning with Shorewall 4.5.3, a list of addresses or ranges
           may be given. Exclusion (<ulink
-          url="shorewall-exclusion.html">shorewall-exclusion</ulink> (5) ) is
-          not supported.</para>
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>
+          (5) ) is not supported.</para>
         </listitem>
       </varlistentry>
 
@@ -281,7 +283,7 @@
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-hosts(5), shorewall_interfaces(5),
@@ -290,7 +292,7 @@
     shorewall-policy(5), shorewall-providers(5), shorewall-proxyarp(5),
     shorewall-rtrules(5), shorewall-routestopped(5), shorewall-rules(5),
     shorewall.conf(5), shorewall-secmarks(5), shorewall-tcclasses(5),
-    shorewall-tcdevices(5), shorewall-tcrules(5), shorewall-tos(5),
+    shorewall-tcdevices(5), shorewall-mangle(5), shorewall-tos(5),
     shorewall-zones(5)</para>
   </refsect1>
 </refentry>

@@ -3,7 +3,7 @@
 "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <refentry>
   <refmeta>
-    <refentrytitle>shorewall-tcrules</refentrytitle>
+    <refentrytitle>shorewall-mangle</refentrytitle>
 
     <manvolnum>5</manvolnum>
   </refmeta>
@@ -28,14 +28,14 @@
 
     <important>
       <para>Unlike rules in the <ulink
-      url="shorewall-rules.html">shorewall-rules</ulink>(5) file, evaluation
+      url="/manpages/shorewall-rules.html">shorewall-rules</ulink>(5) file, evaluation
       of rules in this file will continue after a match. So the final mark for
       each packet will be the one assigned by the LAST tcrule that
       matches.</para>
 
       <para>If you use multiple internet providers with the 'track' option, in
       /etc/shorewall/providers be sure to read the restrictions at <ulink
-      url="http://shorewall.net/MultiISP.html">http://shorewall.net/MultiISP.html</ulink>.</para>
+      url="/MultiISP.html">http://www.shorewall.net/MultiISP.html</ulink>.</para>
     </important>
 
     <para>Beginning with Shorewall 4.5.4, the tcrules file supports two
@@ -123,7 +123,7 @@
 
               <para>- Otherwise, the chain is determined by the setting of
               MARK_IN_FORWARD_CHAIN in <ulink
-              url="shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+              url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5).</para>
 
               <para>Please note that <emphasis role="bold">:I</emphasis> is
               included for completeness and affects neither traffic shaping
@@ -203,7 +203,7 @@
               then the assigned mark values are 0x200, 0x300 and 0x400 in
               equal proportions. If no mask is specified, then ( 2 **
               MASK_BITS ) - 1 is assumed (MASK_BITS is set in <ulink
-              url="shorewall.conf.html">shorewall.conf</ulink>(5)).</para>
+              url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5)).</para>
 
               <para>May optionally be followed by <emphasis
               role="bold">:P</emphasis>, <emphasis
@@ -231,7 +231,7 @@
 
               <para>- Otherwise, the chain is determined by the setting of
               MARK_IN_FORWARD_CHAIN in <ulink
-              url="shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+              url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5).</para>
 
               <para>Please note that <emphasis role="bold">:I</emphasis> is
               included for completeness and affects neither traffic shaping
@@ -311,11 +311,11 @@
               <para>When using Shorewall's built-in traffic shaping tool, the
               <emphasis>major</emphasis> class is the device number (the first
               device in <ulink
-              url="shorewall-tcdevices.html">shorewall-tcdevices</ulink>(5) is
+              url="/manpages/shorewall-tcdevices.html">shorewall-tcdevices</ulink>(5) is
               major class 1, the second device is major class 2, and so on)
               and the <emphasis>minor</emphasis> class is the class's MARK
               value in <ulink
-              url="shorewall-tcclasses.html">shorewall-tcclasses</ulink>(5)
+              url="/manpages/shorewall-tcclasses.html">shorewall-tcclasses</ulink>(5)
               preceded by the number 1 (MARK 1 corresponds to minor class 11,
               MARK 5 corresponds to minor class 15, MARK 22 corresponds to
               minor class 122, etc.).</para>
@@ -398,6 +398,13 @@
             </listitem>
 
             <listitem>
+              <para><emphasis role="bold">DROP</emphasis></para>
+
+              <para>Added in Shorewall 4.5.21.4. Causes matching packets to be
+              discarded.</para>
+            </listitem>
+
+            <listitem>
               <para><emphasis
               role="bold">DSCP</emphasis>(<replaceable>dscp</replaceable>)</para>
 
@@ -464,6 +471,39 @@
               be passed to the IMQ identified by
               <replaceable>number</replaceable>. Requires IMQ Target support
               in your kernel and iptables.</para>
+            </listitem>
+
+            <listitem>
+              <para><emphasis
+              role="bold">INLINE</emphasis>[(<replaceable>action</replaceable>)]</para>
+
+              <para>Added in Shorewall 4.6.0. Allows you to place your own
+              ip[6]tables matches at the end of the line following a semicolon
+              (";"). If an <replaceable>action</replaceable> is specified, the
+              compiler procedes as if that <replaceable>action</replaceable>
+              had been specified in this column. If no action is specified,
+              then you may include your own jump ("-j
+              <replaceable>target</replaceable>
+              [<replaceable>option</replaceable>] ...") after any matches
+              specified at the end of the rule. If the target is not one known
+              to Shorewall, then it must be defined as a builtin action in
+              <ulink url="/manpages/shorewall-actions.html">shorewall-actions</ulink>
+              (5).</para>
+
+              <para>The following rules are equivalent:</para>
+
+              <programlisting>2:P             eth0              -         tcp 22
+INLINE(2):P     eth0              -         tcp 22
+INLINE(2):P     eth0              -                 ; -p tcp
+INLINE          eth0              -         tcp 22  ; -j MARK --set-mark 2
+INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 2
+</programlisting>
+
+              <para>If INLINE_MATCHES=Yes in <ulink
+              url="/manpages/shorewall.conf.html">shorewall.conf(5)</ulink> then the
+              third rule above can be specified as follows:</para>
+
+              <programlisting>2:P             eth0              -                 ; -p tcp</programlisting>
             </listitem>
 
             <listitem>
@@ -625,17 +665,6 @@ SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
             </listitem>
 
             <listitem>
-              <para><emphasis role="bold">STATE</emphasis> {<emphasis
-              role="bold">NEW</emphasis>|<emphasis
-              role="bold">RELATED</emphasis>|<emphasis
-              role="bold">ESTABLISHED</emphasis>|<emphasis
-              role="bold">INVALID</emphasis>} [,...]</para>
-
-              <para>Added in Shorewall 4.5.9. The rule will only match if the
-              packet's connection is in one of the listed states.</para>
-            </listitem>
-
-            <listitem>
               <para><emphasis
               role="bold">TOS</emphasis>(<replaceable>tos</replaceable>[/<replaceable>mask</replaceable>])</para>
 
@@ -695,7 +724,7 @@ Normal-Service       =&gt; 0x00</programlisting>
 
               <para>Transparently redirects a packet without altering the IP
               header. Requires a local provider to be defined in <ulink
-              url="shorewall-providers.html">shorewall-providers</ulink>(5).</para>
+              url="/manpages/shorewall-providers.html">shorewall-providers</ulink>(5).</para>
 
               <para>There are three parameters to TPROXY - only the first
               (mark) is required:</para>
@@ -704,7 +733,7 @@ Normal-Service       =&gt; 0x00</programlisting>
                 <listitem>
                   <para><replaceable>mark</replaceable> - the MARK value
                   corresponding to the local provider in <ulink
-                  url="shorewall-providers.html">shorewall-providers</ulink>(5).</para>
+                  url="/manpages/shorewall-providers.html">shorewall-providers</ulink>(5).</para>
                 </listitem>
 
                 <listitem>
@@ -729,7 +758,7 @@ Normal-Service       =&gt; 0x00</programlisting>
 
               <para>Transparently redirects a packet without altering the IP
               header. Requires a tproxy provider to be defined in <ulink
-              url="shorewall-providers.html">shorewall-providers</ulink>(5).</para>
+              url="/manpages/shorewall-providers.html">shorewall-providers</ulink>(5).</para>
 
               <para>There are three parameters to TPROXY - neither is
               required:</para>
@@ -833,7 +862,7 @@ Normal-Service       =&gt; 0x00</programlisting>
 
           <para>You may exclude certain hosts from the set already defined
           through use of an <emphasis>exclusion</emphasis> (see <ulink
-          url="shorewall-exclusion.html">shorewall-exclusion</ulink>(5)).</para>
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>(5)).</para>
         </listitem>
       </varlistentry>
 
@@ -850,7 +879,7 @@ Normal-Service       =&gt; 0x00</programlisting>
               <para>An interface name. May not be used in the PREROUTING chain
               (:P in the mark column or no chain qualifier and
               MARK_IN_FORWARD_CHAIN=No in <ulink
-              url="manpages/shorewall.conf">shorewall.conf</ulink> (5)). The
+              url="/manpages/shorewall.conf">shorewall.conf</ulink> (5)). The
               interface name may be optionally followed by a colon (":") and
               an IP address list.</para>
             </listitem>
@@ -870,7 +899,7 @@ Normal-Service       =&gt; 0x00</programlisting>
 
           <para>You may exclude certain hosts from the set already defined
           through use of an <emphasis>exclusion</emphasis> (see <ulink
-          url="shorewall-exclusion.html">shorewall-exclusion</ulink>(5)).</para>
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>(5)).</para>
         </listitem>
       </varlistentry>
 
@@ -903,9 +932,9 @@ Normal-Service       =&gt; 0x00</programlisting>
           <emphasis>port range</emphasis>s; if the protocol is <emphasis
           role="bold">icmp</emphasis>, this column is interpreted as the
           destination icmp-type(s). ICMP types may be specified as a numeric
-          type, a numeric type and code separated by a slash (e.g., 3/4), or
-          a typename. See <ulink
-          url="http://www.shorewall.net/configuration_file_basics.htm#ICMP">http://www.shorewall.net/configuration_file_basics.htm#ICMP</ulink>.</para>
+          type, a numeric type and code separated by a slash (e.g., 3/4), or a
+          typename. See <ulink
+          url="/configuration_file_basics.htm#ICMP">http://www.shorewall.net/configuration_file_basics.htm#ICMP</ulink>.</para>
 
           <para>If the protocol is <emphasis role="bold">ipp2p</emphasis>,
           this column is interpreted as an ipp2p option without the leading
@@ -1139,8 +1168,8 @@ Normal-Service       =&gt; 0x00</programlisting>
         </emphasis><emphasis>helper</emphasis></term>
 
         <listitem>
-          <para>Names a Netfilter protocol <firstterm>helper</firstterm> module
-          such as <option>ftp</option>, <option>sip</option>,
+          <para>Names a Netfilter protocol <firstterm>helper</firstterm>
+          module such as <option>ftp</option>, <option>sip</option>,
           <option>amanda</option>, etc. A packet will match if it was accepted
           by the named helper module.</para>
 
@@ -1203,6 +1232,19 @@ Normal-Service       =&gt; 0x00</programlisting>
     EF   =&gt; 0x2e</programlisting>
         </listitem>
       </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">STATE</emphasis> -- {<emphasis
+        role="bold">NEW</emphasis>|<emphasis
+        role="bold">RELATED</emphasis>|<emphasis
+        role="bold">ESTABLISHED</emphasis>|<emphasis
+        role="bold">INVALID</emphasis>} [,...]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.9. The rule will only match if the
+          packet's connection is in one of the listed states.</para>
+        </listitem>
+      </varlistentry>
     </variablelist>
   </refsect1>
 
@@ -1233,10 +1275,10 @@ Normal-Service       =&gt; 0x00</programlisting>
        4:T         0.0.0.0/0 0.0.0.0/0   ipp2p:all
        SAVE:T      0.0.0.0/0 0.0.0.0/0   all     -             -       -       !0</programlisting>
 
-          <para>If a packet hasn't been classified (packet mark is 0), copy the
-          connection mark to the packet mark. If the packet mark is set, we're
-          done. If the packet is P2P, set the packet mark to 4. If the packet
-          mark has been set, save it to the connection mark.</para>
+          <para>If a packet hasn't been classified (packet mark is 0), copy
+          the connection mark to the packet mark. If the packet mark is set,
+          we're done. If the packet is P2P, set the packet mark to 4. If the
+          packet mark has been set, save it to the connection mark.</para>
         </listitem>
       </varlistentry>
 
@@ -1275,16 +1317,16 @@ Normal-Service       =&gt; 0x00</programlisting>
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://shorewall.net/traffic_shaping.htm">http://shorewall.net/traffic_shaping.htm</ulink></para>
+    url="/traffic_shaping.htm">http://www.shorewall.net/traffic_shaping.htm</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/MultiISP.html">http://shorewall.net/MultiISP.html</ulink></para>
+    url="/MultiISP.html">http://www.shorewall.net/MultiISP.html</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/PacketMarking.html">http://shorewall.net/PacketMarking.html</ulink></para>
+    url="/PacketMarking.html">http://www.shorewall.net/PacketMarking.html</ulink></para>
 
     <para><ulink
-    url="http://shorewall.net/configuration_file_basics.htm#Pairs">http://shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
+    url="/configuration_file_basics.htm#Pairs">http://www.shorewall.net/configuration_file_basics.htm#Pairs</ulink></para>
 
     <para>shorewall(8), shorewall-accounting(5), shorewall-actions(5),
     shorewall-blacklist(5), shorewall-ecn(5), shorewall-exclusion(5),

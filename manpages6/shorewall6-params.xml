@@ -3,9 +3,11 @@
 "http://www.oasis-open.org/docbook/xml/4.4/docbookx.dtd">
 <refentry>
   <refmeta>
-    <refentrytitle>shorewall6-netmap(5),shorewall6-params</refentrytitle>
+    <refentrytitle>shorewall6-params</refentrytitle>
 
     <manvolnum>5</manvolnum>
+
+    <refmiscinfo>Configuration Files</refmiscinfo>
   </refmeta>
 
   <refnamediv>
@@ -26,8 +28,8 @@
     <para>Assign any shell variables that you need in this file. The file is
     always processed by <filename>/bin/sh</filename> or by the shell specified
     through SHOREWALL_SHELL in <ulink
-    url="shorewall6.conf.html">shorewall6.conf</ulink> (5) so the full range
-    of shell capabilities may be used.</para>
+    url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink> (5) so the
+    full range of shell capabilities may be used.</para>
 
     <para>It is suggested that variable names begin with an upper case letter
     to distinguish them from variables used internally within the Shorewall
@@ -40,7 +42,7 @@
 
     <simplelist>
       <member><emphasis role="bold">Any option from <ulink
-      url="shorewall6.conf.html">shorewall6.conf</ulink>
+      url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>
       (5)</emphasis></member>
 
       <member><emphasis role="bold">COMMAND</emphasis></member>
@@ -107,7 +109,7 @@
 NET_OPTIONS=dhcp,nosmurfs</programlisting>
 
     <para>Example <ulink
-    url="shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
+    url="/manpages6/shorewall6-interfaces.html">shorewall6-interfaces</ulink>(5)
     file.</para>
 
     <programlisting>ZONE    INTERFACE       BROADCAST       OPTIONS
@@ -129,14 +131,14 @@ net     eth0            -               dhcp,nosmurfs</programlisting>
     <title>See ALSO</title>
 
     <para><ulink
-    url="http://www.shorewall.net/configuration_file_basics.htm#Variables?">http://www.shorewall.net/configuration_file_basics.htm#Variables</ulink></para>
+    url="/configuration_file_basics.htm#Variables">http://www.shorewall.net/configuration_file_basics.htm#Variables</ulink></para>
 
     <para>shorewall6(8), shorewall6-accounting(5), shorewall6-actions(5),
     shorewall6-blacklist(5), shorewall6-hosts(5), shorewall6-interfaces(5),
     shorewall6-maclist(5), shorewall6-policy(5), shorewall6-providers(5),
     shorewall6-rtrules(5), shorewall6-routestopped(5), shorewall6-rules(5),
     shorewall6.conf(5), shorewall6-secmarks(5), shorewall6-tcclasses(5),
-    shorewall6-tcdevices(5), shorewall6-tcrules(5), shorewall6-tos(5),
+    shorewall6-tcdevices(5), shorewall6-mangle(5), shorewall6-tos(5),
     shorewall6-tunnels(5), shorewall6-zones(5)</para>
   </refsect1>
 </refentry>

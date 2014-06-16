@@ -5,7 +5,7 @@
   <!--$Id: template.xml 5908 2007-04-12 23:04:36Z teastep $-->
 
   <articleinfo>
-    <title>Shorewall 4.4 Manpages</title>
+    <title>Shorewall 4.4-4.6 Manpages</title>
 
     <authorgroup>
       <author>
@@ -18,19 +18,7 @@
     <pubdate><?dbtimestamp format="Y/m/d"?></pubdate>
 
     <copyright>
-      <year>2007</year>
-
-      <year>2008</year>
-
-      <year>2009</year>
-
-      <year>2010</year>
-
-      <year>2011</year>
-
-      <year>2012</year>
-
-      <year>2013</year>
+      <year>2007-2014</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -47,18 +35,9 @@
   </articleinfo>
 
   <warning>
-    <para>These manpages are for Shorewall 4.0 only. They describe features
-    and options not available on earlier releases.</para>
+    <para>These manpages are for Shorewall 4.4 and later only. They describe
+    features and options not available on earlier releases.</para>
   </warning>
-
-  <note>
-    <para>The docbook to manpage translation tool that we are using has some
-    indentation issues which require us to choose between correct output of
-    the man command and correctly-indented HTML. We've chosen in favor of the
-    man command so some of the manpages accessed through the links below have
-    indentation problems. We're working to resolve these issues and ask for
-    your patience.</para>
-  </note>
 
   <section id="Section5">
     <title>Section 5 — Files and Concepts</title>
@@ -77,7 +56,10 @@
 
         <member><ulink
         url="manpages/shorewall-blacklist.html">blacklist</ulink> - Static
-        blacklisting.</member>
+        blacklisting (deprecated)</member>
+
+        <member><ulink url="manpages/shorewall-blrules.html">blrules</ulink> -
+        shorewall Blacklist file.</member>
 
         <member><ulink
         url="manpages/shorewall-conntrack.html">conntrack</ulink> - Specify
@@ -105,6 +87,9 @@
 
         <member><ulink url="manpages/shorewall-maclist.html">maclist</ulink> -
         Define MAC verification.</member>
+
+        <member><ulink url="manpages/shorewall-mangle.html">mangle</ulink> -
+        Supercedes tcrules and describes packet/connection marking.</member>
 
         <member><ulink url="manpages/shorewall-masq.html">masq</ulink> -
         Define Masquerade/SNAT</member>
@@ -147,7 +132,9 @@
         <member><ulink
         url="manpages/shorewall-routestopped.html">routestopped</ulink> -
         Specify connections to be permitted when Shorewall is in the stopped
-        state (deprecated in Shorewall 4.5.8).</member>
+        state (deprecated in Shorewall 4.5.8 in favor of the <ulink
+        url="manpages/shorewall-stoppedrules.html">stoppedrules</ulink>
+        file).</member>
 
         <member><ulink url="manpages/shorewall-rules.html">rules</ulink> -
         Specify exceptions to policies, including DNAT and REDIRECT.</member>
@@ -181,7 +168,8 @@
         state (added in Shorewall 4.5.8).</member>
 
         <member><ulink url="manpages/shorewall-tcrules.html">tcrules</ulink> -
-        Define packet marking rules, usually for traffic shaping.</member>
+        Define packet marking rules, usually for traffic shaping. Superceded
+        by mangle (above) in Shorewall 4.6.0.</member>
 
         <member><ulink url="manpages/shorewall-tos.html">tos</ulink> - Define
         TOS field manipulation.</member>
