@@ -9,7 +9,7 @@
 +STARTUP_ENABLED=Yes
  
  ###############################################################################
- #		              V E R B O S I T Y
+ #			     V E R B O S I T Y
 @@ -82,7 +82,7 @@
  
  SHOREWALL_SHELL=/bin/sh
