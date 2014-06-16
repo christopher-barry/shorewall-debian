@@ -44,18 +44,18 @@
 # 
 # SOURCE - zone|$FW|all|all+
 # 
-#     Source zone. Must be the name of a zone defined in shorewall-zones(5), $FW,
-#     "all" or "all+".
+#     Source zone. Must be the name of a zone defined in shorewall6-zones(5),
+#     $FW, "all" or "all+".
 # 
 #     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
 #     the implicit intra-zone ACCEPT policy while "all+" does.
 # 
 # DEST - zone|$FW|all|all+
 # 
-#     Destination zone. Must be the name of a zone defined in shorewall-zones(5),
-#     $FW, "all" or "all+". If the DEST is a bport zone, then the SOURCE must be
-#     "all", "all+", another bport zone associated with the same bridge, or it
-#     must be an ipv4 zone that is associated with only the same bridge.
+#     Destination zone. Must be the name of a zone defined in shorewall6-zones
+#     (5), $FW, "all" or "all+". If the DEST is a bport zone, then the SOURCE
+#     must be "all", "all+", another bport zone associated with the same bridge,
+#     or it must be an ipv4 zone that is associated with only the same bridge.
 # 
 #     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
 #     the implicit intra-zone ACCEPT policy while "all+" does.
@@ -69,7 +69,7 @@
 #     by ":" and one of the following:
 # 
 #      a. The word "None" or "none". This causes any default action defined in
-#         shorewall.conf(5) to be omitted for this policy.
+#         shorewall6.conf(5) to be omitted for this policy.
 # 
 #      b. The name of an action. The action will be invoked before the policy is
 #         enforced.

@@ -274,13 +274,16 @@
 #         routeback option. On these interfaces, sfilter should list those local
 #         networks that are connected to the firewall through other interfaces.
 # 
-#     tcpflags
+#     tcpflags[={0|1}]
 # 
 #         Packets arriving on this interface are checked for certain illegal
 #         combinations of TCP flags. Packets found to have such a combination of
 #         flags are handled according to the setting of TCP_FLAGS_DISPOSITION
 #         after having been logged according to the setting of
 #         TCP_FLAGS_LOG_LEVEL.
+# 
+#         Beginning with Shorewall 4.6.0, tcpflags=1 is the default. To disable
+#         this option, specify tcpflags=0.
 # 
 #     proxyndp[={0|1}]
 # 

@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-PROVIDER" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-PROVIDER" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -91,11 +91,10 @@ The provider number \-\- a number between 1 and 15\&. Each provider must be assi
 A FWMARK
 \fIvalue\fR
 used in your
-\m[blue]\fBshorewall6\-tcrules(5)\fR\m[]\&\s-2\u[1]\d\s+2
-file to direct packets to this provider\&.
+\m[blue]\fBshorewall6\-mangle\fR\m[]\&\s-2\u[1]\d\s+2(5) file to direct packets to this provider\&.
 .sp
 If HIGH_ROUTE_MARKS=Yes in
-\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[2]\d\s+2, then the value must be a multiple of 256 between 256 and 65280 or their hexadecimal equivalents (0x0100 and 0xff00 with the low\-order byte of the value being zero)\&. Otherwise, the value must be between 1 and 255\&. Each provider must be assigned a unique mark value\&. This column may be omitted if you don\*(Aqt use packet marking to direct connections to a particular provider\&.
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5), then the value must be a multiple of 256 between 256 and 65280 or their hexadecimal equivalents (0x0100 and 0xff00 with the low\-order byte of the value being zero)\&. Otherwise, the value must be between 1 and 255\&. Each provider must be assigned a unique mark value\&. This column may be omitted if you don\*(Aqt use packet marking to direct connections to a particular provider\&.
 .RE
 .PP
 \fBDUPLICATE\fR \- \fIrouting\-table\-name\fR
@@ -108,7 +107,7 @@ or the name of a previously listed provider\&. You may select only certain entri
 \fBINTERFACE\fR \- \fIinterface\fR
 .RS 4
 The name of the network interface to the provider\&. Must be listed in
-\m[blue]\fBshorewall6\-interfaces(5)\fR\m[]\&\s-2\u[3]\d\s+2\&.
+\m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
 .RE
 .PP
 \fBGATEWAY\fR \- {\fB\-\fR|\fIaddress\fR|\fBdetect\fR}
@@ -208,7 +207,7 @@ Specifies the MTU when forwarding through this provider\&. If not given, the MTU
 \fBtproxy\fR
 .RS 4
 Added in Shorewall 4\&.5\&.4\&. Used for supporting the TPROXY action in shorewall\-tcrules(5)\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/Shorewall_Squid_Usage\&.html\fR\m[]\&. When specified, the MARK, DUPLICATE and GATEWAY columns should be empty, INTERFACE should be set to \*(Aqlo\*(Aq and
+\m[blue]\fBhttp://www\&.shorewall\&.net/Shorewall_Squid_Usage\&.html\fR\m[]\&\s-2\u[5]\d\s+2\&. When specified, the MARK, DUPLICATE and GATEWAY columns should be empty, INTERFACE should be set to \*(Aqlo\*(Aq and
 \fBtproxy\fR
 should be the only OPTION\&. Only one
 \fBtproxy\fR
@@ -296,29 +295,44 @@ eth2 connects to a local network\&.
 /etc/shorewall6/providers
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://shorewall\&.net/MultiISP\&.html\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/MultiISP\&.html\fR\m[]\&\s-2\u[6]\d\s+2
 .PP
-\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[7]\d\s+2
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
-shorewall6-tcrules(5)
+shorewall6-mangle
 .RS 4
-\%http://www.shorewall.netshorewall6-tcrules.html
+\%http://www.shorewall.net/manpages6/shorewall6-mangle.html
 .RE
 .IP " 2." 4
-shorewall6.conf(5)
+shorewall6.conf
 .RS 4
-\%http://www.shorewall.netshorewall6.conf.html
+\%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
 .IP " 3." 4
-shorewall6-interfaces(5)
+shorewall6-interfaces
 .RS 4
-\%http://www.shorewall.netshorewall6-interfaces.html
+\%http://www.shorewall.net/manpages6/shorewall6-interfaces.html
 .RE
 .IP " 4." 4
 shorewall6.conf
 .RS 4
-\%http://www.shorewall.netshorwewall6.conf.html
+\%http://www.shorewall.net/manpages6/shorwewall6.conf.html
+.RE
+.IP " 5." 4
+http://www.shorewall.net/Shorewall_Squid_Usage.html
+.RS 4
+\%http://www.shorewall.net/Shorewall_Squid_Usage.html
+.RE
+.IP " 6." 4
+http://www.shorewall.net/MultiISP.html
+.RS 4
+\%http://www.shorewall.net/MultiISP.html
+.RE
+.IP " 7." 4
+http://www.shorewall.net/configuration_file_basics.htm#Pairs
+.RS 4
+\%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE

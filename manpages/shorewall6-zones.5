@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-zones
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ZONES" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-ZONES" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -47,7 +47,7 @@ Name of the
 \fIzone\fR\&. The names "all", "none", "SOURCE" and "DEST" are reserved and may not be used as zone names\&. The maximum length of a zone name is determined by the setting of the LOGFORMAT option in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. With the default LOGFORMAT, zone names can be at most 5 characters long\&.
 The maximum length of an iptables log prefix is 29 bytes\&. As explained in
-\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[1]\d\s+2
 (5), the default LOGPREFIX formatting string is \(lqShorewall:%s:%s:\(rq where the first %s is replaced by the chain name and the second is replaced by the disposition\&.
 .sp
 .RS 4
@@ -103,7 +103,7 @@ M = 5
 .RE
 .RE
 The order in which Shorewall6 matches addresses from packets to zones is determined by the order of zone declarations\&. Where a zone is nested in one or more other zones, you may either ensure that the nested zone precedes its parents in this file, or you may follow the (sub)zone name by ":" and a comma\-separated list of the parent zones\&. The parent zones must have been declared in earlier records in this file\&. See
-\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[3]\d\s+2(5) for additional information\&.
+\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[2]\d\s+2(5) for additional information\&.
 .sp
 Example:
 .sp
@@ -138,7 +138,7 @@ In the future, Shorewall6 may make additional use of nesting information\&.
 \fBipv6\fR
 .RS 4
 This is the standard Shorewall6 zone type and is the default if you leave this column empty or if you enter "\-" in the column\&. Communication with some zone hosts may be encrypted\&. Encrypted hosts are designated using the \*(Aqipsec\*(Aq option in
-\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[4]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[3]\d\s+2(5)\&.
 .RE
 .PP
 \fBipsec\fR (or \fBipsec6\fR)
@@ -159,7 +159,7 @@ The zone is associated with one or more ports on a single bridge\&.
 \fBvserver\fR
 .RS 4
 Added in Shorewall 4\&.4\&.11 Beta 2 \- A zone composed of Linux\-vserver guests\&. The zone contents must be defined in
-\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[4]\d\s+2
+\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[3]\d\s+2
 (5)\&.
 .sp
 Vserver zones are implicitly handled as subzones of the firewall zone\&.
@@ -289,11 +289,11 @@ zones\&.
 When specified in the IN_OPTIONS column, causes all traffic from this zone to be passed against the
 \fBsrc\fR
 entries in
-\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[5]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[4]\d\s+2(5)\&.
 .sp
 When specified in the OUT_OPTIONS column, causes all traffic to this zone to be passed against the
 \fBdst\fR
-entries in s\m[blue]\fBhorewall6\-blacklist\fR\m[]\&\s-2\u[5]\d\s+2(5)\&.
+entries in s\m[blue]\fBhorewall6\-blacklist\fR\m[]\&\s-2\u[4]\d\s+2(5)\&.
 .sp
 Specifying this option in the OPTIONS column is equivalent to entering it in both of the IN_OPTIONS and OUT_OPTIONS column\&.
 .RE
@@ -301,7 +301,7 @@ Specifying this option in the OPTIONS column is equivalent to entering it in bot
 \fBdynamic_shared\fR
 .RS 4
 Added in Shorewall 4\&.5\&.9\&. May only be specified in the OPTIONS column and indicates that only a single ipset should be created for this zone if it has multiple dynamic entries in
-\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[4]\d\s+2(5)\&. Without this option, a separate ipset is created for each interface\&.
+\m[blue]\fBshorewall6\-hosts\fR\m[]\&\s-2\u[3]\d\s+2(5)\&. Without this option, a separate ipset is created for each interface\&.
 .RE
 .PP
 \fBreqid=\fR\fInumber\fR
@@ -364,34 +364,39 @@ If you wish to leave a column empty but need to make an entry in a following col
 /etc/shorewall6/zones
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/Multiple_Zones\&.html\fR\m[]\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/Multiple_Zones\&.html\fR\m[]\&\s-2\u[5]\d\s+2\&.
 .PP
-\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[6]\d\s+2
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-nesting(8), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-nesting(8), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6.conf
 .RS 4
-\%http://www.shorewall.netshorewall6.conf.html
+\%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
 .IP " 2." 4
-shorewall6.conf
-.RS 4
-\%http://www.shorewall.netshorewall.conf.html
-.RE
-.IP " 3." 4
 shorewall6-nesting
 .RS 4
-\%http://www.shorewall.netshorewall6-nesting.html
+\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
 .RE
-.IP " 4." 4
+.IP " 3." 4
 shorewall6-hosts
 .RS 4
-\%http://www.shorewall.netshorewall6-hosts.html
+\%http://www.shorewall.net/manpages6/shorewall6-hosts.html
 .RE
-.IP " 5." 4
+.IP " 4." 4
 shorewall6-blacklist
 .RS 4
-\%http://www.shorewall.netshorewall6-blacklist.html
+\%http://www.shorewall.net/manpages6/shorewall6-blacklist.html
+.RE
+.IP " 5." 4
+http://www.shorewall.net/Multiple_Zones.html
+.RS 4
+\%http://www.shorewall.net/Multiple_Zones.html
+.RE
+.IP " 6." 4
+http://www.shorewall.net/configuration_file_basics.htm#Pairs
+.RS 4
+\%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE

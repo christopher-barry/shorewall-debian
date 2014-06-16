@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 03/31/2014
-.\"    Manual: [FIXME: manual]
-.\"    Source: [FIXME: source]
+.\"      Date: 06/15/2014
+.\"    Manual: Configuration Files
+.\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "03/31/2014" "[FIXME: source]" "[FIXME: manual]"
+.TH "SHOREWALL6\-INTERFAC" "5" "06/15/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -87,7 +87,7 @@ in
 \fBINTERFACE\fR \- \fIinterface\fR\fB[:\fR\fIport\fR\fB]\fR
 .RS 4
 Logical name of interface\&. Each interface may be listed only once in this file\&. You may NOT specify the name of a "virtual" interface (e\&.g\&., eth0:0) here; see
-\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]\&. If the
+\m[blue]\fBhttp://www\&.shorewall\&.net/FAQ\&.htm#faq18\fR\m[]\&\s-2\u[3]\d\s+2\&. If the
 \fBphysical\fR
 option is not specified, then the logical name is also the name of the actual interface\&.
 .sp
@@ -95,7 +95,7 @@ You may use wildcards here by specifying a prefix followed by the plus sign ("+"
 or more additional characters\*(Aq so \*(Aqppp\*(Aq does not match \*(Aqppp+\*(Aq\&.
 .sp
 Care must be exercised when using wildcards where there is another zone that uses a matching specific interface\&. See
-\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[3]\d\s+2(5) for a discussion of this problem\&.
+\m[blue]\fBshorewall6\-nesting\fR\m[]\&\s-2\u[4]\d\s+2(5) for a discussion of this problem\&.
 .sp
 Shorewall6 allows \*(Aq+\*(Aq as an interface name\&.
 .sp
@@ -147,7 +147,7 @@ If the option is specified without a value, then the value 1 is assumed\&.
 \fBblacklist\fR
 .RS 4
 Check packets arriving on this interface against the
-\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[4]\d\s+2(5) file\&.
+\m[blue]\fBshorewall6\-blacklist\fR\m[]\&\s-2\u[5]\d\s+2(5) file\&.
 .sp
 Beginning with Shorewall 4\&.4\&.13:
 .sp
@@ -237,7 +237,7 @@ the interface has a static IP but is on a LAN segment with lots of DHCP clients\
 .IP "  4." 4.2
 .\}
 the interface is a
-\m[blue]\fBsimple bridge\fR\m[]\&\s-2\u[5]\d\s+2
+\m[blue]\fBsimple bridge\fR\m[]\&\s-2\u[6]\d\s+2
 with a DHCP server on one port and DHCP clients on another port\&.
 .if n \{\
 .sp
@@ -252,8 +252,8 @@ with a DHCP server on one port and DHCP clients on another port\&.
 .ps -1
 .br
 If you use
-\m[blue]\fBShorewall\-perl for firewall/bridging\fR\m[]\&\s-2\u[6]\d\s+2, then you need to include DHCP\-specific rules in
-\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[7]\d\s+2(8)\&. DHCP uses UDP ports 546 and 547\&.
+\m[blue]\fBShorewall\-perl for firewall/bridging\fR\m[]\&\s-2\u[7]\d\s+2, then you need to include DHCP\-specific rules in
+\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[8]\d\s+2(8)\&. DHCP uses UDP ports 546 and 547\&.
 .sp .5v
 .RE
 .RE
@@ -290,7 +290,7 @@ Limit the zone named in the ZONE column to only the listed networks\&. If you sp
 .RS 4
 Added in Shorewall 4\&.4\&.21\&. Defines the zone as
 dynamic\&. Requires ipset match support in your iptables and kernel\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/Dynamic\&.html\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/Dynamic\&.html\fR\m[]\&\s-2\u[9]\d\s+2
 for further information\&.
 .RE
 .PP
@@ -331,7 +331,7 @@ This option may not be specified together with
 \fBphysical\fR=\fB\fIname\fR\fR
 .RS 4
 Added in Shorewall 4\&.4\&.4\&. When specified, the interface or port name in the INTERFACE column is a logical name that refers to the name given in this option\&. It is useful when you want to specify the same wildcard port name on two or more bridges\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\m[]\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\m[]\&\s-2\u[10]\d\s+2\&.
 .sp
 If the
 \fIinterface\fR
@@ -413,9 +413,11 @@ option\&. On these interfaces,
 should list those local networks that are connected to the firewall through other interfaces\&.
 .RE
 .PP
-\fBtcpflags\fR
+\fBtcpflags[={0|1}]\fR
 .RS 4
 Packets arriving on this interface are checked for certain illegal combinations of TCP flags\&. Packets found to have such a combination of flags are handled according to the setting of TCP_FLAGS_DISPOSITION after having been logged according to the setting of TCP_FLAGS_LOG_LEVEL\&.
+.sp
+Beginning with Shorewall 4\&.6\&.0, tcpflags=1 is the default\&. To disable this option, specify tcpflags=0\&.
 .RE
 .PP
 \fBproxyndp\fR[={0|1}]
@@ -535,42 +537,62 @@ FORMAT 2
 /etc/shorewall6/interfaces
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[11]\d\s+2
 .PP
-shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-tcrules(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
+shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
 shorewall6-hosts
 .RS 4
-\%http://www.shorewall.netshorewall6-hosts.html
+\%http://www.shorewall.net/manpages6/shorewall6-hosts.html
 .RE
 .IP " 2." 4
 shorewall6-zones
 .RS 4
-\%http://www.shorewall.netshorewall6-zones.html
+\%http://www.shorewall.net/manpages6/shorewall6-zones.html
 .RE
 .IP " 3." 4
-shorewall6-nesting
+http://www.shorewall.net/FAQ.htm#faq18
 .RS 4
-\%http://www.shorewall.netshorewall6-nesting.html
+\%http://www.shorewall.net/FAQ.htm#faq18
 .RE
 .IP " 4." 4
-shorewall6-blacklist
+shorewall6-nesting
 .RS 4
-\%http://www.shorewall.netshorewall6-blacklist.html
+\%http://www.shorewall.net/manpages6/shorewall6-nesting.html
 .RE
 .IP " 5." 4
-simple bridge
+shorewall6-blacklist
 .RS 4
-\%http://www.shorewall.net../SimpleBridge.html
+\%http://www.shorewall.net/manpages6/shorewall6-blacklist.html
 .RE
 .IP " 6." 4
-Shorewall-perl for firewall/bridging
+simple bridge
 .RS 4
-\%http://www.shorewall.net../bridge-Shorewall-perl.html
+\%http://www.shorewall.net/SimpleBridge.html
 .RE
 .IP " 7." 4
+Shorewall-perl for firewall/bridging
+.RS 4
+\%http://www.shorewall.net/bridge-Shorewall-perl.html
+.RE
+.IP " 8." 4
 shorewall-rules
 .RS 4
-\%http://www.shorewall.netshorewall-rules.html
+\%http://www.shorewall.net/manpages/shorewall-rules.html
+.RE
+.IP " 9." 4
+http://www.shorewall.net/Dynamic.html
+.RS 4
+\%http://www.shorewall.net/Dynamic.html
+.RE
+.IP "10." 4
+http://www.shorewall.net/bridge-Shorewall-perl.html#Multiple
+.RS 4
+\%http://www.shorewall.net/bridge-Shorewall-perl.html#Multiple
+.RE
+.IP "11." 4
+http://www.shorewall.net/configuration_file_basics.htm#Pairs
+.RS 4
+\%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE

@@ -37,7 +37,7 @@
 # 
 # MARK (Optional) - value
 # 
-#     A FWMARK value used in your shorewall6-tcrules(5) file to direct packets to
+#     A FWMARK value used in your shorewall6-mangle(5) file to direct packets to
 #     this provider.
 # 
 #     If HIGH_ROUTE_MARKS=Yes in shorewall6.conf(5), then the value must be a
