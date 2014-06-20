@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.1.1
+VERSION=4.6.1.2
 
 #
 # Change to the directory containing this script
