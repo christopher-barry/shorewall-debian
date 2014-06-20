@@ -75,7 +75,7 @@
 # 
 #     See example 2 below.
 # 
-# SOURCE - {interface|address[,address][exclusion]}
+# SOURCE (Optional) - [interface|address[,address][exclusion]]
 # 
 #     Set of hosts that you wish to SNAT; one or more host or network addresses
 #     separated by comma. You may use ipset names preceded by a plus sign (+) to
