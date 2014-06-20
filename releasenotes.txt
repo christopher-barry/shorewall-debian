@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 1 . 1
+	             S H O R E W A L L  4 . 6 . 1 . 2
                    ------------------------------------
-                          J u n e  1 5 ,  2 0 1 4
+                          J u n e  2 0 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,23 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.1.2
+
+1)  The shorewall-masq(5) and shorewall6-masq(5) manpages had a mangled
+    heading for the description of the SOURCE column, leading some
+    readers to assert the that description was missing.
+
+2)  When INLINE_MATCHES=Yes and AUTOHELPERS=No, start or restart could
+    fail during script execution with this diagnostic:
+
+      Running /sbin/iptables-restore...
+      Bad argument `helper=netbios-ns'
+      Error occurred at line: nnn
+      Try `iptables-restore -h' or 'iptables-restore --help' for more
+          information.
+        ERROR: iptables-restore Failed. Input is in
+               /var/lib/shorewall/.iptables-restore-input
 
 4.6.1.1
 
