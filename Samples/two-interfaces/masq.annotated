@@ -101,7 +101,8 @@
 # 
 #     See example 8 below.
 # 
-# SOURCE (Formerly called SUBNET) - {interface|address[,address][exclusion]}
+# SOURCE (Formerly called SUBNET - Optional) - [interface|address[,address][
+#     exclusion]]
 # 
 #     Set of hosts that you wish to masquerade. You can specify this as an 
 #     address (net or host) or as an interface (use of an interface is

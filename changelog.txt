@@ -1,3 +1,11 @@
+Changes in 4.6.1.2
+
+1)  Update release documents.
+
+2)  Correct 'masq' manpages.
+
+3)  Allow INLINE_MATCHES=Yes with AUTOHELPERS=No to work correctly.
+
 Changes in 4.6.1.1
 
 1)  Update release documents.
