@@ -1,2 +1,15 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
+
+2)  When INLINE_MATCHES=Yes and AUTOHELPERS=No, start or restart can
+    fail during script execution with this diagnostic:
+
+      Running /sbin/iptables-restore...
+      Bad argument `helper=netbios-ns'
+      Error occurred at line: 228
+      Try `iptables-restore -h' or 'iptables-restore --help' for more
+          information.
+        ERROR: iptables-restore Failed. Input is in
+               /var/lib/shorewall/.iptables-restore-input
+
+    Corrected in Shorewall 4.6.1.2
