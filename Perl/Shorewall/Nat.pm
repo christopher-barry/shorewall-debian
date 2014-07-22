@@ -42,7 +42,7 @@ our @EXPORT_OK = ();
 
 Exporter::export_ok_tags('rules');
 
-our $VERSION = '4.6_0';
+our $VERSION = '4.6_2';
 
 our @addresses_to_add;
 our %addresses_to_add;

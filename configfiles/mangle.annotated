@@ -687,6 +687,54 @@
 #     The rule will only match if the packet's connection is in one of the listed
 #     states.
 # 
+# TIME - timeelement[&timeelement...]
+# 
+#     Added in Shorewall 4.6.2.
+# 
+#     May be used to limit the rule to a particular time period each day, to
+#     particular days of the week or month, or to a range defined by dates and
+#     times. Requires time match support in your kernel and ip6tables.
+# 
+#     timeelement may be:
+# 
+#     timestart=hh:mm[:ss]
+# 
+#         Defines the starting time of day.
+# 
+#     timestop=hh:mm[:ss]
+# 
+#         Defines the ending time of day.
+# 
+#     utc
+# 
+#         Times are expressed in Greenwich Mean Time.
+# 
+#     localtz
+# 
+#         Deprecated by the Netfilter team in favor of kerneltz. Times are
+#         expressed in Local Civil Time (default).
+# 
+#     kerneltz
+# 
+#         Added in Shorewall 4.5.2. Times are expressed in Local Kernel Time
+#         (requires iptables 1.4.12 or later).
+# 
+#     weekdays=ddd[,ddd]...
+# 
+#         where ddd is one of Mon, Tue, Wed, Thu, Fri, Sat or Sun
+# 
+#     monthdays=dd[,dd],...
+# 
+#         where dd is an ordinal day of the month
+# 
+#     datestart=yyyy[-mm[-dd[Thh[:mm[:ss]]]]]
+# 
+#         Defines the starting date and time.
+# 
+#     datestop=yyyy[-mm[-dd[Thh[:mm[:ss]]]]]
+# 
+#         Defines the ending date and time.
+# 
 # Example
 # 
 # Example 1:
