@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '4.6.1.2'
+    VERSION => '4.6.2.1'
 };
 
 my %params;
@@ -100,7 +100,7 @@ if ( defined $vendor ) {
     } elsif ( `uname` =~ '^Darwin' ) {
 	$vendor = 'apple';
 	$rcfilename = 'shorewallrc.apple';
-    } elsif ( `uname` =~ '^Cygwin' ) {
+    } elsif ( `uname` =~ /^Cygwin/i ) {
 	$vendor = 'cygwin';
 	$rcfilename = 'shorewallrc.cygwin';
     } else {
