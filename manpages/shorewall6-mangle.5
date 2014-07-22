@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-mangle
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/20/2014
+.\"      Date: 07/18/2014
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-MANGLE" "5" "06/20/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-MANGLE" "5" "07/18/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -998,6 +998,74 @@ value may be given as an even number (hex or decimal) or as the name of a DSCP c
 \fBSTATE\fR \-\- {\fBNEW\fR|\fBRELATED\fR|\fBESTABLISHED\fR|\fBINVALID\fR} [,\&.\&.\&.]
 .RS 4
 The rule will only match if the packet\*(Aqs connection is in one of the listed states\&.
+.RE
+.PP
+\fBTIME\fR \- \fItimeelement\fR[&\fItimeelement\fR\&.\&.\&.]
+.RS 4
+Added in Shorewall 4\&.6\&.2\&.
+.sp
+May be used to limit the rule to a particular time period each day, to particular days of the week or month, or to a range defined by dates and times\&. Requires time match support in your kernel and ip6tables\&.
+.sp
+\fItimeelement\fR
+may be:
+.PP
+timestart=\fIhh\fR:\fImm\fR[:\fIss\fR]
+.RS 4
+Defines the starting time of day\&.
+.RE
+.PP
+timestop=\fIhh\fR:\fImm\fR[:\fIss\fR]
+.RS 4
+Defines the ending time of day\&.
+.RE
+.PP
+utc
+.RS 4
+Times are expressed in Greenwich Mean Time\&.
+.RE
+.PP
+localtz
+.RS 4
+Deprecated by the Netfilter team in favor of
+\fBkerneltz\fR\&. Times are expressed in Local Civil Time (default)\&.
+.RE
+.PP
+kerneltz
+.RS 4
+Added in Shorewall 4\&.5\&.2\&. Times are expressed in Local Kernel Time (requires iptables 1\&.4\&.12 or later)\&.
+.RE
+.PP
+weekdays=ddd[,ddd]\&.\&.\&.
+.RS 4
+where
+\fIddd\fR
+is one of
+\fBMon\fR,
+\fBTue\fR,
+\fBWed\fR,
+\fBThu\fR,
+\fBFri\fR,
+\fBSat\fR
+or
+\fBSun\fR
+.RE
+.PP
+monthdays=dd[,dd],\&.\&.\&.
+.RS 4
+where
+\fIdd\fR
+is an ordinal day of the month
+.RE
+.PP
+datestart=\fIyyyy\fR[\-\fImm\fR[\-\fIdd\fR[\fBT\fR\fIhh\fR[:\fImm\fR[:\fIss\fR]]]]]
+.RS 4
+Defines the starting date and time\&.
+.RE
+.PP
+datestop=\fIyyyy\fR[\-\fImm\fR[\-\fIdd\fR[\fBT\fR\fIhh\fR[:\fImm\fR[:\fIss\fR]]]]]
+.RS 4
+Defines the ending date and time\&.
+.RE
 .RE
 .SH "EXAMPLE"
 .PP

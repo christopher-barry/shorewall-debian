@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.1.2
+VERSION=4.6.2.1
 
 #
 # Change to the directory containing this script
@@ -205,7 +205,7 @@ done
 
 if [ -z "$BUILD" ]; then
     case $(uname) in
-	cygwin*)
+	cygwin*|CYGWIN)
 	    BUILD=cygwin
 	    ;;
 	Darwin)
@@ -399,7 +399,7 @@ fi
 #
 # Create /etc/$PRODUCT and other directories
 #
-mkdir -p ${DESTDIR}/${CONFDIR}/$PRODUCT
+mkdir -p ${DESTDIR}${CONFDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${LIBEXECDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${PERLLIBDIR}/Shorewall
 mkdir -p ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
