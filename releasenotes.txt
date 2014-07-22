@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 1 . 2
+	             S H O R E W A L L  4 . 6 . 2 . 1
                    ------------------------------------
-                          J u n e  2 0 ,  2 0 1 4
+                          J u l y  1 9 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,59 +14,32 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.6.1.2
+4.6.2.1
 
-1)  The shorewall-masq(5) and shorewall6-masq(5) manpages had a mangled
-    heading for the description of the SOURCE column, leading some
-    readers to assert the that description was missing.
+1)  Two issues with tcrules processing have been corrected:
 
-2)  When INLINE_MATCHES=Yes and AUTOHELPERS=No, start or restart could
-    fail during script execution with this diagnostic:
+    - SAVE and RESTORE generated fatal compilation errors.
+    - '|' and '&' were ignored.
 
-      Running /sbin/iptables-restore...
-      Bad argument `helper=netbios-ns'
-      Error occurred at line: nnn
-      Try `iptables-restore -h' or 'iptables-restore --help' for more
-          information.
-        ERROR: iptables-restore Failed. Input is in
-               /var/lib/shorewall/.iptables-restore-input
+4.6.2
 
-4.6.1.1
+1)  The DSCP match in the mangle and tcrules files didn't work with
+    service class names such as EF, BE, CS1, ... (Thibaut Chèze)
 
-1)  An improved error message is generatred when a server address list
-    is specified in the DEST colume of a DNAT or REDIRECT
-    rule. At one time, iptables supported such lists, but now only a
-    single address or an address range is supported.
+2)  The SAVE and RESTORE actions were disallowed in the OUTPUT chain in
+    tcrules and mangle; this was a regression from 4.5.21.
 
-    The previous error message was:
+3)  Additional ports required by Asus, Supermicro and Dell have been
+    added to the IPMI macro (Tuomo Soini).
 
-    	ERROR: Unkknown Host (192.168.1.4,192.168.1.22)
+4)  Some issues regarding install under Cygwin64 have been addressed.
 
-    The new error message is:
-
-    	ERROR: An address list (192.168.1.4,192.168.1.22) is not
-	       allowed in the DEST column of a xxx RULE
-
-    where xxx is DNAT or REDIRECT as appropriate.
-
-2)  Two problems have been corrected in the Shorewall-init Debian init
-    script.
-
-	a) A cosmetic problem which resulted in 'echo_notdone' being
-	   displayed on failure rather than 'not done'.
-
- 	b) More seriously, the test for the existance of compiled
- 	   firewall scripts was incorrect, with the result that the
- 	   firewall scripts were not executed.
-
-    These defects, introduced in Shorewall 4.5.17, have now been
-    corrected.
-
-4.6.1
-
-1)  When the 'rpfilter' option is specified on all interfaces, no
-    references to the 'dynamic' chain were created and that chain was
-    optimized away.
+    - configure.pl did not understand CYGWIN returned from `uname`
+    - Shorewall-core install.sh did not understand CYGWIN returned from 
+      `uname`.
+    - The Shorewall and Shorewall6 installers tried to run the command 
+      'mkdir -p //etc/shorewall[6]' which is broken in the current
+      Cygwin64.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -79,9 +52,46 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  Tuomo Soini has provided new macros for AMOP, MongoDB, Redis, Sieve
-    and IPMI (RMCP).
-	
+1)  The 'status' command now allows a -i option which causes the state
+    of all optional and provider interfaces to be displayed.
+
+    Example:
+
+    root@gateway:/etc/shorewall# shorewall status -i
+    Shorewall-4.6.1 Status at gateway - Wed Jun 18 14:27:19 PDT 2014
+
+    Shorewall is running
+    State:Started (Wed Jun 18 09:50:01 PDT 2014) from /etc/shorewall/
+       (/var/lib/shorewall/firewall compiled by Shorewall version 4.6.1)
+
+       Interface eth0 is Enabled
+       Interface eth1 is Enabled
+       Interface lo is Enabled
+
+2)  A 'shorewall show blacklists' command has been
+    implemented. The abbreviation 'bl' may be used in place of
+    'blacklists'.
+
+    The command displays the output of the 'dynamic' chain together
+    with the chains created by entries in the blrules file.
+
+3)  A TIME column has been added to the mangle file. It has the same
+    use in that file as the corresponding column in the rules file.
+
+4)  A stateful port knocking example has been added to the Events
+    article (http://www.shorewall.net/Events.html). This example allows
+    a sequence of knocking ports to be defined (Gerhard Weisinger).
+
+5)  A macro supporting HP's Integrated Lights Out (ILO) has been added
+    (Tuomo Soini).
+
+6)  It is now possible to specify the MAC address of a provider
+    GATEWAY. This is useful when there are multiple providers serviced
+    by a single interface as it avoids the need for the generated
+    script to detect the MAC during start/restart.
+
+7)  The copyrights in the sample configuration files have been updated. 
+
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
 ----------------------------------------------------------------------------
@@ -354,7 +364,89 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  4 . 6  R E L E A S E S
 ----------------------------------------------------------------------------
-             P R O B L E M S  C O R R E C T E D  I N  4.6.0
+             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 0
+----------------------------------------------------------------------------
+
+4.6.1.4
+
+1)  The DSCP match in the mangle and tcrles files didn't work with
+    service class names such as EF, BE, CS1, ...
+
+2)  The SAVE and RESTORE actions were disallowed in the OUTPUT chain in
+    tcrules and mangle; this was a regression from 4.6.21.
+
+4.6.1.3
+
+1)  Use of the 'IfEvent' action resulted in a compilation failure:
+
+      ERROR: -j is only allowed when the ACTION is INLINE with no
+        parameter /usr/share/shorewall/action.IfEvent (line 139)
+         from /etc/shorewall/action.SSHKnock (line 8)
+         from /etc/shorewall/rules (line 31)
+
+4.6.1.2
+
+1)  The shorewall-masq(5) and shorewall6-masq(5) manpages had a mangled
+    heading for the description of the SOURCE column, leading some
+    readers to assert the that description was missing.
+
+2)  When INLINE_MATCHES=Yes and AUTOHELPERS=No, start or restart could
+    fail during script execution with this diagnostic:
+
+      Running /sbin/iptables-restore...
+      Bad argument `helper=netbios-ns'
+      Error occurred at line: nnn
+      Try `iptables-restore -h' or 'iptables-restore --help' for more
+          information.
+        ERROR: iptables-restore Failed. Input is in
+               /var/lib/shorewall/.iptables-restore-input
+
+4.6.1.1
+
+1)  An improved error message is generatred when a server address list
+    is specified in the DEST colume of a DNAT or REDIRECT
+    rule. At one time, iptables supported such lists, but now only a
+    single address or an address range is supported.
+
+    The previous error message was:
+
+    	ERROR: Unkknown Host (192.168.1.4,192.168.1.22)
+
+    The new error message is:
+
+    	ERROR: An address list (192.168.1.4,192.168.1.22) is not
+	       allowed in the DEST column of a xxx RULE
+
+    where xxx is DNAT or REDIRECT as appropriate.
+
+2)  Two problems have been corrected in the Shorewall-init Debian init
+    script.
+
+	a) A cosmetic problem which resulted in 'echo_notdone' being
+	   displayed on failure rather than 'not done'.
+
+ 	b) More seriously, the test for the existance of compiled
+ 	   firewall scripts was incorrect, with the result that the
+ 	   firewall scripts were not executed.
+
+    These defects, introduced in Shorewall 4.5.17, have now been
+    corrected.
+
+4.6.1
+
+1)  When the 'rpfilter' option is specified on all interfaces, no
+    references to the 'dynamic' chain were created and that chain was
+    optimized away.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 6 . 0
+----------------------------------------------------------------------------
+
+1)  Tuomo Soini has provided new macros for AMOP, MongoDB, Redis, Sieve
+    and IPMI (RMCP).
+	
+----------------------------------------------------------------------------
+             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 0
 ----------------------------------------------------------------------------
 
 4.6.0.3
@@ -421,6 +513,7 @@ This release includes all defect repair from releases up through
 
 1)  The tarball installers, now install .service files with mode 644
     rather than mode 600.
+
 ----------------------------------------------------------------------------
                N E W   F E A T U R E S   I N   4 . 6 . 0
 ----------------------------------------------------------------------------
