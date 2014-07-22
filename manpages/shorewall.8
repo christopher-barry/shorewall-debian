@@ -2,12 +2,12 @@
 .\"     Title: shorewall
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 06/20/2014
+.\"      Date: 07/18/2014
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL" "8" "06/20/2014" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL" "8" "07/18/2014" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -93,6 +93,8 @@ shorewall \- Administration tool for Shoreline Firewall (Shorewall)
 .HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsave\fR [\fIfilename\fR]
 .HP \w'\fBshorewall\fR\ 'u
+\fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBshow\ |\ list\ |\ ls\ \fR] [\fB\-x\fR] \fB{bl|blacklists}\fR
+.HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBshow\ |\ list\ |\ ls\ \fR] [\fB\-b\fR] [\fB\-x\fR] [\fB\-l\fR] [\fB\-t\fR\ {\fBfilter\fR|\fBmangle\fR|\fBnat\fR|\fBraw|rawpost\fR}] [[\fBchain\fR]\ \fIchain\fR...]
 .HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] [\fBshow\ |\ list\ |\ ls\ \fR] [\fB\-f\fR] \fBcapabilities\fR
@@ -113,7 +115,7 @@ shorewall \- Administration tool for Shoreline Firewall (Shorewall)
 .HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBstop\fR\ [\fB\-f\fR] 
 .HP \w'\fBshorewall\fR\ 'u
-\fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBstatus\fR
+\fBshorewall\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBstatus\fR\ [\fB\-i\fR] 
 .HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBtry\fR \fIdirectory\fR [\fItimeout\fR]
 .HP \w'\fBshorewall\fR\ 'u
@@ -791,6 +793,13 @@ The show command can have a number of different arguments:
 Produces a report about the available actions (built\-in, standard and user\-defined)\&.
 .RE
 .PP
+\fBbl|blacklists\fR
+.RS 4
+Added in Shorewall 4\&.6\&.2\&. Displays the dynamic chain along with any chains produced by entries in shorewall\-blrules(5)\&.The
+\fB\-x\fR
+option is passed directly through to iptables and causes actual packet and byte counts to be displayed\&. Without this option, those counts are abbreviated\&.
+.RE
+.PP
 \fBcapabilities\fR
 .RS 4
 Displays your kernel/iptables capabilities\&. The
@@ -995,6 +1004,9 @@ command if that script exists\&.
 \fBstatus\fR
 .RS 4
 Produces a short report about the state of the Shorewall\-configured firewall\&.
+.sp
+The
+\fB\-i \fRoption was added in Shorewall 4\&.6\&.2 and causes the status of each optional or provider interface to be displayed\&.
 .RE
 .PP
 \fBtry\fR

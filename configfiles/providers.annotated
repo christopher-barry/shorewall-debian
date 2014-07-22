@@ -66,9 +66,12 @@
 #     interface must be followed by a colon and the IP address of the interface
 #     that is supplied by the associated provider.
 # 
-# GATEWAY - {-|address|detect}
+# GATEWAY - {-|address[,mac]|detect}
 # 
-#     The IP address of the provider's gateway router.
+#     The IP address of the provider's gateway router. Beginning with Shorewall
+#     4.6.2, you may also specify the MAC address of the gateway when there are
+#     multiple providers serviced through the same interface. When the MAC is not
+#     specified, Shorewall will detect the MAC during firewall start or restart.
 # 
 #     You can enter "detect" here and Shorewall will attempt to detect the
 #     gateway automatically.
