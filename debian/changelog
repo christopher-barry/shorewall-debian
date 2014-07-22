@@ -1,8 +1,9 @@
-shorewall6-lite (4.6.1.2-1~bpo70+1) wheezy; urgency=low
+shorewall6-lite (4.6.2.1-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
+  * Depend on 'iproute2 | iproute' instead of just iproute (Closes: #753750)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Fri, 20 Jun 2014 11:02:33 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 21 Jul 2014 22:14:34 -0400
 
 shorewall6-lite (4.6.1.2-1) unstable; urgency=low
 
