@@ -42,7 +42,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.6_1';
+our $VERSION = '4.6_2';
 
 use constant { NOMARK    => 0 ,
 	       SMALLMARK => 1 ,
@@ -174,8 +174,8 @@ sub initialize( $ ) {
 #
 # Process a rule from the tcrules or mangle file
 #
-sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
-    our ( $file, $action, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state ) = @_;
+sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
+    our ( $file, $action, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time ) = @_;
 
     use constant {
 	PREROUTING     => 1,        #Actually tcpre
@@ -230,6 +230,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
     sub handle_mark_param( $$ ) {
 	my ( $option, $marktype ) = @_;
 	my $and_or = $1 if $params =~ s/^([|&])//;
+
+	$and_or ||= '';
 
 	if ( $params =~ /-/ ) {
 	    #
@@ -423,7 +425,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 	    function       => sub () {
 		require_capability 'DSCP_TARGET', 'The DSCP action', 's';
 		my $dscp = numeric_value( $params );
-		$dscp = $dscpmap{$1} unless defined $dscp;
+		$dscp = $dscpmap{$params} unless defined $dscp;
 		fatal_error( "Invalid DSCP ($params)" ) unless defined $dscp && $dscp <= 0x38 && ! ( $dscp & 1 );
 		$target = 'DSCP --set-dscp ' . in_hex( $dscp );
 	    },
@@ -556,13 +558,13 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 	    mask           => in_hex( $globals{TC_MASK} ),
 	    function       => sub () {
 		$target = 'MARK';
-		handle_mark_param('--set-mark', , HIGHMARK );
+		handle_mark_param('', , HIGHMARK );
 	    },
 	},
 
 	RESTORE    => {
 	    defaultchain   => 0,
-	    allowedchains  => PREROUTING | FORWARD | POSTROUTING,
+	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
 	    minparams      => 0,
 	    maxparams      => 1,
 	    function       => sub () {
@@ -591,7 +593,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 
 	SAVE       => {
 	    defaultchain   => 0,
-	    allowedchains  => PREROUTING | FORWARD | POSTROUTING,
+	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
 	    minparams      => 0,
 	    maxparams      => 1,
 	    function       => sub () {
@@ -798,6 +800,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 					 do_probability( $probability ) .
 					 do_dscp( $dscp ) .
 					 state_match( $state ) .
+					 do_time( $time ) .
 					 $raw_matches ,
 					 $source ,
 					 $dest ,
@@ -926,21 +929,22 @@ sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
 	$designator = '';
     }
 
-    my ( $cmd, $rest );
-
-    if ( $mark =~ /^TOS/ ) {
-	$cmd = $mark;
-	$rest = '';
-    } else {
-	($cmd, $rest) = split( '/', $mark, 2 );
-    }
-
     unless ( $command ) {
 	{
-	    if ( $cmd =~ /^([A-Z]+)/ ) {
+	    my ( $cmd, $rest ) = split( '/', $mark, 2 );
+
+	    if ( $cmd =~ /^([A-Z]+)(?:\((.+)\))?/ ) {
 		if ( my $tccmd = $tccmd{$1} ) {
 		    fatal_error "Invalid $1 ACTION ($originalmark)" unless $tccmd->{match}($cmd); 
-		    $command = $tccmd->{command} if $tccmd->{command};
+		    $command = $1;
+		    if ( supplied $rest ) {
+			fatal_error "Invalid $1 ACTION ($originalmark)" if supplied $2;
+			$mark = $rest;
+		    } elsif ( supplied $2 ) {
+			$mark = $2;
+		    } else {
+			$mark = '';
+		    }
 		}
 	    } else {
 		$command = 'MARK';
@@ -986,7 +990,9 @@ sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
 			      $headers,
 			      $probability,
 			      $dscp,
-			      $state );
+			      $state,
+			      '-',
+	    );
     }
 }
 
@@ -1046,9 +1052,9 @@ sub process_tc_rule( ) {
 }    
 
 sub process_mangle_rule( ) {
-    my ( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state );
+    my ( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time );
     if ( $family == F_IPV4 ) {
-	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp, $state ) =
+	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp, $state, $time ) =
 	    split_line2( 'tcrules file',
 			 { mark => 0,
 			   action => 0,
@@ -1065,13 +1071,15 @@ sub process_mangle_rule( ) {
 			   helper => 11,
 			   probability => 12 , 
 			   scp => 13,
-			   state => 14 },
+			   state => 14,
+			   time => 15,
+			 },
 			 {},
-			 15,
+			 16,
 	                 1 );
 	$headers = '-';
     } else {
-	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp, $state ) =
+	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp, $state, $time ) =
 	    split_line2( 'tcrules file',
 			 { mark => 0,
 			   action => 0,
@@ -1089,14 +1097,16 @@ sub process_mangle_rule( ) {
 			   headers => 12,
 			   probability => 13,
 			   dscp => 14,
-			   state => 15 },
+			   state => 15,
+			   time => 16,
+			 },
 			 {},
-			 16,
+			 17,
 	                 1 );
     }
 
     for my $proto (split_list( $protos, 'Protocol' ) ) {
-	process_mangle_rule1( 'Mangle', $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state );
+	process_mangle_rule1( 'Mangle', $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time );
     }
 }
  
