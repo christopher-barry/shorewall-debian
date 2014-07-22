@@ -1,6 +1,7 @@
 shorewall (4.6.2.1-1) unstable; urgency=low
 
   * New Upstream Version
+  * Depend on 'iproute2 | iproute' instead of just iproute (Closes: #753751)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Mon, 21 Jul 2014 22:13:12 -0400
 
