@@ -20,7 +20,7 @@
     <pubdate><?dbtimestamp format="Y/m/d"?></pubdate>
 
     <copyright>
-      <year>2001-2013</year>
+      <year>2001-2014</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -2303,6 +2303,15 @@ gateway:~# </programlisting>
           ruleset, but it slows down the compilation of large rulesets.</para>
         </listitem>
       </orderedlist>
+    </section>
+
+    <section id="faq103">
+      <title>(FAQ 103) Shorewall fails to start at boot but will start
+      immediately after</title>
+
+      <para>Answer: This is usually associated with SELinux. <ulink
+      url="https://lists.fedoraproject.org/pipermail/selinux/2010-June/012680.html">Here</ulink>
+      is an example.</para>
     </section>
   </section>
 
