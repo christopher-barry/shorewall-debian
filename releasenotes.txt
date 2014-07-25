@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 2 . 1
+	             S H O R E W A L L  4 . 6 . 2 . 2
                    ------------------------------------
-                          J u l y  1 9 ,  2 0 1 4
+                          J u l y  2 6 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,17 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.2.2
+
+1)  The compiler now correctly detects the IPv6 header match capability
+    when LOAD_MODULES_ONLY=No.
+
+2)  The compiler now correctly detects the Ipset Match capability on
+    systems running a 3.14 or later kernel.
+
+3)  The compiler now correctly detects Arptables JF capability when
+    LOAD_MODULES_ONLY=No.
 
 4.6.2.1
 
