@@ -1,3 +1,15 @@
+Changes in 4.6.2.2
+
+1)  Update release documents.
+
+2)  Detect Header Match when LOAD_MODULES_ONLY = No.
+
+3)  Correct IPv6 ipset support detection on later kernels.
+
+3)  Correct detection of the Ipset Counter capability. 
+
+4)  Detect Arptables JF when LOAD_MODULES_ONLY = No.
+
 Changes in 4.6.2.1
 
 1)  Update release documents.
