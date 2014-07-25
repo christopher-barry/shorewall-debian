@@ -709,7 +709,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "4.6.2.1",
+		    VERSION                 => "4.6.2.2",
 		    CAPVERSION              => 40600 ,
 		  );
     #
@@ -4118,7 +4118,7 @@ sub IPSet_Match() {
     if ( $ipset && -x $ipset ) {
 	qt( "$ipset -X $sillyname" );
 
-	if ( qt( "$ipset -N $sillyname iphash" ) || qt( "$ipset -N $sillyname hash:ip family $fam") ) {
+	if ( qt( "$ipset -N $sillyname hash:ip family $fam" ) || qt( "$ipset -N $sillyname iphash" ) ) {
 	    if ( qt1( "$iptables $iptablesw -A $sillyname -m set --match-set $sillyname src -j ACCEPT" ) ) {
 		$capabilities{IPSET_MATCH_NOMATCH}  = qt1( "$iptables $iptablesw -A $sillyname -m set --match-set $sillyname src --return-nomatch -j ACCEPT" );
 		$capabilities{IPSET_MATCH_COUNTERS} = qt1( "$iptables $iptablesw -A $sillyname -m set --match-set $sillyname src --packets-lt 100 -j ACCEPT" );
@@ -4140,7 +4140,7 @@ sub IPSet_Match_Nomatch() {
 }
 
 sub IPSet_Match_Counters() {
-    have_capability 'IPSET_MATCH' && $capabilities{IPSET_MATCH_COUNTGERS};
+    have_capability 'IPSET_MATCH' && $capabilities{IPSET_MATCH_COUNTERS};
 }
 
 sub IPSET_V5() {
@@ -4615,6 +4615,7 @@ sub determine_capabilities() {
 	$capabilities{FWMARK_RT_MASK}  = detect_capability( 'FWMARK_RT_MASK' );
 	$capabilities{MARK_ANYWHERE}   = detect_capability( 'MARK_ANYWHERE' );
 	$capabilities{ACCOUNT_TARGET}  = detect_capability( 'ACCOUNT_TARGET' );
+	$capabilities{HEADER_MATCH}    = detect_capability( 'HEADER_MATCH' );
 	$capabilities{AUDIT_TARGET}    = detect_capability( 'AUDIT_TARGET' );
 	$capabilities{IPSET_V5}        = detect_capability( 'IPSET_V5' );
 	$capabilities{CONDITION_MATCH} = detect_capability( 'CONDITION_MATCH' );
@@ -4630,6 +4631,7 @@ sub determine_capabilities() {
 	$capabilities{RPFILTER_MATCH}  = detect_capability( 'RPFILTER_MATCH' );
 	$capabilities{NFACCT_MATCH}    = detect_capability( 'NFACCT_MATCH' );
 	$capabilities{CHECKSUM_TARGET} = detect_capability( 'CHECKSUM_TARGET' );
+	$capabilities{ARPTABLESJF}     = detect_capability( 'ARPTABLESJF' );
 	$capabilities{MASQUERADE_TGT}  = detect_capability( 'MASQUERADE_TGT' );
 	$capabilities{UDPLITEREDIRECT} = detect_capability( 'UDPLITEREDIRECT' );
 	$capabilities{NEW_TOS_MATCH}   = detect_capability( 'NEW_TOS_MATCH' );
