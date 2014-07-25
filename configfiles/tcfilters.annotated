@@ -40,19 +40,21 @@
 # 
 #     Source of the packet. May be a host or network address. DNS names are not
 #     allowed. Beginning with Shorewall 4.6.0, an ipset name (prefixed with '+')
-#     may be used if your kernel and ip6tables have the Basic Ematch capability.
-#     The ipset name may optionally be followed by a number or a comma separated
-#     list of src and/or dst enclosed in square brackets ([...]). See
-#     shorewall6-ipsets(5) for details.
+#     may be used if your kernel and ip6tables have the Basic Ematch capability
+#     and you set BASIC_FILTERS=Yes in shorewall6.conf (5). The ipset name may
+#     optionally be followed by a number or a comma separated list of src and/or
+#     dst enclosed in square brackets ([...]). See shorewall6-ipsets(5) for
+#     details.
 # 
 # DEST - {-|address|+ipset}
 # 
 #     Destination of the packet. May be a host or network address. DNS names are
 #     not allowed. Beginning with Shorewall 4.6.0, an ipset name (prefixed with
 #     '+') may be used if your kernel and ip6tables have the Basic Ematch
-#     capability. The ipset name may optionally be followed by a number or a
-#     comma separated list of src and/or dst enclosed in square brackets ([...]).
-#     See shorewall6-ipsets(5) for details.
+#     capability and you set BASIC_FILTERS=Yes in shorewall6.conf (5). The ipset
+#     name may optionally be followed by a number or a comma separated list of
+#     src and/or dst enclosed in square brackets ([...]). See shorewall6-ipsets
+#     (5) for details.
 # 
 # PROTO - {-|{protocol-number|protocol-name|all}[,...]}
 # 
