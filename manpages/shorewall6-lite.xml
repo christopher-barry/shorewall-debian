@@ -325,6 +325,21 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
+      <arg choice="plain"><option>run</option></arg>
+
+      <arg choice="plain">command</arg>
+
+      <arg><replaceable>parameter ...</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
       <arg choice="plain"><option>save</option></arg>
 
       <arg choice="opt"><replaceable>filename</replaceable></arg>
@@ -364,6 +379,20 @@
       <arg><option>-f</option></arg>
 
       <arg choice="plain"><option>capabilities</option></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="opt"><option>show | list | ls </option></arg>
+
+      <arg><option>-x</option></arg>
+
+      <arg choice="plain"><option>{bl|blacklists}</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -465,7 +494,8 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="plain"><option>status</option></arg>
+      <arg choice="plain"><arg
+      choice="plain"><option>status</option><arg><option>-i</option></arg></arg></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -806,6 +836,23 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">run</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.6.3. Executes
+          <replaceable>command</replaceable> in the context of the generated
+          script passing the supplied <replaceable>parameter</replaceable>s.
+          Normally, the <replaceable>command</replaceable> will be a function
+          declared in <filename>lib.private</filename>.</para>
+
+          <para>Before executing the command, the script will detect the
+          configuration, setting all SW_* variables and will run your
+          <filename>init</filename> extension script with $COMMAND =
+          'run'.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">save</emphasis></term>
 
         <listitem>
@@ -827,6 +874,19 @@
           arguments:</para>
 
           <variablelist>
+            <varlistentry>
+              <term><emphasis role="bold">bl|blacklists</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.2. Displays the dynamic chain
+                along with any chains produced by entries in
+                shorewall6-blrules(5).The <emphasis role="bold">-x</emphasis>
+                option is passed directly through to ip6tables and causes
+                actual packet and byte counts to be displayed. Without this
+                option, those counts are abbreviated.</para>
+              </listitem>
+            </varlistentry>
+
             <varlistentry>
               <term><emphasis role="bold">capabilities</emphasis></term>
 
@@ -1071,6 +1131,10 @@
         <listitem>
           <para>Produces a short report about the state of the
           Shorewall-configured firewall.</para>
+
+          <para>The <option>-i </option>option was added in Shorewall 4.6.2
+          and causes the status of each optional or provider interface to be
+          displayed.</para>
         </listitem>
       </varlistentry>
 
