@@ -710,7 +710,7 @@
       up.</para>
     </section>
 
-    <section>
+    <section id="masq">
       <title>./etc/shorewall/masq and Multi-ISP</title>
 
       <para>If you masquerade a local network, you will need to add masquerade
@@ -820,9 +820,9 @@ DROP:info        net:192.168.1.0/24         all</programlisting>
         url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>
         (5) will not disable route filtering on a given interface. You must
         set ROUTE_FILTER=No in <ulink
-        url="manpages/shorewall-interfaces.html">shorewall-interfaces</ulink>
-        (5), then set the <emphasis role="bold">routefilter</emphasis> option
-        on those interfaces on which you want route filtering.</para>
+        url="manpages/shorewall.conf.html">shorewall.conf</ulink> (5), then
+        set the <emphasis role="bold">routefilter</emphasis> option on those
+        interfaces on which you want route filtering.</para>
       </important>
     </section>
 
@@ -974,51 +974,6 @@ ISP3    3       3       main            eth3            16.105.78.254   track,ba
 eth0             0.0.0.0/0         206.124.146.176
 eth1             0.0.0.0/0         130.252.99.27
 eth3             0.0.0.0/0         16.105.78.4</programlisting></para>
-    </section>
-
-    <section id="Local">
-      <title>Applications running on the Firewall -making them use a
-      particular provider</title>
-
-      <para>As <link linkend="Applications">noted above</link>, separate
-      entries in <filename>/etc/shorewall/mangle</filename> are required for
-      traffic originating from the firewall.</para>
-
-      <para>Experience has shown that in some cases, problems occur with
-      applications running on the firewall itself. This is especially true
-      when you have specified <emphasis role="bold">routefilter</emphasis> on
-      your external interfaces in /etc/shorewall/interfaces (see <link
-      linkend="Martians">above</link>). When this happens, it is suggested
-      that you have the application use specific local IP addresses rather
-      than 0.</para>
-
-      <para>Examples:</para>
-
-      <itemizedlist>
-        <listitem>
-          <para>Squid: In <filename>squid.conf</filename>, set <emphasis
-          role="bold">tcp_outgoing_address</emphasis> to the IP address of the
-          interface that you want Squid to use.</para>
-        </listitem>
-
-        <listitem>
-          <para>In OpenVPN, set <emphasis role="bold">local
-          </emphasis>(<emphasis role="bold">--local</emphasis> on the command
-          line) to the IP address that you want the server to receive
-          connections on.</para>
-        </listitem>
-      </itemizedlist>
-
-      <para>Note that some traffic originating on the firewall doesn't have a
-      SOURCE IP address before routing. At least one Shorewall user reports
-      that an entry in <filename>/etc/shorewall/rtrules</filename> with 'lo'
-      in the SOURCE column seems to be the most reliable way to direct such
-      traffic to a particular ISP.</para>
-
-      <para>Example:</para>
-
-      <programlisting>#SOURCE     DEST      PROVIDER        PRIORITY
-lo          -         shorewall       1000</programlisting>
     </section>
 
     <section id="rtrules">
@@ -1184,6 +1139,51 @@ gateway:~ #</programlisting>Note that because we used a priority of 1000, the
         <programlisting>#SOURCE                 DEST            PROVIDER        PRIORITY
 -                       10.8.0.0/24     main            1000</programlisting>
       </section>
+    </section>
+
+    <section id="Local">
+      <title>Applications running on the Firewall - making them use a
+      particular provider</title>
+
+      <para>As <link linkend="Applications">noted above</link>, separate
+      entries in <filename>/etc/shorewall/mangle</filename> are required for
+      traffic originating from the firewall.</para>
+
+      <para>Experience has shown that in some cases, problems occur with
+      applications running on the firewall itself. This is especially true
+      when you have specified <emphasis role="bold">routefilter</emphasis> on
+      your external interfaces in /etc/shorewall/interfaces (see <link
+      linkend="Martians">above</link>). When this happens, it is suggested
+      that you have the application use specific local IP addresses rather
+      than 0.</para>
+
+      <para>Examples:</para>
+
+      <itemizedlist>
+        <listitem>
+          <para>Squid: In <filename>squid.conf</filename>, set <emphasis
+          role="bold">tcp_outgoing_address</emphasis> to the IP address of the
+          interface that you want Squid to use.</para>
+        </listitem>
+
+        <listitem>
+          <para>In OpenVPN, set <emphasis role="bold">local
+          </emphasis>(<emphasis role="bold">--local</emphasis> on the command
+          line) to the IP address that you want the server to receive
+          connections on.</para>
+        </listitem>
+      </itemizedlist>
+
+      <para>Note that some traffic originating on the firewall doesn't have a
+      SOURCE IP address before routing. At least one Shorewall user reports
+      that an entry in <filename>/etc/shorewall/rtrules</filename> with 'lo'
+      in the SOURCE column seems to be the most reliable way to direct such
+      traffic to a particular ISP.</para>
+
+      <para>Example:</para>
+
+      <programlisting>#SOURCE     DEST      PROVIDER        PRIORITY
+lo          -         shorewall       1000</programlisting>
     </section>
 
     <section id="routes">

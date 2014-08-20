@@ -465,6 +465,21 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
+      <arg choice="plain"><option>run</option></arg>
+
+      <arg choice="plain">function</arg>
+
+      <arg><replaceable>parameter ...</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
       <arg choice="plain"><option>safe-restart</option></arg>
 
       <arg><option>-d</option></arg>
@@ -1406,6 +1421,32 @@
           <emphasis>filename</emphasis> is given then Shorewall will be
           restored from the file specified by the RESTOREFILE option in <ulink
           url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">run</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.6.3. Executes
+          <replaceable>command</replaceable> in the context of the generated
+          script passing the supplied <replaceable>parameter</replaceable>s.
+          Normally, the <replaceable>command</replaceable> will be a function
+          declared in <filename>lib.private</filename>.</para>
+
+          <para>Before executing the <replaceable>command</replaceable>, the
+          script will detect the configuration, setting all SW_* variables and
+          will run your <filename>init</filename> extension script with
+          $COMMAND = 'run'.</para>
+
+          <para>If there are files in the CONFIG_PATH that were modified after
+          the current firewall script was generated, the following warning
+          message is issued:</para>
+
+          <simplelist>
+            <member>WARNING: /var/lib/shorewall/firewall is not up to
+            date</member>
+          </simplelist>
         </listitem>
       </varlistentry>
 
