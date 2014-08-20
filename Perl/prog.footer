@@ -17,6 +17,7 @@ usage() {
     echo "   reset"
     echo "   refresh"
     echo "   restart"
+    echo "   run <command> [ <parameter> ... ]"
     echo "   status"
     echo "   up <interface>"
     echo "   version"
@@ -370,6 +371,17 @@ case "$COMMAND" in
 	    disable_provider $1
 	fi
 	status=0
+	;;
+    run)
+	if [ $# -gt 1 ]; then
+	    shift
+	    detect_configuration
+	    run_init_exit
+	    eval $@
+	    status=$?
+	else
+	    error_message "ERROR: Missing command"
+	fi
 	;;
     version)
 	[ $# -ne 1 ] && usage 2

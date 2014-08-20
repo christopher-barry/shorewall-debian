@@ -106,7 +106,7 @@ our @EXPORT = ( qw( NOTHING
 	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.6_0';
+our $VERSION = '4.6_3';
 
 #
 # IPSEC Option types
@@ -193,6 +193,7 @@ our %reservedName = ( all => 1,
 #                                     physical    => <physical interface name>
 #                                     base        => <shell variable base representing this interface>
 #                                     provider    => <Provider Name, if interface is associated with a provider>
+#                                     wildcard    => undef|1 # Wildcard Name
 #                                     zones       => { zone1 => 1, ... }
 #                                   }
 #                 }
@@ -1375,6 +1376,7 @@ sub process_interface( $$ ) {
 						       base       => var_base( $physical ),
 						       zones      => {},
 						       origin     => shortlineinfo(''),
+						       wildcard   => $wildcard,
 						     };
 
     if ( $zone ) {
@@ -1497,7 +1499,7 @@ sub map_physical( $$ ) {
 
     $physical =~ s/\+$//;
 
-    $physical . substr( $name, length  $interfaceref->{root} );
+    $physical . substr( $name, length( $interfaceref->{root} ) );
 }
 
 #
@@ -1531,6 +1533,7 @@ sub known_interface($)
 						   number   => $interfaceref->{number} ,
 						   physical => $physical ,
 						   base     => var_base( $physical ) ,
+						   wildcard => $interfaceref->{wildcard} ,
 						   zones    => $interfaceref->{zones} ,
 						 };
 	    }
@@ -1768,7 +1771,7 @@ sub find_interfaces_by_option1( $ ) {
 	my $optionsref = $interfaceref->{options};
 
 	if ( $optionsref && defined $optionsref->{$option} ) {
-	    $wild ||= ( $interfaceref->{physical} =~ /\+$/ );
+	    $wild ||= $interfaceref->{wildcard};
 	    push @ints , $interface
 	}
     }

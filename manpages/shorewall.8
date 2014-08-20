@@ -2,12 +2,12 @@
 .\"     Title: shorewall
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 07/22/2014
+.\"      Date: 08/19/2014
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL" "8" "07/22/2014" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL" "8" "08/19/2014" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -86,6 +86,8 @@ shorewall \- Administration tool for Shoreline Firewall (Shorewall)
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestart\fR [\fB\-n\fR] [\fB\-p\fR\ [\fB\-d\fR]] [\fB\-f\fR] [\fB\-c\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrestore\fR [\fIfilename\fR]
+.HP \w'\fBshorewall\fR\ 'u
+\fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBrun\fR function [\fIparameter\ \&.\&.\&.\fR]
 .HP \w'\fBshorewall\fR\ 'u
 \fBshorewall\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBsafe\-restart\fR [\fB\-d\fR] [\fB\-p\fR] [\fB\-t\fR\ \fItimeout\fR] [\fIdirectory\fR]
 .HP \w'\fBshorewall\fR\ 'u
@@ -731,6 +733,28 @@ names a restore file in /var/lib/shorewall created using
 \fIfilename\fR
 is given then Shorewall will be restored from the file specified by the RESTOREFILE option in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+.RE
+.PP
+\fBrun\fR
+.RS 4
+Added in Shorewall 4\&.6\&.3\&. Executes
+\fIcommand\fR
+in the context of the generated script passing the supplied
+\fIparameter\fRs\&. Normally, the
+\fIcommand\fR
+will be a function declared in
+lib\&.private\&.
+.sp
+Before executing the
+\fIcommand\fR, the script will detect the configuration, setting all SW_* variables and will run your
+init
+extension script with $COMMAND = \*(Aqrun\*(Aq\&.
+.sp
+If there are files in the CONFIG_PATH that were modified after the current firewall script was generated, the following warning message is issued:
+.RS 4
+WARNING: /var/lib/shorewall/firewall is not up to
+            date
+.RE
 .RE
 .PP
 \fBsafe\-restart\fR

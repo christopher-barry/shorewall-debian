@@ -454,10 +454,30 @@ sub process_a_provider( $ ) {
 	require_capability 'REALM_MATCH', "Configuring multiple providers through one interface", "s";
     }
 
-    fatal_error "Unknown Interface ($interface)" unless known_interface( $interface );
+    my $interfaceref = known_interface( $interface );
+
+    fatal_error "Unknown Interface ($interface)" unless $interfaceref;
+
     fatal_error "A bridge port ($interface) may not be configured as a provider interface" if port_to_bridge $interface;
 
-    my $physical    = get_physical $interface;
+    my $physical;
+
+    if ( $interface eq $interfaceref->{name} ) {
+	#
+	# The logical interface name was specified
+	#
+	$physical = $interfaceref->{physical};
+    } else {
+	#
+	# A Physical name was specified
+	#
+	$physical = $interface;
+	#
+	# Switch to the logical name unless it is a wildcard
+	#
+	$interface = $interfaceref->{name} unless $interfaceref->{wildcard};
+    } 
+
     my $gatewaycase = '';
 
     if ( $physical =~ /\+$/ ) {
