@@ -1615,6 +1615,15 @@ export_command() # $* = original arguments less the command.
     fi
 }
 
+run_command() {
+    if [ -x ${VARDIR}/firewall ] ; then
+	uptodate ${VARDIR}/firewall || echo "   WARNING: ${VARDIR}/firewall is not up to date" >&2
+	run_it ${VARDIR}/firewall $g_debugging $@
+    else
+	fatal_error "${VARDIR}/firewall does not exist or is not executable"
+    fi
+}
+
 #
 # Give Usage Information
 #
@@ -1666,6 +1675,7 @@ usage() # $1 = exit status
     echo "   reset [ <chain> ... ]"
     echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ] [ -T ] [ -i ] [ <directory> ]"
     echo "   restore [ -n ] [ <file name> ]"
+    echo "   run <command> [ <parameter> ... ]"
     echo "   safe-restart [ -t <timeout> ] [ <directory> ]"
     echo "   safe-start [ -t <timeout> ] [ <directory> ]"
     echo "   save [ <file name> ]"

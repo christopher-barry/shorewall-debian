@@ -60,7 +60,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize process_rule );
-our $VERSION = '4.6_2';
+our $VERSION = '4.6_3';
 #
 # Globals are documented in the initialize() function
 #
@@ -818,9 +818,7 @@ sub apply_policy_rules() {
     progress_message2 'Applying Policies...';
 
     for my $chainref ( @policy_chains ) {
-	my $policy      = $chainref->{policy};
-
-	unless ( $policy eq 'NONE' ) {
+	unless ( ( my $policy = $chainref->{policy} ) eq 'NONE' ) {
 	    my $loglevel    = $chainref->{loglevel};
 	    my $provisional = $chainref->{provisional};
 	    my $default     = $chainref->{default};
@@ -1673,9 +1671,11 @@ sub process_action($$) {
 	    $origdest = $connlimit = $time = $headers = $condition = $helper = '-';
 	} else {
 	    ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper )
-		= split_line1( 'action file',
+		= split_line2( 'action file',
 			       \%rulecolumns,
-			       $action_commands );
+			       $action_commands,
+			       undef,
+			       1 );
 	}
 
 	fatal_error 'TARGET must be specified' if $target eq '-';

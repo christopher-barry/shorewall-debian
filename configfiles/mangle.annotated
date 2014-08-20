@@ -12,7 +12,7 @@
 ####################################################################################################################################################
 # 
 # This file was introduced in Shorewall 4.6.0 and is intended to replace
-# shorewall-rules(5). This file is only processed by the compiler if:
+# shorewall-tcrules(5). This file is only processed by the compiler if:
 # 
 #  a. No file named 'tcrules' exists on the current CONFIG_PATH (see
 #     shorewall.conf(5)); or
