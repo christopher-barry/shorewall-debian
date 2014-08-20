@@ -42,7 +42,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.6_2';
+our $VERSION = '4.6_3';
 
 use constant { NOMARK    => 0 ,
 	       SMALLMARK => 1 ,
