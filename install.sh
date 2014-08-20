@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.2.2
+VERSION=4.6.3
 
 #
 # Change to the directory containing this script
@@ -205,7 +205,7 @@ done
 
 if [ -z "$BUILD" ]; then
     case $(uname) in
-	cygwin*|CYGWIN)
+	cygwin*|CYGWIN*)
 	    BUILD=cygwin
 	    ;;
 	Darwin)

@@ -1,3 +1,38 @@
+Changes in 4.6.3 Final
+
+1)  Update release documents.
+
+2)  Apply Thomas D's fix for SAVE_IPSETS on Debian.
+
+Changes in 4.6.3 RC 1
+
+1)  Update release documents.
+
+2)  Minor code and documentation cleanup.
+
+3)  Defect repair from 4.6.2.5.
+
+hanges in 4.6.3 Beta 2
+
+1)  Update release documents.
+
+2)  Add DNSAmp action
+
+3)  Allow inline matches in action bodies (from 4.6.2.4)
+
+4)  Allow physical names to be used in the INTERFACE column of the
+    providers file.
+
+Changes in 4.6.3 Beta 1
+
+1)  Update release documents.
+
+2)  Describe new helper assignment in the FTP article.
+
+3)  Merge defect repair from 4.6.2.3.
+
+4)  Implement the 'run' command.
+
 Changes in 4.6.2.2
 
 1)  Update release documents.
@@ -6,9 +41,11 @@ Changes in 4.6.2.2
 
 3)  Correct IPv6 ipset support detection on later kernels.
 
-3)  Correct detection of the Ipset Counter capability. 
+4)  Correct detection of the Ipset Counter capability. 
 
-4)  Detect Arptables JF when LOAD_MODULES_ONLY = No.
+5)  Detect Arptables JF when LOAD_MODULES_ONLY = No.
+
+6)  Update the tcfilter manpages to mention BASIC_FILTER
 
 Changes in 4.6.2.1
 

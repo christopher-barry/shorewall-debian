@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 2 . 2
+	               S H O R E W A L L  4 . 6 . 3 
                    ------------------------------------
-                          J u l y  2 6 ,  2 0 1 4
+                       A u g u s t  1 9 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,43 +14,10 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.6.2.2
+1)  This release contains defect repair up through release 4.6.2.5.
 
-1)  The compiler now correctly detects the IPv6 header match capability
-    when LOAD_MODULES_ONLY=No.
-
-2)  The compiler now correctly detects the Ipset Match capability on
-    systems running a 3.14 or later kernel.
-
-3)  The compiler now correctly detects Arptables JF capability when
-    LOAD_MODULES_ONLY=No.
-
-4.6.2.1
-
-1)  Two issues with tcrules processing have been corrected:
-
-    - SAVE and RESTORE generated fatal compilation errors.
-    - '|' and '&' were ignored.
-
-4.6.2
-
-1)  The DSCP match in the mangle and tcrules files didn't work with
-    service class names such as EF, BE, CS1, ... (Thibaut Chèze)
-
-2)  The SAVE and RESTORE actions were disallowed in the OUTPUT chain in
-    tcrules and mangle; this was a regression from 4.5.21.
-
-3)  Additional ports required by Asus, Supermicro and Dell have been
-    added to the IPMI macro (Tuomo Soini).
-
-4)  Some issues regarding install under Cygwin64 have been addressed.
-
-    - configure.pl did not understand CYGWIN returned from `uname`
-    - Shorewall-core install.sh did not understand CYGWIN returned from 
-      `uname`.
-    - The Shorewall and Shorewall6 installers tried to run the command 
-      'mkdir -p //etc/shorewall[6]' which is broken in the current
-      Cygwin64.
+2)  The SAVE_IPSETS option in the Debian version of Shorewall-init now
+    works correctly. Thomas D.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -63,45 +30,19 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  The 'status' command now allows a -i option which causes the state
-    of all optional and provider interfaces to be displayed.
+1)  A new 'run' command has been implemented. This command allows you
+    to run an arbitrary command in the context of the generated
+    script. 
 
-    Example:
+       shorewall[6][-lite] run <command> [ <parameter> ... ]
 
-    root@gateway:/etc/shorewall# shorewall status -i
-    Shorewall-4.6.1 Status at gateway - Wed Jun 18 14:27:19 PDT 2014
+    Normally, <command> will be a function declared in lib.private.
 
-    Shorewall is running
-    State:Started (Wed Jun 18 09:50:01 PDT 2014) from /etc/shorewall/
-       (/var/lib/shorewall/firewall compiled by Shorewall version 4.6.1)
-
-       Interface eth0 is Enabled
-       Interface eth1 is Enabled
-       Interface lo is Enabled
-
-2)  A 'shorewall show blacklists' command has been
-    implemented. The abbreviation 'bl' may be used in place of
-    'blacklists'.
-
-    The command displays the output of the 'dynamic' chain together
-    with the chains created by entries in the blrules file.
-
-3)  A TIME column has been added to the mangle file. It has the same
-    use in that file as the corresponding column in the rules file.
-
-4)  A stateful port knocking example has been added to the Events
-    article (http://www.shorewall.net/Events.html). This example allows
-    a sequence of knocking ports to be defined (Gerhard Weisinger).
-
-5)  A macro supporting HP's Integrated Lights Out (ILO) has been added
-    (Tuomo Soini).
-
-6)  It is now possible to specify the MAC address of a provider
-    GATEWAY. This is useful when there are multiple providers serviced
-    by a single interface as it avoids the need for the generated
-    script to detect the MAC during start/restart.
-
-7)  The copyrights in the sample configuration files have been updated. 
+2)  A DNSAmp action has been added. This action matches recursive UDP
+    DNS queries. The default disposition is DROP which can be
+    overridden by the single action parameter (e.g, 'DNSAmp(REJECT)'
+    will reject these queries). Recursive DNS queries are the basis for
+    'DNS Amplification' attacks; hence the action name.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -375,7 +316,130 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  4 . 6  R E L E A S E S
 ----------------------------------------------------------------------------
-             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 0
+             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 2
+----------------------------------------------------------------------------
+
+4.6.2.5
+
+1)  Previously, when an interface specified the 'physical=' option and
+    the physical interface name was specified in the INTERFACES column
+    of the providers file, compilation would fail with diagnostics
+    similar to the following:
+
+	Use of uninitialized value $physical in pattern match
+	  (m//) at /usr/lib/perl5/vendor_perl/5.18.1/
+          Shorewall/Providers.pm line 463, <$currentfile> line 2.
+ 	 ERROR: A provider interface must have at least one
+	        associated zone /opt/etc/shorewall/providers (line 2)
+
+2)  Shorewall-init now works correctly on systems with systemd.
+    By Louis Lagendijk.
+
+4.6.2.4
+
+1)  Previously, inline matches were incorrectly disallowed in action
+    files. These matches are now allowed.
+
+4.6.2.3
+
+1)  Previously, the compiler would fail with a Perl diagnostic if:
+
+    - Optimize Level 8 was enabled.
+    - Perl 5.20 was being used. This is the current Perl version on
+      Arch Linux.
+
+    The diagnostic was:
+
+      Can't use string ("nat") as a HASH ref while "strict refs" in use
+        at /usr/share/shorewall/Shorewall/Chains.pm line 3486.
+
+4.6.2.2
+
+1)  The compiler now correctly detects the IPv6 "Header Match"
+    capability when LOAD_MODULES_ONLY=No.
+
+2)  The compiler now correctly detects the IPv6 "Ipset Match"
+    capability on systems running a 3.14 or later kernel.
+
+3)  The compiler now correctly detects "Arptables JF" capability when
+    LOAD_MODULES_ONLY=No.
+
+3)  The tcfilter manpages previously failed to mention that
+    BASIC_FILTERS=Yes is required to use ipsets in the tcfilters files.
+
+4.6.2.1
+
+1)  Two issues with tcrules processing have been corrected:
+
+    - SAVE and RESTORE generated fatal compilation errors.
+    - '|' and '&' were ignored.
+
+4.6.2
+
+1)  The DSCP match in the mangle and tcrules files didn't work with
+    service class names such as EF, BE, CS1, ... (Thibaut Chèze)
+
+2)  The SAVE and RESTORE actions were disallowed in the OUTPUT chain in
+    tcrules and mangle; this was a regression from 4.5.21.
+
+3)  Additional ports required by Asus, Supermicro and Dell have been
+    added to the IPMI macro (Tuomo Soini).
+
+4)  Some issues regarding install under Cygwin64 have been addressed.
+
+    - configure.pl did not understand CYGWIN returned from `uname`
+    - Shorewall-core install.sh did not understand CYGWIN returned from 
+      `uname`.
+    - The Shorewall and Shorewall6 installers tried to run the command 
+      'mkdir -p //etc/shorewall[6]' which is broken in the current
+      Cygwin64.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 6 . 2
+----------------------------------------------------------------------------
+
+1)  The 'status' command now allows a -i option which causes the state
+    of all optional and provider interfaces to be displayed.
+
+    Example:
+
+    root@gateway:/etc/shorewall# shorewall status -i
+    Shorewall-4.6.1 Status at gateway - Wed Jun 18 14:27:19 PDT 2014
+
+    Shorewall is running
+    State:Started (Wed Jun 18 09:50:01 PDT 2014) from /etc/shorewall/
+       (/var/lib/shorewall/firewall compiled by Shorewall version 4.6.1)
+
+       Interface eth0 is Enabled
+       Interface eth1 is Enabled
+       Interface lo is Enabled
+
+2)  A 'shorewall show blacklists' command has been
+    implemented. The abbreviation 'bl' may be used in place of
+    'blacklists'.
+
+    The command displays the output of the 'dynamic' chain together
+    with the chains created by entries in the blrules file.
+
+3)  A TIME column has been added to the mangle file. It has the same
+    use in that file as the corresponding column in the rules file.
+
+4)  A stateful port knocking example has been added to the Events
+    article (http://www.shorewall.net/Events.html). This example allows
+    a sequence of knocking ports to be defined (Gerhard Weisinger).
+
+5)  A macro supporting HP's Integrated Lights Out (ILO) has been added
+    (Tuomo Soini).
+
+6)  It is now possible to specify the MAC address of a provider
+    GATEWAY. This is useful when there are multiple providers serviced
+    by a single interface as it avoids the need for the generated
+    script to detect the MAC during start/restart.
+
+7)  The copyrights in the sample configuration files have been updated. 
+
+----------------------------------------------------------------------------
+             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 1
 ----------------------------------------------------------------------------
 
 4.6.1.4
@@ -450,7 +514,7 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     optimized away.
 
 ----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   4 . 6 . 0
+               N E W   F E A T U R E S   I N   4 . 6 . 1
 ----------------------------------------------------------------------------
 
 1)  Tuomo Soini has provided new macros for AMOP, MongoDB, Redis, Sieve
