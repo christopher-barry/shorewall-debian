@@ -1,3 +1,33 @@
+Changes in 4.6.3.2
+
+1)  Update release documents
+
+2)  Re-enable SECTION PREROUTING in the accounting file
+
+3)  Eliminate many superfluous rules for tcpflags, nosmurfs and maclist
+
+Changes in 4.6.3.2
+
+1)  Update release documents
+
+2)  Document the Goto-Meeting macro.
+
+3)  Correct silly logic error
+
+4)  Correct examples in actions manpages.
+
+5)  Issue warning when /etc/iproute2/rt_tables is not writeable.
+
+6)  Remove redundant help text output from -lite CLIs.
+
+Changes in 4.6.3.1
+
+1)  Update release documents
+
+2)  Correct the u32 match string in action.DNSAmp.
+
+3)  Clarify REJECT handling in IP[6]TABLES rules.
+
 Changes in 4.6.3 Final
 
 1)  Update release documents.

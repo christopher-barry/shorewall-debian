@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	               S H O R E W A L L  4 . 6 . 3 
+	             S H O R E W A L L  4 . 6 . 3 . 3
                    ------------------------------------
-                       A u g u s t  1 9 ,  2 0 1 4
+                     S e p t e m b e r  1 2 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,64 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.3.3
+
+1)  Including a PREROUTING SECTION in the accounting file
+    unconditionally resulted in a fatal error:
+
+    ERROR: The PREROUTING SECTION is not allowed when
+           ACCOUNTING_TABLE=filter
+
+2)  Previously, the compiler could generate many superfluous rules to
+    enforce the 'tcpflags', 'nosmurfs' and 'maclist' interface options.
+
+4.6.3.2
+
+1)  The shorewall[6]-actions manpages previously contained incorrect
+    examples of the usage of table names with builtin actions.
+
+    Incorrect:
+
+	FOOBAR,filter,mangle
+
+    Correct:
+
+	FOOBAR   builtin,filter,mangle
+
+2)  Previously, if /etc/iproute2/rt_tables was not writeable, then
+    KEEP_RT_TABLES=No behaved like KEEP_RT_TABLES=Yes. Now, a warning
+    message is issued if that file is not writeable and KEEP_RT_TABLES
+    is set to No.
+
+      WARNING: /etc/iproute2/rt_tables is missing or is not writeable
+
+3)  In earlier 4.6.3 versions, the help text from shorewall-lite and
+    shorewall6-lite included two versions of the 'run' command.
+
+      run <command> [ <parameter> ... ]
+      ..
+      run <function> [ <parameter> ... ]
+
+    The second one has now been deleted.
+
+4.6.3.1
+
+1)  The DNSAmp action released in 4.6.3 matched more packets than it
+    should have. That has now been corrected.
+
+2)  The handling of REJECT in IP[6]TABLES rules has been clarified in
+    the shorewall-rules(5) and shorewall6-rules(5) manpages.
+
+3)  The following misleading error message has now been corrected:
+
+      ERROR: The xxx TARGET is now allowed in the filter table
+
+    The message now reads:
+
+      ERROR: The xxx TARGET is not allowed in the filter table
+
+4.6.3
 
 1)  This release contains defect repair up through release 4.6.2.5.
 
@@ -29,6 +87,12 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.3.2
+
+1)  Eric Teeter has contributed a Citrix Goto Meeting macro.
+
+4.6.3
 
 1)  A new 'run' command has been implemented. This command allows you
     to run an arbitrary command in the context of the generated
