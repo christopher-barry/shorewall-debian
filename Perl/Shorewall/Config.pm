@@ -709,7 +709,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "4.6.3",
+		    VERSION                 => "4.6.3.3",
 		    CAPVERSION              => 40600 ,
 		  );
     #
@@ -3259,9 +3259,9 @@ sub expand_variables( \$ ) {
 	fatal_error "Variable Expansion Loop" if ++$count > 100;
     }
 
-    if ( $actparms{0} ) {
+    if ( $chain ) {
 	#
-	# Allow escaping at signs (@) for u32
+	# We're in an action body -- allow escaping at signs (@) for u32
 	#
 	$$lineref =~ s/\\@/??/g;
 	#                         $1      $2   $3                     -     $4
