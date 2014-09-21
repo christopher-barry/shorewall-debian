@@ -460,6 +460,9 @@ sub process_a_provider( $ ) {
 
     fatal_error "A bridge port ($interface) may not be configured as a provider interface" if port_to_bridge $interface;
 
+    #
+    # Switch to the logical name if a physical name was passed
+    #
     my $physical;
 
     if ( $interface eq $interfaceref->{name} ) {
@@ -1894,8 +1897,10 @@ sub handle_optional_interfaces( $ ) {
 
     if ( @$interfaces ) {
 	my $require     = $config{REQUIRE_INTERFACE};
+	my $gencase     = shift;
 
-	verify_required_interfaces( shift );
+	verify_required_interfaces( $gencase );
+	emit '' if $gencase;
 
 	emit( 'HAVE_INTERFACE=', '' ) if $require;
 	#
