@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 3 . 3
+	             S H O R E W A L L  4 . 6 . 3 . 4
                    ------------------------------------
-                     S e p t e m b e r  1 2 ,  2 0 1 4
+                     S e p t e m b e r  1 6 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,19 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.3.4
+
+1)  The 'Universal' configurations previously failed to start with the
+    diagnostic 
+
+      ERROR: No network interface available: Firewall state not changed
+
+2)  A defect introduced in 4.6.3 prevented Shorewall-init from starting
+    when required interfaces were present.
+
+3)  The defect repair from 4.6.2.5 (see below) was inadvertently
+    omitted from 4.6.3. It has now been merged into this release.
 
 4.6.3.3
 
