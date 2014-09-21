@@ -43,3 +43,27 @@
            ACCOUNTING_TABLE=filter
 
     Corrected in 4.6.3.3.
+
+6)  The Universal configuration fails to start with the error:
+
+      ERROR: No network interface available: Firewall state not changed
+
+    Workaround: Remove the 'optional' option from the 'net' entry in
+    /etc/shorewall/interfaces.
+
+    Corrected in 4.6.3.4.
+
+7)  When required interfaces are present, Shorewall-init will fail to
+    start. This defect was introduced in Shorewall 4.6.3.
+
+    Corrected in 4.6.3.4.
+
+8)  The defect repair from 4.6.2.5 was inadvertently omitted from
+    4.6.3.
+
+    Corrected in 4.6.3.4. 
+
+
+
+
+
