@@ -1,4 +1,15 @@
-Changes in 4.6.3.2
+Changes in 4.6.3.4
+
+1)  Update release documents
+
+2)  Remove the 'optional' option from the Universal 'net' entry in
+    interfaces.
+
+3)  Don't check for required interfaces on 'stop' and 'clear'.
+
+4)  Merge the defect repair from 4.6.2.5 into 4.6.3.
+
+Changes in 4.6.3.3
 
 1)  Update release documents
 
