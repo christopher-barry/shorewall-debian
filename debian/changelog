@@ -1,8 +1,9 @@
-shorewall-doc (4.6.3-1~bpo70+1) wheezy; urgency=low
+shorewall-doc (4.6.4-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
+  * Update to Standards-Version 3.9.6 (no changes)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 20 Aug 2014 08:57:59 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 11 Oct 2014 10:02:47 -0400
 
 shorewall-doc (4.6.3-1) unstable; urgency=low
 

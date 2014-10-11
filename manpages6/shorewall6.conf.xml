@@ -220,9 +220,9 @@
         <listitem>
           <para>The value of this variable affects Shorewall's stopped state.
           The behavior differs depending on whether <ulink
-          url="shorewall-routestopped.html">shorewall6-routestopped</ulink>(5)
+          url="shorewall-routestopped.html">shorewall-routestopped</ulink>(5)
           or <ulink
-          url="shorewall-stoppedrules.html">shorewall6-stoppedrules</ulink>(5)
+          url="shorewall-stoppedrules.html">shorewall-stoppedrules</ulink>(5)
           is used:</para>
 
           <variablelist>
@@ -245,17 +245,22 @@
               <term>stoppedrules</term>
 
               <listitem>
-                <para>If ADMINISABSENTMINDED=No, a warning message is issued
-                and the setting is ignored.</para>
-
-                <para>In addition to connections matching entries in
-                <filename>stoppedrules</filename>, existing connections
-                continue to work and all new connections from the firewall
-                system itself are allowed. To sever all existing connections
-                when the firewall is stopped, install the conntrack utility
-                and place the command <command>conntrack -F</command> in the
-                stopped user exit
+                <para>All existing connections continue to work. To sever all
+                existing connections when the firewall is stopped, install the
+                conntrack utility and place the command <command>conntrack
+                -F</command> in the stopped user exit
                 (<filename>/etc/shorewall6/stopped</filename>).</para>
+
+                <para>If ADMINISABSENTMINDED=No, only new connections matching
+                entries in <filename>stoppedrules</filename> are accepted when
+                Shorewall is stopped. Response packets and related connections
+                are automatically accepted.</para>
+
+                <para>If ADMINISABSENTMINDED=Yes, in addition to connections
+                matching entries in <filename>stoppedrules</filename>, all new
+                connections from the firewall system itself are allowed when
+                the firewall is stopped. Response packets and related
+                connections are automatically accepted.</para>
               </listitem>
             </varlistentry>
           </variablelist>
@@ -1154,6 +1159,38 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
           ${VARDIR}/shorewall6/lock is assumed (${VARDIR} is normally /var/lib
           but can be changed when Shorewall-core is installed -- see the
           output of <command>shorewall6 show vardir</command>).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">LOG_BACKEND=</emphasis>[<emphasis>backend</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.6.4. LOG_BACKEND determines the logging
+          backend to be used for the <command>iptrace</command> command (see
+          <ulink
+          url="manpages6/shorewall6.html">shorewall6(8)</ulink>).</para>
+
+          <para><replaceable>backend</replaceable> is one of:</para>
+
+          <variablelist>
+            <varlistentry>
+              <term>LOG</term>
+
+              <listitem>
+                <para>Use standard kernel logging.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>netlink</term>
+
+              <listitem>
+                <para>Use netlink logging to ulogd version 2 or later.</para>
+              </listitem>
+            </varlistentry>
+          </variablelist>
         </listitem>
       </varlistentry>
 
@@ -2082,6 +2119,25 @@ INLINE          -       -       -       ; -j REJECT
           <para>Added in shorewall 4.5.7. Determines the logging of packets
           disposed via the RPFILTER_DISPOSITION. The default value is
           <option>info</option>.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">SAVE_IPSETS=</emphasis>{<emphasis
+        role="bold">Yes</emphasis>|<emphasis
+        role="bold">No|<replaceable>setlist</replaceable></emphasis>}</term>
+
+        <listitem>
+          <para>Re-enabled in Shorewall 4.4.6. If SAVE_IPSETS=Yes, then the
+          current contents of your ipsets will be saved by the <emphasis
+          role="bold">shorewall stop</emphasis> and <emphasis
+          role="bold">shorewall save</emphasis> commands and restored by the
+          <emphasis role="bold">shorewall start</emphasis> and <emphasis
+          role="bold">shorewall restore</emphasis> commands.</para>
+
+          <para>Beginning with Shorewall 4.6.4, you can restrict the set of
+          ipsets saved by specifying a setlist (a comma-separated list of ipv6
+          ipset names).</para>
         </listitem>
       </varlistentry>
 
