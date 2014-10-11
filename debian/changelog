@@ -1,6 +1,7 @@
-shorewall-doc (4.6.4-1) UNRELEASED; urgency=low
+shorewall-doc (4.6.4-1) unstable; urgency=low
 
   * New Upstream Version
+  * Update to Standards-Version 3.9.6 (no changes)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 11 Oct 2014 10:02:47 -0400
 
