@@ -1,6 +1,6 @@
 %define name shorewall-lite
-%define version 4.6.3
-%define release 4
+%define version 4.6.5
+%define release 0Beta1
 %define initdir /etc/init.d
 
 Summary: Shoreline Firewall Lite is an iptables-based firewall for Linux systems.
@@ -38,7 +38,8 @@ administrators to centralize the configuration of Shorewall-based firewalls.
                --prefix=%{_prefix} \
                --tmpdir=%{_tmpdir} \
                --perllibdir=%{perl_vendorlib} \
-               --libexecdir=%{_libexecdir}
+               --libexecdir=%{_libexecdir} \
+               --sbindir=%{_sbindir}
 
 DESTDIR=%{buildroot} ./install.sh
 
@@ -54,10 +55,10 @@ fi
 %post
 
 if [ $1 -eq 1 ]; then
-    if [ -x /sbin/insserv ]; then
-	/sbin/insserv %{_initddir}/shorewall-lite
-    elif [ -x /sbin/chkconfig ]; then
-	/sbin/chkconfig --add shorewall-lite;
+    if [ -x %{_sbindir}/insserv ]; then
+	%{_sbindir}/insserv %{_initddir}/shorewall-lite
+    elif [ -x %{_sbindir}/chkconfig ]; then
+	%{_sbindir}/chkconfig --add shorewall-lite;
     fi
 elif [ -f /etc/shorewall-lite/shorewall.conf.rpmsave ]; then
     mv -f /etc/shorewall-lite/shorewall-lite.conf /etc/shorewall-lite/shorewall-lite.conf.rpmnew
@@ -69,10 +70,10 @@ fi
 %preun
 
 if [ $1 -eq 0 ]; then
-    if [ -x /sbin/insserv ]; then
-	/sbin/insserv -r %{_initddir}/shorewall-lite
-    elif [ -x /sbin/chkconfig ]; then
-	/sbin/chkconfig --del shorewall-lite
+    if [ -x %{_sbindir}/insserv ]; then
+	%{_sbindir}/insserv -r %{_initddir}/shorewall-lite
+    elif [ -x %{_sbindir}/chkconfig ]; then
+	%{_sbindir}/chkconfig --del shorewall-lite
     fi
 fi
 
@@ -87,7 +88,7 @@ fi
 
 %attr(0644,root,root) /etc/logrotate.d/shorewall-lite
 
-%attr(0755,root,root) /sbin/shorewall-lite
+%attr(0755,root,root) %{_sbindir}/shorewall-lite
 
 %attr(0644,root,root) /usr/share/shorewall-lite/version
 %attr(0644,root,root) /usr/share/shorewall-lite/configpath
@@ -105,12 +106,18 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Sun Sep 14 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-4
-* Wed Sep 10 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-3
-* Sat Aug 30 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-2
+* Wed Oct 08 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta1
+* Mon Oct 06 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0base
+* Thu Oct 02 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0RC1
+* Sun Sep 28 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta3
+* Wed Sep 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta2
+* Sun Aug 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta1
 * Thu Aug 21 2014 Tom Eastep tom@shorewall.net
 - Updated to 4.6.3-1
 * Thu Aug 14 2014 Tom Eastep tom@shorewall.net
