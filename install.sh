@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.3.4
+VERSION=4.6.4
 
 usage() # $1 = exit status
 {
@@ -30,6 +30,7 @@ usage() # $1 = exit status
     echo "usage: $ME [ <configuration-file> ]"
     echo "       $ME -v"
     echo "       $ME -h"
+    echo "       $ME -n"
     exit $1
 }
 
@@ -113,9 +114,13 @@ fi
 # Parse the run line
 #
 finished=0
+configure=1
 
 while [ $finished -eq 0 ] ; do
-    case "$1" in
+
+    option=$1
+
+    case "$option" in
 	-*)
 	    option=${option#-}
 
@@ -127,6 +132,10 @@ while [ $finished -eq 0 ] ; do
 		    v)
 			echo "$Product Firewall Installer Version $VERSION"
 			exit 0
+			;;
+		    n*)
+			configure=0
+			option=${option#n}
 			;;
 		    *)
 			usage 1
@@ -186,6 +195,8 @@ done
 
 PATH=${SBINDIR}:/bin:/usr${SBINDIR}:/usr/bin:/usr/local/bin:/usr/local${SBINDIR}
 
+[ -n "$SANDBOX" ] && configure=0
+
 #
 # Determine where to install the firewall script
 #
@@ -206,7 +217,7 @@ if [ -z "$BUILD" ]; then
 		eval $(cat /etc/os-release | grep ^ID)
 
 		case $ID in
-		    fedora|rhel)
+		    fedora|rhel|centos|foobar)
 			BUILD=redhat
 			;;
 		    debian)
@@ -346,6 +357,7 @@ fi
 delete_file ${DESTDIR}/usr/share/$PRODUCT/xmodules
 
 install_file $PRODUCT ${DESTDIR}${SBINDIR}/$PRODUCT 0544
+[ -n "${INITFILE}" ] && install -d $OWNERSHIP -m 755 ${DESTDIR}${INITDIR}
 
 echo "$Product control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 
@@ -358,7 +370,7 @@ mkdir -p ${DESTDIR}${LIBEXECDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${VARDIR}
 
 chmod 755 ${DESTDIR}${CONFDIR}/$PRODUCT
-chmod 755 ${DESTDIR}/usr/share/$PRODUCT
+chmod 755 ${DESTDIR}${SHAREDIR}/$PRODUCT
 
 if [ -n "$DESTDIR" ]; then
     mkdir -p ${DESTDIR}${CONFDIR}/logrotate.d
@@ -466,18 +478,18 @@ done
 if [ -d manpages ]; then
     cd manpages
 
-    [ -n "$INSTALLD" ] || mkdir -p ${DESTDIR}${SHAREDIR}/man/man5/ ${DESTDIR}${SHAREDIR}/man/man8/
+    [ -n "$INSTALLD" ] || mkdir -p ${DESTDIR}${MANDIR}/man5/ ${DESTDIR}${MANDIR}/man8/
 
     for f in *.5; do
 	gzip -c $f > $f.gz
-	run_install $T $INSTALLD $OWNERSHIP -m 0644 $f.gz ${DESTDIR}${SHAREDIR}/man/man5/$f.gz
-	echo "Man page $f.gz installed to ${DESTDIR}${SHAREDIR}/man/man5/$f.gz"
+	run_install $T $INSTALLD $OWNERSHIP -m 0644 $f.gz ${DESTDIR}${MANDIR}/man5/$f.gz
+	echo "Man page $f.gz installed to ${DESTDIR}${MANDIR}/man5/$f.gz"
     done
 
     for f in *.8; do
 	gzip -c $f > $f.gz
-	run_install $T $INSTALLD $OWNERSHIP -m 0644 $f.gz ${DESTDIR}${SHAREDIR}/man/man8/$f.gz
-	echo "Man page $f.gz installed to ${DESTDIR}${SHAREDIR}/man/man8/$f.gz"
+	run_install $T $INSTALLD $OWNERSHIP -m 0644 $f.gz ${DESTDIR}${MANDIR}/man8/$f.gz
+	echo "Man page $f.gz installed to ${DESTDIR}${MANDIR}/man8/$f.gz"
     done
 
     cd ..
@@ -499,7 +511,7 @@ chmod 644 ${DESTDIR}${SHAREDIR}/$PRODUCT/version
 # Remove and create the symbolic link to the init script
 #
 
-if [ -z "$DESTDIR" ]; then
+if [ -z "${DESTDIR}" -a -n "${INITFILE}" ]; then
     rm -f ${SHAREDIR}/$PRODUCT/init
     ln -s ${INITDIR}/${INITFILE} ${SHAREDIR}/$PRODUCT/init
 fi
@@ -526,7 +538,7 @@ if [ ${SHAREDIR} != /usr/share ]; then
     eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}/${SBINDIR}/$PRODUCT
 fi
 
-if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
+if [ $configure -eq 1 -a -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
     if [ -n "$SYSTEMD" ]; then
 	if systemctl enable ${PRODUCT}.service; then
 	    echo "$Product will start automatically at boot"

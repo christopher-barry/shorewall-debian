@@ -26,12 +26,17 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.3.4
+VERSION=4.6.4
+PRODUCT=shorewall-lite
 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
-    echo "usage: $ME [ <shorewallrc file> ]"
+    echo "usage: $ME [ <option> ] [ <shorewallrc file> ]"
+    echo "where <option> is one of"
+    echo "  -h"
+    echo "  -v"
+    echo "  -n"
     exit $1
 }
 
@@ -69,6 +74,42 @@ remove_file() # $1 = file to restore
     fi
 }
 
+finished=0
+configure=1
+
+while [ $finished -eq 0 ]; do
+    option=$1
+
+    case "$option" in
+	-*)
+	    option=${option#-}
+
+	    while [ -n "$option" ]; do
+		case $option in
+		    h)
+			usage 0
+			;;
+		    v)
+			echo "$Product Firewall Installer Version $VERSION"
+			exit 0
+			;;
+		    n*)
+			configure=0
+			option=${option#n}
+			;;
+		    *)
+			usage 1
+			;;
+		esac
+	    done
+
+	    shift
+	    ;;
+	*)
+	    finished=1
+	    ;;
+    esac
+done
 #
 # Read the RC file
 #
@@ -112,8 +153,12 @@ fi
 
 echo "Uninstalling Shorewall Lite $VERSION"
 
-if qt iptables -L shorewall -n && [ ! -f ${SBINDIR}/shorewall ]; then
-   shorewall-lite clear
+[ -n "$SANDBOX" ] && configure=0
+
+if [ $configure -eq 1 ]; then
+    if qt iptables -L shorewall -n && [ ! -f ${SBINDIR}/shorewall ]; then
+	shorewall-lite clear
+    fi
 fi
 
 if [ -L ${SHAREDIR}/shorewall-lite/init ]; then
@@ -123,28 +168,34 @@ elif [ -n "$INITFILE" ]; then
 fi
 
 if [ -f "$FIREWALL" ]; then
-    if mywhich updaterc.d ; then
-	updaterc.d shorewall-lite remove
-    elif mywhich insserv ; then
-        insserv -r $FIREWALL
-    elif [ mywhich chkconfig ; then
-	chkconfig --del $(basename $FIREWALL)
-    elif mywhich systemctl ; then
-	systemctl disable shorewall-lite
+    if [ $configure -eq 1 ]; then
+	if mywhich updaterc.d ; then
+	    updaterc.d shorewall-lite remove
+	elif mywhich insserv ; then
+            insserv -r $FIREWALL
+	elif mywhich chkconfig ; then
+	    chkconfig --del $(basename $FIREWALL)
+	fi
     fi
 
     remove_file $FIREWALL
 fi
 
+if [ -n "$SYSTEMD" ]; then
+    [ $configure -eq 1 ] && systemctl disable ${PRODUCT}
+    rm -f $SYSTEMD/shorewall-lite.service
+fi
+
 rm -f ${SBINDIR}/shorewall-lite
 
-rm -rf ${SBINDIR}/shorewall-lite
+rm -rf ${CONFDIR}/shorewall-lite
 rm -rf ${VARDIR}/shorewall-lite
 rm -rf ${SHAREDIR}/shorewall-lite
-rm -rf ${LIBEXEC}/shorewall-lite
+rm -rf ${LIBEXECDIR}/shorewall-lite
 rm -f  ${CONFDIR}/logrotate.d/shorewall-lite
-[ -n "$SYSTEMD" ] && rm -f  ${SYSTEMD}/shorewall-lite.service
+
+rm -f ${MANDIR}/man5/shorewall-lite*
+rm -f ${MANDIR}/man8/shorewall-lite*
 
 echo "Shorewall Lite Uninstalled"
-
 
