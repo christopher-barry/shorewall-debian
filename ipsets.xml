@@ -154,6 +154,22 @@ ACCEPT       net:+sshok  $FW      tcp      22</programlisting></para>
         firewall is first stopped.</para>
       </listitem>
     </orderedlist>
+
+    <para>Beginning with Shorewall 4.6.4, you can save selective ipsets by
+    setting SAVE_IPSETS to a comma-separated list of ipset names. You can also
+    restrict the group of sets saved to ipv4 sets by setting
+    SAVE_IPSETS=ipv4.</para>
+
+    <para>With Shorewall 4.6.4, the SAVE_IPSETS option may specify a list of
+    ipsets to be saved. When such a list is specified, only those ipsets
+    together with the ipsets supporting dynamic zones are saved. Shorewall6
+    support for the SAVE_IPSETS option was also added in 4.6.4. When
+    SAVE_IPSETS=Yes in <ulink
+    url="manpages6/shorewall6.conf.html">shorewall6.conf(5)</ulink>, only ipv6
+    ipsets are saved. For Shorewall, if SAVE_IPSETS=ipv4 in <ulink
+    url="manpages/shorewall.conf.html">shorewall.conf(5)</ulink>, then only
+    ipv4 ipsets are saved. Both features require ipset version 5 or
+    later.</para>
   </section>
 
   <section>
@@ -161,17 +177,28 @@ ACCEPT       net:+sshok  $FW      tcp      22</programlisting></para>
 
     <para>Ipset support in Shorewall6 was added in Shorewall 4.4.21.</para>
 
-    <para>Unlike iptables, which has separate configurations for IPv4 and
-    IPv6, ipset has a single configuration that handles both. This means the
-    SAVE_IPSETS=Yes in shorewall.conf or shorewall6.conf won't work correctly
-    because . To work around this issue, Shorewall-init is now capable
-    restoring ipset contents during 'start' and saving them during 'stop'. To
-    direct Shorewall-init to save/restore ipset contents, set the SAVE_IPSETS
-    option in /etc/sysconfig/shorewall-init (/etc/default/shorewall-init on
-    Debian and derivatives). The value of the option is a file name where the
-    contents of the ipsets will be save to and restored from. Shorewall-init
-    will create any necessary directories during the first 'save' operation.
-    If you configure Shorewall-init to save/restore ipsets, be sure to set
-    SAVE_IPSETS=No in shorewall.conf and shorewall6.conf.</para>
+    <para>Beginning with Shorewall 4.6.4, SAVE_IPSETS is available in <ulink
+    url="manpages6/shorewall6.conf.html">shorewall6-conf(5)</ulink>. When set
+    to Yes, the ipv6 ipsets will be saved. You can also save selective ipsets
+    by setting SAVE_IPSETS to a comma-separated list of ipset names.</para>
+
+    <para>Prior to Shorewall 4.6.4, SAVE_IPSETS=Yes in <ulink
+    url="manpages/shorewall.conf.html">shorewall.conf(5)</ulink> won't work
+    correctly because it saves both IPv4 and IPv6 ipsets. To work around this
+    issue, Shorewall-init is capable restoring ipset contents during 'start'
+    and saving them during 'stop'. To direct Shorewall-init to save/restore
+    ipset contents, set the SAVE_IPSETS option in
+    /etc/sysconfig/shorewall-init (/etc/default/shorewall-init on Debian and
+    derivatives). The value of the option is a file name where the contents of
+    the ipsets will be save to and restored from. Shorewall-init will create
+    any necessary directories during the first 'save' operation.</para>
+
+    <para>If you configure Shorewall-init to save/restore ipsets, be sure to
+    set SAVE_IPSETS=No in shorewall.conf and shorewall6.conf.</para>
+
+    <para>If you configure SAVE_IPSETS in <ulink
+    url="manpages/shorewall.conf.html">shorewall.conf(5)</ulink> and/or <ulink
+    url="manpages6/shorewall6.conf.html">shorewall6.conf(5)</ulink> then do
+    not set SAVE_IPSETS in shorewall-init.</para>
   </section>
 </article>
