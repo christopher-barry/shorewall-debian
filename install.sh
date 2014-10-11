@@ -27,7 +27,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.6.3.4
+VERSION=4.6.4
 
 usage() # $1 = exit status
 {
@@ -35,6 +35,7 @@ usage() # $1 = exit status
     echo "usage: $ME [ <configuration-file> ]"
     echo "       $ME -v"
     echo "       $ME -h"
+    echo "       $ME -n"
     exit $1
 }
 
@@ -105,9 +106,12 @@ PRODUCT=shorewall-init
 T='-T'
 
 finished=0
+configure=1
 
 while [ $finished -eq 0 ] ; do
-    case "$1" in
+    option="$1"
+
+    case "$option" in
 	-*)
 	    option=${option#-}
 
@@ -119,6 +123,10 @@ while [ $finished -eq 0 ] ; do
 		    v)
 			echo "Shorewall-init Firewall Installer Version $VERSION"
 			exit 0
+			;;
+		    n*)
+			configure=0
+			option=${option#n}
 			;;
 		    *)
 			usage 1
@@ -176,6 +184,8 @@ for var in SHAREDIR LIBEXECDIR CONFDIR SBINDIR VARLIB VARDIR; do
     require $var
 done
 
+[ -n "$SANDBOX" ] && configure=0
+
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 
 if [ -z "$BUILD" ]; then
@@ -191,7 +201,7 @@ if [ -z "$BUILD" ]; then
 		eval $(cat /etc/os-release | grep ^ID=)
 
 		case $ID in
-		    fedora|rhel)
+		    fedora|rhel|centos|foobar)
 			BUILD=redhat
 			;;
 		    debian|ubuntu)
@@ -306,6 +316,7 @@ fi
 # Install the Firewall Script
 #
 if [ -n "$INITFILE" ]; then
+    mkdir -p ${DESTDIR}${INITDIR}
     install_file $INITSOURCE ${DESTDIR}${INITDIR}/$INITFILE 0544
     [ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${INITDIR}/$INITFILE
     
@@ -325,7 +336,7 @@ if [ -n "$SYSTEMD" ]; then
     run_install $OWNERSHIP -m 644 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
     echo "Service file $SERVICEFILE installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
-    if [ -n "$DESTDIR" ]; then
+    if [ -n "$DESTDIR" -o $configure -eq 0 ]; then
 	mkdir -p ${DESTDIR}${SBINDIR}
         chmod 755 ${DESTDIR}${SBINDIR}
     fi
@@ -357,6 +368,8 @@ chmod 644 ${DESTDIR}${SHAREDIR}/shorewall-init/version
 #
 # Remove and create the symbolic link to the init script
 #
+echo CONFDIR is $CONFDIR
+
 if [ -z "$DESTDIR" ]; then
     rm -f ${SHAREDIR}/shorewall-init/init
     ln -s ${INITDIR}/${INITFILE} ${SHAREDIR}/shorewall-init/init
@@ -366,14 +379,24 @@ if [ $HOST = debian ]; then
     if [ -n "${DESTDIR}" ]; then
 	mkdir -p ${DESTDIR}/etc/network/if-up.d/
 	mkdir -p ${DESTDIR}/etc/network/if-down.d/
+	mkdir -p ${DESTDIR}/etc/network/if-post-down.d/
+    elif [ $configure -eq 0 ]; then
+	mkdir -p ${DESTDIR}${CONFDIR}/network/if-up.d/
+	mkdir -p ${DESTDIR}${CONFDIR}/network/if-down.d/
+	mkdir -p ${DESTDIR}${CONFDIR}/network/if-post-down.d/
     fi
 
-    if [ ! -f ${DESTDIR}/etc/default/shorewall-init ]; then
+    if [ ! -f ${DESTDIR}${CONFDIR}/default/shorewall-init ]; then
 	if [ -n "${DESTDIR}" ]; then
 	    mkdir ${DESTDIR}/etc/default
 	fi
 
-	install_file sysconfig ${DESTDIR}/etc/default/shorewall-init 0644
+	if [ $configure -eq 1 ]; then
+	    install_file sysconfig ${DESTDIR}/etc/default/shorewall-init 0644
+	else
+	    mkdir -p ${DESTDIR}${CONFDIR}/default
+	    install_file sysconfig ${DESTDIR}${CONFDIR}/default/shorewall-init 0644
+	fi
     fi
 
     IFUPDOWN=ifupdown.debian.sh
@@ -384,7 +407,7 @@ else
 	if [ -z "$RPM" ]; then
 	    if [ $HOST = suse ]; then
 		mkdir -p ${DESTDIR}/etc/sysconfig/network/if-up.d
-		mkdir -p ${DESTDIR}${SYSCONFDIR}/network/if-down.d
+		mkdir -p ${DESTDIR}/etc/sysconfig/network/if-down.d
 	    elif [ $HOST = gentoo ]; then
 		# Gentoo does not support if-{up,down}.d
 		/bin/true
@@ -415,17 +438,33 @@ mkdir -p ${DESTDIR}${LIBEXECDIR}/shorewall-init
 install_file ifupdown ${DESTDIR}${LIBEXECDIR}/shorewall-init/ifupdown 0544
 
 if [ -d ${DESTDIR}/etc/NetworkManager ]; then
-    install_file ifupdown ${DESTDIR}/etc/NetworkManager/dispatcher.d/01-shorewall 0544
+    if [ $configure -eq 1 ]; then
+	install_file ifupdown ${DESTDIR}/etc/NetworkManager/dispatcher.d/01-shorewall 0544
+    else
+	mkdir -p ${DESTDIR}${CONFDIR}/NetworkManager/dispatcher.d/
+	install_file ifupdown ${DESTDIR}${CONFDIR}/NetworkManager/dispatcher.d/01-shorewall 0544
+    fi
 fi
 
 case $HOST in
     debian)
-	install_file ifupdown ${DESTDIR}/etc/network/if-up.d/shorewall 0544
-	install_file ifupdown ${DESTDIR}/etc/network/if-down.d/shorewall 0544
-	install_file ifupdown ${DESTDIR}/etc/network/if-post-down.d/shorewall 0544
+	if [ $configure -eq 1 ]; then
+	    install_file ifupdown ${DESTDIR}/etc/network/if-up.d/shorewall 0544
+	    install_file ifupdown ${DESTDIR}/etc/network/if-down.d/shorewall 0544
+	    install_file ifupdown ${DESTDIR}/etc/network/if-post-down.d/shorewall 0544
+	else
+	    install_file ifupdown ${DESTDIR}${CONFDIR}/network/if-up.d/shorewall 0544
+	    install_file ifupdown ${DESTDIR}${CONFDIR}/network/if-down.d/shorewall 0544
+	    install_file ifupdown ${DESTDIR}${CONFDIR}/network/if-post-down.d/shorewall 0544
+	fi
 	;;
     suse)
 	if [ -z "$RPM" ]; then
+	    if [ $configure -eq 0 ]; then
+		mkdir -p ${DESTDIR}${SYSCONFDIR}/network/if-up.d/
+		mkdir -p ${DESTDIR}${SYSCONFDIR}/network/if-down.d/
+	    fi
+
 	    install_file ifupdown ${DESTDIR}${SYSCONFDIR}/network/if-up.d/shorewall 0544
 	    install_file ifupdown ${DESTDIR}${SYSCONFDIR}/network/if-down.d/shorewall 0544
 	fi
@@ -453,7 +492,7 @@ case $HOST in
 esac
 
 if [ -z "$DESTDIR" ]; then
-    if [ -n "$first_install" ]; then
+    if [ $configure -eq 1 -a -n "$first_install" ]; then
 	if [ $HOST = debian ]; then
 	    if mywhich insserv; then
 		if insserv ${INITDIR}/shorewall-init; then
@@ -505,7 +544,7 @@ if [ -z "$DESTDIR" ]; then
 	fi
     fi
 else
-    if [ -n "$first_install" ]; then
+    if [ $configure -eq 1 -a -n "$first_install" ]; then
 	if [ $HOST = debian ]; then
 	    if [ -n "${DESTDIR}" ]; then
 		mkdir -p ${DESTDIR}/etc/rcS.d

@@ -1,4 +1,4 @@
-\#!/bin/sh
+#!/bin/sh
 #
 # Script to back uninstall Shoreline Firewall
 #
@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.3.4
+VERSION=4.6.4
 
 usage() # $1 = exit status
 {
@@ -69,6 +69,42 @@ remove_file() # $1 = file to restore
     fi
 }
 
+finished=0
+configure=1
+
+while [ $finished -eq 0 ]; do
+    option=$1
+
+    case "$option" in
+	-*)
+	    option=${option#-}
+
+	    while [ -n "$option" ]; do
+		case $option in
+		    h)
+			usage 0
+			;;
+		    v)
+			echo "$Product Firewall Installer Version $VERSION"
+			exit 0
+			;;
+		    n*)
+			configure=0
+			option=${option#n}
+			;;
+		    *)
+			usage 1
+			;;
+		esac
+	    done
+
+	    shift
+	    ;;
+	*)
+	    finished=1
+	    ;;
+    esac
+done
 #
 # Read the RC file
 #
@@ -114,20 +150,27 @@ fi
 
 echo "Uninstalling Shorewall Init $VERSION"
 
+[ -n "$SANDBOX" ] && configure=0
+
 INITSCRIPT=${CONFDIR}/init.d/shorewall-init
 
 if [ -f "$INITSCRIPT" ]; then
-    if mywhich updaterc.d ; then
-	updaterc.d shorewall-init remove
-    elif mywhich insserv ; then
-        insserv -r $INITSCRIPT
-    elif mywhich chkconfig ; then
-	chkconfig --del $(basename $INITSCRIPT)
-    elif mywhich systemctl ; then
-	systemctl disable shorewall-init
+    if [ $configure -eq 1 ]; then
+	if mywhich updaterc.d ; then
+	    updaterc.d shorewall-init remove
+	elif mywhich insserv ; then
+            insserv -r $INITSCRIPT
+	elif mywhich chkconfig ; then
+	    chkconfig --del $(basename $INITSCRIPT)
+	fi
     fi
 
     remove_file $INITSCRIPT
+fi
+
+if [ -n "$SYSTEMD" ]; then
+    [ $configure -eq 1 ] && systemctl disable shorewall-init.service
+    rm -f $SYSTEMD/shorewall-init.service
 fi
 
 [ "$(readlink -m -q ${SBINDIR}/ifup-local)"   = ${SHAREDIR}/shorewall-init ] && remove_file ${SBINDIR}/ifup-local
@@ -159,8 +202,9 @@ if [ -d ${CONFDIR}/ppp ]; then
     done
 fi
 
+rm -f  ${SBINDIR}/shorewall-init
 rm -rf ${SHAREDIR}/shorewall-init
-rm -rf ${LIBEXEC}/shorewall-init
+rm -rf ${LIBEXECDIR}/shorewall-init
 
 echo "Shorewall Init Uninstalled"
 

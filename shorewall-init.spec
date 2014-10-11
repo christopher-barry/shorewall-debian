@@ -1,6 +1,6 @@
 %define name shorewall-init
-%define version 4.6.3
-%define release 4
+%define version 4.6.5
+%define release 0Beta1
 
 Summary: Shorewall-init adds functionality to Shoreline Firewall (Shorewall).
 Name: %{name}
@@ -37,7 +37,8 @@ ifup/ifdown and NetworkManager.
                --prefix=%{_prefix} \
                --tmpdir=%{_tmpdir} \
                --perllibdir=%{perl_vendorlib} \
-               --libexecdir=%{_libexecdir}
+               --libexecdir=%{_libexecdir} \
+               --sbindir=%{_sbindir}
 
 DESTDIR=%{buildroot} ./install.sh
 
@@ -47,10 +48,10 @@ rm -rf $RPM_BUILD_ROOT
 %post
 
 if [ $1 -eq 1 ]; then
-    if [ -x /sbin/insserv ]; then
-	/sbin/insserv %{_initddir}/shorewall-init
-    elif [ -x /sbin/chkconfig ]; then
-	/sbin/chkconfig --add shorewall-init;
+    if [ -x %{_sbindir}/insserv ]; then
+	%{_sbindir}/insserv %{_initddir}/shorewall-init
+    elif [ -x %{_sbindir}/chkconfig ]; then
+	%{_sbindir}/chkconfig --add shorewall-init;
     fi
 fi
 
@@ -64,16 +65,16 @@ if [ -f /etc/SuSE-release ]; then
 	done
     fi
 else
-    if [ -f /sbin/ifup-local -o -f /sbin/ifdown-local ]; then
-	if ! grep -q Shorewall /sbin/ifup-local || ! grep -q Shorewall /sbin/ifdown-local; then
-	    echo "WARNING: /sbin/ifup-local and/or /sbin/ifdown-local already exist; ifup/ifdown events will not be handled" >&2
+    if [ -f %{_sbindir}/ifup-local -o -f %{_sbindir}/ifdown-local ]; then
+	if ! grep -q Shorewall %{_sbindir}/ifup-local || ! grep -q Shorewall %{_sbindir}/ifdown-local; then
+	    echo "WARNING: %{_sbindir}/ifup-local and/or %{_sbindir}/ifdown-local already exist; ifup/ifdown events will not be handled" >&2
 	else
-	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifup-local
-	    cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifdown-local
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown %{_sbindir}/ifup-local
+	    cp -pf %{_libexecdir}/shorewall-init/ifupdown %{_sbindir}/ifdown-local
 	fi
     else
-	cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifup-local
-	cp -pf %{_libexecdir}/shorewall-init/ifupdown /sbin/ifdown-local
+	cp -pf %{_libexecdir}/shorewall-init/ifupdown %{_sbindir}/ifup-local
+	cp -pf %{_libexecdir}/shorewall-init/ifupdown %{_sbindir}/ifdown-local
     fi
 
     if [ -d /etc/ppp ]; then
@@ -95,14 +96,14 @@ fi
 %preun
 
 if [ $1 -eq 0 ]; then
-    if [ -x /sbin/insserv ]; then
-	/sbin/insserv -r %{_initddir}/shorewall-init
-    elif [ -x /sbin/chkconfig ]; then
-	/sbin/chkconfig --del shorewall-init
+    if [ -x %{_sbindir}/insserv ]; then
+	%{_sbindir}/insserv -r %{_initddir}/shorewall-init
+    elif [ -x %{_sbindir}/chkconfig ]; then
+	%{_sbindir}/chkconfig --del shorewall-init
     fi
 
-    [ -f /sbin/ifup-local ]   && grep -q Shorewall /sbin/ifup-local   && rm -f /sbin/ifup-local
-    [ -f /sbin/ifdown-local ] && grep -q Shorewall /sbin/ifdown-local && rm -f /sbin/ifdown-local
+    [ -f %{_sbindir}/ifup-local ]   && grep -q Shorewall %{_sbindir}/ifup-local   && rm -f %{_sbindir}/ifup-local
+    [ -f %{_sbindir}/ifdown-local ] && grep -q Shorewall %{_sbindir}/ifdown-local && rm -f %{_sbindir}/ifdown-local
 
     [ -f /etc/ppp/ip-up.local ]   && grep -q Shorewall-based /etc/ppp/ip-up.local   && rm -f /etc/ppp/ip-up.local
     [ -f /etc/ppp/ip-down.local ] && grep -q Shorewall-based /etc/ppp/ip-down.local && rm -f /etc/ppp/ip-down.local
@@ -125,12 +126,18 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Sun Sep 14 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-4
-* Wed Sep 10 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-3
-* Sat Aug 30 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-2
+* Wed Oct 08 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta1
+* Mon Oct 06 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0base
+* Thu Oct 02 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0RC1
+* Sun Sep 28 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta3
+* Wed Sep 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta2
+* Sun Aug 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta1
 * Thu Aug 21 2014 Tom Eastep tom@shorewall.net
 - Updated to 4.6.3-1
 * Thu Aug 14 2014 Tom Eastep tom@shorewall.net
