@@ -1,3 +1,51 @@
+Changes in 4.6.4 Final
+
+1)  Update release documents
+
+Changes in 4.6.4 RC 1
+
+1)  Update release documents
+
+2)  Added FAQ 104 (kernel log messages during compile).
+
+3)  Create INITD in the -lite installer.
+
+4)  Don't link init script if there is none.
+
+5)  Add -n option to the installers and uninstallers.
+
+6)  Support SANDBOX in the installers and uninstallers.
+
+7)  Correct many defects in the uninstallers.
+
+Changes in 4.6.4 Beta 3
+
+1)  Update release documents
+
+2)  Allow SAVE_IPSETS to specify a list of ipset names.
+
+3)  Document .spec and actions.std fixes.
+
+3)  Packaging changes.
+
+Changes in 4.6.4-Beta 2
+
+1)  Update release documents
+
+2)  Correct minor issue in a warning message.
+
+3)  Implement LOG_BACKEND.
+
+4)  Correct stoppedrules/ADMINISABSENTMINDED=No
+
+Changes in 4.6.4-Beta 1
+
+1)  Update release documents
+
+2)  Install support for Centos 7 and Foobar 7
+
+3)  Tweaks to .service files.
+
 Changes in 4.6.3.4
 
 1)  Update release documents

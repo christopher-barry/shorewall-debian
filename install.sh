@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.3.4
+VERSION=4.6.4
 
 usage() # $1 = exit status
 {
@@ -198,7 +198,7 @@ if [ -z "$BUILD" ]; then
 		eval $(cat /etc/os-release | grep ^ID)
 
 		case $ID in
-		    fedora|rhel)
+		    fedora|rhel|centos|foobar)
 			BUILD=redhat
 			;;
 		    debian)
