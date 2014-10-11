@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 3 . 4
+	               S H O R E W A L L  4 . 6 . 4
                    ------------------------------------
-                     S e p t e m b e r  1 6 ,  2 0 1 4
+                      O c t o b e r  1 1 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,81 +14,48 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.6.3.4
+1)  This release includes defect repair through release 4.6.3.4.
 
-1)  The 'Universal' configurations previously failed to start with the
-    diagnostic 
+2)  Two corrections have been made to the .service files:
 
-      ERROR: No network interface available: Firewall state not changed
+    - The .service files now correctly specify
 
-2)  A defect introduced in 4.6.3 prevented Shorewall-init from starting
-    when required interfaces were present.
+          WantedBy=basic.target
 
-3)  The defect repair from 4.6.2.5 (see below) was inadvertently
-    omitted from 4.6.3. It has now been merged into this release.
+    - Conflicting services have been added.
 
-4.6.3.3
+3)  A warning message generated during stoppedrules processing
+    previously referred to the file as routestopped.
 
-1)  Including a PREROUTING SECTION in the accounting file
-    unconditionally resulted in a fatal error:
+4)  Previously, the stoppedrules file did not work properly when
+    ADMINISABSENTMINDED=No.
 
-    ERROR: The PREROUTING SECTION is not allowed when
-           ACCOUNTING_TABLE=filter
+    - A warning message was issued stating that the file would be
+      processed as if ADMINISABSENTMINDED=Yes, and it was.
 
-2)  Previously, the compiler could generate many superfluous rules to
-    enforce the 'tcpflags', 'nosmurfs' and 'maclist' interface options.
+    - Unfortunately, part of the surrounding rule-generating logic
+      proceded as if ADMINISABSENTMINDED=No, leading to an unusable
+      ruleset.
 
-4.6.3.2
+    This problem has been corrected by changing the way that
+    stoppedrules works with ADMINISABSENTMINDED=No. In the new
+    implementation:
 
-1)  The shorewall[6]-actions manpages previously contained incorrect
-    examples of the usage of table names with builtin actions.
+    - All existing connections continue to work.
+    - Response packets and related connection requests to new accepted
+      connections are accepted (in other words, the resulting ruleset
+      is stateful).
 
-    Incorrect:
+    See shorewall[6].conf(5) for additional details.
 
-	FOOBAR,filter,mangle
+5)  The .spec files now set SBINDIR correctly.
 
-    Correct:
+6)  The -lite installers now create INITDIR if it doesn't exist.
 
-	FOOBAR   builtin,filter,mangle
+7)  The installers no longer attempt to create a symbolic link to the
+    init script when no init script is installed.
 
-2)  Previously, if /etc/iproute2/rt_tables was not writeable, then
-    KEEP_RT_TABLES=No behaved like KEEP_RT_TABLES=Yes. Now, a warning
-    message is issued if that file is not writeable and KEEP_RT_TABLES
-    is set to No.
-
-      WARNING: /etc/iproute2/rt_tables is missing or is not writeable
-
-3)  In earlier 4.6.3 versions, the help text from shorewall-lite and
-    shorewall6-lite included two versions of the 'run' command.
-
-      run <command> [ <parameter> ... ]
-      ..
-      run <function> [ <parameter> ... ]
-
-    The second one has now been deleted.
-
-4.6.3.1
-
-1)  The DNSAmp action released in 4.6.3 matched more packets than it
-    should have. That has now been corrected.
-
-2)  The handling of REJECT in IP[6]TABLES rules has been clarified in
-    the shorewall-rules(5) and shorewall6-rules(5) manpages.
-
-3)  The following misleading error message has now been corrected:
-
-      ERROR: The xxx TARGET is now allowed in the filter table
-
-    The message now reads:
-
-      ERROR: The xxx TARGET is not allowed in the filter table
-
-4.6.3
-
-1)  This release contains defect repair up through release 4.6.2.5.
-
-2)  The SAVE_IPSETS option in the Debian version of Shorewall-init now
-    works correctly. Thomas D.
+8)  A large number of defects in the uninstallers have been corrected.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -101,25 +68,39 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.6.3.2
+1)  Install support for Centos 7 and Foobar 7 has been added (Tuomo
+    Soini).
 
-1)  Eric Teeter has contributed a Citrix Goto Meeting macro.
+2)  A 'terminating' option has been added to shorewall[6].actions.
+    this option, when used with the 'builtin' option, indicates to the
+    compiler that the built-in action is terminating. This allows the
+    optimizer to omit rules after an unconditional jump to the
+    built-in.
 
-4.6.3
+3)  A LOG_BACKEND option has been added to allow specification of the
+    default logging backends. See shorewall.conf(5) and
+    shorewall6.conf(5) for details.
 
-1)  A new 'run' command has been implemented. This command allows you
-    to run an arbitrary command in the context of the generated
-    script. 
+4)  The SAVE_IPSETS option may now specify a list of ipsets to be
+    saved. When such a list is specified, only those ipsets together
+    with the ipsets supporting dynamic zones are saved.
 
-       shorewall[6][-lite] run <command> [ <parameter> ... ]
+    Shorewall6 now supports the SAVE_IPSETS option. When
+    SAVE_IPSETS=Yes, only ipv6 ipsets are saved. For Shorewall, if
+    SAVE_IPSETS=ipv4, then only ipv4 ipsets are saved. Both features
+    require ipset version 5 or later.
 
-    Normally, <command> will be a function declared in lib.private.
+    Note that shorewall.conf and shorewall6.conf may now both specify
+    SAVE_IPSETS.
 
-2)  A DNSAmp action has been added. This action matches recursive UDP
-    DNS queries. The default disposition is DROP which can be
-    overridden by the single action parameter (e.g, 'DNSAmp(REJECT)'
-    will reject these queries). Recursive DNS queries are the basis for
-    'DNS Amplification' attacks; hence the action name.
+5)  The SBINDIR setting for SuSE now defaults to /usr/sbin/.
+
+6)  With the exception of Shorewall-core, the tarball installers and
+    uninstallers now support a -n option which inhibits any attempt to
+    change the startup configuration. The -n option can be
+    automatically invoked by setting the SANDBOX variable to a
+    non-empty value, either in the environment or in your shorewallrc
+    file.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -390,8 +371,63 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       CONDITION
       HELPER
 
+17) Prior to Shorewall 4.6.4, the stoppedrules file did not work
+    properly when ADMINISABSENTMINDED=No.
+
+    - A warning message was issued stating that the file would be
+      processed as if ADMINISABSENTMINDED=Yes, and it was.
+
+    - Unfortunately, part of the surrounding rule-generating logic
+      proceded as if ADMINISABSENTMINDED=No, leading to an unusable
+      ruleset.
+
+    In Shorewall 4.6.4, this problem was corrected by changing the way
+    that stoppedrules works with ADMINISABSENTMINDED=No. In the new
+    implementation:
+
+    - All existing connections continue to work.
+    - Response packets and related connection requests to new accepted
+      connections are accepted (in other words, the resulting ruleset
+      is stateful).
+
+    See shorewall[6].conf(5) for additional details.
+
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  4 . 6  R E L E A S E S
+----------------------------------------------------------------------------
+             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 3
+----------------------------------------------------------------------------
+
+4.6.3.1
+
+1)  The DNSAmp action released in 4.6.3 matched more packets than it
+    should have. That has now been corrected.
+
+4.6.3
+
+1)  This release contains defect repair up through release 4.6.2.5.
+
+2)  The SAVE_IPSETS option in the Debian version of Shorewall-init now
+    works correctly. Thomas D.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   4 . 6 . 3
+----------------------------------------------------------------------------
+
+1)  A new 'run' command has been implemented. This command allows you
+    to run an arbitrary command in the context of the generated
+    script. 
+
+       shorewall[6][-lite] run <command> [ <parameter> ... ]
+
+    Normally, <command> will be a function declared in lib.private.
+
+2)  A DNSAmp action has been added. This action matches recursive UDP
+    DNS queries. The default disposition is DROP which can be
+    overridden by the single action parameter (e.g, 'DNSAmp(REJECT)'
+    will reject these queries). Recursive DNS queries are the basis for
+    'DNS Amplification' attacks; hence the action name.
+
 ----------------------------------------------------------------------------
              P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 2
 ----------------------------------------------------------------------------
