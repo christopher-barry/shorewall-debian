@@ -1,6 +1,6 @@
 %define name shorewall-core
-%define version 4.6.3
-%define release 4
+%define version 4.6.5
+%define release 0Beta1
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -33,7 +33,8 @@ a multi-function gateway/ router/server or on a standalone GNU/Linux system.
                --prefix=%{_prefix} \
                --tmpdir=%{_tmpdir} \
                --perllibdir=%{perl_vendorlib} \
-               --libexecdir=%{_libexecdir}
+               --libexecdir=%{_libexecdir} \
+               --sbindir=%{_sbindir}
 
 DESTDIR=%{buildroot} ./install.sh
 
@@ -62,12 +63,18 @@ cp /usr/share/shorewall/shorewallrc ~/.shorewallrc
 %doc COPYING INSTALL changelog.txt releasenotes.txt
 
 %changelog
-* Sun Sep 14 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-4
-* Wed Sep 10 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-3
-* Sat Aug 30 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-2
+* Wed Oct 08 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta1
+* Mon Oct 06 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0base
+* Thu Oct 02 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0RC1
+* Sun Sep 28 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta3
+* Wed Sep 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta2
+* Sun Aug 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta1
 * Thu Aug 21 2014 Tom Eastep tom@shorewall.net
 - Updated to 4.6.3-1
 * Thu Aug 14 2014 Tom Eastep tom@shorewall.net
