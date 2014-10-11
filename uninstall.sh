@@ -26,12 +26,17 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.3.4
+VERSION=4.6.4
+PRODUCT=shorewall
 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
-    echo "usage: $ME [ <shorewallrc file> ]"
+    echo "usage: $ME [ <option> ] [ <shorewallrc file> ]"
+    echo "where <option> is one of"
+    echo "  -h"
+    echo "  -v"
+    echo "  -n"
     exit $1
 }
 
@@ -68,6 +73,43 @@ remove_file() # $1 = file to restore
 	echo "$1 Removed"
     fi
 }
+
+finished=0
+configure=1
+
+while [ $finished -eq 0 ]; do
+    option=$1
+
+    case "$option" in
+	-*)
+	    option=${option#-}
+
+	    while [ -n "$option" ]; do
+		case $option in
+		    h)
+			usage 0
+			;;
+		    v)
+			echo "$Product Firewall Installer Version $VERSION"
+			exit 0
+			;;
+		    n*)
+			configure=0
+			option=${option#n}
+			;;
+		    *)
+			usage 1
+			;;
+		esac
+	    done
+
+	    shift
+	    ;;
+	*)
+	    finished=1
+	    ;;
+    esac
+done
 
 if [ $# -eq 0 ]; then
     if [ -f ./shorewallrc ]; then
@@ -110,24 +152,39 @@ fi
 
 echo "Uninstalling shorewall $VERSION"
 
-if qt iptables -L shorewall -n && [ ! -f ${SBINDIR}/shorewall-lite ]; then
-   shorewall clear
+[ -n "$SANDBOX" ] && configure=0
+
+if [ $configure -eq 1 ]; then
+    if qt iptables -L shorewall -n && [ ! -f ${SBINDIR}/shorewall-lite ]; then
+	shorewall clear
+    fi
 fi
 
 rm -f ${SBINDIR}/shorewall
 
-if [ -f "$INITSCRIPT" ]; then
-    if mywhich updaterc.d ; then
-	updaterc.d ${PRODUCT} remove
-    elif mywhich insserv ; then
-        insserv -r $INITSCRIPT
-    elif mywhich chkconfig ; then
-	chkconfig --del $(basename $INITSCRIPT)
-    elif mywhich systemctl ; then
-	systemctl disable ${PRODUCT}
+if [ -L ${SHAREDIR}/shorewall6/init ]; then
+    FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall6/init)
+elif [ -n "$INITFILE" ]; then
+    FIREWALL=${INITDIR}/${INITFILE}
+fi
+
+if [ -f "$FIREWALL" ]; then
+    if [ $configure -eq 1 ]; then
+	if mywhich updaterc.d ; then
+	    updaterc.d ${PRODUCT} remove
+	elif mywhich insserv ; then
+            insserv -r $FIREWALL
+	elif mywhich chkconfig ; then
+	    chkconfig --del $(basename $FIREWALL)
+	fi
     fi
 
-    remove_file $INITSCRIPT
+    remove_file $FIREWALL
+fi
+
+if [ -n "$SYSTEMD" ]; then
+    [ $configure -eq 1 ] && systemctl disable ${PRODUCT}
+    rm -f $SYSTEMD/shorewall.service
 fi
 
 rm -rf ${SHAREDIR}/shorewall/version
@@ -139,8 +196,8 @@ if [ -n "$SYSCONFDIR" ]; then
 fi
 
 rm -rf ${VARDIR}/shorewall
-rm -rf ${PERLLIB}/Shorewall/*
-rm -rf ${LIBEXEC}/shorewall
+rm -rf ${PERLLIBDIR}/Shorewall/*
+rm -rf ${LIBEXECDIR}/shorewall
 rm -rf ${SHAREDIR}/shorewall/configfiles/
 rm -rf ${SHAREDIR}/shorewall/Samples/
 rm -rf ${SHAREDIR}/shorewall/Shorewall/

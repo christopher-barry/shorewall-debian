@@ -37,7 +37,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.6_0';
+our $VERSION = '4.6_4';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.

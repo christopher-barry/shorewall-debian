@@ -45,7 +45,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.6_3';
+our $VERSION = '4.6_4';
 
 our $export;
 
@@ -348,6 +348,7 @@ sub generate_script_3($) {
     create_netfilter_load( $test );
     create_arptables_load( $test ) if $have_arptables;
     create_chainlist_reload( $_[0] );
+    create_save_ipsets;
 
     emit "#\n# Start/Restart the Firewall\n#";
 
@@ -742,6 +743,8 @@ sub compiler {
     }
 
     setup_source_routing($family);
+
+    setup_log_backend($family);
     #
     # Proxy Arp/Ndp
     #
@@ -975,8 +978,7 @@ sub compiler {
 	    # compile_stop_firewall() also validates the routestopped file. Since we don't
 	    # call that function during normal 'check', we must validate routestopped here.
 	    #
-	    process_routestopped;
-	    process_stoppedrules;
+	    process_routestopped unless process_stoppedrules;
 	}
 	#
 	# Report used/required capabilities

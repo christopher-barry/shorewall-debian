@@ -48,7 +48,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.6_1';
+our $VERSION = '4.6_4';
 
 our $family;
 
@@ -690,11 +690,10 @@ sub process_stoppedrules() {
     my $result;
 
     if ( my $fn = open_file 'stoppedrules' , 1, 1 ) {
-	first_entry sub() {
-	    progress_message2("$doing $fn...");
+	first_entry sub () {
+	    progress_message2( "$doing $fn..." );
 	    unless ( $config{ADMINISABSENTMINDED} ) {
-		warning_message("Entries in the routestopped file are processed as if ADMINISABSENTMINDED=Yes");
-		$config{ADMINISABSENTMINDED} = 'Yes';
+		insert_ijump $filter_table ->{$_}, j => 'ACCEPT', 0, state_imatch 'ESTABLISHED,RELATED' for qw/INPUT FORWARD/;
 	    }
 	};
 
@@ -2607,42 +2606,11 @@ EOF
 
     my @ipsets = all_ipsets;
 
-    if ( @ipsets || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
-	emit <<'EOF';
-
-    case $IPSET in
-        */*)
-            if [ ! -x "$IPSET" ]; then
-                error_message "ERROR: IPSET=$IPSET does not exist or is not executable - ipsets are not saved"
-                IPSET=
-            fi
-	    ;;
-	*)
-	    IPSET="$(mywhich $IPSET)"
-	    [ -n "$IPSET" ] || error_message "ERROR: The ipset utility cannot be located - ipsets are not saved"
-	    ;;
-    esac
-
-    if [ -n "$IPSET" ]; then
-        if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then
-            #
-            # The 'grep -v' is a hack for a bug in ipset's nethash implementation when xtables-addons is applied to Lenny
-            #
-            hack='| grep -v /31'
-        else
-            hack=
-        fi
-
-        if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then
-            #
-            # Don't save an 'empty' file
-            #
-            grep -qE '^(-N|create )' ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save
-        fi
-    fi
-EOF
+    if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
+	emit( '',
+	      '    save_ipsets ${VARDIR}/ipsets.save' );
     }
-
+	
     emit '
 
     set_state "Stopped"
