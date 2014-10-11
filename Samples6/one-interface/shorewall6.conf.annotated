@@ -102,6 +102,23 @@ INVALID_LOG_LEVEL=
 #     any rule in the INVALID section of shorewall6-rules (5) are logged at this
 #     level. The default value is empty which means no logging is performed.
 # 
+LOG_BACKEND=
+#
+# LOG_BACKEND=[backend]
+# 
+#     Added in Shorewall 4.6.4. LOG_BACKEND determines the logging backend to be
+#     used for the iptrace command (see shorewall6(8)).
+# 
+#     backend is one of:
+# 
+#     LOG
+# 
+#         Use standard kernel logging.
+# 
+#     netlink
+# 
+#         Use netlink logging to ulogd version 2 or later.
+# 
 LOG_VERBOSITY=2
 #
 # LOG_VERBOSITY=[number]
@@ -547,8 +564,8 @@ ADMINISABSENTMINDED=Yes
 # ADMINISABSENTMINDED=[Yes|No]
 # 
 #     The value of this variable affects Shorewall's stopped state. The behavior
-#     differs depending on whether shorewall6-routestopped(5) or
-#     shorewall6-stoppedrules(5) is used:
+#     differs depending on whether shorewall-routestopped(5) or
+#     shorewall-stoppedrules(5) is used:
 # 
 #     routestopped
 # 
@@ -561,15 +578,19 @@ ADMINISABSENTMINDED=Yes
 # 
 #     stoppedrules
 # 
-#         If ADMINISABSENTMINDED=No, a warning message is issued and the setting
-#         is ignored.
+#         All existing connections continue to work. To sever all existing
+#         connections when the firewall is stopped, install the conntrack utility
+#         and place the command conntrack -F in the stopped user exit (/etc/
+#         shorewall6/stopped).
 # 
-#         In addition to connections matching entries in stoppedrules, existing
-#         connections continue to work and all new connections from the firewall
-#         system itself are allowed. To sever all existing connections when the
-#         firewall is stopped, install the conntrack utility and place the
-#         command conntrack -F in the stopped user exit (/etc/shorewall6/
-#         stopped).
+#         If ADMINISABSENTMINDED=No, only new connections matching entries in
+#         stoppedrules are accepted when Shorewall is stopped. Response packets
+#         and related connections are automatically accepted.
+# 
+#         If ADMINISABSENTMINDED=Yes, in addition to connections matching entries
+#         in stoppedrules, all new connections from the firewall system itself
+#         are allowed when the firewall is stopped. Response packets and related
+#         connections are automatically accepted.
 # 
 #     If this variable is not set or is given the empty value then
 #     ADMINISABSENTMINDED=No is assumed.
@@ -1239,6 +1260,18 @@ RESTORE_ROUTEMARKS=Yes
 #     mark is restored even when it is zero. If you have problems with IPSEC ESP
 #     packets not being routed correctly on output, try setting this option to No
 #     .
+# 
+SAVE_IPSETS=No
+#
+# SAVE_IPSETS={Yes|No|setlist}
+# 
+#     Re-enabled in Shorewall 4.4.6. If SAVE_IPSETS=Yes, then the current
+#     contents of your ipsets will be saved by the shorewall stop and shorewall
+#     save commands and restored by the shorewall start and shorewall restore
+#     commands.
+# 
+#     Beginning with Shorewall 4.6.4, you can restrict the set of ipsets saved by
+#     specifying a setlist (a comma-separated list of ipv6 ipset names).
 # 
 TC_ENABLED=No
 #

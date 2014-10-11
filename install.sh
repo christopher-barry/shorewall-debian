@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.3.4
+VERSION=4.6.4
 
 #
 # Change to the directory containing this script
@@ -35,6 +35,7 @@ usage() # $1 = exit status
     echo "       $ME -h"
     echo "       $ME -s"
     echo "       $ME -a"
+    echo "       $ME -n"
     exit $1
 }
 
@@ -118,6 +119,7 @@ T="-T"
 INSTALLD='-D'
 
 finished=0
+configure=1
 
 while [ $finished -eq 0 ]; do
     option=$1
@@ -146,6 +148,10 @@ while [ $finished -eq 0 ]; do
 		    p*)
 			ANNOTATED=
 			option=${option#p}
+			;;
+		    n*)
+			configure=0
+			option=${option#n}
 			;;
 		    *)
 			usage 1
@@ -203,6 +209,8 @@ done
 
 [ -n "${INITFILE}" ] && require INITSOURCE && require INITDIR
 
+[ -n "$SANDBOX" ] && configure=0
+
 if [ -z "$BUILD" ]; then
     case $(uname) in
 	cygwin*|CYGWIN*)
@@ -216,7 +224,7 @@ if [ -z "$BUILD" ]; then
 		eval $(cat /etc/os-release | grep ^ID)
 
 		case $ID in
-		    fedora|rhel)
+		    fedora|rhel|centos|foobar)
 			BUILD=redhat
 			;;
 		    debian)
@@ -1120,7 +1128,7 @@ chmod 644 ${DESTDIR}${SHAREDIR}/$PRODUCT/version
 # Remove and create the symbolic link to the init script
 #
 
-if [ -z "$DESTDIR" ]; then
+if [ -z "${DESTDIR}" -a -n "${INITFILE}" ]; then
     rm -f ${SHAREDIR}/$PRODUCT/init
     ln -s ${INITDIR}/${INITFILE} ${SHAREDIR}/$PRODUCT/init
 fi
@@ -1167,7 +1175,7 @@ if [ -n "$SYSCONFFILE" -a -f "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PR
     echo "$SYSCONFFILE installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
 fi
 
-if [ -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
+if [ $configure -eq 1 -a -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
     if [ -n "$SYSTEMD" ]; then
 	if systemctl enable ${PRODUCT}.service; then
 	    echo "$Product will start automatically at boot"

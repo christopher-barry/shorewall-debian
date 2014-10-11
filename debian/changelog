@@ -1,8 +1,9 @@
-shorewall6 (4.6.3.4-1~bpo70+1) wheezy; urgency=low
+shorewall6 (4.6.4-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
+  * Update to Standards-Version 3.9.6 (no changes)
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 21 Sep 2014 17:49:40 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 11 Oct 2014 10:07:14 -0400
 
 shorewall6 (4.6.3.4-1) unstable; urgency=low
 
