@@ -73,6 +73,7 @@ our @EXPORT = ( qw(
 		    allow_optimize
 		    allow_delete
 		    allow_move
+                    make_terminating
 		    set_optflags
 		    reset_optflags
 		    has_return
@@ -104,7 +105,6 @@ our @EXPORT = ( qw(
 		    AUDIT
 		    HELPER
 		    INLINE
-		    TERMINATING
 		    STATEMATCH
 		    USERBUILTIN
 		    INLINERULE
@@ -262,6 +262,7 @@ our %EXPORT_TAGS = (
 				       set_global_variables
 				       save_dynamic_chains
 				       load_ipsets
+				       create_save_ipsets
 				       validate_nfobject
 				       create_nfobjects
 				       create_netfilter_load
@@ -791,6 +792,13 @@ sub incr_cmd_level( $ ) {
 
 sub decr_cmd_level( $ ) {
     assert( --$_[0]->{cmdlevel} >= 0, $_[0] );
+}
+
+#
+# Mark an action as terminating
+#
+sub make_terminating( $ ) {
+    $terminating{$_[0]} = 1;
 }
 
 #
@@ -1654,7 +1662,8 @@ sub insert_rule($$$) {
 sub insert_irule( $$$$;@ ) {
     my ( $chainref, $jump, $target, $number, @matches ) = @_;
 
-    my $ruleref = {};
+    my $rulesref = $chainref->{rules};
+    my $ruleref  = {};
 
     $ruleref->{mode} = ( $ruleref->{cmdlevel} = $chainref->{cmdlevel} ) ? CMD_MODE : CAT_MODE;
 
@@ -1673,7 +1682,15 @@ sub insert_irule( $$$$;@ ) {
     
     $ruleref->{comment} = shortlineinfo( $chainref->{origin} ) || $ruleref->{comment} || $comment;
 
-    splice( @{$chainref->{rules}}, $number, 0, $ruleref );
+    if ( $number >= @$rulesref ) {
+	#
+	# Avoid failure in spice if we insert beyond the end of the chain
+	#
+	$number = @$rulesref;
+	push @$rulesref, $ruleref;
+    } else {
+	splice( @$rulesref, $number, 0, $ruleref );
+    }
 
     trace( $chainref, 'I', ++$number, format_rule( $chainref, $ruleref ) ) if $debug;
 
@@ -7979,11 +7996,99 @@ sub ensure_ipset( $ ) {
     }
 }
 
+#
+# Generate the save_ipsets() function
+#
+sub create_save_ipsets() {
+    my @ipsets = all_ipsets;
+
+    emit( "#\n#Save the ipsets specified by the SAVE_IPSETS setting and by dynamic zones\n#",
+	  'save_ipsets() {' );
+
+    if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
+	emit( '    local file' ,
+	      '',
+	      '    file=$1'
+	    );
+
+	if ( @ipsets ) {
+	    emit '';
+	    ensure_ipset( $_ ) for @ipsets;
+	}
+
+	if ( $config{SAVE_IPSETS} ) {
+	    if ( $family == F_IPV6 || $config{SAVE_IPSETS} eq 'ipv4' ) {
+		my $select = $family == F_IPV4 ? '^create.*family inet ' : 'create.*family inet6 ';
+
+		emit( '' ,
+		      '    rm -f $file' ,
+		      '    touch $file' ,
+		      '    local set' ,
+		    );
+
+		if ( @ipsets ) {
+		    emit '';
+		    emit( "    \$IPSET -S $_ >> \$file" ) for @ipsets;
+		}
+
+		emit( '',
+		      "    for set in \$(\$IPSET save | grep '$select' | cut -d' ' -f2); do" ,
+		      "        \$IPSET save \$set >> \$file" ,
+		      "    done" );
+	    } else {
+		emit ( '' ,
+		       '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
+		       '        #',
+		       '        # The \'grep -v\' is a hack for a bug in ipset\'s nethash implementation when xtables-addons is applied to Lenny' ,
+		       '        #',
+		       '        hack=\'| grep -v /31\'' ,
+		       '    else' ,
+		       '        hack=' ,
+		       '    fi' ,
+		       '',
+		       '    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then' ,
+		       "        grep -qE -- \"^(-N|create )\" \${VARDIR}/ipsets.tmp && mv -f \${VARDIR}/ipsets.tmp \$file" ,
+		       '    fi' );
+ 	    }
+
+	    emit("}\n" );
+	} elsif ( @ipsets || $globals{SAVED_IPSETS} ) {
+	    emit( '' ,
+		  '    rm -f ${VARDIR}/ipsets.tmp' ,
+		  '    touch ${VARDIR}/ipsets.tmp' ,
+		);
+
+	    if ( @ipsets ) {
+		emit '';
+		emit( "    \$IPSET -S $_ >> \${VARDIR}/ipsets.tmp" ) for @ipsets;
+	    }
+
+	    emit( '' ,
+		  "    if qt \$IPSET list $_; then" ,
+		  "        \$IPSET save $_ >> \${VARDIR}/ipsets.tmp" ,
+		  '    else' ,
+		  "        error_message 'ipset $_ not saved (not found)'" ,
+		  "    fi\n" ) for @{$globals{SAVED_IPSETS}};
+
+	    emit( '' ,
+		  "    grep -qE -- \"(-N|^create )\" \${VARDIR}/ipsets.tmp && cat \${VARDIR}/ipsets.tmp >> \$file\n" ,
+		  '' ,
+		  "}\n" );
+	}
+    } elsif ( $config{SAVE_IPSETS} ) {
+	emit( '    error_message "WARNING: No ipsets were saved"',
+	      "}\n" );
+    } else {
+	emit( '    true',
+	      "}\n" );
+    }
+}
+
 sub load_ipsets() {
 
     my @ipsets = all_ipsets;
 
-    if ( @ipsets || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
+    if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
 	emit ( '',
 	       'local hack',
 	       '',
@@ -8010,9 +8115,25 @@ sub load_ipsets() {
 		emit ( '' );
 		ensure_ipset( $_ ) for @ipsets;
 		emit ( '' );
+
+		emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
+		       '        $IPSET flush' ,
+		       '        $IPSET destroy' ,
+		       '        $IPSET restore < ${VARDIR}/ipsets.save' ,
+		       "    fi\n" ) for @{$globals{SAVED_IPSETS}};
 	    }
 	} else {
 	    ensure_ipset( $_ ) for @ipsets;
+
+	    if ( @{$globals{SAVED_IPSETS}} ) {
+		emit ( '' );
+
+		emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
+		       '        $IPSET flush' ,
+		       '        $IPSET destroy' ,
+		       '        $IPSET restore < ${VARDIR}/ipsets.save' ,
+		       "    fi\n" ) for @{$globals{SAVED_IPSETS}};
+	    }
 	}
 
 	emit ( 'elif [ "$COMMAND" = restore -a -z "$g_recovering" ]; then' );
@@ -8036,6 +8157,12 @@ sub load_ipsets() {
 	    }
 	} else {
 	    ensure_ipset( $_ ) for @ipsets;
+
+	    emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
+		   '        $IPSET flush' ,
+		   '        $IPSET destroy' ,
+		   '        $IPSET restore < ${VARDIR}/ipsets.save' ,
+		   "    fi\n" ) for @{$globals{SAVED_IPSETS}};
 	}
 
 	if ( @ipsets ) {
@@ -8043,36 +8170,14 @@ sub load_ipsets() {
 	    ensure_ipset( $_ ) for @ipsets;
 	}
 
-	emit( 'elif [ "$COMMAND" = stop ]; then' );
-
-	if ( @ipsets ) {
-	    ensure_ipset( $_ ) for @ipsets;
-	    emit( '' );
-	}
-
-	if ( $family == F_IPV4 ) {
-	    emit ( '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
-		   '        #',
-		   '        # The \'grep -v\' is a hack for a bug in ipset\'s nethash implementation when xtables-addons is applied to Lenny' ,
-		   '        #',
-		   '        hack=\'| grep -v /31\'' ,
-		   '    else' ,
-		   '        hack=' ,
-		   '    fi' ,
-		   '',
-		   '    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then' ,
-		   '        grep -qE -- "^(-N|create )" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
-		   '    fi' );
-	} else {
-	    emit ( '    if eval $IPSET -S > ${VARDIR}/ipsets.tmp; then' ,
-		   '        grep -qE -- "^(-N|create )" ${VARDIR}/ipsets.tmp && mv -f ${VARDIR}/ipsets.tmp ${VARDIR}/ipsets.save' ,
-		   '    fi' );
-	}
+	emit( 'elif [ "$COMMAND" = stop ]; then' ,
+	      '   save_ipsets'
+	    );
 
 	if ( @ipsets ) {
 	    emit( 'elif [ "$COMMAND" = refresh ]; then' );
 	    ensure_ipset( $_ ) for @ipsets;
-	}
+	};
 
 	emit ( 'fi' ,
 	       '' );

@@ -42,9 +42,10 @@ our @EXPORT = qw(
 		 setup_source_routing
 		 setup_accept_ra
 		 setup_forwarding
+                 setup_log_backend
 		 );
 our @EXPORT_OK = qw( setup_interface_proc );
-our $VERSION = '4.6_0';
+our $VERSION = '4.6_4';
 
 #
 # ARP Filtering
@@ -348,5 +349,23 @@ sub setup_interface_proc( $ ) {
     }
 }
 
+sub setup_log_backend($) {
+    if ( my $setting = $config{LOG_BACKEND} ) {
+	my $family   = shift;
+	my $file     = '/proc/sys/net/netfilter/nf_log/' . ( $family == F_IPV4 ? '2' : '10' );
+
+	emit( 'progress_message2 "Setting up log backend"',
+	      '',
+	      "if [ -f $file ]; then",
+	      "   if echo $setting > $file; then",
+	      "       progress_message 'Log Backend set to $setting'",
+	      '   else',
+	      "       error_message 'WARNING: Unable to set log backend to $setting'",
+	      '   fi',
+	      'else',
+	      "   error_message 'WARNING: $file does not exist - log backend not set'",
+	      "fi\n" );
+    }
+}
 
 1;

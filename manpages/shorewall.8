@@ -2,12 +2,12 @@
 .\"     Title: shorewall
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 09/16/2014
+.\"      Date: 10/10/2014
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL" "8" "09/16/2014" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL" "8" "10/10/2014" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -461,7 +461,8 @@ The
 \fIiptables match expression\fR
 must be one or more matches that may appear in both the raw table OUTPUT and raw table PREROUTING chains\&.
 .sp
-The trace records are written to the kernel\*(Aqs log buffer with facility = kernel and priority = warning, and they are routed from there by your logging daemon (syslogd, rsyslog, syslog\-ng, \&.\&.\&.) \-\- Shorewall has no control over where the messages go; consult your logging daemon\*(Aqs documentation\&.
+The log message destination is determined by the currently\-selected IPv4
+\m[blue]\fBlogging backend\fR\m[]\&\s-2\u[6]\d\s+2\&.
 .RE
 .PP
 \fBload\fR
@@ -896,7 +897,7 @@ Displays the system\*(Aqs IPv4 configuration\&.
 .PP
 \fBipa\fR
 .RS 4
-Added in Shorewall 4\&.4\&.17\&. Displays the per\-IP accounting counters (\m[blue]\fBshorewall\-accounting\fR\m[]\&\s-2\u[6]\d\s+2
+Added in Shorewall 4\&.4\&.17\&. Displays the per\-IP accounting counters (\m[blue]\fBshorewall\-accounting\fR\m[]\&\s-2\u[7]\d\s+2
 (5))\&.
 .RE
 .PP
@@ -1011,9 +1012,9 @@ The \-i option was added in Shorewall 4\&.6\&.0 and causes a warning message to 
 \fBstop\fR
 .RS 4
 Stops the firewall\&. All existing connections, except those listed in
-\m[blue]\fBshorewall\-routestopped\fR\m[]\&\s-2\u[7]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
+\m[blue]\fBshorewall\-routestopped\fR\m[]\&\s-2\u[8]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
-\m[blue]\fBshorewall\-routestopped\fR\m[]\&\s-2\u[7]\d\s+2(5) or by ADMINISABSENTMINDED\&.
+\m[blue]\fBshorewall\-routestopped\fR\m[]\&\s-2\u[8]\d\s+2(5) or by ADMINISABSENTMINDED\&.
 .sp
 If
 \fB\-f\fR
@@ -1088,14 +1089,14 @@ file to be annotated with documentation\&.
 .sp
 The
 \fB\-b\fR
-option was added in Shorewall 4\&.4\&.26 and causes legacy blacklisting rules (\m[blue]\fBshorewall\-blacklist\fR\m[]\&\s-2\u[8]\d\s+2
-(5) ) to be converted to entries in the blrules file (\m[blue]\fBshorewall\-blrules\fR\m[]\&\s-2\u[9]\d\s+2
+option was added in Shorewall 4\&.4\&.26 and causes legacy blacklisting rules (\m[blue]\fBshorewall\-blacklist\fR\m[]\&\s-2\u[9]\d\s+2
+(5) ) to be converted to entries in the blrules file (\m[blue]\fBshorewall\-blrules\fR\m[]\&\s-2\u[10]\d\s+2
 (5) )\&. The blacklist keyword is removed from
 \m[blue]\fBshorewall\-zones\fR\m[]\&\s-2\u[4]\d\s+2
 (5),
 \m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[3]\d\s+2
 (5) and
-\m[blue]\fBshorewall\-hosts\fR\m[]\&\s-2\u[10]\d\s+2
+\m[blue]\fBshorewall\-hosts\fR\m[]\&\s-2\u[11]\d\s+2
 (5)\&. The unmodified files are saved with a \&.bak suffix\&.
 .sp
 The
@@ -1110,9 +1111,9 @@ The
 option was added in Shorewall 4\&.6\&.0\&. When specified,
 \fB\-t\fR
 causes
-\m[blue]\fBshorewall\-tcrules(5)\fR\m[]\&\s-2\u[11]\d\s+2
+\m[blue]\fBshorewall\-tcrules(5)\fR\m[]\&\s-2\u[12]\d\s+2
 to be converted to
-\m[blue]\fBshorewall\-mangle(5)\fR\m[]\&\s-2\u[12]\d\s+2\&. The old file is renamed with a \&.bak suffix\&.
+\m[blue]\fBshorewall\-mangle(5)\fR\m[]\&\s-2\u[13]\d\s+2\&. The old file is renamed with a \&.bak suffix\&.
 .if n \{\
 .sp
 .\}
@@ -1225,7 +1226,7 @@ command returns exit status as follows:
 /etc/shorewall/
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]\&\s-2\u[13]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]\&\s-2\u[14]\d\s+2
 .PP
 shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-rtrules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-secmarks(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-tcrules(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
@@ -1255,41 +1256,46 @@ shorewall-routes
 \%http://www.shorewall.net/manpages/shorewall-routes.html
 .RE
 .IP " 6." 4
+logging backend
+.RS 4
+\%http://www.shorewall.net/shorewall_logging.html#Backends
+.RE
+.IP " 7." 4
 shorewall-accounting
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-accounting.html
 .RE
-.IP " 7." 4
+.IP " 8." 4
 shorewall-routestopped
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-routestopped.html
 .RE
-.IP " 8." 4
+.IP " 9." 4
 shorewall-blacklist
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-blacklist.html
 .RE
-.IP " 9." 4
+.IP "10." 4
 shorewall-blrules
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-blrules.html
 .RE
-.IP "10." 4
+.IP "11." 4
 shorewall-hosts
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-hosts.html
 .RE
-.IP "11." 4
+.IP "12." 4
 shorewall-tcrules(5)
 .RS 4
 \%http://www.shorewall.netshorewall-tcrules.html
 .RE
-.IP "12." 4
+.IP "13." 4
 shorewall-mangle(5)
 .RS 4
 \%http://www.shorewall.netshorewall-mangle.html
 .RE
-.IP "13." 4
+.IP "14." 4
 http://www.shorewall.net/starting_and_stopping_shorewall.htm
 .RS 4
 \%http://www.shorewall.net/starting_and_stopping_shorewall.htm

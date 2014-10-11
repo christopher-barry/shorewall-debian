@@ -41,6 +41,11 @@
 #         builtin,filter,mangle" would specify FOOBAR as a builtin target that
 #         can be used in the filter and mangle tables.
 # 
+#         Beginning with Shorewall 4.6.4, you may specify the terminating option
+#         with builtin to indicate to the Shorewall optimizer that the action is
+#         terminating (the current packet will not be passed to the next rule in
+#         the chain).
+# 
 #     inline
 # 
 #         Causes the action body (defined in action.action-name) to be expanded
@@ -73,6 +78,12 @@
 #         simply sets the $_loglevel and $_logtag shell variables which can be
 #         used within the action body to apply those logging options only to a
 #         subset of the rules.
+# 
+#     terminating
+# 
+#         Added in Shorewall 4.6.4. When used with builtin, indicates that the
+#         built-in action is termiating (i.e., if the action is jumped to, the
+#         next rule in the chain is not evaluated).
 # 
 ########################################################################################
 #ACTION    OPTIONS		COMMENT (place '# ' below the 'C' in comment followed by

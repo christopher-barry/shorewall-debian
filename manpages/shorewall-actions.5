@@ -2,12 +2,12 @@
 .\"     Title: shorewall-actions
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 09/16/2014
+.\"      Date: 10/10/2014
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ACTIONS" "5" "09/16/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-ACTIONS" "5" "10/10/2014" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -65,6 +65,12 @@ and
 is assumed\&. The table names follow
 \fBbuiltin\fR
 and are separated by commas; for example, "FOOBAR builtin,filter,mangle" would specify FOOBAR as a builtin target that can be used in the filter and mangle tables\&.
+.sp
+Beginning with Shorewall 4\&.6\&.4, you may specify the
+\fBterminating\fR
+option with
+\fBbuiltin\fR
+to indicate to the Shorewall optimizer that the action is terminating (the current packet will not be passed to the next rule in the chain)\&.
 .RE
 .PP
 inline
@@ -119,6 +125,12 @@ option for the same action to be ignored with a warning\&.
 nolog
 .RS 4
 Added in Shorewall 4\&.5\&.11\&. When this option is specified, the compiler does not automatically apply the log level and/or tag from the invocation of the action to all rules inside of the action\&. Rather, it simply sets the $_loglevel and $_logtag shell variables which can be used within the action body to apply those logging options only to a subset of the rules\&.
+.RE
+.PP
+terminating
+.RS 4
+Added in Shorewall 4\&.6\&.4\&. When used with
+\fIbuiltin\fR, indicates that the built\-in action is termiating (i\&.e\&., if the action is jumped to, the next rule in the chain is not evaluated)\&.
 .RE
 .RE
 .SH "FILES"
