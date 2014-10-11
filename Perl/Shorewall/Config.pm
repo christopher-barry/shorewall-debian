@@ -709,7 +709,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "4.6.3.4",
+		    VERSION                 => "4.6.4",
 		    CAPVERSION              => 40600 ,
 		  );
     #
@@ -741,6 +741,7 @@ sub initialize( $;$$) {
 	  RPFILTER_LOG_LEVEL => undef,
 	  INVALID_LOG_LEVEL => undef,
 	  UNTRACKED_LOG_LEVEL => undef,
+	  LOG_BACKEND => undef,
 	  #
 	  # Location of Files
 	  #
@@ -1105,7 +1106,8 @@ sub initialize( $;$$) {
 			 $family == F_IPV4 ? 'shorewall' : 'shorewall6'
 		       ) if defined $shorewallrc;
 
-    $globals{SHAREDIRPL} = "$shorewallrc{SHAREDIR}/shorewall/";
+    $globals{SHAREDIRPL}   = "$shorewallrc{SHAREDIR}/shorewall/";
+    $globals{SAVED_IPSETS} = [];
 
     if ( $family == F_IPV4 ) {
 	$globals{SHAREDIR}      = "$shorewallrc{SHAREDIR}/shorewall";
@@ -3502,8 +3504,9 @@ sub default ( $$ ) {
 #
 # Provide a default value for a yes/no configuration variable.
 #
-sub default_yes_no ( $$ ) {
-    my ( $var, $val ) = @_;
+sub default_yes_no ( $$;$ ) {
+    my ( $var, $val, $other ) = @_;
+    my $result = 1;
 
     my $curval = $config{$var};
 
@@ -3512,12 +3515,31 @@ sub default_yes_no ( $$ ) {
 
 	if (  $curval eq 'no' ) {
 	    $config{$var} = '';
+	} elsif ( defined( $other ) ) {
+	    if ( $other eq '*' ) {
+		if ( $curval eq 'yes' ) {
+		    $config{$var} = 'Yes';
+		} else {
+		    $result = 0;
+		}
+	    } elsif ( $curval eq $other ) {
+		#
+		# Downshift value for later comparison
+		#
+		$config{$var} = $curval;
+	    }
 	} else {
 	    fatal_error "Invalid value for $var ($curval)" unless $curval eq 'yes';
+	    #
+	    # Make Case same as default
+	    #
+	    $config{$var} = 'Yes';
 	}
     } else {
 	$config{$var} = $val;
     }
+
+    $result;
 }
 
 sub default_yes_no_ipv4 ( $$ ) {
@@ -5549,7 +5571,16 @@ sub get_configuration( $$$$$ ) {
     unsupported_yes_no         'BRIDGING';
     unsupported_yes_no_warning 'RFC1918_STRICT';
 
-    default_yes_no 'SAVE_IPSETS'                , '';
+    unless (default_yes_no 'SAVE_IPSETS', '', '*' ) {
+	$val = $config{SAVE_IPSETS};
+	unless ( $val eq 'ipv4' ) {
+	    my @sets = split_list( $val , 'ipset' );
+	    $globals{SAVED_IPSETS} = \@sets;
+	    require_capability 'IPSET_V5', 'A saved ipset list', 's';
+	    $config{SAVE_IPSETS} = '';
+	}
+    }
+
     default_yes_no 'SAVE_ARPTABLES'             , '';
     default_yes_no 'STARTUP_ENABLED'            , 'Yes';
     default_yes_no 'DELAYBLACKLISTLOAD'         , '';
@@ -5746,6 +5777,20 @@ sub get_configuration( $$$$$ ) {
     default_log_level 'RELATED_LOG_LEVEL',    '';
     default_log_level 'INVALID_LOG_LEVEL',    '';
     default_log_level 'UNTRACKED_LOG_LEVEL',  '';
+
+    if ( supplied( $val = $config{LOG_BACKEND} ) ) {
+	if ( $family == F_IPV4 && $val eq 'ULOG' ) {
+	    $val = 'ipt_ULOG';
+	} elsif ( $val eq 'netlink' ) {
+	    $val = 'nfnetlink_log';
+	} elsif ( $val eq 'LOG' ) {
+	    $val = $family == F_IPV4 ? 'ipt_LOG' : 'ip6t_log';
+	} else {
+	    fatal_error "Invalid LOG Backend ($val)";
+	}
+
+	$config{LOG_BACKEND} = $val;
+    }
 
     warning_message "RFC1918_LOG_LEVEL=$config{RFC1918_LOG_LEVEL} ignored. The 'norfc1918' interface/host option is no longer supported" if $config{RFC1918_LOG_LEVEL};
 

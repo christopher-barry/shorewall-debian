@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 4.6.3
-%define release 4
+%define version 4.6.5
+%define release 0Beta1
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -34,8 +34,9 @@ a multi-function gateway/ router/server or on a standalone GNU/Linux system.
                --prefix=%{_prefix} \
                --tmpdir=%{_tmpdir} \
                --perllibdir=%{perl_vendorlib} \
-               --libexecdir=%{_libexecdir}
-
+               --libexecdir=%{_libexecdir} \
+               --sbindir=%{_sbindir}
+ 
 DESTDIR=%{buildroot} ./install.sh
 
 %clean
@@ -44,20 +45,20 @@ rm -rf %{buildroot}
 %post
 
 if [ $1 -eq 1 ]; then
-	if [ -x /sbin/insserv ]; then
-		/sbin/insserv %{_initddir}/shorewall
-	elif [ -x /sbin/chkconfig ]; then
-		/sbin/chkconfig --add shorewall;
+	if [ -x /usr%{_sbindir}/insserv ]; then
+		/usr%{_sbindir}/insserv %{_initddir}/shorewall
+	elif [ -x /usr%{_sbindir}/chkconfig ]; then
+		%{_sbindir}/chkconfig --add shorewall;
 	fi
 fi
 
 %preun
 
 if [ $1 = 0 ]; then
-	if [ -x /sbin/insserv ]; then
-		/sbin/insserv -r %{_initddir}/shorewall
-	elif [ -x /sbin/chkconfig ]; then
-		/sbin/chkconfig --del shorewall
+	if [ -x %{_sbindir}/insserv ]; then
+		%{_sbindir}/insserv -r %{_initddir}/shorewall
+	elif [ -x %{_sbindir}/chkconfig ]; then
+		%{_sbindir}/chkconfig --del shorewall
 	fi
 
 	rm -f /etc/shorewall/startup_disabled
@@ -66,10 +67,10 @@ fi
 
 %triggerpostun  -- shorewall-common < 4.4.0
 
-if [ -x /sbin/insserv ]; then
-    /sbin/insserv /etc/rc.d/shorewall
-elif [ -x /sbin/chkconfig ]; then
-    /sbin/chkconfig --add shorewall;
+if [ -x %{_sbindir}/insserv ]; then
+    %{_sbindir}/insserv /etc/rc.d/shorewall
+elif [ -x %{_sbindir}/chkconfig ]; then
+    %{_sbindir}/chkconfig --add shorewall;
 fi
 
 %files
@@ -84,7 +85,7 @@ fi
 
 %attr(0644,root,root) /etc/logrotate.d/shorewall
 
-%attr(0755,root,root) /sbin/shorewall
+%attr(0755,root,root) %{_sbindir}/shorewall
 
 %attr(0644,root,root) /usr/share/shorewall/version
 %attr(0644,root,root) /usr/share/shorewall/actions.std
@@ -131,12 +132,18 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
-* Sun Sep 14 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-4
-* Wed Sep 10 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-3
-* Sat Aug 30 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.3-2
+* Wed Oct 08 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta1
+* Mon Oct 06 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0base
+* Thu Oct 02 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0RC1
+* Sun Sep 28 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta3
+* Wed Sep 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta2
+* Sun Aug 24 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.4-0Beta1
 * Thu Aug 21 2014 Tom Eastep tom@shorewall.net
 - Updated to 4.6.3-1
 * Thu Aug 14 2014 Tom Eastep tom@shorewall.net
