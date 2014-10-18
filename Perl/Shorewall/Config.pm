@@ -709,7 +709,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "4.6.4",
+		    VERSION                 => "4.6.4.2",
 		    CAPVERSION              => 40600 ,
 		  );
     #
