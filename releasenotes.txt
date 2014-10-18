@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	               S H O R E W A L L  4 . 6 . 4
+	             S H O R E W A L L  4 . 6 . 4 . 2
                    ------------------------------------
-                      O c t o b e r  1 1 ,  2 0 1 4
+                      O c t o b e r  1 8 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,34 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.4.2
+
+1)  Setting LOGBACKEND=ipt_LOG could result in the following startup
+    failure at boot:
+
+       Starting shorewall ...
+       /var/lib/shorewall/firewall: line 2080: echo: write error: No such file or directory
+          WARNING: Unable to set log backend to ipt_LOG
+
+4.6.4.1
+
+1)  Confusing 'usage' output was produced under the following
+    conditions:
+
+    a)  4.6.4 installed
+
+    b)  The running firewall was compiled on an earlier release.
+
+    c)  A 'safe-start', 'save-restart', 'save' or 'try' command is
+    	executed.
+
+    This problem has been corrected.
+
+2)  The 'optional' option has been removed from the IPv4 Universal 
+    interfaces file, as that option caused startup failures.
+
+4.6.4 Final.
 
 1)  This release includes defect repair through release 4.6.3.4.
 
