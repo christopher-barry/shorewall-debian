@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.4.2
+VERSION=4.6.4.3
 
 usage() # $1 = exit status
 {
