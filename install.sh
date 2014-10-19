@@ -27,7 +27,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.6.4.2
+VERSION=4.6.4.3
 
 usage() # $1 = exit status
 {
@@ -368,8 +368,6 @@ chmod 644 ${DESTDIR}${SHAREDIR}/shorewall-init/version
 #
 # Remove and create the symbolic link to the init script
 #
-echo CONFDIR is $CONFDIR
-
 if [ -z "$DESTDIR" ]; then
     rm -f ${SHAREDIR}/shorewall-init/init
     ln -s ${INITDIR}/${INITFILE} ${SHAREDIR}/shorewall-init/init
