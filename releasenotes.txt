@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 4 . 2
+	             S H O R E W A L L  4 . 6 . 4 . 3
                    ------------------------------------
-                      O c t o b e r  1 8 ,  2 0 1 4
+                      O c t o b e r  2 0 ,  2 0 1 4
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,12 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+4.6.4.3
+
+1)  The fix for LOGBACKEND in 4.6.4.2 worked on some older
+    distributions but not on newer ones. This release fixes the problem
+    in the remaining cases.
 
 4.6.4.2
 
