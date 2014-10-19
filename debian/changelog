@@ -1,8 +1,8 @@
-shorewall6-lite (4.6.4.2-1~bpo70+1) wheezy; urgency=low
+shorewall6-lite (4.6.4.3-1) unstable; urgency=low
 
-  * Rebuilt for wheezy.
+  * New Upstream Version
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 18 Oct 2014 12:59:01 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 19 Oct 2014 15:11:55 -0400
 
 shorewall6-lite (4.6.4.2-1) unstable; urgency=low
 
