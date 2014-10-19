@@ -68,3 +68,7 @@
        /var/lib/shorewall/firewall: line 2080: echo: write error: No such file or directory
           WARNING: Unable to set log backend to ipt_LOG
 
+    Partially corrected in Shorewall 4.6.4.2. Fixed on Squeeze and
+    RHEL6 (and derivatives). Not fixed on Fedora, Ubuntu and OpenSuSE.
+
+    Corrected on other distros in 4.6.4.3.
