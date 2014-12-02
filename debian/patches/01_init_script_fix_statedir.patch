@@ -1,0 +1,11 @@
+--- shorewall.git.orig/init.debian.sh
++++ shorewall.git/init.debian.sh
+@@ -71,7 +71,7 @@
+ 	statedir=$( . /${CONFDIR}/${PRODUCT}/vardir && echo $VARDIR )
+     fi
+ 
+-    [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARDIR}/${PRODUCT}
++    [ -n "$statedir" ] && STATEDIR=${statedir} || STATEDIR=${VARLIB}/${PRODUCT}
+ 
+     if [ $PRODUCT = shorewall -o $PRODUCT = shorewall6 ]; then
+ 	${SBINDIR}/$PRODUCT ${OPTIONS} compile -c || echo_notdone
