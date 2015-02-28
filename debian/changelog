@@ -1,3 +1,9 @@
+shorewall-core (4.6.4.3-2) unstable; urgency=low
+
+  * Depend upon perl instead of perl-modules (Closes: #779120)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 28 Feb 2015 17:10:06 -0500
+
 shorewall-core (4.6.4.3-1) unstable; urgency=low
 
   * New Upstream Version
