@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  4 . 6 . 4 . 3
-                   ------------------------------------
-                      O c t o b e r  2 0 ,  2 0 1 4
+	             S H O R E W A L L  5 . 0 . 3 . 1
+                       ----------------------------
+                      J a n u a r y  0 3 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,82 +14,26 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-4.6.4.3
+5.0.3.1
 
-1)  The fix for LOGBACKEND in 4.6.4.2 worked on some older
-    distributions but not on newer ones. This release fixes the problem
-    in the remaining cases.
+1)  Previously, the compiler flagged DROP as an error in the mangle
+    file. That action is now handled properly.
 
-4.6.4.2
+5.0.3
 
-1)  Setting LOGBACKEND=ipt_LOG could result in the following startup
-    failure at boot:
+1)  This release includes defect repair through Shorewall 5.0.2.1.
 
-       Starting shorewall ...
-       /var/lib/shorewall/firewall: line 2080: echo: write error: No such file or directory
-          WARNING: Unable to set log backend to ipt_LOG
+2)  To avoid interference with other subsystem settings, all released
+    shorewall6.conf files now specify IP_FORWARDING=keep. Previously,
+    the settings were inconsistent among the various sample files.
 
-4.6.4.1
+3)  This release includes more fixes to the configure, install and
+    uninstall scripts (Matt Darfeuille).
 
-1)  Confusing 'usage' output was produced under the following
-    conditions:
-
-    a)  4.6.4 installed
-
-    b)  The running firewall was compiled on an earlier release.
-
-    c)  A 'safe-start', 'save-restart', 'save' or 'try' command is
-    	executed.
-
-    This problem has been corrected.
-
-2)  The 'optional' option has been removed from the IPv4 Universal 
-    interfaces file, as that option caused startup failures.
-
-4.6.4 Final.
-
-1)  This release includes defect repair through release 4.6.3.4.
-
-2)  Two corrections have been made to the .service files:
-
-    - The .service files now correctly specify
-
-          WantedBy=basic.target
-
-    - Conflicting services have been added.
-
-3)  A warning message generated during stoppedrules processing
-    previously referred to the file as routestopped.
-
-4)  Previously, the stoppedrules file did not work properly when
-    ADMINISABSENTMINDED=No.
-
-    - A warning message was issued stating that the file would be
-      processed as if ADMINISABSENTMINDED=Yes, and it was.
-
-    - Unfortunately, part of the surrounding rule-generating logic
-      proceded as if ADMINISABSENTMINDED=No, leading to an unusable
-      ruleset.
-
-    This problem has been corrected by changing the way that
-    stoppedrules works with ADMINISABSENTMINDED=No. In the new
-    implementation:
-
-    - All existing connections continue to work.
-    - Response packets and related connection requests to new accepted
-      connections are accepted (in other words, the resulting ruleset
-      is stateful).
-
-    See shorewall[6].conf(5) for additional details.
-
-5)  The .spec files now set SBINDIR correctly.
-
-6)  The -lite installers now create INITDIR if it doesn't exist.
-
-7)  The installers no longer attempt to create a symbolic link to the
-    init script when no init script is installed.
-
-8)  A large number of defects in the uninstallers have been corrected.
+4)  Previously, Shorewall6 rejected rules in which the SOURCE contained
+    both an interface name and a MAC address (in Shorewall
+    format). That defect has been corrected so that such rules are now
+    accepted.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -102,39 +46,56 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  Install support for Centos 7 and Foobar 7 has been added (Tuomo
-    Soini).
+1)  The MODULESDIR option in shorewall[6].conf has been extended to
+    allow specification of additional directories to be added to those
+    defaulted by Shorewall. If the specified value begins with "+",
+    then the remainder of the value is assumed to be a colon-separated
+    list of directory names that are relative to /lib/modules/`uname
+    -r`.
 
-2)  A 'terminating' option has been added to shorewall[6].actions.
-    this option, when used with the 'builtin' option, indicates to the
-    compiler that the built-in action is terminating. This allows the
-    optimizer to omit rules after an unconditional jump to the
-    built-in.
+    For example, to load the xt_RTPENGINE module, you would create
+    /etc/shorewall/modules as follows:
 
-3)  A LOG_BACKEND option has been added to allow specification of the
-    default logging backends. See shorewall.conf(5) and
-    shorewall6.conf(5) for details.
+        INCLUDE /usr/share/shorewall/modules
+	loadmodule xt_RTPENGINE
 
-4)  The SAVE_IPSETS option may now specify a list of ipsets to be
-    saved. When such a list is specified, only those ipsets together
-    with the ipsets supporting dynamic zones are saved.
+    You would then set MODULESDIR as:
 
-    Shorewall6 now supports the SAVE_IPSETS option. When
-    SAVE_IPSETS=Yes, only ipv6 ipsets are saved. For Shorewall, if
-    SAVE_IPSETS=ipv4, then only ipv4 ipsets are saved. Both features
-    require ipset version 5 or later.
+    	MODULESDIR="+extra/rtpengine"
 
-    Note that shorewall.conf and shorewall6.conf may now both specify
-    SAVE_IPSETS.
+2)  Previously, some of the column headings in the configuration files
+    required two lines to display. For example, in the rules file:
 
-5)  The SBINDIR setting for SuSE now defaults to /usr/sbin/.
+    #ACTION  SOURCE    DESTINATION PROTOCOL	DEST      SOURCE
+    #                                           PORT(S)   PORT(S)
 
-6)  With the exception of Shorewall-core, the tarball installers and
-    uninstallers now support a -n option which inhibits any attempt to
-    change the startup configuration. The -n option can be
-    automatically invoked by setting the SANDBOX variable to a
-    non-empty value, either in the environment or in your shorewallrc
-    file.
+    To use the alternative input format for such two-word columns, a
+    one-word abbreviation was required. For example, DEST PORTS(S) is
+    abbreviated as 'dport' and SOURCE PORT(S) is abbreviated as
+    'sport'.
+
+    The two-line column headings are also a nuisance for Emacs users
+    because when the <tab> key is struck, Emacs positions the cursor
+    based on the white space in the preceding line. So if an ACTION is
+    typed and the <tab> key is then depressed, rather than position the
+    cursor in the SOURCE column, Emacs positions it in the DEST PORT(S)
+    column.
+
+    To eliminate these issues, the multi-word columns have been
+    relabled to use their abbreviated names. Note that this relabelling
+    does not require modification of existing configurations. It simply
+    means that the sample files released with Shorewall and the
+    manpages that describe column-oriented files now use the
+    abbreviated names rather than the previous names (Tuomo Soini and
+    Tom Eastep).
+
+3)  ADD rules may now include a timeout value which will override
+    any timeout that was specified when the related ipset was created.
+
+
+4)  Commas are now allowed in log tags when LOGTAGONLY=Yes. Previously,
+    characters after the first comma in a log tag were discarded when
+    LOGTAGONLY=Yes.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -143,706 +104,422 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 1)  If you are migrating from Shorewall 4.4.x or earlier, please see
     http://www.shorewall.net/pub/shorewall/4.5/shorewall-4.5.21/releasenotes.txt
 
-2)  Beginning with Shorewall 4.5.2, using /etc/shorewall-lite/vardir
-    and /etc/shorewall6-lite/vardir to specify VARDIR is deprecated in
-    favor of the VARDIR setting in shorewallrc.
+2)  It is strongly recommended that you first upgrade your installation
+    to a 4.6 release >= 5.6.12 prior to upgrading to Shorewall 5.0.
 
-        NOTE: While the name of the variable remains VARDIR, the
-              meaning is slightly different. When set in shorewallrc,
-              each product (shorewall-lite, and shorewall6-lite) will
-              create a directory under the specified path name to
-	      hold state information.
+    Once you are on the Shorewall 4.6 release:
 
-	      Example:
+    - shorewall update -A
 
-		  VARDIR=/opt/var/
-
-		  The state directory for shorewall-lite will be
-		  /opt/var/shorewall-lite/ and the directory for
-		  shorewall6-lite will be /opt/var/shorewall6-lite.
-
-	      When VARDIR is set in /etc/shorewall[6]/vardir, the
-	      product will save its state directly in the specified
-	      directory.
-
-    In Shorewall 4.5.8, a VARLIB variable was added to the shorewallrc
-    file and the meaning of VARDIR is once again consistent. The
-    default setting of VARDIR for a particular product is
-    ${VARLIB}/$product. There is an entry of that form in the
-    shorewallrc file. Because there is a single shorewallrc file for
-    all installed products, the /etc/shorewall[6]-lite/vardir file
-    provides the only means for overriding this default.
-
-3)  Begining with Shorewall 4.5.6, the tcrules file is processed if
-    MANGLE_ENABLED=Yes, independent of the setting of TC_ENABLED. This
-    allows actions like TTL and TPROXY to be used without enabling
-    traffic shaping.
-
-    If you have rules in your tcrules file that you only want processed
-    when TC_ENABLED is other than 'No', then enclose them in
-
-    	 ?IF $TC_ENABLED
-	 ...
-	 ?ENDIF
-
-    If they are to be processed only if TC_ENABLED=Internal, then enclose
-    them in
-
-    	 ?IF TC_ENABLED eq 'Internal'
-	 ...
-	 ?ENDIF
-
-4)  Beginning with Shorewall 4.5.7, the deprecated
-    /etc/shorewall[6]/blacklist files are no longer installed. Existing
-    files are still processed by the compiler. Note that blacklist
-    files may be converted to equivalent blrules files using
-    'shorewall[6] update -b'.
-
-5)  In Shorewall 4.5.7, the /etc/shorewall[6]/notrack file was renamed
-    /etc/shorewall[6]/conntrack. When upgrading to a release >= 4.5.7,
-    the conntrack file will be installed along side of an existing
-    notrack file. When both files exist, a compiler warning is
-    generated:
-
-       WARNING: Both notrack and conntrack exist; conntrack is ignored
-
-    This warning may be eliminated by moving any entries in the notrack
-    file to the conntrack file and removing the notrack file.
-
-6)  In Shorewall 4.5.8, the /etc/shorewall[6]/routestopped files were
-    deprecated if favor of new /etc/shorewall[6]/stoppedrules
-    counterparts. The new files have much more familiar and
-    straightforward semantics. Once a stoppedrules file is populated,
-    the compiler will process that file and will ignore the
-    corresponding routestopped file.
-
-7)  In Shorewall 4.5.8, a new variable (VARLIB) was added to the
-    shorewallrc file. This variable assumes the role formerly played by
-    VARDIR, and VARDIR now designates the configuration directory for a
-    particular product.
-
-    This change should be transparent to all users:
-
-    a) If VARDIR is set in an existing shorewallrc file and VARLIB is
-       not, then VARLIB is set to ${VARDIR} and VARDIR is set to
-       ${VARLIB}/${PRODUCT}.
-
-    b) If VARLIB is set in a shorewallrc file and VARDIR is not, then
-       VARDIR is set to ${VARLIB}/${PRODUCT}.
-
-    The Shorewall-core installer will automatically update
-    ~/.shorewallrc and save the original in ~/.shorewallrc.bak
-
-8)  Previously, the macro.SNMP macro opened both UDP ports 161 and 162 
-    from SOURCE to DEST. This is against the usual practice of opening
-    these ports in the opposite direction. Beginning with Shorewall
-    4.5.8, the SNMP macro opens port 161 from SOURCE to DEST as before,
-    and a new SNMPTrap macro is added that opens port 162 (from SOURCE
-    to DEST).
-
-9)  Beginning with Shorewall 4.5.11, ?FORMAT is preferred over FORMAT
-    for specifying the format of records in these configuration files:
-
-        action.* files
-	conntrack
-	interface
-	macro.* files
-	tcrules
-
-    While deprecated, FORMAT (without the '?') is still supported.
-
-    Also, ?COMMENT is preferred over COMMENT for attaching comments to
-    generated netfilter rules in the following files.
-
-        accounting
-       	action.* files
-       	blrules files
-       	conntrack
-       	masq
-       	nat
-       	rules
-       	secmarks
-       	tcrules
-       	tunnels
-
-    When one of the deprecated forms is encountered, a warning message
-    is issued.
-
-    Examples:
-
-       WARNING: 'FORMAT' is deprecated in favor of '?FORMAT' -
-       		consider running 'shorewall update -D'.
-
-       WARNING: 'COMMENT' is deprecated in favor of '?COMMENT' -
-       		consider running 'shorewall update -D'.
-
-    As the warnings indicate, 'update -D' will traverse the CONFIG_PATH 
-    replacing FORMAT and COMMENT lines with ?FORMAT and ?COMMENT
-    directives respectively. The original version of modified files
-    will be saved with a .bak suffix. 
-
-    During the update, .bak files are skipped as are files in
-    ${SHAREDIR}/shorewall and ${SHAREDIR}/shorewall6.
-
-10) To allow finer-grained selection of the connection-tracking states
-    that are passed through blacklists (both dynamic and static), a
-    BLACKLIST option was added to shorewall.conf and shorewall6.conf in
-    Shorewall 4.5.13.
-
-    The BLACKLISTNEWONLY option was deprecated at that point. A
-    'shorewall update' ( 'shorewall6 update' ) will replace the
-    BLACKLISTNEWONLY option with the equivalent BLACKLIST option.
-
-11) In Shorewall 4.5.14, the BLACKLIST_LOGLEVEL option was renamed
-    BLACKLIST_LOG_LEVEL to be consistent with the other log-level
-    option names. BLACKLIST_LOGLEVEL continues to be accepted as a
-    synonym for BLACKLIST_LOG_LEVEL, but a 'shorewall update' or
-    'shorewall6 update' command will replace BLACKLIST_LOGLEVEL with
-    BLACKLIST_LOG_LEVEL in the new .conf file.
-
-12) Beginning with Shorewall 4.6.0, the default setting for 'ZONE2ZONE'
-    is '-' rather than '2'. If you prefer to keep your pre-4.6.0 chain
-    names, then specify ZONE2ZONE=2 in shorewall[6].conf.
-
-13) Beginning with Shorewall 4.6.0, ection headers are now preceded by
-    '?' (e.g., '?SECTION ...').  If your configuration contains any
-    bare 'SECTION' entries, the following warning is issued:
-
-      WARNING: 'SECTION' is deprecated in favor of '?SECTION' -
-               consider running 'shorewall update -D' ...
-
-    As mentioned in the message, running 'shorewall[6] update -D' will
-    eliminate the warning.
-
-14) Beginning with Shorewall 4.6.0, the 'tcrules' file has been
-    superceded by the 'mangle' file. Existing 'tcrules' files will
-    still be processed, with the restriction that TPROXY is no longer
-    supported in FORMAT 1.
-
-    If your 'tcrules' file has non-commentary entries, the following
-    warning message is issued:
-
-        WARNING: Non-empty tcrules file (...);
-		 consider running 'shorewall update -t'
-
-    See shorewall6(8) for limitations of 'update -t'.
+    If you also run Shorewall6:
     
-15) The default value LOAD_HELPERS_ONLY is now 'Yes'.
+    - shorewall6 update -A
 
-16) Beginning with Shorewall 4.6.0, FORMAT-1 actions and macros are 
-    deprecated and a warning will be issued for each FORMAT-1 action
-    or macro found.
+    These steps are necessary because Shorewall 5.0:
 
-      WARNING: FORMAT-1 actions are deprecated and support will be
-      	       dropped in a future release.
+    - Does not contain support for the 'tcrules' and 'tos' files --
+      existing 'tcrules' and 'tos' files must be converted to an
+      equivalent set of 'mangle' file entries.
 
-      WARNING: FORMAT-1 macros are deprecated and support will be
-      	       dropped in a future release.
+    - Does not contain support for the 'blacklist' file -- it must
+      be converted to an equivalent 'blrules' file.
 
-    To eliminate these warnings, add the following line before the
-    first rule in the action or macro:
+    - Does not contain support for the 'notrack' file -- it must be
+      converted to an equivalent 'conntrack' file.
 
-      ?FORMAT 2
+    - Does not contain support for the 'routestopped' file -- it must
+      be converted to an equivalent 'stoppedrules' file.
 
-    and adjust the columns appropriately.
+    Note that you can run the update command(s) after you upgrade to
+    Shorewall 5 but your firewall will not work correctly until
+    you do those update(s).
 
-    FORMAT-1 actions have the following columns:
+3)  The following configuration options have been eliminated:
 
-      TARGET
-      SOURCE
-      DEST
-      PROTO
-      DEST PORT(S)
-      SOURCE PORT(S)
-      RATE/LIMIT
-      USER/GROUP
-      MARK
+    - EXPORTPARAMS
+    - IPSECFILE
+    - LEGACY_FASTSTART
+    - LOGRATE *
+    - LOGBURST *
+    - WIDE_TC_MARKS *
+    - HIGH_ROUTE_MARKS *
+    - BLACKLISTNEWONLY *
 
-    while FORMAT-2 actions have these columns:
+    A fatal error results if those flagged with an asterisk ("*")
+    appear in the .conf file -- run the 'shorewall[6] update' command
+    to convert their settings to use supported options.
 
-      TARGET
-      SOURCE
-      DEST
-      PROTO
-      DEST PORT(S)
-      SOURCE PORT(S)
-      ORIGINAL DEST
-      RATE/LIMIT
-      USER/GROUP
-      MARK
-      CONNLIMIT
-      TIME
-      HEADERS (Used in IPv6 only)
-      CONDITION
-      HELPER
+    A warning is issued if any of the rest appear in the .conf file.
+    'shorewall[6] update' will drop them from the file.
 
-    FORMAT-1 macros have the following columns:
+4)  To make the command names more accurately reflect what they do,
+    several changes have been included:
 
-      TARGET
-      SOURCE
-      DEST
-      PROTO
-      DEST PORT(S)
-      SOURCE PORTS(S)
-      RATE/LIMIT
-      USER/GROUP
+    a)  Beginning with this release, the 'restart' command now does a
+    	true restart and is equivalent to a 'stop' followed by a
+    	'start'.
 
-    while FORMAT-2 macros have these columns:    
+    b)  The pre-5.0.0 'load' command has been renamed 'remote_start'.
 
-      TARGET
-      SOURCE
-      DEST
-      PROTO
-      DEST PORT(S)
-      SOURCE PORT(S)
-      ORIGINAL DEST
-      RATE/LIMIT
-      USER/GROUP
-      MARK
-      CONNLIMIT
-      TIME
-      HEADERS (Used in IPv6 only)
-      CONDITION
-      HELPER
+    c)  The pre-5.0.0 'reload' command has been renamed 'remote_reload'.
 
-17) Prior to Shorewall 4.6.4, the stoppedrules file did not work
-    properly when ADMINISABSENTMINDED=No.
+    c)  The 'reload' command now performs the same function as the
+    	pre-5.0.0 'restart' command.
 
-    - A warning message was issued stating that the file would be
-      processed as if ADMINISABSENTMINDED=Yes, and it was.
+    d)  A 'remote_restart' command has been added to Shorewall and
+    	Shorewall6 to allow a remote 'restart' after updating the
+    	remote firewall system's compiled script.
 
-    - Unfortunately, part of the surrounding rule-generating logic
-      proceded as if ADMINISABSENTMINDED=No, leading to an unusable
-      ruleset.
+    For those that can't get used to the idea of using 'reload' in
+    place of 'restart', a RESTART option has been added. The
+    option defaults to 'reload' for compatibility with earlier
+    releases. If set to 'restart', then the 'restart' command
+    does a true restart (stop followed by start)
 
-    In Shorewall 4.6.4, this problem was corrected by changing the way
-    that stoppedrules works with ADMINISABSENTMINDED=No. In the new
-    implementation:
+5)  While the WORKAROUNDS setting is still present in the
+    shorewall[6].conf file:
 
-    - All existing connections continue to work.
-    - Response packets and related connection requests to new accepted
-      connections are accepted (in other words, the resulting ruleset
-      is stateful).
+    a)  It's default setting has been changed to No.
+    
+    b)  All workarounds for old distributions have been eliminated. See
+    	the Migration Issues for additional information.
 
-    See shorewall[6].conf(5) for additional details.
+6)  Beginning with Shorewall 5.0.0, all macros and actions are assumed
+    to be FORMAT-2.  FORMAT-1 macros and actions are no longer supported
+    and will be silently processed as if they were FORMAT-2. For most
+    macros and actions, this change will be of no concern, but may cause
+    compilation errors in rare cases.
 
-----------------------------------------------------------------------------
-         V.  N O T E S  F R O M  O T H E R  4 . 6  R E L E A S E S
-----------------------------------------------------------------------------
-             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 3
-----------------------------------------------------------------------------
+    To review, FORMAT-1 actions have the following columns:
 
-4.6.3.1
+       TARGET
+       SOURCE
+       DEST
+       PROTO
+       DEST PORT(S)
+       SOURCE PORT(S)
+       RATE
+       USER/GROUP
+       MARK
 
-1)  The DNSAmp action released in 4.6.3 matched more packets than it
-    should have. That has now been corrected.
+    FORMAT-1 macros have these columns:
 
-4.6.3
+       TARGET
+       SOURCE
+       DEST
+       PROTO
+       DEST PORT(S)
+       SOURCE PORT(S)
+       RATE
+       USER/GROUP
 
-1)  This release contains defect repair up through release 4.6.2.5.
+    FORMAT-2 actions and macros, on the other hand, have:
 
-2)  The SAVE_IPSETS option in the Debian version of Shorewall-init now
-    works correctly. Thomas D.
+       TARGET
+       SOURCE
+       DEST
+       PROTO
+       DEST PORT(S)
+       SOURCE PORT(S)
+       ORIGINAL DEST
+       RATE
+       USER/GROUP
+       MARK
+       CONNLIMIT
+       TIME
+       HEADERS (Only valid for IPv6)
+       SWITCH
+       HELPER
 
-----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   4 . 6 . 3
-----------------------------------------------------------------------------
+    To summarize, if your action or macro only uses the first 6
+    columns (which most do), then it will process fine as
+    FORMAT-2. Otherwise, it must be modified to place specifications in
+    the proper columns.
 
-1)  A new 'run' command has been implemented. This command allows you
-    to run an arbitrary command in the context of the generated
-    script. 
-
-       shorewall[6][-lite] run <command> [ <parameter> ... ]
-
-    Normally, <command> will be a function declared in lib.private.
-
-2)  A DNSAmp action has been added. This action matches recursive UDP
-    DNS queries. The default disposition is DROP which can be
-    overridden by the single action parameter (e.g, 'DNSAmp(REJECT)'
-    will reject these queries). Recursive DNS queries are the basis for
-    'DNS Amplification' attacks; hence the action name.
+7)  COMMENT, FORMAT and SECTION lines must now begin with a question
+    mark ("?"). The 'update' command will change all bare COMMENT,
+    FORMAT and SECTION lines to include the question mark.
 
 ----------------------------------------------------------------------------
-             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 2
+         V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 2
 ----------------------------------------------------------------------------
 
-4.6.2.5
+5.0.2.1
 
-1)  Previously, when an interface specified the 'physical=' option and
-    the physical interface name was specified in the INTERFACES column
-    of the providers file, compilation would fail with diagnostics
-    similar to the following:
+1)  When processing the 'dump' command, the CLI now uses 'netstat' to
+    print socket information when the 'ss' utility is not installed.
 
-	Use of uninitialized value $physical in pattern match
-	  (m//) at /usr/lib/perl5/vendor_perl/5.18.1/
-          Shorewall/Providers.pm line 463, <$currentfile> line 2.
- 	 ERROR: A provider interface must have at least one
-	        associated zone /opt/etc/shorewall/providers (line 2)
+2)  Several defects in the installers/uninstallers have been corrected
+    (Matt Darfeuille).
 
-2)  Shorewall-init now works correctly on systems with systemd.
-    By Louis Lagendijk.
+5.0.2
 
-4.6.2.4
+1)  This release includes defect repair up through Shoreall 5.0.1.1.
 
-1)  Previously, inline matches were incorrectly disallowed in action
-    files. These matches are now allowed.
+2)  The MSSQL macro now allows UDP port 1434 (Tuomo Soini).
 
-4.6.2.3
+3)  A number of issues with param file processing on Cygwin have been
+    corrected. The most serious of these issues was introduction of
+    syntax errors into the generated firewall script.
 
-1)  Previously, the compiler would fail with a Perl diagnostic if:
+4)  More version numbers have been removed from configuration files
+    and Macros (Tuomo Soini).
 
-    - Optimize Level 8 was enabled.
-    - Perl 5.20 was being used. This is the current Perl version on
-      Arch Linux.
+5)  The check for use of a circular kernel log buffer (as opposed to a
+    log file) has been improved.
 
-    The diagnostic was:
+6)  Previously, HOST=default was accepted by configure[.pl], but the
+    generated shorewallrc file was unusable. Now, HOST=default is
+    equivalent to HOST=linux.
 
-      Can't use string ("nat") as a HASH ref while "strict refs" in use
-        at /usr/share/shorewall/Shorewall/Chains.pm line 3486.
+7)  Previously, if a circular log buffer was being used, the output of
+    various commands still displayed '/var/log/messages' as the log
+    file. Now, it is displayed as 'logread'.
 
-4.6.2.2
+8)  The 'remote-*' commands now return correct exit status.
 
-1)  The compiler now correctly detects the IPv6 "Header Match"
-    capability when LOAD_MODULES_ONLY=No.
+9)  Previously, if LOCKFILE specified a file in a directory other than
+    $VARDIR, and that directory did not exist, it was not created
+    automatically.
 
-2)  The compiler now correctly detects the IPv6 "Ipset Match"
-    capability on systems running a 3.14 or later kernel.
-
-3)  The compiler now correctly detects "Arptables JF" capability when
-    LOAD_MODULES_ONLY=No.
-
-3)  The tcfilter manpages previously failed to mention that
-    BASIC_FILTERS=Yes is required to use ipsets in the tcfilters files.
-
-4.6.2.1
-
-1)  Two issues with tcrules processing have been corrected:
-
-    - SAVE and RESTORE generated fatal compilation errors.
-    - '|' and '&' were ignored.
-
-4.6.2
-
-1)  The DSCP match in the mangle and tcrules files didn't work with
-    service class names such as EF, BE, CS1, ... (Thibaut Chèze)
-
-2)  The SAVE and RESTORE actions were disallowed in the OUTPUT chain in
-    tcrules and mangle; this was a regression from 4.5.21.
-
-3)  Additional ports required by Asus, Supermicro and Dell have been
-    added to the IPMI macro (Tuomo Soini).
-
-4)  Some issues regarding install under Cygwin64 have been addressed.
-
-    - configure.pl did not understand CYGWIN returned from `uname`
-    - Shorewall-core install.sh did not understand CYGWIN returned from 
-      `uname`.
-    - The Shorewall and Shorewall6 installers tried to run the command 
-      'mkdir -p //etc/shorewall[6]' which is broken in the current
-      Cygwin64.
+10) Previously, optional interfaces were not enabled during 'start' and
+    'restart' unless there was at least one entry in the 'providers'
+    file.  This resulted in these interfaces not appearing in the
+    output of 'shorewall[6] status -i'.
 
 ----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   4 . 6 . 2
+               N E W   F E A T U R E S   I N   5 . 0 . 2
 ----------------------------------------------------------------------------
 
-1)  The 'status' command now allows a -i option which causes the state
-    of all optional and provider interfaces to be displayed.
+1)  The providers file now supports a 'persistent' option. When
+    specified, this option removes the need to configure host routes to
+    systems used as the 'checkip' in LSM.
+
+    As part of this change, two other configuration files have changed:
+
+    a) The 'rtrules' file now allows the rule priority to be followed
+       by an exclaimation mark ("!").
+
+    b) An OPTION column has been added to the 'routes' file. The only
+       option currently supported is 'persistent'.
+
+    The option affects the routing configuration when the provider is
+    disabled:
+
+    - The provider's routing table still exists and contains the
+      provider's default route.
+
+    - Unless 'noautosrc' is specified, connections originating from the
+      interfaces IP address(es) are routed via the provider's default
+      gateway.
+
+    - Routing rules for the provider that specify '!' after the
+      priority are left in place.
+
+    - 'persistent' routes for the provider are left in place, allowing
+      communication with local networks that are still accessible.
+
+2)  It is now possible to replace any function in the CLI libraries
+    except for get_config(). This is accomplished by placing the
+    replacement function(s) in a shell library named 'lib.cli-user' in
+    a directory on the CONFIG_PATH. This allows for customization of
+    commands as well as working around distribution-specific issues.
+
+3)  Support for OpenWRT versions BB and later has been added. Included
+    in this support are:
+
+    - The log display commands (show log, logwatch, etc.) no longer
+      depend on the 'tac' utility (although it will be used if it is
+      installed).
+
+    - Shorewall-core's 'configure' script detects OpenWRT and accepts
+      HOST=openwrt as an argument.
+      
+    - Shorewall-core, Shorewall-lite and Shoreawll6-lite installers
+      support openwrt. Additionally, those installers no longer depend
+      on the 'install' utility.
+
+    - Shorewall[6]-lite will use OpenWRT's 'lock' utility to create the
+      LOCKFILE.
+
+    A special thanks to Matt Darfeuille for his help in making this
+    support possible.
+
+4)  Configuration files and extension scripts now have uniform
+    introductory comments (Tuomo Soini).
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1
+----------------------------------------------------------------------------
+
+1)  Previously, if statistical load balancing was used in the providers
+    file, the default route in the main table was not deleted during
+    firewall start/restart. That route is now correctly deleted.
+
+2)  Certain files in /etc/shorewall[6] previously had permissions 644.
+    Those have been changed to 600 to match the other files in the
+    directories.
+
+3)  Previously, the CLI programs did not deal properly with the absense
+    of the 'hostname' utility. Now, if that utility is not present, the
+    programs look for 'uname' and if it is present, they use the 'uname
+    -n' command. If neither 'hostname' nor 'uname' are installed, the
+    programs display 'localhost' as the system name.                 
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 1
+----------------------------------------------------------------------------
+
+1)  'second' and 'minute' are now allowed in the LOGLIMIT
+    specification in place of 'sec' and 'min' respectively. This
+    enhancement was present in Shorewall 4.6.13 but was not available
+    in Shoreall 5.0.0.
+
+2)  The LEGACY_RESTART option has been superseded by the RESTART
+    option. RESTART may be set as follows:
+
+      RESTART=reload
+
+	Causes the 'restart' command to perform the same action as the
+	'reload' command. This is the default if RESTART is not set.
+
+      RESTART=restart
+
+	Causes the 'restart' command to perform a true restart (stop
+	followed by start).
+
+    If LEGACY_RESTART is present in shorewall[6].conf and RESTART is
+    not, then its setting will govern the behavior of 'restart'. The
+    'update' command will convert the LEGACY_RESTART setting to the
+    equivalent RESTART setting.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 0
+----------------------------------------------------------------------------
+
+1)  This release includes defect repair up through Shorewall 4.6.13.1.
+
+2)  The compiled script now uses the %e date format rather than %_d,
+    for Busybox compatibilty. (Erich Titl)
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 0
+----------------------------------------------------------------------------
+
+1)  To make the command names more accurately reflect what they do,
+    several changes have been included:
+
+    a)  Beginning with this release, the 'restart' command now does a
+    	true restart and is equivalent to a 'stop' followed by a
+    	'start'.
+
+    b)  The pre-5.0.0 'load' command has been renamed 'remote_start'.
+
+    c)  The pre-5.0.0 'reload' command has been renamed 'remote_reload'.
+
+    c)  The 'reload' command now performs the same function as the
+    	pre-5.0.0 'restart' command.
+
+    d)  A 'remote_restart' command has been added to Shorewall and
+    	Shorewall6 to allow a remote 'restart' after updating the
+    	remote firewall system's compiled script.
+
+2)  For those that can't get used to the idea of using 'reload' in
+    place of 'restart', a LEGACY_RESTART option has been added. The
+    option defaults to No but if set to Yes, then the 'restart' command
+    does what it has always done. 
+
+3)  It is now possible to limit connections by destination address in
+    the rules file by prefixing the CONNLIMIT setting with 'd:'.
+
+4)  While the WORKAROUNDS setting is still present in the
+    shorewall[6].conf files:
+
+    a)  Its default setting has been changed to No.
+    
+    b)  All workarounds for old distributions have been eliminated. See
+    	the Migration Issues for additional information.
+
+5)  A number of configuration options have been eliminated:
+
+    - EXPORTPARAMS
+    - IPSECFILE
+    - LEGACY_FASTSTART
+    - LOGRATE *
+    - LOGBURST *
+    - WIDE_TC_MARKS *
+    - HIGH_ROUTE_MARKS *
+    - BLACKLISTNEWONLY *
+
+    A fatal error results if those flagged with an asterisk ("*")
+    appear in the .conf file -- run the 'shorewall[6] update' command
+    to convert their settings to use supported options.
+
+    A warning is issued if any of the rest appear in the .conf file.
+    'shorewall[6] update' will drop them from the file.
+
+7)  The -b, -D, -r, -s, -t and -n options have been removed from the
+    'update' command. The command now behaves as if all of those
+    options had been specified.
+
+6)  Support has been removed for the 'blacklist', 'tcrules',
+    'routestopped', 'notrack' and 'tos' files.
+
+    The 'update' command will:
+
+    - convert the 'tcrules' and 'tos' files to the equivalent 'mangle'
+      file.
+
+    - convert the 'blacklist' file into an equivalent 'blrules' file.
+
+    - convert the routestopped' file into the equivalent 'stoppedrules'
+      file.
+
+    - convert a 'notrack' file to the equivalent 'conntrack' file.
+
+7)  Beginning with this release, all macros and actions are assumed
+    to be FORMAT-2. FORMAT-1 macros and actions are no longer supported
+    and will be silently processed as if they were FORMAT-2. For most
+    macros and actions, this change will be of no concern, but may cause
+    compilation errors in rare cases.
+
+8)  Beginning with this release, COMMENT, FORMAT and SECTION lines must
+    begin with a question mark ("?"). The 'update' command makes these
+    changes for you.
+
+9)  As an alternative to INLINE_MATCHES=Yes, you may now specify inline
+    matches (raw ip[6]tables text) after a double semicolon (';;').
+
+    Example from the 'masq' file to split SNAT between two public
+    addresses on eth1:
+
+      #INTERFACE SOURCE ADDRESS
+      eth1       -      1.2.3.1 ;; -m statistic --mode random --probability 0.50
+      eth1	 -	1.2.3.2
+
+10) Options in shorewall[6].conf that accept a log level now also allow
+    specification of a log tag.
 
     Example:
 
-    root@gateway:/etc/shorewall# shorewall status -i
-    Shorewall-4.6.1 Status at gateway - Wed Jun 18 14:27:19 PDT 2014
+      TCP_FLAGS_LOG_LEVEL=info:,tcpflags
 
-    Shorewall is running
-    State:Started (Wed Jun 18 09:50:01 PDT 2014) from /etc/shorewall/
-       (/var/lib/shorewall/firewall compiled by Shorewall version 4.6.1)
+11) A PROBABILITY column has been added to the masq file. One usage
+    scenario is to balance SNAT between two or more IP addresses on a
+    WAN interface:
 
-       Interface eth0 is Enabled
-       Interface eth1 is Enabled
-       Interface lo is Enabled
+        #INTERFACE	SOURCE		ADDRESS
+    	eth1		-		1.2.3.4 { probability=0.50 }
+	eth2		-		1.2.3.5
 
-2)  A 'shorewall show blacklists' command has been
-    implemented. The abbreviation 'bl' may be used in place of
-    'blacklists'.
+12) Previously, when chain names were included in a 'reset' command,
+    they were assumed to be filter table chains. Now, both a table name
+    and a chain name can be given (e.g., mangle:PREROUTING). The
+    specified table remains the default for the remainder of the
+    command unless a following entry also includes a table name.
 
-    The command displays the output of the 'dynamic' chain together
-    with the chains created by entries in the blrules file.
+13) An action for Gluster FS (action.GlusterFS) has been added. See the
+    action file for a description of the parameters.
 
-3)  A TIME column has been added to the mangle file. It has the same
-    use in that file as the corresponding column in the rules file.
-
-4)  A stateful port knocking example has been added to the Events
-    article (http://www.shorewall.net/Events.html). This example allows
-    a sequence of knocking ports to be defined (Gerhard Weisinger).
-
-5)  A macro supporting HP's Integrated Lights Out (ILO) has been added
-    (Tuomo Soini).
-
-6)  It is now possible to specify the MAC address of a provider
-    GATEWAY. This is useful when there are multiple providers serviced
-    by a single interface as it avoids the need for the generated
-    script to detect the MAC during start/restart.
-
-7)  The copyrights in the sample configuration files have been updated. 
-
-----------------------------------------------------------------------------
-             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 1
-----------------------------------------------------------------------------
-
-4.6.1.4
-
-1)  The DSCP match in the mangle and tcrles files didn't work with
-    service class names such as EF, BE, CS1, ...
-
-2)  The SAVE and RESTORE actions were disallowed in the OUTPUT chain in
-    tcrules and mangle; this was a regression from 4.6.21.
-
-4.6.1.3
-
-1)  Use of the 'IfEvent' action resulted in a compilation failure:
-
-      ERROR: -j is only allowed when the ACTION is INLINE with no
-        parameter /usr/share/shorewall/action.IfEvent (line 139)
-         from /etc/shorewall/action.SSHKnock (line 8)
-         from /etc/shorewall/rules (line 31)
-
-4.6.1.2
-
-1)  The shorewall-masq(5) and shorewall6-masq(5) manpages had a mangled
-    heading for the description of the SOURCE column, leading some
-    readers to assert the that description was missing.
-
-2)  When INLINE_MATCHES=Yes and AUTOHELPERS=No, start or restart could
-    fail during script execution with this diagnostic:
-
-      Running /sbin/iptables-restore...
-      Bad argument `helper=netbios-ns'
-      Error occurred at line: nnn
-      Try `iptables-restore -h' or 'iptables-restore --help' for more
-          information.
-        ERROR: iptables-restore Failed. Input is in
-               /var/lib/shorewall/.iptables-restore-input
-
-4.6.1.1
-
-1)  An improved error message is generatred when a server address list
-    is specified in the DEST colume of a DNAT or REDIRECT
-    rule. At one time, iptables supported such lists, but now only a
-    single address or an address range is supported.
-
-    The previous error message was:
-
-    	ERROR: Unkknown Host (192.168.1.4,192.168.1.22)
-
-    The new error message is:
-
-    	ERROR: An address list (192.168.1.4,192.168.1.22) is not
-	       allowed in the DEST column of a xxx RULE
-
-    where xxx is DNAT or REDIRECT as appropriate.
-
-2)  Two problems have been corrected in the Shorewall-init Debian init
-    script.
-
-	a) A cosmetic problem which resulted in 'echo_notdone' being
-	   displayed on failure rather than 'not done'.
-
- 	b) More seriously, the test for the existance of compiled
- 	   firewall scripts was incorrect, with the result that the
- 	   firewall scripts were not executed.
-
-    These defects, introduced in Shorewall 4.5.17, have now been
-    corrected.
-
-4.6.1
-
-1)  When the 'rpfilter' option is specified on all interfaces, no
-    references to the 'dynamic' chain were created and that chain was
-    optimized away.
-
-----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   4 . 6 . 1
-----------------------------------------------------------------------------
-
-1)  Tuomo Soini has provided new macros for AMOP, MongoDB, Redis, Sieve
-    and IPMI (RMCP).
-	
-----------------------------------------------------------------------------
-             P R O B L E M S  C O R R E C T E D  I N  4 . 6 . 0
-----------------------------------------------------------------------------
-
-4.6.0.3
-
-1)  The Shorewall-init package now installs correctly on RHEL7.
-
-2)  1:1 NAT is now enabled in IPv6.
-
-3)  A subtle interaction between NAT and sub-zones is explained in
-    shorewall-nat.
-
-4)  The 'show filters' command now works with Simple TC.
-
-4.6.0.2
-
-1)  The 'upgrade -A' command now converts the tcrules file to a mangle
-    file. Previously, that didn't happen.
-
-2)  The install components now support RHEL7.
-
-3)  Whitespace issues in the skeleton configuration files have been
-    corrected (Tuomo Soini).
-
-4)  The install components now support RHEL7.
-
-5)  FAQ 2e has been added which describes additional steps required to
-    achieve hairpin NAT on a bridge where the modified packets are to
-    go out the same bridge port as they entered.
-
-6)  shorewall-masq(5) has been corrected to include the word SOURCE on
-    the description of that column. Previously, the description read
-    '(formerly called SUBNET)'. 
-
-7)  The output of 'shorewall show filters' once again shows ingress
-    (policing) filters. This works around undocumented changes to the
-    behavior of the 'tc' utility.
-
-4.6.0.1
-
-1)  The CHECKSUM target in the tcrules and mangle files was broken and
-    resulted in this error diagnostic:
-
-      Running /sbin/iptables-restore...
-      iptables-restore v1.4.7: CHECKSUM target: Parameter --checksum-fill is
-                               required
-      Error occurred at line: 41
-      Try `iptables-restore -h' or 'iptables-restore --help' for more
-         information.
-      ERROR: iptables-restore Failed. Input is in
-         /var/lib/shorewall/.iptables-restore-input
-
-    The compiler is now generating the correct rule.
-
-2)  Some cosmetic issues in the 'mangle' files have been resolved.
-
-3)  When an invalid chain designator was supplied in 'tcrules' or
-    'mangle', the compiler's error message was garbled and a 
-    Perl diagnostic was issued.
-
-4.6.0
-
-This release includes all defect repair from releases up through
-4.5.21.9.
-
-1)  The tarball installers, now install .service files with mode 644
-    rather than mode 600.
-
-----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   4 . 6 . 0
-----------------------------------------------------------------------------
-
-1)  SECTION entries in the accounting and rules files now allow
-    "SECTION" to be immediately preceded by "?" (e.g., ?SECTION). The
-    new form is preferred and if any SECTION entries do not have the
-    question mark, a warning is issued (see Migration Issues below).
-
-2)  The default setting for ZONE2ZONE has been changed from '2' to '-'
-    for increased readability when zone names contain '2'.
-
-3)  The 'tcrules' file has been superceded by the 'mangle'
-    file. Existing 'tcrules' files will still be processed, with the
-    restriction that TPROXY is no longer supported in FORMAT 1.
-
-    You can convert your tcrules file into the equivalent mangle file
-    using the command:
-
-       shorewall update -t
-
-    See shorewall(8) and shorewall6(8) for important restrictions of
-    the -t option.
-
-4)  Prior to now, the ability to specify raw iptables matches has been
-    tied to the INLINE action. Beginning with this release, the two can
-    be separated by specifying INLINE_MATCHES=Yes.
-
-    When INLINE_MATCHES=Yes, then inline matches may be specified after
-    a semicolon in the following files:
-
-      action files
-      macros
-      rules
-      mangle
-      masq
-
-    Note that semicolons are not allowed in any other files. If you
-    want to use the alternative input format in those files, then you
-    must inclosed the specifications in curly brackets ({...}). The -i
-    option of the 'check' command will warn you of lines that need to
-    be changed from using ";" to using "{...}".
-
-5)  The 'conntrack', 'raw', 'mangle' and 'rules' files now support an IPTABLES
-    (IP6TABLES) action. This action is similar to INLINE in that it
-    allows arbitrary ip[6]tables matches to be specified after a
-    semicolon (even when INLINE_MATCHES=No). It differs in that the
-    parameter passed is an iptables target with target options.
-
-    Example (rules file):
-
-       #ACTION				SOURCE	DEST	PROTO
-       IPTABLES(TARPIT --honeypot)	net	pot
-
-    If the particular target that you wish to use is unknown to
-    Shorewall, you will get this error message:
-
-       ERROR: Unknown TARGET (<target>)
-
-    You can eliminate that error by adding your target as a builtin
-    action in /etc/shorewall[6]/actions.
-
-    As part if this change, the /etc/shorewall[6]/actions file options
-    have been extended to allow you to specify the Netfilter table(s)
-    where the target is accepted. When 'builtin' is specified, you can
-    also include the following options:
-
-    	 filter
-	 nat
-	 mangle
-	 raw
-
-    If no table is given, 'filter' is assumed for backward
-    compatibility.
-
-6)  The 'tcpflags' option is now set by default. To disable the option,
-    specify 'tcpflags=0' in the OPTIONS column of the interface file.
-
-7)  You may now use ipset names (preceded by '+') in PORT columns,
-    allowing you to take advantage of bitmap:port ipsets.
-
-8)  The counter extensions to ipset matches have been
-    implemented. See shorewall[6]-ipsets for details.
-
-9)  DROP is now a valid action in the stoppedrules files. DROP occurs
-    in the raw table PREROUTING chain which avoids conntrack entry
-    creation.
-
-10) A new BASIC_FILTERS option is now supported. When set to 'Yes',
-    this option causes the compiler to generate basic TC filters from
-    tcfilters entries rather than u32 filters.
-
-    Basic filters are more straight-forward than u32 filters and, in
-    later iptables/kernel versions, basic filters support ipset
-    matches.  Please note that Shorewall cannot reliably detect whether
-    your iptables/kernel support ipset matches, so an error-free
-    compilation does not guarantee that the firewall will start
-    successfully when ipset names are specified in tcfilters entries.
-
-11) The update command now supports an -A option. This is intended to
-    perform all available updates to the configuration and is currently
-    equivalent to '-b -D -t'.
-
-12) Beginning with this release, FORMAT-1 actions and macros are 
-    deprecated and a warning will be issued for each FORMAT-1 action
-    or macro found. See the Migration Issues for further information.
-
-13) To facilitate creation of ipsets with characteristics different
-    from what Shorewall generates, the 'init' user exit is now executed
-    before Shorewall creates ipsets that don't exist.

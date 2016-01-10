@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 PRODUCT=shorewall6-lite
 
 usage() # $1 = exit status
@@ -34,6 +34,12 @@ usage() # $1 = exit status
     ME=$(basename $0)
     echo "usage: $ME [ <shorewallrc file> ]"
     exit $1
+}
+
+fatal_error()
+{
+    echo "   ERROR: $@" >&2
+    exit 1
 }
 
 qt()
@@ -138,16 +144,16 @@ fi
 if [ -f ${SHAREDIR}/shorewall6-lite/version ]; then
     INSTALLED_VERSION="$(cat ${SHAREDIR}/shorewall6-lite/version)"
     if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
-	echo "WARNING: Shorewall Lite Version $INSTALLED_VERSION is installed"
+	echo "WARNING: Shorewall6 Lite Version $INSTALLED_VERSION is installed"
 	echo "         and this is the $VERSION uninstaller."
 	VERSION="$INSTALLED_VERSION"
     fi
 else
-    echo "WARNING: Shorewall Lite Version $VERSION is not installed"
+    echo "WARNING: Shorewall6 Lite Version $VERSION is not installed"
     VERSION=""
 fi
 
-echo "Uninstalling Shorewall Lite $VERSION"
+echo "Uninstalling Shorewall6 Lite $VERSION"
 
 [ -n "$SANDBOX" ] && configure=0
 
@@ -158,7 +164,15 @@ if [ $configure -eq 1 ]; then
 fi
 
 if [ -f ${SHAREDIR}/shorewall6-lite/init ]; then
-    FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall6-lite/init)
+    if [ $HOST = openwrt ]; then
+	if [ $configure -eq 1 ] && /etc/init.d/shorewall6-lite enabled; then
+	    /etc/init.d/shorewall6-lite disable
+	fi
+	
+	FIREWALL=$(readlink ${SHAREDIR}/shorewall6-lite/init)
+    else
+	FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall6-lite/init)
+    fi
 elif [ -n "$INITFILE" ]; then
     FIREWALL=${INITDIR}/${INITFILE}
 fi
@@ -179,9 +193,11 @@ if [ -f "$FIREWALL" ]; then
     remove_file $FIREWALL
 fi
 
-if [ -n "$SYSTEMD" ]; then
+[ -z "$SERVICEDIR" ] && SERVICEDIR="$SYSTEMD"
+
+if [ -n "$SERVICEDIR" ]; then
     [ $configure -eq 1 ] && systemctl disable ${PRODUCT}
-    rm -f $SYSTEMD/shorewall6-lite.service
+    rm -f $SERVICEDIR/shorewall6-lite.service
 fi
 
 rm -f ${SBINDIR}/shorewall6-lite
@@ -190,7 +206,7 @@ rm -rf ${VARDIR}/shorewall6-lite
 rm -rf ${SHAREDIR}/shorewall6-lite
 rm -rf ${LIBEXECDIR}/shorewall6-lite
 rm -f  ${CONFDIR}/logrotate.d/shorewall6-lite
-[ -n "$SYSTEMD" ] && rm -f  ${SYSTEMD}/shorewall6-lite.service
+rm -f  ${SYSCONFDIR}/shorewall6-lite
 
 rm -f ${MANDIR}/man5/shorewall6-lite*
 rm -f ${MANDIR}/man8/shorewall6-lite*

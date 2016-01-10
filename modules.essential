@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Essential Modules File
+# Shorewall6 version 5 - Essential Modules File
 #
 # /usr/share/shorewall6/modules.essential
 #
@@ -24,4 +24,3 @@ loadmodule nf_conntrack_ipv6
 loadmodule xt_state
 loadmodule xt_tcpudp
 loadmodule ip6t_REJECT
-loadmodule ip6t_LOG

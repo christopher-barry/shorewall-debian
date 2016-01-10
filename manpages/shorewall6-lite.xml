@@ -55,8 +55,52 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
+      <arg choice="plain"><option>call</option></arg>
+
+      <arg
+      choice="plain"><replaceable>function</replaceable><arg><replaceable>parameter</replaceable>
+      ...</arg></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
       <arg
       choice="plain"><option>clear</option><arg><option>-f</option></arg></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="plain"><option>close</option><arg choice="req">
+      <replaceable>open-number</replaceable> |
+      <replaceable>source</replaceable><replaceable>dest</replaceable><arg><replaceable>protocol</replaceable><arg>
+      <replaceable>port</replaceable> </arg></arg></arg><replaceable>
+      </replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="plain"><option>close</option><replaceable>
+      source</replaceable><replaceable> dest</replaceable><arg>
+      <replaceable>protocol</replaceable><arg> <replaceable>port</replaceable>
+      </arg> </arg></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -116,6 +160,8 @@
       <arg><option>-l</option></arg>
 
       <arg><option>-m</option></arg>
+
+      <arg><option>-c</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -164,37 +210,6 @@
 
       <arg
       choice="plain"><option>hits</option><arg><option>-t</option></arg></arg>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>shorewall6-lite</command>
-
-      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
-
-      <arg>-<replaceable>options</replaceable></arg>
-
-      <arg choice="plain"><option>ipcalc</option></arg>
-
-      <group choice="req">
-        <arg choice="plain"><replaceable>address</replaceable>
-        <replaceable>mask</replaceable></arg>
-
-        <arg
-        choice="plain"><replaceable>address</replaceable>/<replaceable>vlsm</replaceable></arg>
-      </group>
-    </cmdsynopsis>
-
-    <cmdsynopsis>
-      <command>shorewall6-lite</command>
-
-      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
-
-      <arg>-<replaceable>options</replaceable></arg>
-
-      <arg choice="plain"><option>iprange</option></arg>
-
-      <arg
-      choice="plain"><replaceable>address1</replaceable><option>-</option><replaceable>address2</replaceable></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -271,6 +286,34 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
+      <arg choice="plain"><option>open</option><replaceable>
+      source</replaceable><replaceable> dest</replaceable><arg>
+      <replaceable>protocol</replaceable><arg> <replaceable>port</replaceable>
+      </arg> </arg></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="plain"><option>reenable</option></arg>
+
+      <arg choice="plain">{ <replaceable>interface</replaceable> |
+      <replaceable>provider</replaceable> }</arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
       <arg choice="plain"><option>reject</option></arg>
 
       <arg choice="plain"><replaceable>address</replaceable></arg>
@@ -301,7 +344,7 @@
 
       <arg><option>-p</option></arg>
 
-      <arg><replaceable>directory</replaceable></arg>
+      <arg><option>-C</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -313,6 +356,8 @@
       <arg>-<replaceable>options</replaceable></arg>
 
       <arg choice="plain"><option>restore</option></arg>
+
+      <arg><option>-C</option></arg>
 
       <arg><replaceable>filename</replaceable></arg>
     </cmdsynopsis>
@@ -342,7 +387,20 @@
 
       <arg choice="plain"><option>save</option></arg>
 
+      <arg><option>-C</option></arg>
+
       <arg choice="opt"><replaceable>filename</replaceable></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg
+      choice="opt"><option>trace</option>|<option>debug</option><arg><option>nolock</option></arg></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="plain"><option>savesets</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -352,7 +410,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg><option>-b</option></arg>
 
@@ -374,7 +432,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg><option>-f</option></arg>
 
@@ -388,7 +446,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg><option>-x</option></arg>
 
@@ -402,7 +460,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg
       choice="req"><option>classifiers|connections|config|events|filters|ip|ipa|zones|policies|marks</option></arg>
@@ -415,7 +473,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg choice="plain"><option>event</option><arg
       choice="plain"><replaceable>event</replaceable></arg></arg>
@@ -428,11 +486,11 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
-      <arg><option>-x</option></arg>
+      <arg><option>-c</option></arg>
 
-      <arg choice="req"><option>mangle|nat|routing|raw|rawpost</option></arg>
+      <arg choice="plain"><option>routing</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -442,7 +500,21 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
+
+      <arg><option>-x</option></arg>
+
+      <arg choice="req"><option>mangle|nat|raw|rawpost</option></arg>
+    </cmdsynopsis>
+
+    <cmdsynopsis>
+      <command>shorewall6-lite</command>
+
+      <arg choice="opt"><option>trace</option>|<option>debug</option></arg>
+
+      <arg>-<replaceable>options</replaceable></arg>
+
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg choice="plain"><option>tc</option></arg>
     </cmdsynopsis>
@@ -454,7 +526,7 @@
 
       <arg>-<replaceable>options</replaceable></arg>
 
-      <arg choice="opt"><option>show | list | ls </option></arg>
+      <arg choice="req"><option>show | list | ls </option></arg>
 
       <arg><option>-m</option></arg>
 
@@ -474,6 +546,10 @@
       <arg><option>-n</option></arg>
 
       <arg><option>-p</option></arg>
+
+      <arg><option>-f</option></arg>
+
+      <arg><option>-C</option></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -524,10 +600,11 @@
     used for debugging. See <ulink
     url="http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace">http://www.shorewall.net/starting_and_stopping_shorewall.htm#Trace</ulink>.</para>
 
-    <para>The nolock <option>option</option> prevents the command from
+    <para>The <option>nolock</option> option prevents the command from
     attempting to acquire the shorewall6-lite lockfile. It is useful if you
-    need to include <command>shorewall</command> commands in
-    <filename>/etc/shorewall/started</filename>.</para>
+    need to include <command>shorewall</command> commands in the
+    <filename>started</filename> <ulink
+    url="../shorewall_extension_scripts.html">extension script</ulink>.</para>
 
     <para>The <emphasis>options</emphasis> control the amount of output that
     the command produces. They consist of a sequence of the letters <emphasis
@@ -538,8 +615,8 @@
     role="bold">v</emphasis> adds one to the effective verbosity and each
     <emphasis role="bold">q</emphasis> subtracts one from the effective
     VERBOSITY. Alternately, <emphasis role="bold">v</emphasis> may be followed
-    immediately with one of -1,0,1,2 to specify a specify VERBOSITY. There may
-    be no white-space between <emphasis role="bold">v</emphasis> and the
+    immediately with one of -1,0,1,2 to specify VERBOSITY. There may be no
+    white-space between <emphasis role="bold">v</emphasis> and the
     VERBOSITY.</para>
 
     <para>The <emphasis>options</emphasis> may also include the letter
@@ -554,42 +631,65 @@
 
     <variablelist>
       <varlistentry>
-        <term><emphasis role="bold">add</emphasis></term>
+        <term><emphasis role="bold">add </emphasis>{
+        <replaceable>interface</replaceable>[:<replaceable>host-list</replaceable>]...
+        <replaceable>zone</replaceable> | <replaceable>zone</replaceable>
+        <replaceable>host-list</replaceable> }</term>
 
         <listitem>
           <para>Adds a list of hosts or subnets to a dynamic zone usually used
           with VPN's.</para>
 
-          <para>The <emphasis>interface</emphasis> argument names an interface
-          defined in the <ulink
+          <para>The <replaceable>interface</replaceable> argument names an
+          interface defined in the <ulink
           url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)
-          file. A <emphasis>host-list</emphasis> is comma-separated list whose
-          elements are host or network addresses.<caution>
-              <para>The <command>add</command> command is not very robust. If
-              there are errors in the <replaceable>host-list</replaceable>,
-              you may see a large number of error messages yet a subsequent
-              <command>shorewall6-lite show zones</command> command will
-              indicate that all hosts were added. If this happens, replace
-              <command>add</command> by <command>delete</command> and run the
-              same command again. Then enter the correct command.</para>
-            </caution></para>
+          file. A <replaceable>host-list</replaceable> is comma-separated list
+          whose elements are host or network addresses.</para>
+
+          <caution>
+            <para>The <command>add</command> command is not very robust. If
+            there are errors in the <replaceable>host-list</replaceable>, you
+            may see a large number of error messages yet a subsequent
+            <command>shorewall6-lite show zones</command> command will
+            indicate that all hosts were added. If this happens, replace
+            <command>add</command> by <command>delete</command> and run the
+            same command again. Then enter the correct command.</para>
+          </caution>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">allow</emphasis></term>
+        <term><emphasis role="bold">allow
+        </emphasis><replaceable>address</replaceable></term>
 
         <listitem>
           <para>Re-enables receipt of packets from hosts previously
-          blacklisted by a <emphasis role="bold">drop</emphasis>, <emphasis
-          role="bold">logdrop</emphasis>, <emphasis
-          role="bold">reject</emphasis>, or <emphasis
-          role="bold">logreject</emphasis> command.</para>
+          blacklisted by a <command>drop</command>,
+          <command>logdrop</command>, <command>reject</command>, or
+          <command>logreject</command> command.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">clear</emphasis></term>
+        <term><emphasis role="bold">call <replaceable>function</replaceable> [
+        <replaceable>parameter</replaceable> ... ]</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 4.6.10. Allows you to call a function in
+          one of the Shorewall libraries or in your compiled script. function
+          must name the shell function to be called. The listed parameters are
+          passed to the function.</para>
+
+          <para>The function is first searched for in
+          <filename>lib.base</filename>, <filename>lib.common</filename> and
+          <filename>lib.cli</filename>. If it is not found, the call command
+          is passed to the generated script to be executed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">clear </emphasis><emphasis role="bold">
+        </emphasis>[-<option>f</option>]</term>
 
         <listitem>
           <para>Clear will remove all rules and chains installed by
@@ -598,30 +698,56 @@
           the firewall is causing connection problems.</para>
 
           <para>If <option>-f</option> is given, the command will be processed
-          by the compiled script that executed the last successful <emphasis
-          role="bold">start</emphasis>, <emphasis
-          role="bold">restart</emphasis> or <emphasis
-          role="bold">refresh</emphasis> command if that script exists.</para>
+          by the compiled script that executed the last successful
+          <command>start</command>, <command>reload</command>, <emphasis
+          role="bold">restart</emphasis> or <command>refresh</command> command
+          if that script exists.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">delete</emphasis></term>
+        <term><emphasis role="bold">close</emphasis> {
+        <replaceable>open-number</replaceable> |
+        <replaceable>source</replaceable> <replaceable>dest</replaceable> [
+        <replaceable>protocol</replaceable> [ <replaceable>port</replaceable>
+        ] ] }</term>
 
         <listitem>
-          <para>The delete command reverses the effect of an earlier <emphasis
-          role="bold">add</emphasis> command.</para>
+          <para>Added in Shorewall 4.5.8. This command closes a temporary open
+          created by the <command>open</command> command. In the first form,
+          an <replaceable>open-number</replaceable> specifies the open to be
+          closed. Open numbers are displayed in the <emphasis
+          role="bold">num</emphasis> column of the output of the
+          <command>shorewall6-lite show opens </command>command.</para>
 
-          <para>The <emphasis>interface</emphasis> argument names an interface
-          defined in the <ulink
-          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)
-          file. A <emphasis>host-list</emphasis> is comma-separated list whose
-          elements are a host or network address.</para>
+          <para>When the second form of the command is used, the parameters
+          must match those given in the earlier <command>open</command>
+          command.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">disable</emphasis></term>
+        <term><emphasis role="bold">delete </emphasis>{
+        <replaceable>interface</replaceable>[:<replaceable>host-list</replaceable>]...
+        <replaceable>zone</replaceable> | <replaceable>zone</replaceable>
+        <replaceable>host-list</replaceable> }</term>
+
+        <listitem>
+          <para>The delete command reverses the effect of an earlier
+          <command>add</command> command.</para>
+
+          <para>The <replaceable>interface</replaceable> argument names an
+          interface defined in the <ulink
+          url="shorewall-interfaces.html">shorewall-interfaces</ulink>(5)
+          file. A <replaceable>host-list</replaceable> is comma-separated list
+          whose elements are a host or network address.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">disable </emphasis>{
+        <replaceable>interface</replaceable> |
+        <replaceable>provider</replaceable> }</term>
 
         <listitem>
           <para>Added in Shorewall 4.4.26. Disables the optional provider
@@ -633,34 +759,43 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">drop</emphasis></term>
+        <term><emphasis role="bold">drop
+        </emphasis><replaceable>address</replaceable></term>
 
         <listitem>
-          <para>Causes traffic from the listed <emphasis>address</emphasis>es
-          to be silently dropped.</para>
+          <para>Causes traffic from the listed
+          <replaceable>address</replaceable>es to be silently dropped.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">dump</emphasis></term>
+        <term><emphasis role="bold">dump </emphasis>[-<option>x</option>]
+        [-<option>l</option>] [-<option>m</option>]
+        [-<option>c</option>]</term>
 
         <listitem>
           <para>Produces a verbose report about the firewall configuration for
           the purpose of problem analysis.</para>
 
-          <para>The <emphasis role="bold">-x</emphasis> option causes actual
-          packet and byte counts to be displayed. Without that option, these
-          counts are abbreviated. The <emphasis role="bold">-m</emphasis>
-          option causes any MAC addresses included in shorewall6-lite log
-          messages to be displayed.</para>
+          <para>The <option>-x</option> option causes actual packet and byte
+          counts to be displayed. Without that option, these counts are
+          abbreviated.</para>
 
-          <para>The <emphasis role="bold">-l</emphasis> option causes the rule
-          number for each Netfilter rule to be displayed.</para>
+          <para>The <option>-m</option> option causes any MAC addresses
+          included in shorewall6-lite log messages to be displayed.</para>
+
+          <para>The <option>-l</option> option causes the rule number for each
+          Netfilter rule to be displayed.</para>
+
+          <para>The <option>-c</option> option causes the route cache to be
+          dumped in addition to the other routing information.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">enable</emphasis></term>
+        <term><emphasis role="bold">enable </emphasis>{
+        <replaceable>interface</replaceable> |
+        <replaceable>provider</replaceable> }</term>
 
         <listitem>
           <para>Added in Shorewall 4.4.26. Enables the optional provider
@@ -672,13 +807,15 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">forget</emphasis></term>
+        <term><emphasis role="bold">forget </emphasis>[
+        <replaceable>filename</replaceable> ]</term>
 
         <listitem>
-          <para>Deletes /var/lib/shorewall6-lite/<emphasis>filename</emphasis>
-          and /var/lib/shorewall6-lite/save. If no
-          <emphasis>filename</emphasis> is given then the file specified by
-          RESTOREFILE in <ulink
+          <para>Deletes
+          <filename>/var/lib/shorewall6-lite/<replaceable>filename</replaceable></filename>
+          and <filename>/var/lib/shorewall6-lite/save</filename>. If no
+          <replaceable>filename</replaceable> is given then the file specified
+          by RESTOREFILE in <ulink
           url="shorewall.conf.html">shorewall6.conf</ulink>(5) is
           assumed.</para>
         </listitem>
@@ -703,26 +840,8 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">ipcalc</emphasis></term>
-
-        <listitem>
-          <para>Ipcalc displays the network address, broadcast address,
-          network in CIDR notation and netmask corresponding to the
-          input[s].</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term><emphasis role="bold">iprange</emphasis></term>
-
-        <listitem>
-          <para>Iprange decomposes the specified range of IP addresses into
-          the equivalent list of network/host addresses.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term><emphasis role="bold">iptrace</emphasis></term>
+        <term><emphasis role="bold">iptrace </emphasis><replaceable>ip6tables
+        match expression</replaceable></term>
 
         <listitem>
           <para>This is a low-level debugging command that causes iptables
@@ -741,74 +860,158 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">logdrop</emphasis></term>
+        <term><emphasis role="bold">list</emphasis></term>
 
         <listitem>
-          <para>Causes traffic from the listed <emphasis>address</emphasis>es
-          to be logged then discarded. Logging occurs at the log level
-          specified by the BLACKLIST_LOGLEVEL setting in <ulink
-          url="shorewall.conf.html">shorewall6.conf</ulink> (5).</para>
+          <para><command>list</command> is a synonym for
+          <command>show</command> -- please see below.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">logwatch</emphasis></term>
+        <term><emphasis role="bold">logdrop
+        </emphasis><replaceable>address</replaceable></term>
+
+        <listitem>
+          <para>Causes traffic from the listed
+          <replaceable>address</replaceable>es to be logged then discarded.
+          Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL
+          setting in <ulink url="shorewall.conf.html">shorewall6.conf</ulink>
+          (5).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">logwatch </emphasis>[-<option>m</option>]
+        [<replaceable>refresh-interval</replaceable>]</term>
 
         <listitem>
           <para>Monitors the log file specified by the LOGFILE option in
           <ulink url="shorewall.conf.html">shorewall6.conf</ulink>(5) and
           produces an audible alarm when new shorewall6-lite messages are
-          logged. The <emphasis role="bold">-m</emphasis> option causes the
-          MAC address of each packet source to be displayed if that
-          information is available. The
-          <replaceable>refresh-interval</replaceable> specifies the time in
-          seconds between screen refreshes. You can enter a negative number by
-          preceding the number with "--" (e.g., <command>shorewall6-lite
-          logwatch -- -30</command>). In this case, when a packet count
-          changes, you will be prompted to hit any key to resume screen
-          refreshes.</para>
+          logged.</para>
+
+          <para>The <option>-m</option> option causes the MAC address of each
+          packet source to be displayed if that information is
+          available.</para>
+
+          <para>The <replaceable>refresh-interval</replaceable> specifies the
+          time in seconds between screen refreshes. You can enter a negative
+          number by preceding the number with "--" (e.g.,
+          <command>shorewall6-lite logwatch -- -30</command>). In this case,
+          when a packet count changes, you will be prompted to hit any key to
+          resume screen refreshes.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">logreject</emphasis></term>
+        <term><emphasis role="bold">logreject
+        </emphasis><replaceable>address</replaceable></term>
 
         <listitem>
-          <para>Causes traffic from the listed <emphasis>address</emphasis>es
-          to be logged then rejected. Logging occurs at the log level
-          specified by the BLACKLIST_LOGLEVEL setting in <ulink
-          url="shorewall.conf.html">shorewall6.conf</ulink> (5).</para>
+          <para>Causes traffic from the listed
+          <replaceable>address</replaceable>es to be logged then rejected.
+          Logging occurs at the log level specified by the BLACKLIST_LOGLEVEL
+          setting in <ulink url="shorewall.conf.html">shorewall6.conf</ulink>
+          (5).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">noiptrace</emphasis></term>
+        <term><emphasis role="bold">ls</emphasis></term>
+
+        <listitem>
+          <para><command>ls</command> is a synonym for <command>show</command>
+          -- please see below.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">noiptrace
+        </emphasis><replaceable>ip6tables match
+        expression</replaceable></term>
 
         <listitem>
           <para>This is a low-level debugging command that cancels a trace
           started by a preceding <command>iptrace</command> command.</para>
 
-          <para>The <replaceable>iptables match expression</replaceable> must
+          <para>The <replaceable>ip6tables match expression</replaceable> must
           be one given in the <command>iptrace</command> command being
           canceled.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">reset</emphasis></term>
+        <term><emphasis role="bold">open</emphasis>
+        <replaceable>source</replaceable> <replaceable>dest</replaceable> [
+        <replaceable>protocol</replaceable> [ <replaceable>port</replaceable>
+        ] ]</term>
 
         <listitem>
-          <para>All the packet and byte counters in the firewall are
-          reset.</para>
+          <para>Added in Shorewall 4.6.8. This command requires that the
+          firewall be in the started state and that DYNAMIC_BLACKLIST=Yes in
+          <ulink url="/manpages6/shorewall6.conf.html">shorewall6.conf
+          (5)</ulink>. The effect of the command is to temporarily open the
+          firewall for connections matching the parameters.</para>
+
+          <para>The <replaceable>source</replaceable> and
+          <replaceable>dest</replaceable> parameters may each be specified as
+          <emphasis role="bold">all</emphasis> if you don't wish to restrict
+          the connection source or destination respectively. Otherwise, each
+          must contain a host or network address or a valid DNS name.</para>
+
+          <para>The <replaceable>protocol</replaceable> may be specified
+          either as a number or as a name listed in /etc/protocols. The
+          <replaceable>port</replaceable> may be specified numerically or as a
+          name listed in /etc/services.</para>
+
+          <para>To reverse the effect of a successful <command>open</command>
+          command, use the <command>close</command> command with the same
+          parameters or simply restart the firewall.</para>
+
+          <para>Example: To open the firewall for SSH connections to address
+          2001:470:b:227::1, the command would be:</para>
+
+          <programlisting>    shorewall6-lite open all 2001:470:b:227::1 tcp 22</programlisting>
+
+          <para>To reverse that command, use:</para>
+
+          <programlisting>    shorewall6-lite close all 2001:470:b:227::1 tcp 22</programlisting>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">restart</emphasis></term>
+        <term><emphasis role="bold">reenable</emphasis>{
+        <replaceable>interface</replaceable> |
+        <replaceable>provider</replaceable> }</term>
 
         <listitem>
-          <para>Restart is similar to <emphasis role="bold">shorewall6-lite
-          start</emphasis> except that it assumes that the firewall is already
+          <para>Added in Shorewall 4.6.9. This is equivalent to a
+          <command>disable</command> command followed by an
+          <command>enable</command> command on the specified
+          <replaceable>interface</replaceable> or
+          <replaceable>provider</replaceable>.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">reject</emphasis><replaceable>
+        address</replaceable></term>
+
+        <listitem>
+          <para>Causes traffic from the listed <emphasis>address</emphasis>es
+          to be silently rejected.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">reload </emphasis>[-n] [-p]
+        [-<option>C</option>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 5.0.0, <emphasis
+          role="bold">reload</emphasis> is similar to <command>shorewall6-lite
+          start</command> except that it assumes that the firewall is already
           started. Existing connections are maintained.</para>
 
           <para>The <option>-n</option> option causes shorewall6-lite to avoid
@@ -817,26 +1020,88 @@
           <para>The <option>-p</option> option causes the connection tracking
           table to be flushed; the <command>conntrack</command> utility must
           be installed to use this option.</para>
+
+          <para>The <option>-C</option> option was added in Shorewall 4.6.5.
+          If the specified (or implicit) firewall script is the one that
+          generated the current running configuration, then the running
+          netfilter configuration will be reloaded as is so as to preserve the
+          iptables packet and byte counters.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">restore</emphasis></term>
+        <term><emphasis role="bold">reset [<replaceable>chain</replaceable>,
+        ...]</emphasis><acronym/></term>
 
         <listitem>
-          <para>Restore shorewall6-lite to a state saved using the <emphasis
-          role="bold">shorewall6-lite save</emphasis> command. Existing
-          connections are maintained. The <emphasis>filename</emphasis> names
-          a restore file in /var/lib/shorewall6-lite created using <emphasis
-          role="bold">shorewall6-lite save</emphasis>; if no
-          <emphasis>filename</emphasis> is given then shorewall6-lite will be
-          restored from the file specified by the RESTOREFILE option in <ulink
-          url="shorewall.conf.html">shorewall6.conf</ulink>(5).</para>
+          <para>Resets the packet and byte counters in the specified
+          <replaceable>chain</replaceable>(s). If no
+          <replaceable>chain</replaceable> is specified, all the packet and
+          byte counters in the firewall are reset.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">run</emphasis></term>
+        <term><emphasis role="bold">restart </emphasis>[-n] [-p]
+        [-<option>C</option>]</term>
+
+        <listitem>
+          <para>Beginning with Shorewall 5.0.0, this command performs a true
+          restart. The firewall is completely stopped as if a
+          <command>stop</command> command had been issued then it is started
+          again.</para>
+
+          <para>The <option>-n</option> option causes shorewall6-lite to avoid
+          updating the routing table(s).</para>
+
+          <para>The <option>-p</option> option causes the connection tracking
+          table to be flushed; the <command>conntrack</command> utility must
+          be installed to use this option.</para>
+
+          <para>The <option>-C</option> option was added in Shorewall 4.6.5.
+          If the specified (or implicit) firewall script is the one that
+          generated the current running configuration, then the running
+          netfilter configuration will be reloaded as is so as to preserve the
+          iptables packet and byte counters.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">restore </emphasis>[-<option>n</option>]
+        [-<option>p</option>] [-<option>C</option>] [
+        <replaceable>filename</replaceable> ]</term>
+
+        <listitem>
+          <para>Restore shorewall6-lite to a state saved using the
+          <command>shorewall6-lite save</command> command. Existing
+          connections are maintained. The <replaceable>filename</replaceable>
+          names a restore file in <filename
+          class="directory">/var/lib/shorewall6-lite</filename> created using
+          <command>shorewall6-lite save</command>; if no
+          <replaceable>filename</replaceable> is given then shorewall6-lite
+          will be restored from the file specified by the RESTOREFILE option
+          in <ulink
+          url="shorewall.conf.html">shorewall6.conf</ulink>(5).</para>
+
+          <caution>
+            <para>If your ip6tables ruleset depends on variables that are
+            detected at run-time, either in your params file or by
+            Shorewall-generated code, <command>restore</command> will use the
+            values that were current when the ruleset was saved, which may be
+            different from the current values.</para>
+          </caution>
+
+          <para>The <option>-C</option> option was added in Shorewall 4.6.5.
+          If the <option>-C</option> option was specified during
+          <command>shorewall7-lite save</command>, then the counters saved by
+          that operation will be restored.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">run
+        </emphasis><replaceable>command</replaceable> [
+        <replaceable>parameter</replaceable> ... ]</term>
 
         <listitem>
           <para>Added in Shorewall 4.6.3. Executes
@@ -853,16 +1118,36 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">save</emphasis></term>
+        <term><emphasis role="bold">save </emphasis>[-<option>C</option>] [
+        <replaceable>filename</replaceable> ]</term>
 
         <listitem>
           <para>The dynamic blacklist is stored in
-          /var/lib/shorewall6-lite/save. The state of the firewall is stored
-          in /var/lib/shorewall6-lite/<emphasis>filename</emphasis> for use by
-          the <emphasis role="bold">shorewall6-lite restore</emphasis>. If
-          <emphasis>filename</emphasis> is not given then the state is saved
-          in the file specified by the RESTOREFILE option in <ulink
+          <filename>/var/lib/shorewall6-lite/save</filename>. The state of the
+          firewall is stored in
+          <filename>/var/lib/shorewall6-lite/<replaceable>filename</replaceable></filename>
+          for use by the <command>shorewall6-lite restore</command> command.
+          If <replaceable>filename</replaceable> is not given then the state
+          is saved in the file specified by the RESTOREFILE option in <ulink
           url="shorewall.conf.html">shorewall6.conf</ulink>(5).</para>
+
+          <para>The <option>-C</option> option, added in Shorewall 4.6.5,
+          causes the ip6tables packet and byte counters to be saved along with
+          the chains and rules.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">savesets</emphasis></term>
+
+        <listitem>
+          <para>Added in shorewall 4.6.8. Performs the same action as the
+          <command>stop</command> command with respect to saving ipsets (see
+          the SAVE_IPSETS option in <ulink
+          url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink> (5)).
+          This command may be used to proactively save your ipset contents in
+          the event that a system failure occurs prior to issuing a
+          <command>stop</command> command.</para>
         </listitem>
       </varlistentry>
 
@@ -875,32 +1160,36 @@
 
           <variablelist>
             <varlistentry>
-              <term><emphasis role="bold">bl|blacklists</emphasis></term>
+              <term>[-<option>x</option>] <emphasis
+              role="bold">bl|blacklists</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.6.2. Displays the dynamic chain
                 along with any chains produced by entries in
-                shorewall6-blrules(5).The <emphasis role="bold">-x</emphasis>
-                option is passed directly through to ip6tables and causes
-                actual packet and byte counts to be displayed. Without this
-                option, those counts are abbreviated.</para>
+                shorewall6-blrules(5).The <option>-x</option> option is passed
+                directly through to ip6tables and causes actual packet and
+                byte counts to be displayed. Without this option, those counts
+                are abbreviated.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">capabilities</emphasis></term>
+              <term>[-<option>f</option>] <emphasis
+              role="bold">capabilities</emphasis></term>
 
               <listitem>
                 <para>Displays your kernel/iptables capabilities. The
-                <emphasis role="bold">-f</emphasis> option causes the display
-                to be formatted as a capabilities file for use with <emphasis
-                role="bold">compile -e</emphasis>.</para>
+                <option>-f</option> option causes the display to be formatted
+                as a capabilities file for use with <command>compile
+                -e</command>.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>[ [ <option>chain</option> ] <emphasis>chain</emphasis>...
-              ]</term>
+              <term>[-<option>b</option>] [-<option>x</option>]
+              [-<option>l</option>] [-<option>t</option>
+              {<option>filter</option>|<option>mangle</option>|<option>nat</option>|<option>raw</option>|<option>rawpost</option>}][
+              <emphasis>chain</emphasis>... ]</term>
 
               <listitem>
                 <para>The rules in each <emphasis>chain</emphasis> are
@@ -908,25 +1197,26 @@
                 -L</emphasis> <emphasis>chain</emphasis> <emphasis
                 role="bold">-n -v</emphasis> command. If no
                 <emphasis>chain</emphasis> is given, all of the chains in the
-                filter table are displayed. The <emphasis
-                role="bold">-x</emphasis> option is passed directly through to
-                iptables and causes actual packet and byte counts to be
-                displayed. Without this option, those counts are abbreviated.
-                The <emphasis role="bold">-t</emphasis> option specifies the
-                Netfilter table to display. The default is <emphasis
+                filter table are displayed.</para>
+
+                <para>The <option>-x</option> option is passed directly
+                through to iptables and causes actual packet and byte counts
+                to be displayed. Without this option, those counts are
+                abbreviated.</para>
+
+                <para>The <option>-t</option> option specifies the Netfilter
+                table to display. The default is <emphasis
                 role="bold">filter</emphasis>.</para>
 
-                <para>The <emphasis role="bold">-b</emphasis> ('brief') option
-                causes rules which have not been used (i.e. which have zero
-                packet and byte counts) to be omitted from the output. Chains
-                with no rules displayed are also omitted from the
-                output.</para>
+                <para>The <option>-b</option> ('brief') option causes rules
+                which have not been used (i.e. which have zero packet and byte
+                counts) to be omitted from the output. Chains with no rules
+                displayed are also omitted from the output.</para>
 
-                <para>The <emphasis role="bold">-l</emphasis> option causes
-                the rule number for each Netfilter rule to be
-                displayed.</para>
+                <para>The <option>-l</option> option causes the rule number
+                for each Netfilter rule to be displayed.</para>
 
-                <para>If the <emphasis role="bold">t</emphasis> option and the
+                <para>If the <option>-t</option> option and the
                 <option>chain</option> keyword are both omitted and any of the
                 listed <replaceable>chain</replaceable>s do not exist, a usage
                 message is displayed.</para>
@@ -953,11 +1243,19 @@
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">connections</emphasis></term>
+              <term><emphasis role="bold">connections
+              [<replaceable>filter_parameter</replaceable>
+              ...]</emphasis></term>
 
               <listitem>
                 <para>Displays the IP connections currently being tracked by
                 the firewall.</para>
+
+                <para>If the <command>conntrack</command> utility is
+                installed, beginning with Shorewall 4.6.11 the set of
+                connections displayed can be limited by including conntrack
+                filter parameters (-p , -s, --dport, etc). See conntrack(8)
+                for details.</para>
               </listitem>
             </varlistentry>
 
@@ -999,15 +1297,31 @@
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">log</emphasis></term>
+              <term>[-<option>m</option>] <emphasis
+              role="bold">log</emphasis></term>
 
               <listitem>
                 <para>Displays the last 20 shorewall6-lite messages from the
                 log file specified by the LOGFILE option in <ulink
-                url="shorewall.conf.html">shorewall6.conf</ulink>(5). The
-                <emphasis role="bold">-m</emphasis> option causes the MAC
-                address of each packet source to be displayed if that
-                information is available.</para>
+                url="shorewall.conf.html">shorewall6.conf</ulink>(5).</para>
+
+                <para>The <option>-m</option> option causes the MAC address of
+                each packet source to be displayed if that information is
+                available.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>[-<option>x</option>] <emphasis
+              role="bold">mangle</emphasis></term>
+
+              <listitem>
+                <para>Displays the Netfilter mangle table using the command
+                <command>ip6tables -t mangle -L -n -v</command>.The
+                <option>-x</option> option is passed directly through to
+                ip6tables and causes actual packet and byte counts to be
+                displayed. Without this option, those counts are
+                abbreviated.</para>
               </listitem>
             </varlistentry>
 
@@ -1022,14 +1336,25 @@
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">nat</emphasis></term>
+              <term><emphasis role="bold">opens</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.5.8. Displays the iptables rules in
+                the 'dynamic' chain created through use of the <command>open
+                </command>command..</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>[-<option>x</option>] <emphasis
+              role="bold">nat</emphasis></term>
 
               <listitem>
                 <para>Displays the Netfilter nat table using the command
-                <emphasis role="bold">iptables -t nat -L -n -v</emphasis>.The
-                <emphasis role="bold">-x</emphasis> option is passed directly
-                through to iptables and causes actual packet and byte counts
-                to be displayed. Without this option, those counts are
+                <command>ip6tables -t nat -L -n -v</command>.The
+                <option>-x</option> option is passed directly through to
+                iptables and causes actual packet and byte counts to be
+                displayed. Without this option, those counts are
                 abbreviated.</para>
               </listitem>
             </varlistentry>
@@ -1047,23 +1372,27 @@
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">routing</emphasis></term>
+              <term>[-<option>x</option>] <emphasis
+              role="bold">raw</emphasis></term>
 
               <listitem>
-                <para>Displays the system's IPv4 routing configuration.</para>
+                <para>Displays the Netfilter raw table using the command
+                <command>iptables -t raw -L -n -v</command>.The
+                <option>-x</option> option is passed directly through to
+                iptables and causes actual packet and byte counts to be
+                displayed. Without this option, those counts are
+                abbreviated.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">raw</emphasis></term>
+              <term>[-<option>c</option>]<emphasis role="bold">
+              </emphasis><emphasis role="bold">routing</emphasis></term>
 
               <listitem>
-                <para>Displays the Netfilter raw table using the command
-                <emphasis role="bold">iptables -t raw -L -n -v</emphasis>.The
-                <emphasis role="bold">-x</emphasis> option is passed directly
-                through to iptables and causes actual packet and byte counts
-                to be displayed. Without this option, those counts are
-                abbreviated.</para>
+                <para>Displays the system's IPv4 routing configuration. The -c
+                option causes the route cache to be displayed in addition to
+                the other routing information.</para>
               </listitem>
             </varlistentry>
 
@@ -1089,10 +1418,12 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">start</emphasis></term>
+        <term><emphasis role="bold">start </emphasis>[-<option>p</option>]
+        [-<option>n</option>] [<option>-f</option>]
+        [-<option>C</option>]</term>
 
         <listitem>
-          <para>Start Shorewall Lite. Existing connections through
+          <para>Start Shorewall6 Lite. Existing connections through
           shorewall6-lite managed interfaces are untouched. New connections
           will be allowed only if they are allowed by the firewall rules or
           policies.</para>
@@ -1100,11 +1431,28 @@
           <para>The <option>-p</option> option causes the connection tracking
           table to be flushed; the <command>conntrack</command> utility must
           be installed to use this option.</para>
+
+          <para>The <option>-n</option> option prevents the firewall script
+          from modifying the current routing configuration.</para>
+
+          <para>The <option>-f</option> option was added in Shorewall 4.6.5.
+          If the RESTOREFILE named in <ulink
+          url="shorewall.conf.html">shorewall.conf</ulink>(5) exists, is
+          executable and is not older than the current filewall script, then
+          that saved configuration is restored.</para>
+
+          <para>The <option>-C</option> option was added in Shorewall 4.6.5
+          and is only meaningful when the <option>-f</option> option is also
+          specified. If the previously-saved configuration is restored, and if
+          the <option>-C</option> option was also specified in the
+          <command>save</command> command, then the packet and byte counters
+          will be restored.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">stop</emphasis></term>
+        <term><emphasis role="bold">stop </emphasis><emphasis role="bold">
+        </emphasis>[-<option>f</option>]</term>
 
         <listitem>
           <para>Stops the firewall. All existing connections, except those
@@ -1118,10 +1466,9 @@
           or by ADMINISABSENTMINDED.</para>
 
           <para>If <option>-f</option> is given, the command will be processed
-          by the compiled script that executed the last successful <emphasis
-          role="bold">start</emphasis>, <emphasis
-          role="bold">restart</emphasis> or <emphasis
-          role="bold">refresh</emphasis> command if that script exists.</para>
+          by the compiled script that executed the last successful
+          <command>start</command>, <command>restart</command> or
+          <command>refresh</command> command if that script exists.</para>
         </listitem>
       </varlistentry>
 
@@ -1132,14 +1479,15 @@
           <para>Produces a short report about the state of the
           Shorewall-configured firewall.</para>
 
-          <para>The <option>-i </option>option was added in Shorewall 4.6.2
+          <para>The <option>-i</option> option was added in Shorewall 4.6.2
           and causes the status of each optional or provider interface to be
           displayed.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">version</emphasis></term>
+        <term><emphasis role="bold">version
+        </emphasis>[-<option>a</option>]</term>
 
         <listitem>
           <para>Displays Shorewall's version. The <option>-a</option> option
