@@ -1,3 +1,1 @@
-# The string "/usr" only occurs in the script because it is in a help message
-# directing the user to documentation
-shorewall-init: init.d-script-missing-dependency-on-remote_fs
+shorewall-init: binary-without-manpage
