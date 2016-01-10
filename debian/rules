@@ -13,7 +13,7 @@ SRWL=$(CURDIR)/debian/shorewall-core
 	dh $@ 
 
 override_dh_auto_configure:
-	./configure
+	true
 
 override_dh_auto_build:
 	true
@@ -22,7 +22,7 @@ override_dh_auto_clean:
 	rm -rf $(SRWL) shorewallrc
 
 override_dh_install:
-	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+	DESTDIR=$(SRWL) $(CURDIR)/install.sh $(CURDIR)/shorewallrc.debian.systemd
 	find $(SRWL) -type d -empty -delete
 
 override_dh_fixperms:
