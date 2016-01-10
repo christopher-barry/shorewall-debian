@@ -1,3 +1,9 @@
+shorewall (5.0.3.1-1) unstable; urgency=medium
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 10 Jan 2016 14:57:16 -0500
+
 shorewall (4.6.4.3-2) unstable; urgency=low
 
   * Depend upon perl instead of perl-modules (Closes: #779119)
