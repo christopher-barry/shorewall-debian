@@ -1,4 +1,4 @@
-shorewall6 (5.0.3.1-1) unstable; urgency=medium
+shorewall6 (5.0.3.1-1) unstable; urgency=low
 
   * New Upstream Version (Closes: #796703)
   * Fix broken Vcs-Browser and Vcs-Git links (Closes: #791578)
