@@ -1,3 +1,1 @@
 shorewall6-lite: non-standard-dir-perm var/lib/shorewall6-lite/ 0750 != 0755
-# Shorewall needs to continue in runlevel 1 because networking may still be up
-shorewall6-lite: init.d-script-possible-missing-stop
