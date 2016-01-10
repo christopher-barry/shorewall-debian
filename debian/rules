@@ -13,22 +13,15 @@ SRWL=$(CURDIR)/debian/shorewall-init
 	dh $@ 
 
 override_dh_auto_configure:
-	./configure
+	true
 
 override_dh_auto_build:
 	true
 
-override_dh_auto_clean:
-	rm -rf $(SRWL) shorewallrc
-
 override_dh_install:
-	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+	DESTDIR=$(SRWL) $(CURDIR)/install.sh $(CURDIR)/shorewallrc.debian.systemd
 	find $(SRWL) -type d -empty -delete
-	rm -f $(SRWL)/etc/rcS.d/S38shorewall-init
 
 override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall-init -Xvar/lib/shorewall-init
-
-override_dh_installinit:
-	dh_installinit --onlyscripts --no-start -u"start 38 S . 02 0 6"
 
