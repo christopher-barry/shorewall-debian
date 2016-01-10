@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 PRODUCT=shorewall-lite
 
 usage() # $1 = exit status
@@ -38,6 +38,12 @@ usage() # $1 = exit status
     echo "  -v"
     echo "  -n"
     exit $1
+}
+
+fatal_error()
+{
+    echo "   ERROR: $@" >&2
+    exit 1
 }
 
 qt()
@@ -162,7 +168,15 @@ if [ $configure -eq 1 ]; then
 fi
 
 if [ -L ${SHAREDIR}/shorewall-lite/init ]; then
-    FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall-lite/init)
+    if [ $HOST = openwrt ]; then
+	if [ $configure -eq 1 ] && /etc/init.d/shorewall-lite enabled; then
+	    /etc/init.d/shorewall-lite disable
+	fi
+	
+	FIREWALL=$(readlink ${SHAREDIR}/shorewall-lite/init)
+    else
+	FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall-lite/init)
+    fi
 elif [ -n "$INITFILE" ]; then
     FIREWALL=${INITDIR}/${INITFILE}
 fi
@@ -181,9 +195,11 @@ if [ -f "$FIREWALL" ]; then
     remove_file $FIREWALL
 fi
 
-if [ -n "$SYSTEMD" ]; then
+[ -z "$SERVICEDIR" ] && SERVICEDIR="$SYSTEMD"
+
+if [ -n "$SERVICEDIR" ]; then
     [ $configure -eq 1 ] && systemctl disable ${PRODUCT}
-    rm -f $SYSTEMD/shorewall-lite.service
+    rm -f $SERVICEDIR/shorewall-lite.service
 fi
 
 rm -f ${SBINDIR}/shorewall-lite
@@ -193,6 +209,7 @@ rm -rf ${VARDIR}/shorewall-lite
 rm -rf ${SHAREDIR}/shorewall-lite
 rm -rf ${LIBEXECDIR}/shorewall-lite
 rm -f  ${CONFDIR}/logrotate.d/shorewall-lite
+rm -f  ${SYSCONFDIR}/shorewall-lite
 
 rm -f ${MANDIR}/man5/shorewall-lite*
 rm -f ${MANDIR}/man8/shorewall-lite*

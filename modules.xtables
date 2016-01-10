@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Xtables Modules File
+# Shorewall version 5 - Xtables Modules File
 #
 # /usr/share/shorewall/modules.xtables
 #
@@ -31,7 +31,6 @@ loadmodule xt_mac
 loadmodule xt_mark
 loadmodule xt_MARK
 loadmodule xt_multiport
-loadmodule xt_NFLOG
 loadmodule xt_NFQUEUE
 loadmodule xt_owner
 loadmodule xt_physdev

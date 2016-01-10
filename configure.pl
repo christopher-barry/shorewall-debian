@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '4.6.4.3'
+    VERSION => '5.0.3.1'
 };
 
 my %params;
@@ -52,6 +52,9 @@ for ( @ARGV ) {
     $params{$pn} = $pv;
 }
 
+use File::Basename;
+chdir dirname($0);
+
 my $vendor = $params{HOST};
 my $rcfile;
 my $rcfilename;
@@ -68,23 +71,52 @@ unless ( defined $vendor ) {
 	    $vendor = 'redhat';
 	} elsif ( $id eq 'opensuse' ) {
 	    $vendor = 'suse';
-	} elsif ( $id eq 'ubuntu' ) {
-	    $vendor = 'debian';
+	} elsif ( $id eq 'ubuntu' || $id eq 'debian' ) {
+	    my $init = `ls -l /sbin/init`;
+	    $vendor = $init =~ /systemd/ ? 'debian.systemd' : 'debian.sysvinit';
 	} else {
 	    $vendor = $id;
 	}
     }
 
     $params{HOST} = $vendor;
+    $params{HOST} =~ s/\..*//;
 }
 
 if ( defined $vendor ) {
-    $rcfilename = $vendor eq 'linux' ? 'shorewallrc.default' : 'shorewallrc.' . $vendor;
-    die qq("ERROR: $vendor" is not a recognized host type) unless -f $rcfilename;
+    if ( $vendor eq 'debian' && -f '/etc/debian_version' ) {
+	if ( -l '/sbin/init' ) {
+	    if ( readlink('/sbin/init') =~ /systemd/ ) {
+		$rcfilename = 'shorewallrc.debian.systemd';
+	    } else {
+		$rcfilename = 'shorewallrc.debian.sysvinit';
+	    }
+	} else {
+	    $rcfilename = 'shorewallrc.debian.sysvinit';
+	}
+    } else {
+	$rcfilename = $vendor eq 'linux' ? 'shorewallrc.default' : 'shorewallrc.' . $vendor;
+    }
+
+    unless ( -f $rcfilename ) {
+	die qq("ERROR: $vendor" is not a recognized host type);
+    } elsif ( $vendor eq 'default' ) {
+	$params{HOST} = $vendor = 'linux';
+    } elsif ( $vendor =~ /^debian\./ ) {
+	$params{HOST} = $vendor = 'debian';
+    }
 } else {
     if ( -f '/etc/debian_version' ) {
 	$vendor = 'debian';
-	$rcfilename = 'shorewallrc.debian';
+	if ( -l '/sbin/init' ) {
+	    if ( readlink( '/sbin/init' ) =~ /systemd/ ) {
+		$rcfilename = 'shorewallrc.debian.systemd';
+	    } else {
+		$rcfilename = 'shorewallrc.debian.sysvinit';
+	    }
+	} else {
+	    $rcfilename = 'shorewallrc.debian.sysvinit';
+	}
     } elsif ( -f '/etc/redhat-release' ){
 	$vendor = 'redhat';
 	$rcfilename = 'shorewallrc.redhat';
@@ -117,7 +149,7 @@ my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 if ( $vendor eq 'linux' ) {
     printf "INFO: Creating a generic Linux installation - %s %2d %04d %02d:%02d:%02d\n\n", $abbr[$localtime[4]], $localtime[3], 1900 + $localtime[5] , @localtime[2,1,0];;
 } else {
-    printf "INFO: Creating a %s-specific installation - %s %2d %04d %02d:%02d:%02d\n\n", $vendor, $abbr[$localtime[4]], $localtime[3], 1900 + $localtime[5] , @localtime[2,1,0];;
+    printf "INFO: Creating a %s-specific installation - %s %2d %04d %02d:%02d:%02d\n\n", $params{HOST}, $abbr[$localtime[4]], $localtime[3], 1900 + $localtime[5] , @localtime[2,1,0];;
 }
 
 open $rcfile, '<', $rcfilename or die "Unable to open $rcfilename for input: $!";
@@ -141,7 +173,8 @@ my $outfile;
 
 open $outfile, '>', 'shorewallrc' or die "Can't open 'shorewallrc' for output: $!";
 
-printf $outfile "#\n# Created by Shorewall Core version %s configure.pl - %s %2d %04d %02d:%02d:%02d\n#\n", VERSION, $abbr[$localtime[4]], $localtime[3], 1900 + $localtime[5] , @localtime[2,1,0];
+printf $outfile "#\n# Created by Shorewall Core version %s configure.pl - %s %2d %04d %02d:%02d:%02d\n", VERSION, $abbr[$localtime[4]], $localtime[3], 1900 + $localtime[5] , @localtime[2,1,0];
+print $outfile "# rc file: $rcfilename\n#\n";
 
 print  $outfile "# Input: @ARGV\n#\n" if @ARGV;
 
@@ -153,6 +186,8 @@ if ( $options{VARLIB} ) {
     $options{VARLIB} = $options{VARDIR};
     $options{VARDIR} = '${VARLIB}/${PRODUCT}';
 }
+
+$options{SERVICEDIR}=$options{SYSTEMD} unless $options{SERVICEDIR};
 
 for ( qw/ HOST
 	  PREFIX
@@ -167,8 +202,8 @@ for ( qw/ HOST
 	  INITFILE
 	  AUXINITSOURCE
 	  AUXINITFILE
-	  SYSTEMD
-          SERVICEFILE
+	  SERVICEDIR
+	  SERVICEFILE
 	  SYSCONFFILE
 	  SYSCONFDIR
 	  SPARSE
