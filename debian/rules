@@ -22,20 +22,17 @@ debian/po/templates.pot: debian/shorewall.templates
 	@debconf-updatepo
 
 override_dh_auto_configure:
-	./configure
+	true
 
 override_dh_auto_build:
 	true
-
-override_dh_auto_clean:
-	rm -rf $(SRWL) shorewallrc
 
 override_dh_install:
 	echo 'shorewall:current=$(VMAJOR).$(VMINOR).$(VPATCH)~' \
 		>> debian/shorewall-lite.substvars
 	echo 'shorewall:next=$(VMAJOR).$(VMINOR).$(NEXTPATCH)~' \
 		>> debian/shorewall-lite.substvars
-	DESTDIR=$(SRWL) BUILD=debian HOST=debian $(CURDIR)/install.sh
+	DESTDIR=$(SRWL) $(CURDIR)/install.sh $(CURDIR)/shorewallrc.debian.systemd
 
 override_dh_fixperms:
 	# Temporary zones are only available to root
@@ -48,10 +45,4 @@ override_dh_fixperms:
 	# Must be executable
 	chmod 755 $(SRWL)/usr/share/shorewall-lite/shorecap
 	dh_fixperms -Xetc/shorewall-lite -Xvar/lib/shorewall-lite
-
-override_dh_installinit:
-	dh_installinit --onlyscripts --no-start -u"start 40 S . stop 89 0 6 ."
-
-override_dh_installman:
-	dh_installman manpages/*.5 manpages/*.8
 
