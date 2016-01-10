@@ -1,6 +1,6 @@
 %define name shorewall-init
-%define version 4.6.4
-%define release 3
+%define version 5.0.3
+%define release 1
 
 Summary: Shorewall-init adds functionality to Shoreline Firewall (Shorewall).
 Name: %{name}
@@ -126,12 +126,116 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Sun Oct 19 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.4-3
-* Wed Oct 15 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.4-2
-* Fri Oct 10 2014 Tom Eastep tom@shorewall.net
-- Updated to 4.6.4-1
+* Sat Jan 02 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.3-1
+* Sun Dec 27 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.3-0base
+* Thu Dec 24 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.3-0RC2
+* Sun Dec 13 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.3-0RC1
+* Sat Dec 05 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.3-0Beta2
+* Sat Nov 28 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.3-0Beta1
+* Sat Nov 21 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.2-1
+* Sat Nov 07 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.2-0base
+* Sun Nov 01 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.2-0RC1
+* Mon Oct 26 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.2-0Beta2
+* Mon Oct 26 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.2-0Beta1
+* Tue Oct 13 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.1-1
+* Mon Oct 12 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.1-0base
+* Sat Oct 03 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.0-0base
+* Mon Sep 21 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.0-0RC1
+* Thu Sep 10 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.0-0Beta2
+* Mon Jul 27 2015 Tom Eastep tom@shorewall.net
+- Updated to 5.0.0-0Beta1
+* Mon Jul 13 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.12-0Beta2
+* Wed Jul 08 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.12-0Beta1
+* Fri Jul 03 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.11-0base
+* Mon Jun 29 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.11-0RC1
+* Fri Jun 26 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.11-0Beta3
+* Mon Jun 22 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.11-0Beta2
+* Sun May 31 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.11-0Beta1
+* Fri May 29 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.10-0base
+* Mon May 25 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.10-0RC1
+* Sun May 17 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.10-0Beta2
+* Tue May 05 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.10-0Beta1
+* Tue May 05 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.9-0base
+* Tue May 05 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.9-0RC2
+* Mon Apr 27 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.9-0RC1
+* Fri Apr 17 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.9-0Beta3
+* Mon Apr 06 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.9-0Beta2
+* Fri Apr 03 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.9-0Beta1
+* Sun Mar 29 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.8-0base
+* Tue Mar 24 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.8-0RC1
+* Tue Mar 17 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.8-0Beta3
+* Sat Mar 14 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.8-0Beta2
+* Fri Mar 06 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.8-0Beta1
+* Thu Mar 05 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.7-0base
+* Tue Mar 03 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.7-0RC1
+* Sat Jan 17 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.7-0Beta1
+* Sat Jan 10 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.6-0base
+* Tue Jan 06 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.6-0RC1
+* Fri Jan 02 2015 Tom Eastep tom@shorewall.net
+- Updated to 4.6.6-0Beta3
+* Fri Dec 26 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.6-0Beta2
+* Fri Dec 19 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.6-0Beta1
+* Mon Dec 15 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-3
+* Sat Nov 15 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-2
+* Fri Nov 14 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-1
+* Thu Nov 06 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0base
+* Sat Nov 01 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0RC1
+* Thu Oct 30 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta3
+* Mon Oct 20 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta2
+* Wed Oct 08 2014 Tom Eastep tom@shorewall.net
+- Updated to 4.6.5-0Beta1
 * Mon Oct 06 2014 Tom Eastep tom@shorewall.net
 - Updated to 4.6.4-0base
 * Thu Oct 02 2014 Tom Eastep tom@shorewall.net

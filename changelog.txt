@@ -1,373 +1,185 @@
-Changes in 4.6.4.3
-
-1)  Update release documents
-
-2)  Add xt_LOG to the helpers files.
-
-Changes in 4.6.4.2
-
-1)  Update release documents
-
-2)  Add ipt_LOG to the helpers files.
-
-Changes in 4.6.4.1
-
-1)  Update release documents
-
-2)  Eliminate confusing output during 'save', 'safe-*' and 'try'
-    commands.
-
-3)  Remove 'optional' from the Universal interfaces file.
-
-Changes in 4.6.4 Final
-
-1)  Update release documents
-
-Changes in 4.6.4 RC 1
-
-1)  Update release documents
-
-2)  Added FAQ 104 (kernel log messages during compile).
-
-3)  Create INITD in the -lite installer.
-
-4)  Don't link init script if there is none.
-
-5)  Add -n option to the installers and uninstallers.
-
-6)  Support SANDBOX in the installers and uninstallers.
-
-7)  Correct many defects in the uninstallers.
-
-Changes in 4.6.4 Beta 3
-
-1)  Update release documents
-
-2)  Allow SAVE_IPSETS to specify a list of ipset names.
-
-3)  Document .spec and actions.std fixes.
-
-3)  Packaging changes.
-
-Changes in 4.6.4-Beta 2
-
-1)  Update release documents
-
-2)  Correct minor issue in a warning message.
-
-3)  Implement LOG_BACKEND.
-
-4)  Correct stoppedrules/ADMINISABSENTMINDED=No
-
-Changes in 4.6.4-Beta 1
-
-1)  Update release documents
-
-2)  Install support for Centos 7 and Foobar 7
-
-3)  Tweaks to .service files.
-
-Changes in 4.6.3.4
-
-1)  Update release documents
-
-2)  Remove the 'optional' option from the Universal 'net' entry in
-    interfaces.
-
-3)  Don't check for required interfaces on 'stop' and 'clear'.
-
-4)  Merge the defect repair from 4.6.2.5 into 4.6.3.
-
-Changes in 4.6.3.3
-
-1)  Update release documents
-
-2)  Re-enable SECTION PREROUTING in the accounting file
-
-3)  Eliminate many superfluous rules for tcpflags, nosmurfs and maclist
-
-Changes in 4.6.3.2
-
-1)  Update release documents
-
-2)  Document the Goto-Meeting macro.
-
-3)  Correct silly logic error
-
-4)  Correct examples in actions manpages.
-
-5)  Issue warning when /etc/iproute2/rt_tables is not writeable.
-
-6)  Remove redundant help text output from -lite CLIs.
-
-Changes in 4.6.3.1
-
-1)  Update release documents
-
-2)  Correct the u32 match string in action.DNSAmp.
-
-3)  Clarify REJECT handling in IP[6]TABLES rules.
-
-Changes in 4.6.3 Final
+Changes in 5.0.3.1
 
 1)  Update release documents.
 
-2)  Apply Thomas D's fix for SAVE_IPSETS on Debian.
+2)  Support the DROP action in the mangle file.
 
-Changes in 4.6.3 RC 1
-
-1)  Update release documents.
-
-2)  Minor code and documentation cleanup.
-
-3)  Defect repair from 4.6.2.5.
-
-hanges in 4.6.3 Beta 2
+Changes in 5.0.3 Final
 
 1)  Update release documents.
 
-2)  Add DNSAmp action
-
-3)  Allow inline matches in action bodies (from 4.6.2.4)
-
-4)  Allow physical names to be used in the INTERFACE column of the
-    providers file.
-
-Changes in 4.6.3 Beta 1
+Changes in 5.0.3 RC 2
 
 1)  Update release documents.
 
-2)  Describe new helper assignment in the FTP article.
+2)  Allow a timeout to be specified in ADD rules.
 
-3)  Merge defect repair from 4.6.2.3.
+3)  Allow commas in log tags when LOGTAGONLY=Yes
 
-4)  Implement the 'run' command.
-
-Changes in 4.6.2.2
+Changes in 5.0.3 RC 1
 
 1)  Update release documents.
 
-2)  Detect Header Match when LOAD_MODULES_ONLY = No.
-
-3)  Correct IPv6 ipset support detection on later kernels.
-
-4)  Correct detection of the Ipset Counter capability. 
-
-5)  Detect Arptables JF when LOAD_MODULES_ONLY = No.
-
-6)  Update the tcfilter manpages to mention BASIC_FILTER
-
-Changes in 4.6.2.1
+Changes in 5.0.3 Beta 2
 
 1)  Update release documents.
 
-2)  Two issues with tcrules processing were corrected.
+2)  Merge 5.0.2.1 install/uninstall/configure changes from Matt.
 
-Changes in 4.6.2 Final
+3)  Fix MAC handling in IPv6.
 
-1)  Update release documents.
+4)  Another configure.pl fix from Matt.
 
-Changes in 4.6.2 RC 1
-
-1)  Update release documents.
-
-2)  Allow specification of the GATEWAY MAC address.
-
-3)  Fix some brokenness in installation under Cygwin.
-
-Changes in 4.6.2 Beta 2
+Changes in 5.0.3 Beta 1
 
 1)  Update release documents.
 
-2)  Update Events.xml with a stateful port knocking example.
+2)  Merge Matt Darfeuille's installer/uninstaller changes.
 
-3)  Apply Thibaut Chèze's patch for DSCP names.
+3)  Merge Tuomo Soini's column-name change and update manpages.
 
-4)  Allow SAVE/RESTORE rules in the OUTPUT chain.
+4)  Redefine MODULESDIR.
 
-5)  Add ILO macro from Tuomo Soini.
+5)  Set IP_FORWARDING=keep in all shorewall6.conf files.
 
-6)  Apply Tuomo Soini's patch to add additional ports to the IPMI
-    macro.
-
-Changes in 4.6.2 Beta 1
+Changes in 5.0.2.1
 
 1)  Update release documents.
 
-2)  Implement 'status -i'
+2)  Use 'netstat' if 'ss' isn't installed.
 
-3)  Implement 'show bl'
+3)  Install/Uninstall fixes from Matt Darfeuille.
 
-4)  Add TIME column to the mangle file
-
-Changes in 4.6.1.3
+Changes in 5.0.2 Final
 
 1)  Update release documents.
 
-2)  Correct handling of DSCP class names.
+2)  'configure' detects OpenWRT
 
-3)  Allow SAVE and RESTORE in the output chain. 
+3)  Corrected the Shorewall6-lite uninstaller
 
-Changes in 4.6.1.3
-
-1)  Update release documents.
-
-2)  Correct the compiler's handling of IfEvent.
-
-Changes in 4.6.1.2
+Changes in 5.0.2 RC 1
 
 1)  Update release documents.
 
-2)  Correct 'masq' manpages.
+2)  Add OpenWRT support in the installers (Tom and Matt Darfeuille)
 
-3)  Allow INLINE_MATCHES=Yes with AUTOHELPERS=No to work correctly.
+3)  Correct mkdir command in mutex_on.
 
-Changes in 4.6.1.1
+4)  Add support for openWRT's 'lock' utility
 
-1)  Update release documents.
+5)  Enable optional interface during 'start' and 'restart'
 
-2)  Raise an error when a server list is specified in a DNAT or
-    REDIRECT rule.
-
-3)  Correct Shorewall-init Debian init script
-
-Changes in 4.6.1
+Changes in 5.0.2 Beta 2
 
 1)  Update release documents.
 
-2)  New Macros
+2)  Support for lib.cli-user
 
-3)  Apply pi-Rho's fix for rpfilter vs. dynamic chain.
+3)  Support for OpenWRT BB and later
 
-Changes in 4.6.0.3
+4)  Correct installer/uninstaller issues
 
-1)  Update release documents.
+5)  Improve circular buffer check
 
-2)  Fix RHEL7 installation of Shorewall-init.
+6)  Correct HOST=default behavior
 
-3)  Merge content from 4.5.21.10
+7)  Allow remote- commands to return correct exit status
 
-Changes in 4.6.0.2
-
-1)  Update release documents.
-
-2)  Correct handling of tcrules upgrade with 'upgrade -A'.
-
-3)  Apply Tuomo Soini's whitespace patch.
-
-4)  Extend Orion Poplawski's RHEL7 patch.
-
-5)  Add FAQ 2e.
-
-6)  Update Support article.
-
-7)  Fix shorewall-masq SOURCE description
-
-Changes in 4.6.0.1
+Changes in 5.0.2 Beta 1
 
 1)  Update release documents.
 
-2)  Correct CHECKSUM handling.
+2)  Merge Tuomo's MSSQL fix.
 
-3)  Apply Simon Mater's cosmetic changes to 'mangle' file.
+3)  Merge Tuomo's version removal fix.
 
-4)  Correct chain designator editing.
+4)  Add 'persistent' options to providers, rtrules and routes
 
-Changes in 4.6.0 Final
+5)  Add 'lib.cli-user' support.
 
-1)  Update release documents.
-
-2)  Upgrade IPv6 actions to FORMAT-2.
-
-Changes in 4.6.0 RC 3
+Changes in 5.0.1.1
 
 1)  Update release documents.
 
-2)  Deprecate FORMAT-1 actions and macros.
+2)  More version removal (Tuomo Soini).
 
-Changes in 4.6.0 RC 2
+3)  Delete default route from main when load= or fallback.
 
-1)  Update release documents.
+4)  Add 'persistent' options to providers, rtrules and routes.
 
-2)  Add additional tabs to mangle files.
+5)  Correct L2TP documentation.
 
-3)  Add link from Multi-ISP to packet marking.
-
-4)  Updated the installers to install the .service files with mode 644
-    rather than 600.
-
-Changes in 4.6.0 RC 1
+Changes in 5.0.1
 
 1)  Update release documents.
 
-2)  Make LOAD_HELPERS_ONLY=Yes the default.
+2)  Replace LEGACY_RESTART with RESTART
 
-3)  Merge 4.5.21.8/9 defect repair.
+3)  Merge 'seconds' and 'minutes' change from 4.6.13.
 
-4)  Improve host interface inheritance.
-
-Changes in 4.6.0 Beta 6
+Changes in 5.0.0
 
 1)  Update release documents.
 
-2)  Merge 4.5.21.7 defect repair.
+2)  Remove options from 'update' warning messages.
 
-Changes in 4.6.0 Beta 5
+3)  Update documentation for obsolete file removal.
 
-1)  Update release documents.
+4)  Apply Erich Titl's 'date' fix.
 
-2)  Add -t and -A update options.
-
-3)  Implemented the BASIC_FILTERS option.
-
-4)  Documentation updates.
-
-Changes in 4.6.0 Beta 4
+Changes in 5.0.0 RC 1
 
 1)  Update release documents.
 
-2)  Defect repair for issues reported by testers.
+2)  .service file fixes from Tuomo Soini
 
-3)  Support ipset lists in the tcfilters file.
-
-4)  Cocument ipset use in tcfilters.
-
-5)  Corrected 'dump' help text
-
-Changes in 4.6.0 Beta 3
+Changes in 5.0.0 Beta 2
 
 1)  Update release documents.
 
-2)  Merge defect repair from Shorewall 4.5.21.6.
+2)  Correct the 'reset' command
 
-3)  Implement basic filter generation in the tcfilters file.
+3)  Allow table names in the reset command.
 
-Changes in 4.6.0 Beta 2
+4)  Add Gluster FS action
 
-1)  Update release documents.
-
-2)  Make tcpflags the default.
-
-3)  ipset names in PORT columns.
-
-4)  ipset extensions.
-
-5)  DROP in stoppedrules
-
-Changes in 4.6.0 Beta 1
+Changes in 5.0.0 Beta 1
 
 1)  Update release documents.
 
-2)  Change ZONE2ZONE default.
+2)  Redefine 'reload' and 'restart'.
 
-3)  Implement ?SECTION
+3)  Eliminate service.214 files.
 
-4)  Finish INLINE in tcrules.
+4)  Add 'reload' to the service files.
 
-5)  Add INLINE to masq.
+5)  Allow connlimit by destination.
 
-6)  Implement INLINE_MATCHES
+6)  Add the LEGACY_RESTART option.
 
-7)  Implement IP[6]TABLES actions in several files.
+7)  Deimplement support for several old options
 
+8)  Merge from 4.6.12
 
+9)  Correct a warning message to refer to 'mangle' rather than
+    'tcrules'.
+
+10) Drop support for the 'tos', 'tcrules', 'routestopped', 'notrack'
+    and 'blacklist' files.
+
+11) Disallow bare SECTION, COMMENT and FORMAT lines.
+
+12) The -t update option also converts the 'tos' file.
+
+13) Merge from 4.6.13.
+
+14) Remove all of the individual options from the 'update' command.
+
+15) Delimit inline matches with ';;'.
+
+16) Allow log-tags in shorewall.conf options
+
+17) Allow non-expoerts access to the user bits in the fw mark.
+
+18) Add a PROBABILITY column to the masq files
