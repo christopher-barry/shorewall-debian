@@ -56,7 +56,7 @@
     <replaceable>format</replaceable>.</para>
 
     <simplelist>
-      <member><emphasis role="bold">[?]FORMAT</emphasis>
+      <member><emphasis role="bold">?FORMAT</emphasis>
       <replaceable>format</replaceable></member>
     </simplelist>
 
@@ -64,21 +64,14 @@
     role="bold">1</emphasis>,<emphasis role="bold">2</emphasis> or <emphasis
     role="bold">3</emphasis>.</para>
 
-    <para>Format 3 was introduced in Shorewall 4.5.10. The optional '?' was
-    introduced in Shorewall 4.5.11 and ?FORMAT is the preferred form; the form
-    without the '?' is deprecated.</para>
+    <para>Format 3 was introduced in Shorewall 4.5.10.</para>
 
     <para>Comments may be attached to Netfilter rules generated from entries
-    in this file through the use of COMMENT lines. These lines begin with the
-    word COMMENT; the remainder of the line is treated as a comment which is
-    attached to subsequent rules until another COMMENT line is found or until
+    in this file through the use of ?COMMENT lines. These lines begin with
+    ?COMMENT; the remainder of the line is treated as a comment which is
+    attached to subsequent rules until another ?COMMENT line is found or until
     the end of the file is reached. To stop adding comments to rules, use a
-    line with only the word COMMENT.</para>
-
-    <note>
-      <para>Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT
-      and is preferred.</para>
-    </note>
+    line with only ?COMMENT.</para>
 
     <para>The columns in the file are as follows (where the column name is
     followed by a different name in parentheses, the different name is used in
@@ -90,7 +83,7 @@
         role="bold">NOTRACK</emphasis>|<emphasis
         role="bold">CT</emphasis>:<emphasis
         role="bold">helper</emphasis>:<replaceable>name</replaceable>[(<replaceable>arg</replaceable>=<replaceable>val</replaceable>[,...])|<emphasis
-        role="bold">CT:notrack</emphasis>|DROP|LOG|NFLOG(<replaceable>nflog-parameters</replaceable>)|IP6TABLES(<replaceable>target</replaceable>)}[:<replaceable>log-level</replaceable>[:<replaceable>log-tag</replaceable>]][:<replaceable>chain-designator</replaceable>]</term>
+        role="bold">CT:ctevents:<replaceable>event</replaceable>[,...]|CT:expevents:new|notrack</emphasis>|DROP|LOG|NFLOG(<replaceable>nflog-parameters</replaceable>)|IP6TABLES(<replaceable>target</replaceable>)}[:<replaceable>log-level</replaceable>[:<replaceable>log-tag</replaceable>]][:<replaceable>chain-designator</replaceable>]</term>
 
         <listitem>
           <para>This column is only present when FORMAT &gt;= 2. Values other
@@ -238,10 +231,35 @@
                 <listitem>
                   <para><option>expevents</option><option>=new</option></para>
 
-                  <para>Only generate a <emphasis role="bold">new</emphasis>
+                  <para>Only generate <emphasis role="bold">new</emphasis>
                   expectation events for this connection.</para>
                 </listitem>
               </itemizedlist>
+            </listitem>
+
+            <listitem>
+              <para>ctevents:<replaceable>event</replaceable>[,...]</para>
+
+              <para>Added in Shorewall 4.6.10. Only generate the specified
+              conntrack events for this connection. Possible event types are:
+              <emphasis role="bold">new</emphasis>, <emphasis
+              role="bold">related</emphasis>, <emphasis
+              role="bold">destroy</emphasis>, <emphasis
+              role="bold">reply</emphasis>, <emphasis
+              role="bold">assured</emphasis>, <emphasis
+              role="bold">protoinfo</emphasis>, <emphasis
+              role="bold">helper</emphasis>, <emphasis
+              role="bold">mark</emphasis> (this is connection mark, not packet
+              mark), <emphasis role="bold">natseqinfo</emphasis>, and
+              <emphasis role="bold">secmark</emphasis>.</para>
+            </listitem>
+
+            <listitem>
+              <para>expevents=new</para>
+
+              <para>Added in Shorewall 4.6.10. Only generate <emphasis
+              role="bold">new</emphasis> expectation events for this
+              connection.</para>
             </listitem>
 
             <listitem>
@@ -396,7 +414,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term>DEST PORT(S) (dport) -
+        <term>DPORT -
         {-|<replaceable>port-number/service-name-list</replaceable>|+<replaceable>ipset</replaceable>}</term>
 
         <listitem>
@@ -409,11 +427,13 @@
           <para>Beginning with Shorewall 4.6.0, an ipset name can be specified
           in this column. This is intended to be used with
           <firstterm>bitmap:port</firstterm> ipsets.</para>
+
+          <para>This column was formerly labelled DEST PORT(S).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term>SOURCE PORT(S) (sport) -
+        <term>SPORT -
         {-|<replaceable>port-number/service-name-list</replaceable>|+<replaceable>ipset</replaceable>}</term>
 
         <listitem>
@@ -424,25 +444,28 @@
           if your kernel and iptables include port range support.</para>
 
           <para>Beginning with Shorewall 4.5.15, you may place '=' in this
-          column, provided that the DEST PORT(S) column is non-empty. This
-          causes the rule to match when either the source port or the
-          destination port in a packet matches one of the ports specified in
-          DEST PORTS(S).</para>
+          column, provided that the DPORT column is non-empty. This causes the
+          rule to match when either the source port or the destination port in
+          a packet matches one of the ports specified in DPORT.</para>
 
           <para>Beginning with Shorewall 4.6.0, an ipset name can be specified
           in this column. This is intended to be used with
           <firstterm>bitmap:port</firstterm> ipsets.</para>
+
+          <para>This column was formerly labelled SOURCE PORT(S).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term>USER/GROUP (user) ‒
+        <term>USER ‒
         [<replaceable>user</replaceable>][:<replaceable>group</replaceable>]</term>
 
         <listitem>
           <para>May only be specified if the SOURCE
           <replaceable>zone</replaceable> is $FW. Specifies the effective user
           id and or group id of the process sending the traffic.</para>
+
+          <para>This column was formerly labelled USER/GROUP.</para>
         </listitem>
       </varlistentry>
 
@@ -505,8 +528,7 @@
     itself.</para>
 
     <programlisting>FORMAT 2
-#ACTION                       SOURCE            DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE            DEST               PROTO            DPORT             SPORT               USER
 CT:helper:ftp(expevents=new)  fw                -                  tcp              21              </programlisting>
 
     <para>Example 2 (Shorewall 4.5.10 or later):</para>
@@ -514,15 +536,13 @@ CT:helper:ftp(expevents=new)  fw                -                  tcp          
     <para>Drop traffic to/from all zones to IP address 2001:1.2.3::4</para>
 
     <programlisting>FORMAT 2
-#ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE             DEST               PROTO            DPORT             SPORT               USER
 DROP                          all-:2001:1.2.3::4 -
 DROP                          all                2001:1.2.3::4
 </programlisting>
 
     <para>or<programlisting>FORMAT 3
-#ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE             DEST               PROTO            DPORT             SPORT               USER
 DROP:P                        2001:1.2.3::4      -
 DROP:PO                       -                  2001:1.2.3::4
 </programlisting></para>

@@ -50,7 +50,7 @@
         <term><emphasis role="bold">INTERFACE:DEST</emphasis> - {[<emphasis
         role="bold">+</emphasis>]<emphasis>interfacelist</emphasis>|[<emphasis
         role="bold">:</emphasis>[<emphasis>dest-address</emphasis>[<emphasis
-        role="bold">,</emphasis><emphasis>dest-address</emphasis>]...[<emphasis>exclusion</emphasis>]]|[?]COMMENT}</term>
+        role="bold">,</emphasis><emphasis>dest-address</emphasis>]...[<emphasis>exclusion</emphasis>]]|?COMMENT}</term>
 
         <listitem>
           <para>Outgoing <emphasis>interfacelist</emphasis>. This may be a
@@ -86,17 +86,12 @@
           as are ipset names preceded by a plus sign '+'.</para>
 
           <para>Comments may be attached to Netfilter rules generated from
-          entries in this file through the use of COMMENT lines. These lines
-          begin with the word COMMENT; the remainder of the line is treated as
-          a comment which is attached to subsequent rules until another
-          COMMENT line is found or until the end of the file is reached. To
-          stop adding comments to rules, use a line with only the word
-          COMMENT.</para>
-
-          <note>
-            <para>Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for
-            COMMENT and is preferred.</para>
-          </note>
+          entries in this file through the use of ?COMMENT lines. These lines
+          begin with ?COMMENT; the remainder of the line is treated as a
+          comment which is attached to subsequent rules until another ?COMMENT
+          line is found or until the end of the file is reached. To stop
+          adding comments to rules, use a line containing only
+          ?COMMENT.</para>
 
           <para>Beginning with Shorewall 4.6.0, a new syntax is also accepted.
           With the exception of the leading '+', the interfacelist and
@@ -204,7 +199,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">PORT(S)</emphasis> (Optional) -
+        <term><emphasis role="bold">DPORT</emphasis> (Optional) -
         {-|[!]<emphasis>port-name-or-number</emphasis>[,<emphasis>port-name-or-number</emphasis>]...|+<replaceable>ipset</replaceable>}</term>
 
         <listitem>
@@ -384,8 +379,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">USER/GROUP</emphasis> (Optional) -
-        [<emphasis
+        <term><emphasis role="bold">USER</emphasis> (Optional) - [<emphasis
         role="bold">!</emphasis>][<emphasis>user-name-or-number</emphasis>][<emphasis
         role="bold">:</emphasis><emphasis>group-name-or-number</emphasis>][<emphasis
         role="bold">+</emphasis><emphasis>program-name</emphasis>]</term>
@@ -493,8 +487,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">ORIGINAL DEST</emphasis> (origdest) -
-        [<emphasis
+        <term><emphasis role="bold">ORIGDEST</emphasis> - [<emphasis
         role="bold">-</emphasis>|<emphasis>address</emphasis>[,<emphasis>address</emphasis>]...[<emphasis>exclusion</emphasis>]|<emphasis>exclusion</emphasis>]</term>
 
         <listitem>
@@ -505,6 +498,23 @@
           the listed addresses. It is useful for specifying that SNAT should
           occur only for connections that were acted on by a DNAT when they
           entered the firewall.</para>
+
+          <para>This column was formerly labelled ORIGINAL DEST.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">PROBABILITY</emphasis> -
+        [<replaceable>probability</replaceable>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 5.0.0. When non-empty, requires the
+          <firstterm>Statistics Match</firstterm> capability in your kernel
+          and ip6tables and causes the rule to match randomly but with the
+          given <replaceable>probability</replaceable>. The
+          <replaceable>probability</replaceable> is a number 0 &lt;
+          <replaceable>probability</replaceable> &lt;= 1 and may be expressed
+          at up to 8 decimal points of precision.</para>
         </listitem>
       </varlistentry>
     </variablelist>

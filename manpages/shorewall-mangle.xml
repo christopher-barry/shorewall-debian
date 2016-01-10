@@ -124,7 +124,29 @@
 
           <variablelist>
             <varlistentry>
-              <term>CHECKSUM</term>
+              <term><emphasis
+              role="bold">ADD(<replaceable>ipset</replaceable>:<replaceable>flags</replaceable>)</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.7. Causes addresses and/or port
+                numbers to be added to the named
+                <replaceable>ipset</replaceable>. The
+                <replaceable>flags</replaceable> specify the address or tuple
+                to be added to the set and must match the type of ipset
+                involved. For example, for an iphash ipset, either the SOURCE
+                or DESTINATION address can be added using
+                <replaceable>flags</replaceable> <emphasis
+                role="bold">src</emphasis> or <emphasis
+                role="bold">dst</emphasis> respectively (see the -A command in
+                ipset (8)).</para>
+
+                <para>ADD is non-terminating. Even if a packet matches the
+                rule, it is passed on to the next rule.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">CHECKSUM</emphasis></term>
 
               <listitem>
                 <para>Compute and fill in the checksum in a packet that lacks
@@ -139,7 +161,8 @@
             </varlistentry>
 
             <varlistentry>
-              <term>CLASSIFY(<replaceable>classid</replaceable>)</term>
+              <term><emphasis
+              role="bold">CLASSIFY(<replaceable>classid</replaceable>)</emphasis></term>
 
               <listitem>
                 <para>A classification Id (classid) is of the form
@@ -184,12 +207,13 @@
                 <command>shorewall show mangle</command></para>
 
                 <para>To stop the comment from being attached to further
-                rules, simply include COMMENT on a line by itself.</para>
+                rules, simply include ?COMMENT on a line by itself.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>CONMARK({mark|range})</term>
+              <term><emphasis
+              role="bold">CONMARK({mark|range})</emphasis></term>
 
               <listitem>
                 <para>Identical to MARK with the exception that the mark is
@@ -209,6 +233,27 @@
                 <emphasis>exclusion</emphasis> (see the SOURCE and DEST
                 columns below); that restriction will be removed when
                 iptables/Netfilter provides the necessary support.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis
+              role="bold">DEL(<replaceable>ipset</replaceable>:<replaceable>flags</replaceable>)</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.7. Causes an entry to be deleted
+                from the named <replaceable>ipset</replaceable>. The
+                <replaceable>flags</replaceable> specify the address or tuple
+                to be deleted from the set and must match the type of ipset
+                involved. For example, for an iphash ipset, either the SOURCE
+                or DESTINATION address can be deleted using
+                <replaceable>flags</replaceable> <emphasis
+                role="bold">src</emphasis> or <emphasis
+                role="bold">dst</emphasis> respectively (see the -D command in
+                ipset (8)).</para>
+
+                <para>DEL is non-terminating. Even if a packet matches the
+                rule, it is passed on to the next rule.</para>
               </listitem>
             </varlistentry>
 
@@ -306,23 +351,29 @@
 
                 <para>The following rules are equivalent:</para>
 
-                <programlisting>2:P             eth0              -         tcp 22
-INLINE(2):P     eth0              -         tcp 22
-INLINE(2):P     eth0              -                 ; -p tcp
-INLINE          eth0              -         tcp 22  ; -j MARK --set-mark 2
-INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 2
+                <programlisting>2:P                   eth0              -         tcp 22
+INLINE(MARK(2)):P     eth0              -         tcp 22
+INLINE(MARK(2)):P     eth0              -                 ; -p tcp
+INLINE                eth0              -         tcp 22  ; -j MARK --set-mark 2
+INLINE                eth0              -                 ; -p tcp -j MARK --set-mark 2
 </programlisting>
 
                 <para>If INLINE_MATCHES=Yes in <ulink
                 url="/manpages/shorewall.conf.html">shorewall6.conf(5)</ulink>
                 then the third rule above can be specified as follows:</para>
 
-                <programlisting>2:P             eth0              -                 ; -p tcp</programlisting>
+                <programlisting>MARK(2):P             eth0              -                 ; -p tcp</programlisting>
+
+                <para>Beginning with Shorewall 5.0.0, the rule may also be
+                written this way, irrespective of the setting of
+                INLINE_MATCHES:</para>
+
+                <programlisting>MARK(2):P             eth0              -                 ;; -p tcp</programlisting>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>IPMARK</term>
+              <term><emphasis role="bold">IPMARK</emphasis></term>
 
               <listitem>
                 <para>Assigns a mark to each matching packet based on the
@@ -430,8 +481,9 @@ INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 
             </varlistentry>
 
             <varlistentry>
-              <term>IPTABLES({<replaceable>target</replaceable>
-              [<replaceable>option</replaceable> ...])</term>
+              <term><emphasis
+              role="bold">IPTABLES({<replaceable>target</replaceable>
+              [<replaceable>option</replaceable> ...])</emphasis></term>
 
               <listitem>
                 <para>This action allows you to specify an iptables target
@@ -452,7 +504,8 @@ INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 
             </varlistentry>
 
             <varlistentry>
-              <term>MARK({<replaceable>mark</replaceable>|<replaceable>range</replaceable>})</term>
+              <term><emphasis
+              role="bold">MARK({<replaceable>mark</replaceable>|<replaceable>range</replaceable>})</emphasis></term>
 
               <listitem>
                 <para>where <replaceable>mark</replaceable> is a packet mark
@@ -495,7 +548,7 @@ INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 
 
             <varlistentry>
               <term><emphasis
-              role="bold">RESTORE</emphasis>[(/<emphasis>mask</emphasis>)]</term>
+              role="bold">RESTORE</emphasis>[(<emphasis>mask</emphasis>)]</term>
 
               <listitem>
                 <para>Restore the packet's mark from the connection's mark
@@ -505,7 +558,8 @@ INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">SAME</emphasis></term>
+              <term><emphasis
+              role="bold">SAME[(<replaceable>timeout</replaceable>)]</emphasis></term>
 
               <listitem>
                 <para>Some websites run applications that require multiple
@@ -516,8 +570,7 @@ INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 
                 that problem. SAME may be used in the PREROUTING and OUTPUT
                 chains. When used in PREROUTING, it causes matching
                 connections from an individual local system to all use the
-                same provider. For example: <programlisting>#ACTION           SOURCE         DEST         PROTO      DEST
-#                                                        PORT(S)
+                same provider. For example: <programlisting>#ACTION           SOURCE         DEST         PROTO      DPORT
 SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443</programlisting>
                 If a host in 192.168.1.0/24 attempts a connection on TCP port
                 80 or 443 and it has sent a packet on either of those ports in
@@ -527,19 +580,23 @@ SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443</programlisting>
 
                 <para>When used in the OUTPUT chain, it causes all matching
                 connections to an individual remote system to all use the same
-                provider. For example:<programlisting>#ACTION           SOURCE         DEST         PROTO      DEST
-#                                                        PORT(S)
-SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>
-                If the firewall attempts a connection on TCP port 80 or 443
-                and it has sent a packet on either of those ports in the last
-                five minutes to the same remote system then the new connection
-                will use the same provider as the connection over which that
-                last packet was sent.</para>
+                provider. For example:<programlisting>#ACTION           SOURCE         DEST         PROTO      DPORT
+SAME              $FW            0.0.0.0/0    tcp        80,443</programlisting>The
+                optional <replaceable>timeout</replaceable> parameter was
+                added in Shorewall 4.6.7 and specifies a number of seconds .
+                When not specified, a value of 300 seconds (5 minutes) is
+                assumed. If the firewall attempts a connection on TCP port 80
+                or 443 and it has sent a packet on either of those ports in
+                the last <replaceable>timeout</replaceable> seconds to the
+                same remote system then the new connection will use the same
+                provider as the connection over which that last packet was
+                sent.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">SAVE[(/<emphasis>mask)</emphasis>]
+              <term><emphasis
+              role="bold">SAVE[(<emphasis><replaceable>mask</replaceable>)</emphasis>]
               </emphasis></term>
 
               <listitem>
@@ -776,7 +833,7 @@ Normal-Service       =&gt; 0x00</programlisting>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">PORT(S)</emphasis> (dport) - {<emphasis
+        <term><emphasis role="bold">DPORT</emphasis>- {<emphasis
         role="bold">-</emphasis>|<emphasis>port-name-number-or-range</emphasis>[<emphasis
         role="bold">,</emphasis><emphasis>port-name-number-or-range</emphasis>]...|+<replaceable>ipset</replaceable>}</term>
 
@@ -804,12 +861,13 @@ Normal-Service       =&gt; 0x00</programlisting>
           <replaceable>ipset</replaceable> name can be specified in this
           column. This is intended to be used with
           <firstterm>bitmap:port</firstterm> ipsets.</para>
+
+          <para>This column was formerly named DEST PORT(S).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">SOURCE PORT(S)</emphasis> (sport) -
-        {<emphasis
+        <term><emphasis role="bold">SPORT</emphasis> - {<emphasis
         role="bold">-</emphasis>|<emphasis>port-name-number-or-range</emphasis>[<emphasis
         role="bold">,</emphasis><emphasis>port-name-number-or-range</emphasis>]...|+<replaceable>ipset</replaceable>}</term>
 
@@ -823,16 +881,17 @@ Normal-Service       =&gt; 0x00</programlisting>
           the following fields is supplied.</para>
 
           <para>Beginning with Shorewall 4.5.15, you may place '=' in this
-          column, provided that the DEST PORT(S) column is non-empty. This
-          causes the rule to match when either the source port or the
-          destination port in a packet matches one of the ports specified in
-          DEST PORTS(S). Use of '=' requires multi-port match in your iptables
-          and kernel.</para>
+          column, provided that the DPORT column is non-empty. This causes the
+          rule to match when either the source port or the destination port in
+          a packet matches one of the ports specified in DEST PORTS(S). Use of
+          '=' requires multi-port match in your iptables and kernel.</para>
 
           <para>Beginning with Shorewall 4.6.0, an
           <replaceable>ipset</replaceable> name can be specified in this
           column. This is intended to be used with
           <firstterm>bitmap:port</firstterm> ipsets.</para>
+
+          <para>This column was formerly labelled SOURCE PORT(S).</para>
         </listitem>
       </varlistentry>
 
@@ -1038,8 +1097,7 @@ Normal-Service       =&gt; 0x00</programlisting>
           by the named helper module.</para>
 
           <para>Example: Mark all FTP data connections with mark
-          4:<programlisting>#ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#                                                PORT(S)
+          4:<programlisting>#ACTION   SOURCE    DEST      PROTO   DPORT      SPORT   USER TEST LENGTH TOS CONNBYTES HELPER
 4:T       0.0.0.0/0 0.0.0.0/0 TCP     -          -       -    -    -      -   -         ftp</programlisting></para>
         </listitem>
       </varlistentry>
@@ -1228,14 +1286,13 @@ Normal-Service       =&gt; 0x00</programlisting>
 
           <para>We assume packet/connection mark 0 means unclassified.</para>
 
-          <programlisting>       #ACTION    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-       #                                                       PORT(S)
-       1:T        0.0.0.0/0 0.0.0.0/0    icmp    echo-request
-       1:T        0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
+          <programlisting>       #ACTION    SOURCE    DEST         PROTO   DPORT         SPORT   USER    TEST
+       MARK(1):T  0.0.0.0/0 0.0.0.0/0    icmp    echo-request
+       MARK(1):T  0.0.0.0/0 0.0.0.0/0    icmp    echo-reply
        RESTORE:T  0.0.0.0/0 0.0.0.0/0    all     -             -       -       0
        CONTINUE:T 0.0.0.0/0 0.0.0.0/0    all     -             -       -       !0
-       4:T         0.0.0.0/0 0.0.0.0/0   ipp2p:all
-       SAVE:T      0.0.0.0/0 0.0.0.0/0   all     -             -       -       !0</programlisting>
+       MARK(4):T  0.0.0.0/0 0.0.0.0/0   ipp2p:all
+       SAVE:T     0.0.0.0/0 0.0.0.0/0   all     -             -       -       !0</programlisting>
 
           <para>If a packet hasn't been classified (packet mark is 0), copy
           the connection mark to the packet mark. If the packet mark is set,
@@ -1254,9 +1311,8 @@ Normal-Service       =&gt; 0x00</programlisting>
 
           <programlisting>/etc/shorewall/tcrules:
 
-       #ACTION   SOURCE         DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-       #                                                           PORT(S)
-       1-3:CF    192.168.1.0/24 eth0 ; state=NEW
+       #ACTION            SOURCE         DEST         PROTO   DPORT         SPORT   USER    TEST
+       CONNMARK(1-3):F    192.168.1.0/24 eth0 ; state=NEW
 
 /etc/shorewall/masq:
 

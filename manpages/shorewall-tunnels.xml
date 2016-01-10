@@ -43,7 +43,7 @@
         role="bold">ipip</emphasis>|<emphasis
         role="bold">gre</emphasis>|l2tp|<emphasis
         role="bold">pptpclient</emphasis>|<emphasis
-        role="bold">pptpserver</emphasis>|[?]COMMENT|{<emphasis
+        role="bold">pptpserver</emphasis>|?COMMENT|{<emphasis
         role="bold">openvpn</emphasis>|<emphasis
         role="bold">openvpnclient</emphasis>|<emphasis
         role="bold">openvpnserver</emphasis>}[:{<emphasis
@@ -70,7 +70,8 @@
         <emphasis role="bold">openvpn</emphasis>       - OpenVPN in point-to-point mode
         <emphasis role="bold">openvpnclient</emphasis> - OpenVPN client runs on the firewall
         <emphasis role="bold">openvpnserver</emphasis> - OpenVPN server runs on the firewall
-        <emphasis role="bold">generic</emphasis>       - Other tunnel type</programlisting>
+        <emphasis role="bold">generic</emphasis>       - Other tunnel type
+        <emphasis role="bold">tinc</emphasis>          - TINC (added in Shorewall 4.6.6)</programlisting>
 
           <para>If the type is <emphasis role="bold">ipsec</emphasis>, it may
           be followed by <emphasis role="bold">:ah</emphasis> to indicate that
@@ -106,12 +107,12 @@
           number.</para>
 
           <para>Comments may be attached to Netfilter rules generated from
-          entries in this file through the use of COMMENT lines. These lines
-          begin with the word COMMENT; the remainder of the line is treated as
-          a comment which is attached to subsequent rules until another
-          COMMENT line is found or until the end of the file is reached. To
-          stop adding comments to rules, use a line with only the word
-          COMMENT.</para>
+          entries in this file through the use of /COMMENT lines. These lines
+          begin with ?COMMENT; the remainder of the line is treated as a
+          comment which is attached to subsequent rules until another ?COMMENT
+          line is found or until the end of the file is reached. To stop
+          adding comments to rules, use a line containing only
+          ?COMMENT.</para>
 
           <note>
             <para>Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for
@@ -268,6 +269,19 @@
 
           <programlisting>        #TYPE            ZONE    GATEWAY         GATEWAY ZONES
         generic:udp:4444 net     4.3.99.124</programlisting>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Example 9:</term>
+
+        <listitem>
+          <para>TINC tunnel where the remote gateways are not specified. If
+          you wish to specify a list of gateways, you can do so in the GATEWAY
+          column.</para>
+
+          <programlisting>        #TYPE            ZONE    GATEWAY          GATEWAY ZONES
+        tinc             net     0.0.0.0/0</programlisting>
         </listitem>
       </varlistentry>
     </variablelist>

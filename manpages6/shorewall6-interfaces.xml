@@ -54,11 +54,8 @@
     <para>The format is specified by a line as follows:</para>
 
     <blockquote>
-      <para><emphasis role="bold">[?]FORMAT {1|2}</emphasis></para>
+      <para><emphasis role="bold">?FORMAT {1|2}</emphasis></para>
     </blockquote>
-
-    <para>The optional '?' was introduced in Shorewall 4.5.11 and ?FORMAT is
-    the preferred form; the form without the '?' is deprecated.</para>
 
     <para>The columns in the file are as follows.</para>
 
@@ -324,6 +321,17 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
+              <term>loopback</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.6. Designates the interface as
+                the loopback interface. This option is assumed if the
+                interface's physical name is 'lo'. Only one interface man have
+                the <option>loopback</option> option specified.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
               <term><emphasis
               role="bold">mss</emphasis>=<emphasis>number</emphasis></term>
 
@@ -527,7 +535,7 @@ loc     eth2            -</programlisting>
             </varlistentry>
 
             <varlistentry>
-              <term>unmanaged</term>
+              <term><emphasis role="bold">unmanaged</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.5.18. Causes all traffic between
@@ -617,7 +625,7 @@ dmz     eth2      -</programlisting>
 
           <programlisting>FORMAT 2
 #ZONE   INTERFACE        OPTIONS
--       br0              routeback</programlisting>
+-       br0              bridge</programlisting>
         </listitem>
       </varlistentry>
     </variablelist>

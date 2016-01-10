@@ -162,8 +162,8 @@
                 this provider's gateway to be added to the <emphasis
                 role="bold">main</emphasis> routing table (USE_DEFAULT_RT=No)
                 or to the <emphasis role="bold">balance</emphasis> routing
-                table (USE_DEFAULT_RT=Yes). At most one provider can specify
-                this option.</para>
+                table (USE_DEFAULT_RT=Yes). Only one provider can specify this
+                option.</para>
               </listitem>
             </varlistentry>
 
@@ -213,7 +213,22 @@
             </varlistentry>
 
             <varlistentry>
-              <term>noautosrc</term>
+              <term><emphasis
+              role="bold">load=<replaceable>probability</replaceable></emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.0. This option provides an
+                alternative method of load balancing based on probabilities.
+                Providers to be balanced are given a
+                <replaceable>probability</replaceable> (a number 0 &gt; n
+                &gt;= 1) with up to 8 digits to the right of the decimal
+                point. Beginning with Shorewall 4.6.10, a warning is issued if
+                the sum of the probabilities is not 1.00000000.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">noautosrc</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.5.17. Prevents the addition of a
@@ -245,6 +260,19 @@
                 is assumed. Use of that option is preferred to this one,
                 unless an <replaceable>address</replaceable> is provider in
                 the INTERFACE column.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">primary</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.6, <emphasis
+                role="bold">primary</emphasis> is a synonym for <emphasis
+                role="bold">balance</emphasis> (see above) and is preferred
+                when the remaining providers specify <emphasis
+                role="bold">fallback</emphasis> or <emphasis
+                role="bold">tproxy</emphasis>.</para>
               </listitem>
             </varlistentry>
 
@@ -316,6 +344,35 @@
                 distributions. <emphasis role="bold">nohostroute</emphasis>
                 allows Zebra's to correctly add routes on some distributions
                 such as Debian 7.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">persistent</emphasis></term>
+
+              <listitem>
+                <para>Added in Shorewall 5.0.2 and alters the behavior of the
+                <command>disable</command> command:</para>
+
+                <itemizedlist>
+                  <listitem>
+                    <para>The provider's routing table still contains the
+                    apprioriate default route.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>Unless the <option>noautosrc</option> option is
+                    specified, routing rules are generated to route traffic
+                    from the interfaces address(es) out of the provider's
+                    routing table.</para>
+                  </listitem>
+
+                  <listitem>
+                    <para>Persistent routing rules in <ulink
+                    url="shorewall-rtrules.html">shorewall6-rtrules(5)</ulink>
+                    are present.</para>
+                  </listitem>
+                </itemizedlist>
               </listitem>
             </varlistentry>
           </variablelist>

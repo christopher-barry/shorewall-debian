@@ -16,7 +16,7 @@
     <pubdate><?dbtimestamp format="Y/m/d"?></pubdate>
 
     <copyright>
-      <year>2003-2014</year>
+      <year>2003-2015</year>
 
       <holder>Thomas M. Eastep</holder>
     </copyright>
@@ -121,13 +121,12 @@
 
       <itemizedlist>
         <listitem>
-          <para><ulink
-          url="http://www.kmyfirewall.org/">kmyfirewall</ulink></para>
+          <para><ulink url="https://help.ubuntu.com/community/UFW">UFW
+          (Uncomplicated Firewall)</ulink></para>
         </listitem>
 
         <listitem>
-          <para><ulink
-          url="http://www.fs-security.com/">firestarter</ulink></para>
+          <para><ulink url="http://www.ipcop.org">ipcop</ulink></para>
         </listitem>
       </itemizedlist>
 
@@ -145,18 +144,8 @@
     setups, you will only need to deal with a few of them.</para>
 
     <para>Shorewall views the network where it is running as being composed of
-    a set of <firstterm>zones</firstterm>. In the <ulink
-    url="three-interface.htm">three-interface sample configuration</ulink> for
-    example, the following zone names are used:</para>
-
-    <programlisting>#NAME                  DESCRIPTION
-fw                     The firewall itself
-net                    The Internet
-loc                    Your Local Network
-dmz                    Demilitarized Zone</programlisting>
-
-    <para>Zones are declared and given a type in the <ulink
-    url="manpages/shorewall-zones.html"><filename
+    a set of <firstterm>zones</firstterm>. Zones are declared and given a type
+    in the <ulink url="manpages/shorewall-zones.html"><filename
     class="directory">/etc/shorewall/</filename><filename>zones</filename></ulink>
     file.Here is the <ulink url="manpages/shorewall-zones.html"><filename
     class="directory">/etc/shorewall/</filename><filename>zones</filename></ulink>
@@ -384,8 +373,9 @@ ACCEPT     net           $FW       tcp        22</programlisting>
     <para>The AUTOMAKE option in /etc/shorewall/shorewall.conf may be set to
     automatically generate a new script when one of the configuration files is
     changed. When no file has changed since the last compilation, the
-    <command>/sbin/shorewall start</command> and <command>/sbin/shorewall
-    restart</command> commands will simply execute the current
+    <command>/sbin/shorewall start</command>, <command>/sbin/shorewall
+    reload</command> and <command>/sbin/shorewall restart</command> commands
+    will simply execute the current
     <filename>/var/lib/shorewall/firewall</filename> script.</para>
   </section>
 
@@ -433,8 +423,8 @@ ACCEPT     net           $FW       tcp        22</programlisting>
       <listitem>
         <para><emphasis role="bold">Shorewall-init</emphasis>. May be
         installed with any of the other firewall packages. Allows the firewall
-        to be close prior to bringing up network interfaces. It can also react
-        to interface up/down events.</para>
+        to be closed prior to bringing up network interfaces. It can also
+        react to interface up/down events.</para>
       </listitem>
     </orderedlist>
   </section>
