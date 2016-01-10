@@ -119,7 +119,7 @@
           ISP.</para>
         </footnote> as in the following diagram.</para>
 
-      <graphic align="center" fileref="images/TwoISPs.png" valign="middle" />
+      <graphic align="center" fileref="images/TwoISPs.png" valign="middle"/>
 
       <itemizedlist>
         <listitem>
@@ -342,6 +342,33 @@
             may try to use those stale files to determine the gateway
             address.</para>
 
+            <para>If Shorewall is unable to detect the gateway, it is likely
+            because you are using a DHCP client that Shorewall doesn't
+            natively support. You can work around that issue by using the
+            <emphasis role="bold">findgw</emphasis> <ulink
+            url="shorewall_extension_scripts.htm">extension
+            script.</ulink></para>
+
+            <para>For example, these examples from Mika Ilmaranta, work with
+            RHEL7-based systems with nmcli:</para>
+
+            <programlisting>nmcli --terse --fields IP6.GATEWAY device show ${1} | cut -f2- -d':' # IPv6
+
+nmcli --terse --fields IP4.GATEWAY device show ${1} | cut -f2- -d':' #IPv4
+</programlisting>
+
+            <para>This one from PGNd works on OpenSuSE running wicked:</para>
+
+            <programlisting>svc_status=$( systemctl is-active wickedd-dhcp4.service )
+
+if [ $svc_status == 'active' ]; then
+  data="/var/lib/wicked/lease-${1}-dhcp-ipv4.xml"
+  if [ -f $data ]; then
+    gateway=$( xml_grep 'gateway' $data --text_only )
+    echo $gateway
+  fi
+fi</programlisting>
+
             <para>The GATEWAY may be omitted (enter '-') for point-to-point
             links.</para>
           </listitem>
@@ -500,6 +527,19 @@
                     linkend="LinkMonitor">Gateway Monitoring and
                     Failover</link> section below.</para>
                   </note>
+                </listitem>
+              </varlistentry>
+
+              <varlistentry>
+                <term>primary</term>
+
+                <listitem>
+                  <para>Added in Shorewall 4.6.6, <emphasis
+                  role="bold">primary</emphasis> is a synonym for <emphasis
+                  role="bold">balance=1</emphasis> and is preferred when the
+                  remaining providers specify <emphasis
+                  role="bold">fallback</emphasis> or <emphasis
+                  role="bold">tproxy</emphasis>.</para>
                 </listitem>
               </varlistentry>
 
@@ -871,7 +911,7 @@ eth1             0.0.0.0/0         130.252.99.27</programlisting>
       <para>Now suppose that you want to route all outgoing SMTP traffic from
       your local network through ISP 2. If you are running Shorewall 4.6.0 or
       later, you would make this entry in <ulink
-      url="traffic_shaping.htm">/etc/shorewall/mangle</ulink>.</para>
+      url="manpages/shorewall-mangle.html">/etc/shorewall/mangle</ulink>.</para>
 
       <programlisting>#ACTION         SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
 #                                                               PORT(S)
@@ -886,7 +926,7 @@ MARK(2)         $FW             0.0.0.0/0       tcp     25</programlisting>
 
       <para>If you are running a Shorewall version earlier than 4.6.0, the
       above rules in <ulink
-      url="manpages/shorewall-tcrules.html">/etc/shorewall/tcrules</ulink>
+      url="manpages4/manpages/shorewall-tcrules.html">/etc/shorewall/tcrules</ulink>
       would be:</para>
 
       <programlisting>#ACTION         SOURCE          DEST            PROTO   PORT(S) CLIENT  USER    TEST
@@ -1731,7 +1771,7 @@ ISP2    2       2       -               eth1            130.252.99.254  track   
       except when you explicitly direct it to use the other provider via
       <ulink url="manpages/shorewall-rtrules.html">shorewall-rtrules</ulink>
       (5) or <ulink
-      url="manpages/shorewall-tcrules.html">shorewall-mangle</ulink>
+      url="manpages4/manpages/shorewall-tcrules.html">shorewall-mangle</ulink>
       (5).</para>
 
       <para>Example (send all traffic through the 'shorewall' provider unless
@@ -1910,9 +1950,9 @@ ONBOOT=yes</programlisting>
       url="manpages/shorewall-providers.html">shorewall-providers</ulink> (5)
       is available in the form of a PROBABILITY column in <ulink
       url="manpages/shorewall-mangle.html">shorewall-mangle</ulink>(5) (<ulink
-      url="???">shorewall-tcrules</ulink>) (5). This feature requires the
-      <firstterm>Statistic Match</firstterm> capability in your iptables and
-      kernel.</para>
+      url="manpages4/manpages/shorewall-tcrules.html">shorewall-tcrules</ulink>) (5).
+      This feature requires the <firstterm>Statistic Match</firstterm>
+      capability in your iptables and kernel.</para>
 
       <para>This method works when there are multiple links to the same ISP
       where both links have the same default gateway.</para>
@@ -2232,7 +2272,83 @@ defaults {
 
 include /etc/lsm/shorewall.conf</programlisting>
 
-        <para><filename>/etc/lsm/script</filename><programlisting>#!/bin/sh
+        <para><filename>/etc/lsm/script</filename> (Shorewall 4.4.23 and
+        later)<programlisting>#!/bin/sh
+#
+# (C) 2009 Mika Ilmaranta &lt;ilmis@nullnet.fi&gt;
+# (C) 2009 Tom Eastep &lt;teastep@shorewall.net&gt;
+#
+# License: GPLv2
+#
+
+STATE=${1}
+NAME=${2}
+CHECKIP=${3}
+DEVICE=${4}
+WARN_EMAIL=${5}
+REPLIED=${6}
+WAITING=${7}
+TIMEOUT=${8}
+REPLY_LATE=${9}
+CONS_RCVD=${10}
+CONS_WAIT=${11}
+CONS_MISS=${12}
+AVG_RTT=${13}
+
+if [ -f /usr/share/shorewall-lite/lib.base ]; then
+    VARDIR=/var/lib/shorewall-lite
+    STATEDIR=/etc/shorewall-lite
+    TOOL=/sbin/shorewall-lite
+else
+    VARDIR=/var/lib/shorewall
+    STATEDIR=/etc/shorewall
+    TOOL=/sbin/shorewall
+fi
+
+[ -f ${STATEDIR}/vardir ] &amp;&amp; . ${STATEDIR}/vardir
+
+cat &lt;&lt;EOM | mail -s "${NAME} ${STATE}, DEV ${DEVICE}" ${WARN_EMAIL}
+
+Hi,
+
+Connection ${NAME} is now ${STATE}.
+
+Following parameters were passed:
+newstate     = ${STATE}
+name         = ${NAME}
+checkip      = ${CHECKIP}
+device       = ${DEVICE}
+warn_email   = ${WARN_EMAIL}
+
+Packet counters:
+replied      = ${REPLIED} packets replied
+waiting      = ${WAITING} packets waiting for reply
+timeout      = ${TIMEOUT} packets that have timed out (= packet loss)
+reply_late   = ${REPLY_LATE} packets that received a reply after timeout
+cons_rcvd    = ${CONS_RCVD} consecutively received replies in sequence
+cons_wait    = ${CONS_WAIT} consecutive packets waiting for reply
+cons_miss    = ${CONS_MISS} consecutive packets that have timed out
+avg_rtt      = ${AVG_RTT} average rtt, notice that waiting and timed out packets have rtt = 0 when calculating this
+
+Your LSM Daemon
+
+EOM
+
+if [ ${STATE} = up ]; then
+# echo 0 &gt; ${VARDIR}/${DEVICE}.status # Uncomment this line if you are running Shorewall 4.4.x or earlier
+  ${VARDIR}/firewall enable ${DEVICE}
+else
+#  echo 1 &gt; ${VARDIR}/${DEVICE}.status # Uncomment this line if you are running Shorewall 4.4.x or earlier
+   ${VARDIR}/firewall disable ${DEVICE}
+fi
+
+$TOOL show routing &gt;&gt; /var/log/lsm
+
+exit 0
+
+#EOF</programlisting>Prior to Shorewall 4.4.23, it was necessary to restart
+        the firewall when an interface transitions between the usable and
+        unusable states.<programlisting>#!/bin/sh
 #
 # (C) 2009 Mika Ilmaranta &lt;ilmis@nullnet.fi&gt;
 # (C) 2009 Tom Eastep &lt;teastep@shorewall.net&gt;
@@ -2298,84 +2414,8 @@ EOM
 # [ ${STATE} = up ] &amp;&amp; state=0 || state=1
 # echo $state &gt; ${VARDIR}/${DEVICE}.status
 
-$TOOL restart -f &gt;&gt; /var/log/lsm 2&gt;&amp;1
+<emphasis role="bold">$TOOL restart -f &gt;&gt; /var/log/lsm 2&gt;&amp;1</emphasis>
 
-$TOOL show routing &gt;&gt; /var/log/lsm
-
-exit 0
-
-#EOF</programlisting>Beginning with Shorewall 4.4.23, it is not necessary to
-        restart the firewall when an interface transitions between the usable
-        and unusable
-        states.<filename>/etc/lsm/script</filename><programlisting>#!/bin/sh
-#
-# (C) 2009 Mika Ilmaranta &lt;ilmis@nullnet.fi&gt;
-# (C) 2009 Tom Eastep &lt;teastep@shorewall.net&gt;
-#
-# License: GPLv2
-#
-
-STATE=${1}
-NAME=${2}
-CHECKIP=${3}
-DEVICE=${4}
-WARN_EMAIL=${5}
-REPLIED=${6}
-WAITING=${7}
-TIMEOUT=${8}
-REPLY_LATE=${9}
-CONS_RCVD=${10}
-CONS_WAIT=${11}
-CONS_MISS=${12}
-AVG_RTT=${13}
-
-if [ -f /usr/share/shorewall-lite/lib.base ]; then
-    VARDIR=/var/lib/shorewall-lite
-    STATEDIR=/etc/shorewall-lite
-    TOOL=/sbin/shorewall-lite
-else
-    VARDIR=/var/lib/shorewall
-    STATEDIR=/etc/shorewall
-    TOOL=/sbin/shorewall
-fi
-
-[ -f ${STATEDIR}/vardir ] &amp;&amp; . ${STATEDIR}/vardir
-
-cat &lt;&lt;EOM | mail -s "${NAME} ${STATE}, DEV ${DEVICE}" ${WARN_EMAIL}
-
-Hi,
-
-Connection ${NAME} is now ${STATE}.
-
-Following parameters were passed:
-newstate     = ${STATE}
-name         = ${NAME}
-checkip      = ${CHECKIP}
-device       = ${DEVICE}
-warn_email   = ${WARN_EMAIL}
-
-Packet counters:
-replied      = ${REPLIED} packets replied
-waiting      = ${WAITING} packets waiting for reply
-timeout      = ${TIMEOUT} packets that have timed out (= packet loss)
-reply_late   = ${REPLY_LATE} packets that received a reply after timeout
-cons_rcvd    = ${CONS_RCVD} consecutively received replies in sequence
-cons_wait    = ${CONS_WAIT} consecutive packets waiting for reply
-cons_miss    = ${CONS_MISS} consecutive packets that have timed out
-avg_rtt      = ${AVG_RTT} average rtt, notice that waiting and timed out packets have rtt = 0 when calculating this
-
-Your LSM Daemon
-
-EOM
-
-<emphasis role="bold">if [ ${STATE} = up ]; then
-# echo 0 &gt; ${VARDIR}/${DEVICE}.status # Uncomment this line if you are running Shorewall 4.4.x or earlier
-  ${VARDIR}/firewall enable ${DEVICE}
-else
-#  echo 1 &gt; ${VARDIR}/${DEVICE}.status # Uncomment this line if you are running Shorewall 4.4.x or earlier
-   ${VARDIR}/firewall disable ${DEVICE}
-fi
-</emphasis>
 $TOOL show routing &gt;&gt; /var/log/lsm
 
 exit 0
@@ -2467,7 +2507,7 @@ exit 0
       on ursa that I will describe here</emphasis>.</para>
 
       <para>Below is a diagram of our network:<graphic align="center"
-      fileref="images/Network2008a.png" /></para>
+      fileref="images/Network2008a.png"/></para>
 
       <para>The local wired network in my office is connected to both gateways
       and uses the private (RFC 1918) network 172.20.1.0/24. The Comcast
@@ -2539,7 +2579,9 @@ MARK(2)               $FW             0.0.0.0/0       tcp     21
 MARK(2)               $FW             0.0.0.0/0       tcp     -               -       -       -       -       -       -               ftp
 MARK(2)               $FW             0.0.0.0/0       tcp     119</programlisting></para>
 
-      <para>Here are the equivalent tcrules entries:</para>
+      <para>If you are still using a tcrules file, you should consider
+      switching to using a mangle file (<command>shorewall update -t</command>
+      will do that for you). Here are the equivalent tcrules entries:</para>
 
       <programlisting>#MARK           SOURCE          DEST            PROTO   PORT(S)         CLIENT  USER    TEST    LENGTH  TOS     CONNBYTES       HELPER
 #                                                                       PORT(S) 
@@ -2638,7 +2680,7 @@ wlan0                   192.168.0.0/24</programlisting><note>
 
     <para>The network is pictured in the following diagram:</para>
 
-    <graphic fileref="images/Network2013.png" />
+    <graphic fileref="images/Network2013.png"/>
 
     <section>
       <title>IPv4 Configuration</title>

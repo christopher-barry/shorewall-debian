@@ -77,17 +77,18 @@
 
     <note>
       <para>If you want to specify parameters to ULOG or NFLOG (e.g.,
-      NFLOG(1,0,1)), then you must either quote the setting or you must escape
-      the parentheses.</para>
+      NFLOG(1,0,1)), then you must quote the setting.</para>
 
-      <para>Examples:</para>
+      <para>Example:</para>
 
       <programlisting>MACLIST_LOG_LEVEL="NFLOG(1,0,1)"</programlisting>
-
-      <para>or</para>
-
-      <programlisting>MACLIST_LOG_LEVEL=NFLOG\(1,0,1\)</programlisting>
     </note>
+
+    <para>Beginning with Shorewall 5.0.0, the log level may be followed by a
+    colon (":") and a <firstterm>log tag</firstterm>. The log tag normally
+    follows the packet disposition in Shorewall-generated Netfilter log
+    messages, separated from the disposition by a colon (e.g, "DROP:mytag").
+    See LOGTAGONLY below for additional information.</para>
 
     <para>The following options may be set in shorewall6.conf.</para>
 
@@ -98,7 +99,7 @@
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para></para>
+          <para/>
         </listitem>
       </varlistentry>
 
@@ -108,7 +109,7 @@
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para></para>
+          <para/>
         </listitem>
       </varlistentry>
 
@@ -118,7 +119,7 @@
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para></para>
+          <para/>
         </listitem>
       </varlistentry>
 
@@ -128,7 +129,7 @@
         role="bold">none</emphasis>}</term>
 
         <listitem>
-          <para></para>
+          <para/>
         </listitem>
       </varlistentry>
 
@@ -314,6 +315,11 @@
             </listitem>
 
             <listitem>
+              <para>Modify the HELPERS setting (see below) to list the helpers
+              that you need.</para>
+            </listitem>
+
+            <listitem>
               <para>Either:</para>
 
               <orderedlist numeration="loweralpha">
@@ -346,19 +352,21 @@
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
         <listitem>
-          <para>If set, the behavior of the <command>start</command> and
-          <command>restart</command> commands is changed; if no files in
-          <filename><filename
-          class="directory">/etc/shorewall</filename></filename> have been
-          changed since the last successful <command>start</command> or
+          <para>If set, the behavior of the <command>start</command>,
+          <emphasis role="bold">reload</emphasis> and
+          <command>restart</command> commands is changed; if no files in the
+          CONFIG_PATH (see below) have been changed since the last successful
+          <command>start</command>, <emphasis role="bold">reload</emphasis> or
           <command>restart</command> command, then the compilation step is
           skipped and the compiled script that executed the last
-          <command>start</command> or <command>restart</command> command is
-          used. The default is AUTOMAKE=No.</para>
+          <command>start</command>, <emphasis role="bold">reload</emphasis> or
+          <command>restart</command> command is used. The default is
+          AUTOMAKE=No.</para>
 
           <para>The setting of the AUTOMAKE option is ignored if the
-          <command>start</command> or <command>restart</command> command
-          includes a directory name (e.g.,<command> shorewall6 restart
+          <command>start</command>, <emphasis role="bold">reload</emphasis> or
+          <command>restart</command> command includes a directory name
+          (e.g.,<command> shorewall6 restart
           /etc/shorewall.new</command>).</para>
         </listitem>
       </varlistentry>
@@ -397,10 +405,10 @@
           UNTRACKED.</para>
 
           <para>Added in Shorewall 4.5.13 to replace the BLACKLISTNEWONLY
-          option below. Specifies the connection tracking states that are to
-          be subject to blacklist screening. If neither BLACKLIST nor
-          BLACKLISTNEWONLY are specified then the states subject to
-          blacklisting are NEW,ESTABLISHED,INVALID,UNTRACKED.</para>
+          option. Specifies the connection tracking states that are to be
+          subject to blacklist screening. If BLACKLIST is not specified then
+          the states subject to blacklisting are
+          NEW,ESTABLISHED,INVALID,UNTRACKED.</para>
 
           <para>Note: The ESTABLISHED state may not be specified if FASTACCEPT
           is specified.</para>
@@ -427,7 +435,7 @@
 
       <varlistentry>
         <term><emphasis
-        role="bold">BLACKLIST_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>]</term>
+        role="bold">BLACKLIST_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]]</term>
 
         <listitem>
           <para>Formerly named BLACKLIST_LOGLEVEL. This parameter determines
@@ -439,39 +447,6 @@
           packets sent to the <emphasis role="bold">blacklog</emphasis> target
           of <ulink
           url="/manpages6/shorewall6-blrules.html">shorewall6-blrules</ulink>(5).</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term><emphasis role="bold">BLACKLISTNEWONLY=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
-
-        <listitem>
-          <para>Deprecated in Shorewall 4.5.13 in favor of BLACKLIST
-          above.</para>
-
-          <para>When set to <emphasis role="bold">Yes</emphasis> or <emphasis
-          role="bold">yes</emphasis>, blacklists are only consulted for new
-          connections, for packets in the INVALID connection state (such as a
-          TCP SYN,ACK when there has been no corresponding SYN), and for
-          packets that are UNTRACKED due to entries in <ulink
-          url="/manpages6/shorewall6-conntrack.html">shorewall6-conntrack</ulink>(5).
-          This includes entries in the <ulink
-          url="/manpages6/shorewall6-blrules.html">shorewall6-blrules</ulink>
-          (5) file and in the BLACKLIST section of <ulink
-          url="/manpages6/shorewall6-rules.html">shorewall6-rules</ulink>
-          (5).</para>
-
-          <para>When set to <emphasis role="bold">No</emphasis> or <emphasis
-          role="bold">no</emphasis>, blacklists are consulted for every packet
-          (will slow down your firewall noticeably if you have large
-          blacklists). If the BLACKLISTNEWONLY option is not set or is set to
-          the empty value then BLACKLISTNEWONLY=No is assumed.</para>
-
-          <note>
-            <para>BLACKLISTNEWONLY=No is incompatible with
-            FASTACCEPT=Yes.</para>
-          </note>
         </listitem>
       </varlistentry>
 
@@ -578,8 +553,8 @@
         <listitem>
           <para>Specifies where configuration files other than shorewall6.conf
           may be found. CONFIG_PATH is specifies as a list of directory names
-          separated by colons (":"). When looking for a configuration file
-          other than shorewall6.conf:</para>
+          separated by colons (":"). When looking for a configuration
+          file:</para>
 
           <itemizedlist>
             <listitem>
@@ -616,10 +591,10 @@
           associated with the DNS name is subject to change. When
           DEFER_DNS_RESOLUTION=No, DNS names are converted into IP addresses
           by the compiler. This has the advantage that when AUTOMAKE=Yes the
-          <command>start</command> and <command>restart</command> commands
-          will succeed even if no DNS server is reachable (assuming that the
-          configuration hasn't changed since the compiled script was last
-          generated).</para>
+          <command>start</command>, <emphasis role="bold">reload</emphasis>
+          and <command>restart</command> commands will succeed even if no DNS
+          server is reachable (assuming that the configuration hasn't changed
+          since the compiled script was last generated).</para>
         </listitem>
       </varlistentry>
 
@@ -703,33 +678,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">EXPORTPARAMS=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
-
-        <listitem>
-          <para>Deprecated beginning with Shorewall 4.4.17.</para>
-
-          <para>Beginning with Shorewall 4.4.17, the variables set in the
-          'params' file at compile time are available at run time with
-          EXPORTPARAMS=No. As a consequence, beginning with that version the
-          recommended setting is EXPORTPARAMS=No.</para>
-
-          <para>It is quite difficult to code a 'params' file that assigns
-          other than constant values such that it works correctly with
-          Shorewall6 Lite. The EXPORTPARAMS option works around this problem.
-          When EXPORTPARAMS=No, the 'params' file is not copied to the
-          compiler output.</para>
-
-          <para>With EXPORTPARAMS=No, if you need to set environmental
-          variables on the firewall system for use by your extension scripts,
-          then do so in the init extension script.</para>
-
-          <para>The default is EXPORTPARAMS=Yes which is the recommended
-          setting unless you are running Shorewall6 Lite.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><emphasis role="bold">FASTACCEPT=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -745,11 +693,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
           set FASTACCEPT=Yes then you may not include rules in the ESTABLISHED
           or RELATED sections of <ulink
           url="/manpages6/shorewall6-rules.html">shorewall6-rules</ulink>(5).</para>
-
-          <note>
-            <para>FASTACCEPT=Yes is incompatible with
-            BLACKLISTNEWONLY=No.</para>
-          </note>
         </listitem>
       </varlistentry>
 
@@ -787,9 +730,10 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
         role="bold">HELPERS</emphasis>=[<emphasis>helper</emphasis>[,<replaceable>helper</replaceable>...]]</term>
 
         <listitem>
-          <para>Added in Shorewall 4.5.7. This option lists the Netfilter
-          application helpers that are to be enabled. If not specified, the
-          default is to enable all helpers.</para>
+          <para>Added in Shorewall 4.5.7. This option specifies a
+          comma-separated list naming the Netfilter application helpers that
+          are to be enabled. If not specified, the default is to enable all
+          helpers.</para>
 
           <para>Possible values for <replaceable>helper</replaceable>
           are:</para>
@@ -853,70 +797,6 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">HIGH_ROUTE_MARKS=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
-
-        <listitem>
-          <para>Deprecated in Shorewall 4.4.26 in favor of
-          PROVIDER_OFFSET.</para>
-
-          <para>You may set HIGH_ROUTE_MARKS=Yes in to effectively divide the
-          packet mark and connection mark into two mark fields.</para>
-
-          <para>The width of the fields are determined by the setting of the
-          WIDE_TC_MARKS option.</para>
-
-          <para>When WIDE_TC_MARKS=No (the default):</para>
-
-          <orderedlist numeration="loweralpha">
-            <listitem>
-              <para>The MARK field in the providers file must have a value
-              that is less than 65536 and that is a multiple of 256 (using hex
-              representation, the values are 0x0100-0xFF00 with the low-order
-              8 bits being zero).</para>
-            </listitem>
-
-            <listitem>
-              <para>You may only set those mark values in the PREROUTING
-              chain.</para>
-            </listitem>
-
-            <listitem>
-              <para>Marks used for traffic shaping must still be in the range
-              of 1-255 and may still not be set in the PREROUTING
-              chain.</para>
-            </listitem>
-          </orderedlist>
-
-          <para>When WIDE_TC_MARKS=Yes:</para>
-
-          <orderedlist numeration="loweralpha">
-            <listitem>
-              <para>The MARK field in the providers file must have a value
-              that is a multiple of 65536 (using hex representation, the
-              values are 0x010000-0xFF0000 with the low-order 16 bits being
-              zero).</para>
-            </listitem>
-
-            <listitem>
-              <para>You may only set those mark values in the PREROUTING
-              chain.</para>
-            </listitem>
-
-            <listitem>
-              <para>Marks used for traffic shaping must be in the range of
-              1-16383 and may still not be set in the PREROUTING chain.</para>
-            </listitem>
-          </orderedlist>
-
-          <para>Regardless of the setting of WIDE_TC_MARKS, when you SAVE or
-          RESTORE in tcrules, only the TC mark value is saved or restored.
-          Shorewall handles saving and restoring the routing (provider)
-          marks.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
         <term><emphasis role="bold">IMPLICIT_CONTINUE=</emphasis>{<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
 
@@ -954,9 +834,19 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
           from <ulink url="/configuration_file_basics.htm#Pairs">alternative
           specificaitons</ulink> on the right.. When INLINE_MATCHES=Yes is
           specified, the specifications on the right are interpreted as if
-          INLINE had been specified in the ACTION column. If not specified or
-          if specified as the empty value, the value 'No' is assumed for
-          backward compatibility.</para>
+          INLINE had been specified in the ACTION column. This also applies to
+          <ulink url="shorewall6-masq.html">shorewall6-masq(5)</ulink> and
+          <ulink url="shorewall6-mangle.html">shorewall6-mangle(5</ulink>)
+          which also support INLINE. If not specified or if specified as the
+          empty value, the value 'No' is assumed for backward
+          compatibility.</para>
+
+          <para>Beginning with Shorewall 5.0.0, it is no longer necessary to
+          set INLINE_MATCHES=Yes in order to be able to specify your own
+          iptables text in a rule. You may simply preface that text with a
+          pair of semicolons (";;"). If alternate input is also specified in
+          the rule, it should appear before the semicolons and may be
+          seperated from normal column input by a single semicolon.</para>
         </listitem>
       </varlistentry>
 
@@ -977,7 +867,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
 
       <varlistentry>
         <term><emphasis
-        role="bold">INVALID_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+        role="bold">INVALID_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]</term>
 
         <listitem>
           <para>Added in Shorewall 4.5.13. Packets in the INVALID state that
@@ -1113,26 +1003,10 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
           <filename>/var/lib/shorewall6/rt_tables</filename>
           (<filename>/var/lib/shorewall6-lite/rt_tables</filename>) before
           your next <command>stop</command>, <command>refresh</command>,
-          <command>restore</command> on <command>restart</command>
-          command.</para>
+          <command>restore</command>, <emphasis role="bold">reload</emphasis>
+          or <command>restart</command> command.</para>
 
           <para>The default is KEEP_RT_TABLES=No.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term><emphasis role="bold">LEGACY_FASTSTART=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
-
-        <listitem>
-          <para>Added in Shorewall6 4.4.20. If not specified, the default is
-          Yes which preserves the legacy behavior of <command>start
-          -f</command> (the modification times of the files in
-          <filename>/etc/shorewall6</filename> are compared with that of
-          <filename>/var/lib/shorewall6/restore</filename>). If set to No,
-          then the times are compared with that of
-          /var/lib/shorewall6/firewall, which is consistent with the way that
-          <command>restart -f</command> works.</para>
         </listitem>
       </varlistentry>
 
@@ -1239,7 +1113,7 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
             </listitem>
           </itemizedlist>
 
-          <para></para>
+          <para/>
 
           <blockquote>
             <para>For example, using the default LOGFORMAT, the log prefix for
@@ -1250,13 +1124,13 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
 
             <important>
               <para>To help insure that all packets in the NEW state are
-              logged, rate limiting (LOGBURST and LOGRATE) should be disabled
-              when using LOGALLNEW. Use LOGALLNEW at your own risk; it may
-              cause high CPU and disk utilization and you may not be able to
-              control your firewall after you enable this option.</para>
+              logged, rate limiting (LOGLIMIT) should be disabled when using
+              LOGALLNEW. Use LOGALLNEW at your own risk; it may cause high CPU
+              and disk utilization and you may not be able to control your
+              firewall after you enable this option.</para>
             </important>
 
-            <para></para>
+            <para/>
 
             <caution>
               <para>Do not use this option if the resulting log messages will
@@ -1316,8 +1190,8 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
         role="bold">d</emphasis>}:]<emphasis>rate</emphasis><emphasis
         role="bold">/</emphasis>{<emphasis
         role="bold">sec</emphasis>|<emphasis
-        role="bold">min</emphasis>|<emphasis
-        role="bold">hour</emphasis>|<emphasis
+        role="bold">second|min</emphasis>|<emphasis
+        role="bold">minute|hour</emphasis>|<emphasis
         role="bold">day</emphasis>}[:<emphasis>burst</emphasis>]]</term>
 
         <listitem>
@@ -1331,48 +1205,10 @@ net     all  DROP   info</programlisting>then the chain name is 'net-all'
 
           <para>If <replaceable>burst</replaceable> is not specified, then a
           value of 5 is assumed.</para>
-        </listitem>
-      </varlistentry>
 
-      <varlistentry>
-        <term><emphasis
-        role="bold">LOGBURST=</emphasis>[<emphasis>burst</emphasis>]</term>
-
-        <listitem>
-          <para>Deprecated in Shorewall 4.4.12.</para>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term><emphasis
-        role="bold">LOGRATE=</emphasis>[<emphasis>rate</emphasis>/{<emphasis
-        role="bold">minute</emphasis>|<emphasis
-        role="bold">second</emphasis>}]</term>
-
-        <listitem>
-          <para>As of Shorewall 4.4.12, these parameters are
-          Deprecated.</para>
-
-          <para>These parameters set the match rate and initial burst size for
-          logged packets. Please see ip6tables(8) for a description of the
-          behavior of these parameters (the ip6tables option --limit is set by
-          LOGRATE and --limit-burst is set by LOGBURST). If both parameters
-          are set empty, no rate-limiting will occur. If you supply one of
-          these, then you should also supply the other.</para>
-
-          <para>Example:</para>
-
-          <programlisting>    LOGRATE=10/minute
-    LOGBURST=5</programlisting>
-
-          <para>For each logging rule, the first time the rule is reached, the
-          packet will be logged; in fact, since the burst is 5, the first five
-          packets will be logged. After this, it will be 6 seconds (1 minute
-          divided by the rate of 10) before a message will be logged from the
-          rule, regardless of how many packets reach it. Also, every 6
-          seconds, one of the bursts will be regained; if no packets hit the
-          rule for 30 seconds, the burst will be fully recharged; back where
-          we started.</para>
+          <para>The keywords <emphasis role="bold">second</emphasis> and
+          <emphasis role="bold">minute</emphasis> are accepted beginning with
+          Shorewall 4.6.13.</para>
         </listitem>
       </varlistentry>
 
@@ -1438,7 +1274,7 @@ LOG:info:,bar                        net                    fw</programlisting>
 
       <varlistentry>
         <term><emphasis
-        role="bold">MACLIST_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>]</term>
+        role="bold">MACLIST_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]]</term>
 
         <listitem>
           <para>Determines the syslog level for logging connection requests
@@ -1524,11 +1360,11 @@ LOG:info:,bar                        net                    fw</programlisting>
           PREROUTING chain. This permits you to mark inbound traffic based on
           its destination address when DNAT is in use. To determine if your
           kernel has a FORWARD chain in the mangle table, use the <emphasis
-          role="bold">/sbin/shorewall6 show mangle</emphasis> command; if a
-          FORWARD chain is displayed then your kernel will support this
-          option. If this option is not specified or if it is given the empty
-          value (e.g., MARK_IN_FORWARD_CHAIN="") then MARK_IN_FORWARD_CHAIN=No
-          is assumed.</para>
+          role="bold">/shorewall6 show mangle</emphasis> command; if a FORWARD
+          chain is displayed then your kernel will support this option. If
+          this option is not specified or if it is given the empty value
+          (e.g., MARK_IN_FORWARD_CHAIN="") then MARK_IN_FORWARD_CHAIN=No is
+          assumed.</para>
         </listitem>
       </varlistentry>
 
@@ -1540,8 +1376,9 @@ LOG:info:,bar                        net                    fw</programlisting>
           <para>Added in Shorewall 4.4.26. Number of bits on the right of the
           32-bit packet mark to be masked when clearing the traffic shaping
           mark. Must be &gt;= TC_BITS and &lt;= PROVIDER_OFFSET (if
-          PROVIDER_OFFSET &gt; 0). Default value and the default values of the
-          other mark layout options is determined as follows:</para>
+          PROVIDER_OFFSET &gt; 0). Prior to Shorewall 5.0.0, default value and
+          the default values of the other mark layout options is determined as
+          follows:</para>
 
           <table frame="none">
             <title>Default Packet Mark Layout</title>
@@ -1578,6 +1415,10 @@ LOG:info:,bar                        net                    fw</programlisting>
               </tbody>
             </tgroup>
           </table>
+
+          <para>From 5.0.0 onward, the default value of MASK_BITS is 8, the
+          default value of PROVIDER_BITS, TC_BITS, MASK_BITS and
+          PROVIDER_OFFSET is 8.</para>
         </listitem>
       </varlistentry>
 
@@ -1588,8 +1429,8 @@ LOG:info:,bar                        net                    fw</programlisting>
 
         <listitem>
           <para>The value of this option determines the possible file
-          extensions of kernel modules. The default value is "ko ko.gz o o.gz
-          gz".</para>
+          extensions of kernel modules. The default value is "ko ko.gz ko.xz o
+          o.gz o.xz gz xz".</para>
         </listitem>
       </varlistentry>
 
@@ -1601,9 +1442,11 @@ LOG:info:,bar                        net                    fw</programlisting>
         <listitem>
           <para>This parameter specifies the directory/directories where your
           kernel netfilter modules may be found. If you leave the variable
-          empty, Shorewall6 will supply "/lib/modules/`uname
-          -r`/kernel/net/ipv4/netfilter:/lib/modules/`uname
-          -r`/kernel/net/ipv4/netfilter".</para>
+          empty, Shorewall will supply the value
+          "/lib/modules/$uname/kernel/net/ipv${g_family}/netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/kernel/net/sched:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset"
+          where <emphasis role="bold">uname</emphasis> holds the output of
+          '<command>uname -r</command>' and <emphasis
+          role="bold">g_family</emphasis> holds '6'.</para>
         </listitem>
       </varlistentry>
 
@@ -1868,7 +1711,7 @@ LOG:info:,bar                        net                    fw</programlisting>
           Perl executable. Default is <filename>/usr/bin/perl</filename>. If
           the pathname specified by this option does not exist or the named
           file is not executable, then Shorewall6 falls back to
-          <filename>/usr/bin/perl/</filename></para>
+          <filename>/usr/bin/perl</filename></para>
         </listitem>
       </varlistentry>
 
@@ -1903,7 +1746,7 @@ LOG:info:,bar                        net                    fw</programlisting>
         role="bold">"</emphasis></term>
 
         <listitem>
-          <para></para>
+          <para/>
         </listitem>
       </varlistentry>
 
@@ -1949,7 +1792,7 @@ LOG:info:,bar                        net                    fw</programlisting>
               into.</member>
             </simplelist></para>
 
-          <programlisting></programlisting>
+          <programlisting/>
         </listitem>
       </varlistentry>
 
@@ -1972,7 +1815,7 @@ LOG:info:,bar                        net                    fw</programlisting>
 
       <varlistentry>
         <term><emphasis
-        role="bold">RELATED_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+        role="bold">RELATED_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]</term>
 
         <listitem>
           <para>Added in Shorewall 4.4.27. Packets in the related state that
@@ -2066,6 +1909,27 @@ INLINE          -       -       -       ; -j REJECT
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">RESTART=</emphasis>[<emphasis
+        role="bold">restart</emphasis>|<emphasis
+        role="bold">reload</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 5.0.1 to replace LEGACY_RESTART which was
+          added in Shorewall 5.0.0. In that release, the <emphasis
+          role="bold">reload</emphasis> command was redefined to do what
+          <emphasis role="bold">restart</emphasis> had done in earlier
+          releases and <emphasis role="bold">restart</emphasis> became a true
+          restart (equivalent to <emphasis role="bold">stop</emphasis>
+          followed by <emphasis role="bold">start</emphasis>). When
+          RESTART=reload, the <emphasis role="bold">restart</emphasis> command
+          performs the same operation as the <emphasis
+          role="bold">reload</emphasis> command making it compatible with
+          earlier releases. If not specified, RESTART=reload is
+          assumed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis role="bold">RESTORE_ROUTEMARKS=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
@@ -2113,7 +1977,7 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis
-        role="bold">RPFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+        role="bold">RPFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]</term>
 
         <listitem>
           <para>Added in shorewall 4.5.7. Determines the logging of packets
@@ -2169,7 +2033,7 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis
-        role="bold">SMURF_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>]</term>
+        role="bold">SMURF_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]]</term>
 
         <listitem>
           <para>Specifies the logging level for smurf packets (see the
@@ -2199,7 +2063,7 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis
-        role="bold">SFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+        role="bold">SFILTER_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]</term>
 
         <listitem>
           <para>Added on Shorewall 4.4.20. Determines the logging of packets
@@ -2236,6 +2100,7 @@ INLINE          -       -       -       ; -j REJECT
         <listitem>
           <para>If specified, determines where Shorewall6 will log the details
           of each <emphasis role="bold">start</emphasis>, <emphasis
+          role="bold">reload</emphasis>, <emphasis
           role="bold">restart</emphasis> and <emphasis
           role="bold">refresh</emphasis> command. Logging verbosity is
           determined by the setting of LOG_VERBOSITY above.</para>
@@ -2283,7 +2148,9 @@ INLINE          -       -       -       ; -j REJECT
         <term><emphasis role="bold">TC_ENABLED=</emphasis>[<emphasis
         role="bold">Yes</emphasis>|<emphasis
         role="bold">No</emphasis>|<emphasis
-        role="bold">Internal|Shared</emphasis>]</term>
+        role="bold">Internal</emphasis>|<emphasis
+        role="bold">Simple</emphasis>|<emphasis
+        role="bold">Shared</emphasis>]</term>
 
         <listitem>
           <para>If you say <emphasis role="bold">Yes</emphasis> or <emphasis
@@ -2299,6 +2166,13 @@ INLINE          -       -       -       ; -j REJECT
           <para>If you set TC_ENABLED=Internal or internal or leave the option
           empty then Shorewall6 will use its builtin traffic shaper
           (tc4shorewall6 written by Arne Bernin.</para>
+
+          <para>If you set TC_ENABLED=Simple (Shorewall 4.4.6 and later),
+          simple traffic shaping using <ulink
+          url="/manpages/shorewall-tcinterfaces.html">shorewall-tcinterfaces</ulink>(5)
+          and <ulink
+          url="/manpages/shorewall-tcpri.html">shorewall-tcpri</ulink>(5) is
+          enabled.</para>
 
           <para>Beginning with Shorewall 4.4.15, if you set TC_ENABLED=Shared
           or shared, then you should create symbolic links from your
@@ -2376,7 +2250,7 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis
-        role="bold">TCP_FLAGS_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>]</term>
+        role="bold">TCP_FLAGS_LOG_LEVEL=</emphasis>[<emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]]</term>
 
         <listitem>
           <para>Determines the syslog level for logging packets that fail the
@@ -2454,7 +2328,7 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis
-        role="bold">UNTRACKED_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis></term>
+        role="bold">UNTRACKED_LOG_LEVEL=</emphasis><emphasis>log-level</emphasis>[:<replaceable>log-tag</replaceable>]</term>
 
         <listitem>
           <para>Added in Shorewall 4.5.13. Packets in the UNTRACKED state that
@@ -2616,8 +2490,8 @@ INLINE          -       -       -       ; -j REJECT
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">WIDE_TC_MARKS=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+        <term><emphasis role="bold">WIDE_TC_MARKS=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
 
         <listitem>
           <para>Deprecated in Shorewall 4.4.26 in favor of TC_BITS and
@@ -2628,6 +2502,27 @@ INLINE          -       -       -       ; -j REJECT
           traffic shaping marks are 14 bytes wide (values 1-16383). The
           setting of WIDE_TC_MARKS also has an effect on the HIGH_ROUTE_MARKS
           option (see above).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis role="bold">WORKAROUNDS=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.6.11. Over time, there have been a number
+          of changes in Shorewall that work around defects in other products
+          such as iptables and ipset. When WORKAROUNDS=Yes, these workarounds
+          are enabled; when WORKAROUNDS=No, they are disabled. If not
+          specified or if specified as empty, WORKAROUNDS=Yes is
+          assumed.</para>
+
+          <warning>
+            <para>Do not set WORKAROUNDS=Yes if you need to be able to use
+            Shorewall-generated scripts (such as created by the
+            <command>save</command> command) built by Shorewall 4.4.7 or
+            older.</para>
+          </warning>
         </listitem>
       </varlistentry>
 

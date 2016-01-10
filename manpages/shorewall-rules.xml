@@ -42,12 +42,8 @@
     </warning>
 
     <para>The rules file is divided into sections. Each section is introduced
-    by a "Section Header" which is a line beginning with [?]SECTION and
-    followed by the section name.</para>
-
-    <para>The optional "?" was added in Shorewalll 4.6.0 and is preferred.
-    Existing configurations may be converted to use this form using the
-    <command>shorewall update</command> command.</para>
+    by a "Section Header" which is a line beginning with ?SECTION and followed
+    by the section name.</para>
 
     <para>Sections are as follows and must appear in the order listed:</para>
 
@@ -129,8 +125,10 @@
         <term><emphasis role="bold">NEW</emphasis></term>
 
         <listitem>
-          <para>Packets in the NEW, INVALID and UNTRACKED states are processed
-          by rules in this section.</para>
+          <para>Packets in the NEW state are processed by rules in this
+          section. If the INVALID and/or UNTRACKED sections are empty or not
+          included, then the packets in the corresponding state(s) are also
+          processed in this section.</para>
         </listitem>
       </varlistentry>
     </variablelist>
@@ -142,7 +140,7 @@
       role="bold">ESTABLISHED</emphasis> and <emphasis
       role="bold">RELATED</emphasis> sections and place all of your
       non-blacklisting rules in the NEW section (That's after the line that
-      reads SECTION NEW').</para>
+      reads ?SECTION NEW').</para>
     </note>
 
     <warning>
@@ -175,9 +173,9 @@
 
       <listitem>
         <para>The remaining columns specify characteristics of the packet
-        before rewriting. In particular, the ORIGINAL DEST column gives the
-        original destination IP address of the packet and the DEST PORT(S)
-        column give the original destination port(s).</para>
+        before rewriting. In particular, the ORIGDEST column gives the
+        original destination IP address of the packet and the DPORT column
+        give the original destination port(s).</para>
       </listitem>
     </itemizedlist>
 
@@ -243,7 +241,7 @@
 
             <varlistentry>
               <term><emphasis
-              role="bold">ADD(<replaceable>ipset</replaceable>:<replaceable>flags</replaceable>)</emphasis></term>
+              role="bold">ADD(<replaceable>ipset</replaceable>:<replaceable>flags</replaceable>[:<replaceable>timeout</replaceable>])</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.4.12. Causes addresses and/or port
@@ -258,13 +256,20 @@
                 role="bold">dst</emphasis> respectively (see the -A command in
                 ipset (8)).</para>
 
+                <para>Beginning with Shorewall 5.0.3, an optional
+                <replaceable>timeout</replaceable> can be specified. This is
+                the number of seconds that the new entry in the ipset is to
+                remain valid and overrides any timeout specified when the
+                ipset was created.</para>
+
                 <para>ADD is non-terminating. Even if a packet matches the
                 rule, it is passed on to the next rule.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term>AUDIT[(accept|drop|reject)]</term>
+              <term><emphasis
+              role="bold">AUDIT</emphasis>[(accept|drop|reject)]</term>
 
               <listitem>
                 <para>Added in Shorewall 4.5.10. Audits the packet with the
@@ -275,7 +280,11 @@
             </varlistentry>
 
             <varlistentry>
-              <term>A_ACCEPT, A_ACCEPT+ and A_ACCEPT!</term>
+              <term><emphasis role="bold">A_ACCEPT</emphasis>, <emphasis
+              role="bold">A_ACCEPT</emphasis><emphasis
+              role="bold">+</emphasis> and <emphasis
+              role="bold">A_ACCEPT</emphasis><emphasis
+              role="bold">!</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.4.20. Audited versions of ACCEPT,
@@ -285,7 +294,8 @@
             </varlistentry>
 
             <varlistentry>
-              <term>A_DROP and A_DROP!</term>
+              <term><emphasis role="bold">A_DROP</emphasis> and<emphasis
+              role="bold"> A_DROP!</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.4.20. Audited versions of DROP and
@@ -295,7 +305,8 @@
             </varlistentry>
 
             <varlistentry>
-              <term>A_REJECT AND A_REJECT!</term>
+              <term><emphasis role="bold">A_REJECT</emphasis> AND <emphasis
+              role="bold">A_REJECT!</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.4.20. Audited versions of REJECT
@@ -305,20 +316,15 @@
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis role="bold">[?]COMMENT</emphasis></term>
+              <term><emphasis role="bold">?COMMENT</emphasis></term>
 
               <listitem>
                 <para>the rest of the line will be attached as a comment to
                 the Netfilter rule(s) generated by the following entries. The
                 comment will appear delimited by "/* ... */" in the output of
                 "shorewall show &lt;chain&gt;". To stop the comment from being
-                attached to further rules, simply include COMMENT on a line by
-                itself.</para>
-
-                <note>
-                  <para>Beginning with Shorewall 4.5.11, ?COMMENT is a synonym
-                  for COMMENT and is preferred.</para>
-                </note>
+                attached to further rules, simply include ?COMMENT on a line
+                by itself.</para>
               </listitem>
             </varlistentry>
 
@@ -422,7 +428,7 @@
             </varlistentry>
 
             <varlistentry>
-              <term>HELPER</term>
+              <term><emphasis role="bold">HELPER</emphasis></term>
 
               <listitem>
                 <para>Added in Shorewall 4.5.7. This action requires that the
@@ -476,7 +482,8 @@
             </varlistentry>
 
             <varlistentry>
-              <term>IPTABLES({<replaceable>iptables-target</replaceable>
+              <term><emphasis
+              role="bold">IPTABLES</emphasis>({<replaceable>iptables-target</replaceable>
               [<replaceable>option</replaceable> ...])</term>
 
               <listitem>
@@ -559,24 +566,36 @@
 
             <varlistentry>
               <term><emphasis
-              role="bold">NFQUEUE</emphasis>[(<replaceable>queuenumber</replaceable>)]</term>
+              role="bold">NFQUEUE</emphasis>[([<replaceable>queuenumber</replaceable>1[:<replaceable>queuenumber2</replaceable>][,bypass]]|bypass)]</term>
 
               <listitem>
                 <para>Queues the packet to a user-space application using the
                 nfnetlink_queue mechanism. If a
-                <replaceable>queuenumber</replaceable> is not specified, queue
-                zero (0) is assumed.</para>
+                <replaceable>queuenumber</replaceable>1 is not specified,
+                queue zero (0) is assumed. Beginning with Shorewall 4.6.10,
+                the keyword <emphasis role="bold">bypass</emphasis> can be
+                given. By default, if no userspace program is listening on an
+                NFQUEUE, then all packets that are to be queued are dropped.
+                When this option is used, the NFQUEUE rule is silently
+                bypassed instead. The packet will move on to the next rule.
+                Also beginning in Shorewall 4.6.10, a second queue number
+                (<replaceable>queuenumber2</replaceable>) may be specified.
+                This specifies a range of queues to use. Packets are then
+                balanced across the given queues. This is useful for multicore
+                systems: start multiple instances of the userspace program on
+                queues x, x+1, .. x+n and use "x:x+n". Packets belonging to
+                the same connection are put into the same nfqueue.</para>
               </listitem>
             </varlistentry>
 
             <varlistentry>
-              <term><emphasis
-              role="bold">NFQUEUE![(<replaceable>queuenumber</replaceable>)]</emphasis></term>
+              <term><emphasis role="bold"><emphasis
+              role="bold">NFQUEUE</emphasis>[([<replaceable>queuenumber1</replaceable>[,<replaceable>queuenumber2</replaceable>][,bypass]]|bypass)]</emphasis></term>
 
               <listitem>
                 <para>like NFQUEUE but exempts the rule from being suppressed
                 by OPTIMIZE=1 in <ulink
-                url="/manpages/shorewall.conf.html">shorewall.conf</ulink>(5).</para>
+                url="/manpages6/shorewall6.conf.html">shorewall6.conf</ulink>(5).</para>
               </listitem>
             </varlistentry>
 
@@ -649,6 +668,77 @@
                 generates the <emphasis role="bold">REDIRECT</emphasis>
                 iptables rule and not the companion <emphasis
                 role="bold">ACCEPT</emphasis> rule.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><emphasis role="bold">TARPIT</emphasis> [(<emphasis
+              role="bold">tarpit</emphasis> | <emphasis
+              role="bold">honeypot</emphasis> | <emphasis
+              role="bold">reset</emphasis>)]</term>
+
+              <listitem>
+                <para>Added in Shorewall 4.6.6.</para>
+
+                <para>TARPIT captures and holds incoming TCP connections using
+                no local per-connection resources.</para>
+
+                <para>TARPIT only works with the PROTO column set to tcp (6),
+                and is totally application agnostic. This module will answer a
+                TCP request and play along like a listening server, but aside
+                from sending an ACK or RST, no data is sent. Incoming packets
+                are ignored and dropped. The attacker will terminate the
+                session eventually. This module allows the initial packets of
+                an attack to be captured by other software for inspection. In
+                most cases this is sufficient to determine the nature of the
+                attack.</para>
+
+                <para>This offers similar functionality to LaBrea
+                &lt;http://www.hackbusters.net/LaBrea/&gt; but does not
+                require dedicated hardware or IPs. Any TCP port that you would
+                normally DROP or REJECT can instead become a tarpit.</para>
+
+                <para>The target accepts a single optional parameter:</para>
+
+                <variablelist>
+                  <varlistentry>
+                    <term>tarpit</term>
+
+                    <listitem>
+                      <para>This mode is the default and completes a
+                      connection with the attacker but limits the window size
+                      to 0, thus keeping the attacker waiting long periods of
+                      time. While he is maintaining state of the connection
+                      and trying to continue every 60-240 seconds, we keep
+                      none, so it is very lightweight. Attempts to close the
+                      connection are ignored, forcing the remote side to time
+                      out the connection in 12-24 minutes.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>honeypot</term>
+
+                    <listitem>
+                      <para>This mode completes a connection with the
+                      attacker, but signals a normal window size, so that the
+                      remote side will attempt to send data, often with some
+                      very nasty exploit attempts. We can capture these
+                      packets for decoding and further analysis. The module
+                      does not send any data, so if the remote expects an
+                      application level response, the game is up.</para>
+                    </listitem>
+                  </varlistentry>
+
+                  <varlistentry>
+                    <term>reset</term>
+
+                    <listitem>
+                      <para>This mode is handy because we can send an inline
+                      RST (reset). It has no other function.</para>
+                    </listitem>
+                  </varlistentry>
+                </variablelist>
               </listitem>
             </varlistentry>
 
@@ -786,7 +876,10 @@
           When there are nested zones, <emphasis role="bold">any</emphasis>
           only refers to top-level zones (those with no parent zones). Note
           that <emphasis role="bold">any</emphasis> excludes all vserver
-          zones, since those zones are nested within the firewall zone.</para>
+          zones, since those zones are nested within the firewall zone.
+          Beginning with Shorewall 4.4.13, exclusion is supported with
+          <emphasis role="bold">any</emphasis> -- see see <ulink
+          url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>(5).</para>
 
           <para>Hosts may also be specified as an IP address range using the
           syntax
@@ -892,15 +985,25 @@
                 (Shorewall 4.4.17 and later).</para>
               </listitem>
             </varlistentry>
+
+            <varlistentry>
+              <term>loc,dmz</term>
+
+              <listitem>
+                <para>Both the <emphasis role="bold">loc</emphasis> and
+                <emphasis role="bold">dmz</emphasis> zones.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term>all!dmz</term>
+
+              <listitem>
+                <para>All but the <emphasis role="bold">dmz</emphasis>
+                zone.</para>
+              </listitem>
+            </varlistentry>
           </variablelist>
-        </listitem>
-      </varlistentry>
-
-      <varlistentry>
-        <term></term>
-
-        <listitem>
-          <para></para>
         </listitem>
       </varlistentry>
 
@@ -947,6 +1050,35 @@
           the <emphasis role="bold">SOURCE</emphasis> or <emphasis
           role="bold">DEST</emphasis> column, the rule is ignored.</para>
 
+          <para><emphasis role="bold">all</emphasis> means "All Zones",
+          including the firewall itself. <emphasis role="bold">all-</emphasis>
+          means "All Zones, except the firewall itself". When <emphasis
+          role="bold">all</emphasis>[<emphasis role="bold">-</emphasis>] is
+          used either in the <emphasis role="bold">SOURCE</emphasis> or
+          <emphasis role="bold">DEST</emphasis> column intra-zone traffic is
+          not affected. When <emphasis role="bold">all+</emphasis>[<emphasis
+          role="bold">-</emphasis>] is "used, intra-zone traffic is affected.
+          Beginning with Shorewall 4.4.13, exclusion is supported -- see see
+          <ulink
+          url="/manpages6/shorewall6-exclusion.html">shorewall6-exclusion</ulink>(5).</para>
+
+          <para><emphasis role="bold">any</emphasis> is equivalent to
+          <emphasis role="bold">all</emphasis> when there are no nested zones.
+          When there are nested zones, <emphasis role="bold">any</emphasis>
+          only refers to top-level zones (those with no parent zones). Note
+          that <emphasis role="bold">any</emphasis> excludes all vserver
+          zones, since those zones are nested within the firewall zone.</para>
+
+          <para>Except when <emphasis role="bold">all</emphasis>[<emphasis
+          role="bold">+</emphasis>][<emphasis role="bold">-</emphasis>] or
+          <emphasis role="bold">any</emphasis>[<emphasis
+          role="bold">+</emphasis>][<emphasis role="bold">-</emphasis>] is
+          specified, clients may be further restricted to a list of networks
+          and/or hosts by appending ":" and a comma-separated list of network
+          and/or host addresses. Hosts may be specified by IP or MAC address;
+          mac addresses must begin with "~" and must use "-" as a
+          separator.</para>
+
           <para>When <emphasis role="bold">all</emphasis> is used either in
           the <emphasis role="bold">SOURCE</emphasis> or <emphasis
           role="bold">DEST</emphasis> column intra-zone traffic is not
@@ -954,11 +1086,6 @@
           intra-zone traffic is affected. Beginning with Shorewall 4.4.13,
           exclusion is supported -- see see <ulink
           url="/manpages/shorewall-exclusion.html">shorewall-exclusion</ulink>(5).</para>
-
-          <para><emphasis role="bold">any</emphasis> is equivalent to
-          <emphasis role="bold">all</emphasis> when there are no nested zones.
-          When there are nested zones, <emphasis role="bold">any</emphasis>
-          only refers to top-level zones (those with no parent zones).</para>
 
           <para>The <replaceable>zone</replaceable> should be omitted in
           DNAT-, REDIRECT- and NONAT rules.</para>
@@ -980,7 +1107,8 @@
               </listitem>
             </orderedlist></para>
 
-          <para>Except when <emphasis role="bold">all</emphasis>[<emphasis
+          <para>Except when <emphasis
+          role="bold">{all|any}</emphasis>[<emphasis
           role="bold">+]|[-</emphasis>] is specified, the server may be
           further restricted to a particular network, host or interface by
           appending ":" and the network, host or interface. See <emphasis
@@ -1001,7 +1129,7 @@
           role="bold">DNAT-</emphasis>, the connections will be assigned to
           addresses in the range in a round-robin fashion.</para>
 
-          <para>If you kernel and iptables have ipset match support then you
+          <para>If your kernel and iptables have ipset match support then you
           may give the name of an ipset prefaced by "+". The ipset name may be
           optionally followed by a number from 1 to 6 enclosed in square
           brackets ([]) to indicate the number of levels of destination
@@ -1079,8 +1207,7 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">DEST PORT(S) (dport)</emphasis> -
-        {<emphasis
+        <term><emphasis role="bold">DPORT</emphasis> - {<emphasis
         role="bold">-</emphasis>|<emphasis>port-name-number-or-range</emphasis>[<emphasis
         role="bold">,</emphasis><emphasis>port-name-number-or-range</emphasis>]...|+<replaceable>ipset</replaceable>}</term>
 
@@ -1112,7 +1239,7 @@
 
           <para>If your kernel contains multi-port match support, then only a
           single Netfilter rule will be generated if in this list and the
-          <emphasis role="bold">CLIENT PORT(S)</emphasis> list below:</para>
+          <emphasis role="bold">SPORT</emphasis> list below:</para>
 
           <para>1. There are 15 or less ports listed.</para>
 
@@ -1123,12 +1250,13 @@
           <replaceable>ipset</replaceable> name can be specified in this
           column. This is intended to be used with
           <firstterm>bitmap:port</firstterm> ipsets.</para>
+
+          <para>This column was formerly labelled DEST PORT(S).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">SOURCE PORT(S)</emphasis> (sport) -
-        {<emphasis
+        <term><emphasis role="bold">SPORT</emphasis> - {<emphasis
         role="bold">-</emphasis>|<emphasis>port-name-number-or-range</emphasis>[<emphasis
         role="bold">,</emphasis><emphasis>port-name-number-or-range</emphasis>]...|+<replaceable>ipset</replaceable>}</term>
 
@@ -1138,11 +1266,10 @@
           names, port numbers or port ranges.</para>
 
           <para>Beginning with Shorewall 4.5.15, you may place '=' in this
-          column, provided that the DEST PORT(S) column is non-empty. This
-          causes the rule to match when either the source port or the
-          destination port in a packet matches one of the ports specified in
-          DEST PORTS(S). Use of '=' requires multi-port match in your iptables
-          and kernel.</para>
+          column, provided that the DPORT column is non-empty. This causes the
+          rule to match when either the source port or the destination port in
+          a packet matches one of the ports specified in DEST PORTS(S). Use of
+          '=' requires multi-port match in your iptables and kernel.</para>
 
           <warning>
             <para>Unless you really understand IP, you should leave this
@@ -1152,12 +1279,12 @@
           </warning>
 
           <para>If you don't want to restrict client ports but need to specify
-          an <emphasis role="bold">ORIGINAL DEST</emphasis> in the next
-          column, then place "-" in this column.</para>
+          an <emphasis role="bold">ORIGDEST</emphasis> in the next column,
+          then place "-" in this column.</para>
 
           <para>If your kernel contains multi-port match support, then only a
           single Netfilter rule will be generated if in this list and the
-          <emphasis role="bold">DEST PORT(S)</emphasis> list above:</para>
+          <emphasis role="bold">DPORT</emphasis> list above:</para>
 
           <para>1. There are 15 or less ports listed.</para>
 
@@ -1168,12 +1295,13 @@
           <replaceable>ipset</replaceable> name can be specified in this
           column. This is intended to be used with
           <firstterm>bitmap:port</firstterm> ipsets.</para>
+
+          <para>This column was formerly labelled SOURCE PORT(S).</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">ORIGINAL DEST</emphasis> (origdest) -
-        [<emphasis
+        <term><emphasis role="bold">ORIGDEST</emphasis> - [<emphasis
         role="bold">-</emphasis>|<emphasis>address</emphasis>[,<emphasis>address</emphasis>]...[<emphasis>exclusion</emphasis>]|<emphasis>exclusion</emphasis>]</term>
 
         <listitem>
@@ -1222,26 +1350,47 @@
           url="/PortKnocking.html">http://www.shorewall.net/PortKnocking.html</ulink>
           for an example of using an entry in this column with a user-defined
           action rule.</para>
+
+          <para>This column was formerly labelled ORIGINAL DEST.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">RATE LIMIT</emphasis> (rate) - [<emphasis
-        role="bold">-</emphasis>|[{<emphasis>s</emphasis>|<emphasis
-        role="bold">d</emphasis>}:[[<replaceable>name</replaceable>]:]]]<emphasis>rate</emphasis><emphasis
-        role="bold">/</emphasis>{<emphasis
-        role="bold">sec</emphasis>|<emphasis
-        role="bold">min</emphasis>|<emphasis
-        role="bold">hour</emphasis>|<emphasis
-        role="bold">day</emphasis>}[:<emphasis>burst</emphasis>]</term>
+        <term><emphasis role="bold">RATE</emphasis> -
+        <replaceable>limit</replaceable></term>
 
         <listitem>
+          <para>where <replaceable>limit</replaceable> is one of:</para>
+
+          <simplelist>
+            <member>[<emphasis role="bold">-</emphasis>|[{<emphasis
+            role="bold">s</emphasis>|<emphasis
+            role="bold">d</emphasis>}:[[<replaceable>name</replaceable>]:]]]<emphasis>rate</emphasis><emphasis
+            role="bold">/</emphasis>{<emphasis
+            role="bold">sec</emphasis>|<emphasis
+            role="bold">min</emphasis>|<emphasis
+            role="bold">hour</emphasis>|<emphasis
+            role="bold">day</emphasis>}[:<emphasis>burst</emphasis>]</member>
+
+            <member>[<replaceable>name</replaceable>1]:<emphasis>rate1</emphasis><emphasis
+            role="bold">/</emphasis>{<emphasis
+            role="bold">sec</emphasis>|<emphasis
+            role="bold">min</emphasis>|<emphasis
+            role="bold">hour</emphasis>|<emphasis
+            role="bold">day</emphasis>}[:<emphasis>burst1</emphasis>],[<replaceable>name</replaceable>2]:<emphasis>rate2</emphasis><emphasis
+            role="bold">/</emphasis>{<emphasis
+            role="bold">sec</emphasis>|<emphasis
+            role="bold">min</emphasis>|<emphasis
+            role="bold">hour</emphasis>|<emphasis
+            role="bold">day</emphasis>}[:<emphasis>burst2</emphasis>]</member>
+          </simplelist>
+
           <para>You may optionally rate-limit the rule by placing a value in
           this column:</para>
 
-          <para><emphasis>rate</emphasis> is the number of connections per
+          <para><emphasis>rate*</emphasis> is the number of connections per
           interval (<emphasis role="bold">sec</emphasis> or <emphasis
-          role="bold">min</emphasis>) and <emphasis>burst</emphasis> is the
+          role="bold">min</emphasis>) and <emphasis>burst</emphasis>* is the
           largest burst permitted. If no <emphasis>burst</emphasis> is given,
           a value of 5 is assumed. There may be no no white-space embedded in
           the specification.</para>
@@ -1250,20 +1399,35 @@
 
           <para>When <option>s:</option> or <option>d:</option> is specified,
           the rate applies per source IP address or per destination IP address
-          respectively. The <replaceable>name</replaceable> may be chosen by
-          the user and specifies a hash table to be used to count matching
+          respectively. The <replaceable>name</replaceable>s may be chosen by
+          the user and specifiy a hash table to be used to count matching
           connections. If not given, the name <emphasis
           role="bold">shorewallN</emphasis> (where N is a unique integer) is
-          assumed. Where more than one rule specifies the same name, the
-          connections counts for the rules are aggregated and the individual
-          rates apply to the aggregated count.</para>
+          assumed. Where more than one rule or POLICY specifies the same name,
+          the connections counts for the rules are aggregated and the
+          individual rates apply to the aggregated count.</para>
 
-          <para>Example: <emphasis role="bold">s:ssh:3/min:5</emphasis></para>
+          <para>Beginning with Shorewall 4.6.5, two<replaceable>
+          limit</replaceable>s may be specified, separated by a comma. In this
+          case, the first limit (<replaceable>name1</replaceable>,
+          <replaceable>rate1</replaceable>, burst1) specifies the per-source
+          IP limit and the second limit specifies the per-destination IP
+          limit.</para>
+
+          <para>Example: <emphasis
+          role="bold">client:10/sec:20,:60/sec:100</emphasis></para>
+
+          <para>In this example, the 'client' hash table will be used to
+          enforce the per-source limit and the compiler will pick a unique
+          name for the hash table that tracks the per-destination
+          limit.</para>
+
+          <para>This column was formerly labelled RATE LIMIT.</para>
         </listitem>
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">USER/GROUP</emphasis> (user) - [<emphasis
+        <term><emphasis role="bold">USER</emphasis> - [<emphasis
         role="bold">!</emphasis>][<emphasis>user-name-or-number</emphasis>][<emphasis
         role="bold">:</emphasis><emphasis>group-name-or-number</emphasis>][,...]</term>
 
@@ -1317,6 +1481,8 @@
               </listitem>
             </varlistentry>
           </variablelist>
+
+          <para>This column was formerly labelled USER/GROUP.</para>
         </listitem>
       </varlistentry>
 
@@ -1370,21 +1536,27 @@
       </varlistentry>
 
       <varlistentry>
-        <term><emphasis role="bold">CONNLIMIT</emphasis> - [<emphasis
+        <term><emphasis role="bold">CONNLIMIT</emphasis> - [d:][<emphasis
         role="bold">!</emphasis>]<emphasis>limit</emphasis>[:<emphasis>mask</emphasis>]</term>
 
         <listitem>
           <para>May be used to limit the number of simultaneous connections
-          from each individual host to <replaceable>limit</replaceable>
-          connections. Requires connlimit match in your kernel and iptables.
-          While the limit is only checked on rules specifying CONNLIMIT, the
-          number of current connections is calculated over all current
-          connections from the SOURCE host. By default, the limit is applied
-          to each host but can be made to apply to networks of hosts by
-          specifying a <replaceable>mask</replaceable>. The
-          <replaceable>mask</replaceable> specifies the width of a VLSM mask
-          to be applied to the source address; the number of current
-          connections is then taken over all hosts in the subnet
+          to/from each individual host or network to
+          <replaceable>limit</replaceable> connections. Requires connlimit
+          match in your kernel and iptables. While the limit is only checked
+          on rules specifying CONNLIMIT, the number of current connections is
+          calculated over all current connections from the SOURCE or
+          DESTINATION host. By default, limiting is done by SOURCE host or
+          net, but if the specification begins with <emphasis
+          role="bold">d:</emphasis>, then limiting will be donw by destination
+          host or net.</para>
+
+          <para>By default, the limit is applied to each host but can be made
+          to apply to networks of hosts by specifying a
+          <replaceable>mask</replaceable>. The <replaceable>mask</replaceable>
+          specifies the width of a VLSM mask to be applied to the source
+          address; the number of current connections is then taken over all
+          hosts in the subnet
           <replaceable>source-address</replaceable>/<replaceable>mask</replaceable>.
           When<option> !</option> is specified, the rule matches when the
           number of connection exceeds the
@@ -1466,6 +1638,8 @@
               <listitem>
                 <para>where <replaceable>dd</replaceable> is an ordinal day of
                 the month</para>
+
+                <para/>
               </listitem>
             </varlistentry>
 
@@ -1607,9 +1781,8 @@
         <listitem>
           <para>Accept SMTP requests from the DMZ to the internet</para>
 
-          <programlisting>         #ACTION SOURCE  DEST PROTO      DEST    SOURCE  ORIGINAL
-         #                               PORT    PORT(S) DEST
-         ACCEPT  dmz     net       tcp   smtp</programlisting>
+          <programlisting>         #ACTION SOURCE  DEST      PROTO      DPORT   SPORT   ORIGDEST
+         ACCEPT  dmz     net       tcp        smtp</programlisting>
         </listitem>
       </varlistentry>
 
@@ -1620,8 +1793,7 @@
           <para>Forward all ssh and http connection requests from the internet
           to local system 192.168.1.3</para>
 
-          <programlisting>        #ACTION SOURCE  DEST            PROTO   DEST    SOURCE  ORIGINAL
-        #                                       PORT    PORT(S) DEST
+          <programlisting>        #ACTION SOURCE  DEST            PROTO   DPORT   SPORT   ORIGDEST
         DNAT    net     loc:192.168.1.3 tcp     ssh,http</programlisting>
         </listitem>
       </varlistentry>
@@ -1632,9 +1804,8 @@
         <listitem>
           <para>Forward all http connection requests from the internet to
           local system 192.168.1.3 with a limit of 3 per second and a maximum
-          burst of 10<programlisting>        #ACTION SOURCE DEST            PROTO  DEST  SOURCE  ORIGINAL RATE
-        #                                     PORT  PORT(S) DEST     LIMIT
-        DNAT    net    loc:192.168.1.3 tcp    http  -       -        3/sec:10</programlisting></para>
+          burst of 10<programlisting>        #ACTION SOURCE DEST             PROTO  DPORT SPORT   ORIGDEST RATE
+        DNAT    net    loc:192.168.1.3  tcp    http  -       -        3/sec:10</programlisting></para>
         </listitem>
       </varlistentry>
 
@@ -1646,8 +1817,7 @@
           port 3128 on the firewall (Squid running on the firewall system)
           except when the destination address is 192.168.2.2</para>
 
-          <programlisting>        #ACTION  SOURCE DEST      PROTO DEST    SOURCE  ORIGINAL
-        #                               PORT    PORT(S) DEST
+          <programlisting>        #ACTION  SOURCE DEST      PROTO DPORT   SPORT   ORIGDEST
         REDIRECT loc    3128      tcp   www      -      !192.168.2.2</programlisting>
         </listitem>
       </varlistentry>
@@ -1659,8 +1829,7 @@
           <para>All http requests from the internet to address 130.252.100.69
           are to be forwarded to 192.168.1.3</para>
 
-          <programlisting>        #ACTION  SOURCE DEST            PROTO   DEST    SOURCE  ORIGINAL
-        #                                       PORT    PORT(S) DEST
+          <programlisting>        #ACTION  SOURCE DEST            PROTO   DPORT   SPORT   ORIGDEST
         DNAT      net   loc:192.168.1.3 tcp     80      -       130.252.100.69</programlisting>
         </listitem>
       </varlistentry>
@@ -1672,10 +1841,9 @@
           <para>You want to accept SSH connections to your firewall only from
           internet IP addresses 130.252.100.69 and 130.252.100.70</para>
 
-          <programlisting>        #ACTION  SOURCE DEST            PROTO   DEST    SOURCE  ORIGINAL
-        #                                       PORT    PORT(S) DEST
-        ACCEPT   net:130.252.100.69,130.252.100.70 $FW \
-                                        tcp     22</programlisting>
+          <programlisting>        #ACTION  SOURCE DEST            PROTO   DPORT   SPORT   ORIGDEST
+        ACCEPT   net:130.252.100.69,130.252.100.70 \
+                        $FW             tcp     22</programlisting>
         </listitem>
       </varlistentry>
 
@@ -1687,8 +1855,7 @@
           firewall on port 2222 and you want to forward them to local system
           192.168.1.3, port 22</para>
 
-          <programlisting>        #ACTION  SOURCE DEST                PROTO   DEST    SOURCE  ORIGINAL
-        #                                           PORT    PORT(S) DEST
+          <programlisting>        #ACTION  SOURCE DEST                PROTO   DPORT   SPORT   ORIGDEST
         DNAT     net    loc:192.168.1.3:22  tcp     2222</programlisting>
         </listitem>
       </varlistentry>
@@ -1700,8 +1867,7 @@
           <para>You want to redirect connection requests to port 80 randomly
           to the port range 81-90.</para>
 
-          <programlisting>        #ACTION  SOURCE DEST                PROTO DEST    SOURCE  ORIGINAL
-        #                                         PORT    PORT(S) DEST
+          <programlisting>        #ACTION  SOURCE DEST                PROTO DPORT   SPORT   ORIGDEST
         REDIRECT net    $FW::81-90:random   tcp   www</programlisting>
         </listitem>
       </varlistentry>
@@ -1737,8 +1903,7 @@
 
           <para>rules:</para>
 
-          <programlisting>        #ACTION     SOURCE          DEST       PROTO       DEST
-        #                                                  PORT(S)
+          <programlisting>        #ACTION     SOURCE          DEST       PROTO       DPORT
         REDIRECT    loc             3128       tcp         80                                                   </programlisting>
 
           <simpara>Note that it would have been tempting to simply define the
@@ -1766,8 +1931,7 @@
           <para>Add the tuple (source IP, dest port, dest IP) of an incoming
           SSH connection to the ipset S:</para>
 
-          <programlisting>        #ACTION                       SOURCE           DEST           PROTO       DEST
-        #                                                                         PORT(S)
+          <programlisting>        #ACTION                       SOURCE           DEST           PROTO       DPORT
         ADD(+S:dst,src,dst)           net              fw             tcp         22</programlisting>
         </listitem>
       </varlistentry>
@@ -1779,8 +1943,7 @@
           <para>You wish to limit SSH connections from remote systems to 1/min
           with a burst of three (to allow for limited retry):</para>
 
-          <programlisting>        #ACTION     SOURCE          DEST       PROTO       DEST         SOURCE    ORIGINAL         RATE
-        #                                                  PORT(S)      PORT(S)   DEST             LIMIT
+          <programlisting>        #ACTION     SOURCE          DEST       PROTO       DPORT        SPORT     ORIGDEST         RATE
         SSH(ACCEPT) net             all        -           -            -         -                s:1/min:3</programlisting>
         </listitem>
       </varlistentry>
@@ -1792,8 +1955,7 @@
           <para>Forward port 80 to dmz host $BACKUP if switch 'primary_down'
           is on.</para>
 
-          <programlisting>        #ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
-        #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
+          <programlisting>        #ACTION     SOURCE          DEST        PROTO       DPORT        SPORT     ORIGDEST   RATE      USER      MARK    CONNLIMIT     TIME     HEADERS    SWITCH
         DNAT        net             dmz:$BACKUP tcp         80           -         -          -         -         -       -             -        -          primary_down</programlisting>
         </listitem>
       </varlistentry>
@@ -1805,8 +1967,7 @@
           <para>Drop all email from the <emphasis>Anonymous Proxy</emphasis>
           and <emphasis>Satellite Provider</emphasis> address ranges:</para>
 
-          <programlisting>        #ACTION                       SOURCE           DEST           PROTO       DEST
-        #                                                                         PORT(S)
+          <programlisting>        #ACTION                       SOURCE           DEST           PROTO       DPORT
         DROP                          net:^A1,A2       fw             tcp         25</programlisting>
         </listitem>
       </varlistentry>
@@ -1818,8 +1979,7 @@
           <para>You want to generate your own rule involving iptables targets
           and matches not supported by Shorewall.</para>
 
-          <programlisting>        #ACTION                       SOURCE           DEST           PROTO       DEST
-        #                                                                         PORT(S)
+          <programlisting>        #ACTION                       SOURCE           DEST           PROTO       DPORT
         INLINE                        $FW              net ; -p 6 -m mickey-mouse --name test -m set --match-set set1 src -m mickey-mouse --name test2 -j SECCTX --name test3</programlisting>
 
           <para>The above will generate the following iptables-restore
