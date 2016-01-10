@@ -1,5 +1,5 @@
 #
-# Cygwin Shorewall 4.5 rc file
+# Cygwin Shorewall 5.0 rc file
 #
 BUILD=cygwin
 HOST=cygwin
@@ -14,7 +14,7 @@ INITDIR=/etc/init.d                   #Unused on Cygwin
 INITFILE=                             #Unused on Cygwin
 INITSOURCE=                           #Unused on Cygwin
 ANNOTATED=                            #Unused on Cygwin
-SYSTEMD=                              #Unused on Cygwin
+SERVICEDIR=                           #Unused on Cygwin
 SERVICEFILE=                          #Unused on Cygwin
 SYSCONFDIR=                           #Unused on Cygwin
 SPARSE=Yes                            #Only install $PRODUCT/$PRODUCT.conf in $CONFDIR.
