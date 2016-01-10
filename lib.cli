@@ -1,7 +1,7 @@
 #
-# Shorewall 4.5 -- /usr/share/shorewall/lib.cli.
+# Shorewall 5.0 -- /usr/share/shorewall/lib.cli.
 #
-#     (c) 1999-2014 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2015 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -25,7 +25,7 @@
 # loaded after this one and replaces some of the functions declared here.
 #
 
-SHOREWALL_CAPVERSION=40600
+SHOREWALL_CAPVERSION=40609
 
 [ -n "${g_program:=shorewall}" ]
 
@@ -41,16 +41,6 @@ if [ -z "$g_readrc" ]; then
 fi
 
 . ${SHAREDIR}/shorewall/lib.base
-
-
-#
-# Fatal Error
-#
-fatal_error() # $@ = Message
-{
-    echo "   ERROR: $@" >&2
-    exit 2
-}
 
 #
 # Issue an error message and die
@@ -153,29 +143,63 @@ timed_read ()
 }
 
 #
-# Determine if 'syslog -C' is running
+# Determine if 'syslogd -C' or logd -S is running
 #
 syslog_circular_buffer() {
     local pid
     local tty
     local flags
-    local cputime
+    local time
     local path
     local args
     local arg
 
-    ps ax 2> /dev/null | while read pid tty flags cputime path args; do
-	case $path in
-	    syslogd|*/syslogd)
-		for arg in $args; do
-		    if [ x$arg = x-C ]; then
-			echo Yes
-			return
-		    fi
-		done
-		;;
-	esac
-    done
+    ps w 2> /dev/null | (
+	while read pid tty stat time path args; do
+	    case $path in
+		syslogd|*/syslogd)
+		    for arg in $args; do
+			case $arg in
+			    -C*)
+				return 0
+				;;
+			esac
+		    done
+		    ;;
+		logd|*/logd)
+		    for arg in $args; do
+			case $arg in
+			    -S*)
+				return 0
+				;;
+			esac
+		    done
+		    ;;
+	    esac
+	done
+
+	return 1 )
+}
+
+setup_logread() {
+    [ -z "$LOGFILE" ] && LOGFILE=/var/log/messages
+
+    if syslog_circular_buffer; then
+	LOGFILE=logread
+	if qt mywhich tac; then
+	    g_logread="logread | tac"
+	else
+	    g_logread="logread"
+	fi
+    elif [ -r $LOGFILE ]; then
+	if qt mywhich tac; then
+	    g_logread="tac $LOGFILE"
+	else
+	    g_logread="cat $LOGFILE"
+	fi
+    else
+	fatal_error "LOGFILE ($LOGFILE) does not exist or is not readable!"
+    fi
 }
 
 #
@@ -183,31 +207,59 @@ syslog_circular_buffer() {
 #
 packet_log() # $1 = number of messages
 {
-    if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
-	if [ $g_family -eq 4 ]; then
-	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | head -n$1 | tac | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+    if qt mywhich tac; then
+	if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
+	    if [ $g_family -eq 4 ]; then
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | head -n$1 | tac | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+	    else
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' | head -n$1 | tac | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	    fi
+	elif [ $g_family -eq 4 ]; then
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  head -n$1 | tac | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
 	else
-	    $g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' | head -n$1 | tac | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' |  head -n$1 | tac | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
 	fi
-    elif [ $g_family -eq 4 ]; then
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  head -n$1 | tac | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
     else
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' |  head -n$1 | tac | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
-    fi
+	if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
+	    if [ $g_family -eq 4 ]; then
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | tail -n$1 | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+	    else
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' | tail -n$1 | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	    fi
+	elif [ $g_family -eq 4 ]; then
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  tail -n$1 | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
+	else
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*:.*DST=' |  tail -n$1 | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	fi
+    fi	
 }
 
 search_log() # $1 = IP address to search for
 {
-    if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
-        if [ $g_family -eq 4 ]; then
-	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | tac | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+    if qt mywhich tac; then
+	if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
+            if [ $g_family -eq 4 ]; then
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | tac | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+	    else
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | tac | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	    fi
+	elif [ $g_family -eq 4 ]; then
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | tac | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
 	else
-	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | tac | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | tac | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
 	fi
-    elif [ $g_family -eq 4 ]; then
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | tac | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
     else
-	$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | tac | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	if [ -n "$g_showmacs" -o $VERBOSITY -gt 2 ]; then
+            if [ $g_family -eq 4 ]; then
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | sed 's/ kernel://; s/\[.*\] //' | sed s/" $host $LOGFORMAT"/" "/
+	    else
+		$g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' | grep "$1" | sed -r 's/ kernel://; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	    fi
+	elif [ $g_family -eq 4 ]; then
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | sed 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] '// | sed s/" $host $LOGFORMAT"/" "/
+	else
+	    $g_logread | grep 'IN=.* OUT=.*SRC=.*\..*DST=' |  grep "$1" | sed -r 's/ kernel://; s/MAC=.* SRC=/SRC=/; s/\[.*\] //; s/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | sed s/" $host $LOGFORMAT"/" "/
+	fi
     fi
 }
 
@@ -290,17 +342,7 @@ show_bl() {
 logwatch() # $1 = timeout -- if negative, prompt each time that
 	   #		     an 'interesting' packet count changes
 {
-    if [ -z "$LOGFILE" ]; then
-	LOGFILE=/var/log/messages
-
-	if [ -n "$(syslog_circular_buffer)" ]; then
-	    g_logread="logread | tac"
-	elif [ -r $LOGFILE ]; then
-	    g_logread="tac $LOGFILE"
-	else
-	    fatal_error "LOGFILE ($LOGFILE) does not exist!"
-	fi
-    fi
+    setup_logread
 
     host=$(echo $g_hostname | sed 's/\..*$//')
     oldrejects=$($g_tool -L -v -n | grep 'LOG')
@@ -375,7 +417,18 @@ savesets() {
 
     supported=$(run_it ${VARDIR}/firewall help | fgrep savesets )
 
-    [ -n "$supported" ] && run_it ${VARDIR}/firewall savesets ${g_restorepath}-ipsets
+    [ -n "$supported" ] && run_it ${VARDIR}/firewall savesets ${g_restorepath}-ipsets 
+}
+
+#
+# Proactive save of the current ipset contents
+#
+savesets1() {
+    local supported
+
+    supported=$(run_it ${VARDIR}/firewall help | fgrep savesets )
+
+    [ -n "$supported" ] && run_it ${VARDIR}/firewall savesets ${VARDIR}/ipsets.save && progress_message3 "The ipsets have been saved to ${VARDIR}/ipsets.save"
 }
 
 #
@@ -387,7 +440,7 @@ do_save() {
     status=0
 
     if [ -f ${VARDIR}/firewall ]; then
-	if $iptables_save | iptablesbug > ${VARDIR}/restore-$$; then
+	if $iptables_save | grep -v -- '-A dynamic.* -j ACCEPT' > ${VARDIR}/restore-$$; then
 	    cp -f ${VARDIR}/firewall $g_restorepath
 	    mv -f ${VARDIR}/restore-$$ ${g_restorepath}-iptables
 	    chmod +x $g_restorepath
@@ -408,10 +461,7 @@ do_save() {
 	    resolve_arptables
 
 	    if [ -n "$arptables" ]; then
-	        #
-	        # 'sed' command is a hack to work around broken arptables_jf
-	        #
-		if ${arptables}-save | sed 's/-p[[:space:]]\+0\([[:digit:]]\)00\/ffff/-p 000\1\/ffff/' > ${VARDIR}/restore-$$; then
+		if ${arptables}-save > ${VARDIR}/restore-$$; then
 		    if grep -q '^-A' ${VARDIR}/restore-$$; then
 			mv -f ${VARDIR}/restore-$$ ${g_restorepath}-arptables
 		    else
@@ -456,16 +506,7 @@ do_save() {
 		esac
 
 		if [ -n "$IPSET" ]; then
-		    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then
-			#
-			# The 'grep -v' is a hack for a bug in ipset's nethash implementation when xtables-addons is applied to Lenny
-			#
-			hack='| grep -v /31'
-		    else
-			hack=
-		    fi
-
-		    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then
+		    if eval $IPSET -S > ${VARDIR}/ipsets.tmp; then
 			#
 			# Don't save an 'empty' file
 			#
@@ -473,7 +514,7 @@ do_save() {
 		    fi
 		fi
 		;;
-	    [Nn]o)
+	    [Nn]o|ipv4|ipv6)
 		;;
 	    *)
 		error_message "WARNING: Invalid value ($SAVE_IPSETS) for SAVE_IPSETS"
@@ -492,6 +533,8 @@ save_config() {
     iptables_save=${g_tool}-save
 
     [ -x $iptables_save ] || echo "$iptables-save does not exist or is not executable" >&2
+
+    [ -n "$g_counters" ] && iptables_save="$iptables_save --counters"
 
     if product_is_started ; then
 	[ -d ${VARDIR} ] || mkdir -p ${VARDIR}
@@ -978,8 +1021,6 @@ show_command() {
 
     case "$1" in
 	connections)
-	    [ $# -gt 1 ] && usage 1
-
 	    if [ $g_family -eq 4 ]; then
 		if [ -d /proc/sys/net/netfilter/ ]; then
 		    local count
@@ -994,8 +1035,10 @@ show_command() {
 		echo
 
 		if qt mywhich conntrack ; then
-		    conntrack -f ipv${g_family} -L | show_connections_filter
+		    shift
+		    conntrack -f ipv4 -L $@ | show_connections_filter
 		else
+		    [ $# -gt 1 ] && usage 1
 		    if [ -f /proc/net/ip_conntrack ]; then
 			cat /proc/net/ip_conntrack | show_connections_filter
 		    else
@@ -1003,15 +1046,19 @@ show_command() {
 		    fi
 	        fi
 	    elif qt mywhich conntrack ; then
+		shift
 		echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
 		echo
-		conntrack -f ipv6 -L | show_connections_filter
+		conntrack -f ipv6 -L $@ | show_connections_filter
 	    else
-		local count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
-		local max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
-		echo "$g_product $SHOREWALL_VERSION Connections ($count of $max) at $g_hostname - $(date)"
-		echo
-		grep '^ipv6' /proc/net/nf_conntrack | sed -r 's/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | show_connections_filter
+		[ $# -gt 1 ] && usage 1
+		if [ -f /proc/sys/net/netfilter/nf_conntrack_count -a -f /proc/sys/net/nf_conntrack ]; then
+		    local count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
+		    local max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
+		    echo "$g_product $SHOREWALL_VERSION Connections ($count of $max) at $g_hostname - $(date)"
+		    echo
+		    grep '^ipv6' /proc/net/nf_conntrack | sed -r 's/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | show_connections_filter
+		fi
 	    fi
 	    ;;
 	nat)
@@ -1045,17 +1092,7 @@ show_command() {
 	log)
 	    [ $# -gt 2 ] && usage 1
 
-	    if [ -z "$LOGFILE" ]; then
-		LOGFILE=/var/log/messages
-
-		if [ -n "$(syslog_circular_buffer)" ]; then
-		    g_logread="logread | tac"
-		elif [ -r $LOGFILE ]; then
-		    g_logread="tac $LOGFILE"
-		else
-		    fatal_error "LOGFILE ($LOGFILE) does not exist!"
-		fi
-	    fi
+	    setup_logread
 
 	    echo "$g_product $SHOREWALL_VERSION Log ($LOGFILE) at $g_hostname - $(date)"
 	    echo
@@ -1221,6 +1258,16 @@ show_command() {
 	    echo "$g_product $SHOREWALL_VERSION blacklist chains at $g_hostname - $(date)"
 	    echo
 	    show_bl;
+	    ;;
+	opens)
+	    [ $# -gt 1 ] && usage 1
+	    echo "$g_product $SHOREWALL_VERSION Temporarily opened connections at $g_hostname - $(date)"
+
+	    if chain_exists dynamic; then
+		g_ipt_options="$g_ipt_options --line-numbers"
+		$g_tool -t filter -L dynamic $g_ipt_options  | head -n2
+		$g_tool -t filter -L dynamic $g_ipt_options  | fgrep ACCEPT | $output_filter
+	    fi
 	    ;;
 	*)
 	    case "$g_program" in
@@ -1424,17 +1471,7 @@ do_dump_command() {
 	esac
     done
 
-    if [ -z "$LOGFILE" ]; then
-	LOGFILE=/var/log/messages
-
-	if [ -n "$(syslog_circular_buffer)" ]; then
-	    g_logread="logread | tac"
-	elif [ -r $LOGFILE ]; then
-	    g_logread="tac $LOGFILE"
-	else
-	    fatal_error "LOGFILE ($LOGFILE) does not exist! - See http://www.shorewall.net/shorewall_logging.html"
-	fi
-    fi
+    setup_logread
 
     g_ipt_options="$g_ipt_options $g_ipt_options1"
 
@@ -1500,7 +1537,9 @@ do_dump_command() {
 	heading "Conntrack Table"
     fi
 
-    if [ $g_family -eq 4 ]; then
+    if qt mywhich conntrack; then
+	conntrack -f ipv${g_family} -L 2> /dev/null
+    elif [ $g_family -eq 4 ]; then
     	[ -f /proc/net/ip_conntrack ] && cat /proc/net/ip_conntrack || grep -v '^ipv6' /proc/net/nf_conntrack
     else
 	grep '^ipv6' /proc/net/nf_conntrack
@@ -1587,7 +1626,7 @@ do_dump_command() {
 
     echo
 
-    ss -${g_family}tunap
+    qt mywhich ss && ss -${g_family}tunap || { qt mywhich netstat && netatat -tunap; }
 
     if [ -n "$TC_ENABLED" ]; then
 	heading "Traffic Control"
@@ -1624,6 +1663,15 @@ restore_command() {
 			    g_noroutes=Yes
 			    option=${option#n}
 			    ;;
+			p*)
+			    [ -n "$(which conntrack)" ] || fatal_error "The '-p' option requires the conntrack utility which does not appear to be installed on this system"
+			    g_purge=Yes
+			    option=${option%p}
+			    ;;
+			C*)
+			    g_counters=Yes
+			    option=${option#C}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -1651,7 +1699,7 @@ restore_command() {
 
     if [ -z "$STARTUP_ENABLED" ]; then
 	error_message "ERROR: Startup is disabled"
-	exit 2
+	exit 6
     fi
 
     g_restorepath=${VARDIR}/$RESTOREFILE
@@ -1948,7 +1996,7 @@ add_command() {
 		ipset=6_${zone}_${interface};
 	    fi
 
-	    ipset=$(echo $ipset | sed 's/./_/g');
+	    ipset=$(echo $ipset | sed 's/\./_/g');
 
 	    if ! qt $IPSET -L $ipset; then
 		fatal_error "Zone $zone, interface $interface does not have a dynamic host list"
@@ -2062,6 +2110,166 @@ delete_command() {
 		echo "   WARNING: Unable to delete host $host from zone $zone" >&2
 	    fi
 	done
+    fi
+}
+
+open_close_command() {
+    local command
+    local desc
+    local proto
+    local icmptype
+
+    open_close_setup() {
+	[ -n "$g_nolock" ] || mutex_on
+
+	if ! product_is_started ; then
+	    [ -n "$g_nolock" ] || mutex_off
+	    fatal_error "The $COMMAND command requires the firewall to be running"
+	fi
+
+	if ! chain_exists dynamic; then
+	    [ -n "$g_nolock" ] || mutex_off
+	    fatal_error "The $COMMAND command requires DYNAMIC_BLACKLIST=Yes in the running configuration"
+	fi
+    }
+
+    [ $# -le 4 ] || fatal_error "Too many parameters"
+
+    if [ $COMMAND = open ]; then
+	[ $# -ge 2 ] || fatal_error "Too few parameters"
+    else
+	[ $# -ge 1 ] || fatal_error "Too few parameters"
+    fi
+
+    if [ $# -eq 1 ]; then
+	#
+	# close <rule number>
+	#
+	case $1 in
+	    [1-9]|[1-9][0-9]|[1-9][0-9][0-9]*)
+		;;
+	    *)
+		fatal_error "$1 is not a valid temporary open number"
+		;;
+	esac
+
+	open_close_setup #Conditionally acquires mutex
+
+	if $g_tool -L dynamic --line-numbers | grep -q "^$1 .* ACCEPT "; then
+	    if $g_tool -D dynamic $1; then
+		[ -n "$g_nolock" ] || mutex_off
+		echo "Temporary open #$1 closed"
+		return 0
+	    fi
+	    [ -n "$g_nolock" ] || mutex_off
+	    return 2
+	else
+	    [ -n "$g_nolock" ] || mutex_off
+	    fatal_error "$1 is not a valid temporary open number"
+	fi
+    else
+	if [ $1 = all ]; then
+	    command=dynamic
+	else
+	    command="dynamic -s $1"
+	fi
+
+	if [ $2 != all ]; then
+	    command="$command -d $2"
+	fi
+
+	desc="from $1 to $2"
+
+	if [ $# -ge 3 ]; then
+	    proto=$3
+
+	    [ $proto = icmp -a $g_family -eq 6 ] && proto=58
+
+	    command="$command -p $proto"
+
+	    case $3 in
+		[0-9]*)
+		    desc="$desc protocol $3"
+		    ;;
+		*)
+		    desc="$desc $3"
+		    ;;
+	    esac
+
+	    if [ $g_family -eq 4 ]; then
+		if [ $proto = 6 -o $proto = icmp ]; then
+		    proto=icmp
+		    icmptype='--icmp-type'
+		fi
+	    else
+		if [ $proto = 58 -o $proto = ipv6-icmp ]; then
+		    proto=icmp
+		    icmptype='--icmpv6-type'
+		fi
+	    fi
+	fi
+
+	if [ $# -eq 4 ]; then
+	    if [ $proto = icmp ]; then
+		case $4 in
+		    *,*)
+			fatal_error "Only a single ICMP type may be specified"
+			;;
+		    [0-9]*)
+			desc="$desc type $4"
+			;;
+		    *)
+			desc="$desc $4"
+			;;
+		esac
+
+		command="$command $icmptype $4"
+	    else
+		case $4 in
+		*,*)
+		    command="$command -m multiport --dports $4"
+		    ;;
+		*)
+		    command="$command --dport $4"
+		    ;;
+		esac
+
+		case $4 in
+		    [0-9]*,)
+			desc="$desc ports $4"
+			;;
+		    [0-9]*)
+			desc="$desc port $4"
+			;;
+		    *)
+			desc="$desc $4"
+			;;
+		esac
+	    fi
+	fi
+
+	command="$command -j ACCEPT"
+
+	open_close_setup #Conditionally acquires mutex
+
+	if [ $COMMAND = open ]; then
+	    if $g_tool -I $command ; then
+		[ -n "$g_nolock" ] || mutex_off
+		echo "Firewall dynamically opened for connections $desc"
+		return 0
+	    fi
+	    [ -n "$g_nolock" ] || mutex_off
+	    return 2
+	fi
+
+	if $g_tool -D $command 2> /dev/null; then
+	    [ -n "$g_nolock" ] || mutex_off
+	    echo "Firewall dynamically closed for connections $desc (may still be permitted by rules/policies)"
+	    return 0
+	fi
+
+	[ -n "$g_nolock" ] || mutex_off
+	fatal_error "Connections $desc are not currently opened"
     fi
 }
 
@@ -2283,6 +2491,7 @@ determine_capabilities() {
     local chain
     local chain1
     local arptables
+    local helper
 
     if [ -z "$g_tool" ]; then
 	[ $g_family -eq 4 ] && tool=iptables || tool=ip6tables
@@ -2381,6 +2590,9 @@ determine_capabilities() {
     MASQUERADE_TGT=
     UDPLITEREDIRECT=
     NEW_TOS_MATCH=
+    TARPIT_TARGET=
+    IFACE_MATCH=
+    TCPMSS_TARGET=
 
     AMANDA_HELPER=
     FTP_HELPER=
@@ -2534,6 +2746,12 @@ determine_capabilities() {
 	qt $NFACCT del $chain
     fi
 
+    qt $g_tool -A $chain -p tcp -j TARPIT && TARPIT_TARGET=Yes
+
+    qt $g_tool -A $chain -m iface --iface lo --loopback && IFACE_MATCH=Yes
+
+    qt $g_tool -A $chain -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu && TCPMSS_TARGET=Yes
+
     if [ -n "$MANGLE_ENABLED" ]; then
 	qt $g_tool -t mangle -N $chain
 
@@ -2575,21 +2793,44 @@ determine_capabilities() {
 	if qt $g_tool -t raw -A $chain -j CT --notrack; then
 	    CT_TARGET=Yes;
 
-	    qt $g_tool -t raw -A $chain -p udp --dport 10080 -j CT --helper amanda     && AMANDA_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 21    -j CT --helper ftp        && FTP_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 21    -j CT --helper ftp-0      && FTP0_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 1719  -j CT --helper RAS        && H323_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 6667  -j CT --helper irc        && IRC_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 6667  -j CT --helper irc-0      && IRC0_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 137   -j CT --helper netbios-ns && NETBIOS_NS_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 1729  -j CT --helper pptp       && PPTP_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 6566  -j CT --helper sane       && SANE_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p tcp --dport 6566  -j CT --helper sane-0     && SANE0_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 5060  -j CT --helper sip        && SIP_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 5060  -j CT --helper sip-0      && SIP0_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 161   -j CT --helper snmp       && SNMP_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 69    -j CT --helper tftp       && TFTP_HELPER=Yes
-	    qt $g_tool -t raw -A $chain -p udp --dport 69    -j CT --helper tftp-0     && TFTP0_HELPER=Yes
+	    for helper in amanda ftp ftp0 h323 irc irc0 netbios_ns pptp sane sane0 sip sip0 snmp tftp tftp0; do
+		eval ${helper}_ENABLED=''
+	    done
+
+	    if [ -n "$HELPERS" ]; then
+		for helper in $(split_list "$HELPERS"); do
+		    case $helper in
+			none)
+			    ;;
+			amanda|ftp|ftp0|h323|irc|irc0|netbios_ns|pptp|sane|sane0|sip|sip0|snmp|tftp|tftp0)
+			    eval ${helper}_ENABLED=Yes
+			    ;;
+			*)
+			    error_message "WARNING: Invalid helper ($helper) ignored"
+			    ;;
+		    esac
+		done
+	    else
+		for helper in amanda ftp ftp0 h323 irc irc0 netbios_ns pptp sane sane0 sip sip0 snmp tftp tftp0; do
+		    eval ${helper}_ENABLED=Yes
+		done
+	    fi
+
+	    [ -n "$amanda_ENABLED" ]     && qt $g_tool -t raw -A $chain -p udp --dport 10080 -j CT --helper amanda     && AMANDA_HELPER=Yes
+	    [ -n "$ftp_ENABLED" ]        && qt $g_tool -t raw -A $chain -p tcp --dport 21    -j CT --helper ftp        && FTP_HELPER=Yes
+	    [ -n "$ftp0_ENABLED" ]       && qt $g_tool -t raw -A $chain -p tcp --dport 21    -j CT --helper ftp-0      && FTP0_HELPER=Yes
+	    [ -n "$h323_ENABLED" ]       && qt $g_tool -t raw -A $chain -p udp --dport 1719  -j CT --helper RAS        && H323_HELPER=Yes
+	    [ -n "$irc_ENABLED" ]        && qt $g_tool -t raw -A $chain -p tcp --dport 6667  -j CT --helper irc        && IRC_HELPER=Yes
+	    [ -n "$irc0_ENABLED" ]       && qt $g_tool -t raw -A $chain -p tcp --dport 6667  -j CT --helper irc-0      && IRC0_HELPER=Yes
+	    [ -n "$netbios_ns_ENABLED" ] && qt $g_tool -t raw -A $chain -p udp --dport 137   -j CT --helper netbios-ns && NETBIOS_NS_HELPER=Yes
+	    [ -n "$pptp_ENABLED" ]       && qt $g_tool -t raw -A $chain -p tcp --dport 1729  -j CT --helper pptp       && PPTP_HELPER=Yes
+	    [ -n "$sane_ENABLED" ]       && qt $g_tool -t raw -A $chain -p tcp --dport 6566  -j CT --helper sane       && SANE_HELPER=Yes
+	    [ -n "$sane0_ENABLED" ]      && qt $g_tool -t raw -A $chain -p tcp --dport 6566  -j CT --helper sane-0     && SANE0_HELPER=Yes
+	    [ -n "$sip_ENABLED" ]        && qt $g_tool -t raw -A $chain -p udp --dport 5060  -j CT --helper sip        && SIP_HELPER=Yes
+	    [ -n "$sip0_ENABLED" ]       && qt $g_tool -t raw -A $chain -p udp --dport 5060  -j CT --helper sip-0      && SIP0_HELPER=Yes
+	    [ -n "$snmp_ENABLED" ]       && qt $g_tool -t raw -A $chain -p udp --dport 161   -j CT --helper snmp       && SNMP_HELPER=Yes
+	    [ -n "$tftp_ENABLED" ]       && qt $g_tool -t raw -A $chain -p udp --dport 69    -j CT --helper tftp       && TFTP_HELPER=Yes
+	    [ -n "$tftp0_ENABLED" ]      && qt $g_tool -t raw -A $chain -p udp --dport 69    -j CT --helper tftp-0     && TFTP0_HELPER=Yes
 	fi
 
 	qt $g_tool -t raw -F $chain
@@ -2803,14 +3044,17 @@ report_capabilities_unsorted() {
     report_capability "IMQ Target (IMQ_TARGET)" $IMQ_TARGET
     report_capability "DSCP Match (DSCP_MATCH)" $DSCP_MATCH
     report_capability "DSCP Target (DSCP_TARGET)" $DSCP_TARGET
-    report_capability "Geo IP match" $GEOIP_MATCH
-    report_capability "RPFilter match" $RPFILTER_MATCH
-    report_capability "NFAcct match" $NFACCT_MATCH
-    report_capability "Checksum Target" $CHECKSUM_TARGET
-    report_capability "Arptables JF" $ARPTABLESJF
-    report_capability "MASQUERADE Target" $MASQUERADE_TGT
-    report_capability "UDPLITE Port Redirection" $UDPLITEREDIRECT
-    report_capability "New tos Match" $NEW_TOS_MATCH
+    report_capability "Geo IP Match (GEOIP_MATCH)" $GEOIP_MATCH
+    report_capability "RPFilter Match (RPFILTER_MATCH)" $RPFILTER_MATCH
+    report_capability "NFAcct Match" $NFACCT_MATCH
+    report_capability "Checksum Target (CHECKSUM_TARGET)" $CHECKSUM_TARGET
+    report_capability "Arptables JF (ARPTABLESJF)" $ARPTABLESJF
+    report_capability "MASQUERADE Target (MASQUERADE_TGT)" $MASQUERADE_TGT
+    report_capability "UDPLITE Port Redirection (UDPLITEREDIRECT)" $UDPLITEREDIRECT
+    report_capability "New tos Match (NEW_TOS_MATCH)" $NEW_TOS_MATCH
+    report_capability "TARPIT Target (TARPIT_TARGET)" $TARPIT_TARGET
+    report_capability "Iface Match (IFACE_MATCH)" $IFACE_MATCH
+    report_capability "TCPMSS Target (TCPMSS_TARGET)" $TCPMSS_TARGET
 
     report_capability "Amanda Helper" $AMANDA_HELPER
     report_capability "FTP Helper" $FTP_HELPER
@@ -2938,6 +3182,9 @@ report_capabilities_unsorted1() {
     report_capability1 MASQUERADE_TGT
     report_capability1 UDPLITEREDIRECT
     report_capability1 NEW_TOS_MATCH
+    report_capability1 TARPIT_TARGET
+    report_capability1 IFACE_MATCH
+    report_capability1 TCPMSS_TARGET
 
     report_capability1 AMANDA_HELPER
     report_capability1 FTP_HELPER
@@ -3108,11 +3355,45 @@ reject_command() {
 }
 
 save_command() {
+    local finished
+    finished=0
+
+    shift
+
+    while [ $finished -eq 0 -a $# -gt 0 ]; do
+	option=$1
+	case $option in
+	    -*)
+		option=${option#-}
+
+		while [ -n "$option" ]; do
+		    case $option in
+			-)
+			    finished=1
+			    option=
+			    ;;
+			C*)
+			    g_counters=Yes
+			    option=${option#C}
+			    ;;
+			*)
+			    usage 1
+			    ;;
+		    esac
+		done
+		shift
+		;;
+	    *)
+		finished=1
+		;;
+	esac
+    done
+
     case $# in
-	1)
+	0)
 	    ;;
-	2)
-	    RESTOREFILE="$2"
+	1)
+	    RESTOREFILE="$1"
 	    validate_restorefile '<restore file>'
 	    ;;
 	*)
@@ -3248,10 +3529,34 @@ noiptrace_command() {
 	fatal_error "$g_product is not started"
     fi
 }
+
 #
-# Set the configuration variables from shorewall-lite.conf
+# Verify that we have a compiled firewall script
+#
+verify_firewall_script() {
+    if [ ! -f $g_firewall ]; then
+	echo "   ERROR: $g_product is not properly installed" >&2
+	if [ -L $g_firewall ]; then
+	    echo "          $g_firewall is a symbolic link to a" >&2
+	    echo "          non-existant file" >&2
+	else
+	    echo "          The file $g_firewall does not exist" >&2
+	fi
+
+	exit 2
+    fi
+}
+
+################################################################################
+# The remaining functions are used by the Lite cli - they are overloaded by
+# the Standard CLI by loading lib.cli-std
+################################################################################
+#
+# Set the configuration variables from shorewall[6]-lite.conf.
 #
 get_config() {
+    local config
+    local lib
 
     ensure_config_path
 
@@ -3273,15 +3578,7 @@ get_config() {
 
     [ -n "$PATH" ] || PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 
-    [ -z "$LOGFILE" ] && LOGFILE=/var/log/messages
-
-    if ( ps ax 2> /dev/null | grep -v grep |  qt grep 'syslogd.*-C' ) ; then
-	g_logread="logread | tac"
-    elif [ -r $LOGFILE ]; then
-	g_logread="tac $LOGFILE"
-    else
-	fatal_error "LOGFILE ($LOGFILE) does not exist!"
-    fi
+    setup_logread
     #
     # See if we have a real version of "tail" -- use separate redirection so
     # that ash (aka /bin/sh on LRP) doesn't crap
@@ -3343,11 +3640,12 @@ get_config() {
 	VERBOSITY=2
     fi
 
-    g_hostname=$(hostname 2> /dev/null)
-
-    IP=$(mywhich ip 2> /dev/null)
-    if [ -z "$IP" ] ; then
-	fatal_error "Can't find ip executable"
+    if qt mywhich hostname; then
+	g_hostname=$(hostname 2> /dev/null)
+    elif qt mywhich uname; then
+	g_hostname=$(uname -n 2> /dev/null)
+    else
+	g_hostname=localhost
     fi
 
     if [ -n "$IPSET" ]; then
@@ -3369,31 +3667,30 @@ get_config() {
 	IPSET=''
     fi
 
+    if [ -n "$WORKAROUNDS" ]; then
+	case $WORKAROUNDS in
+	    [Yy]es)
+	        ;;
+	    [Nn]o)
+		WORKAROUNDS=''
+		;;
+	    *)
+		fatal_error "Invalid setting ($WORKAROUNDS) for WORKAROUNDS"
+		;;
+	esac
+    fi
+
     TC=tc
 
+    IP=$(mywhich ip 2> /dev/null)
+
+    g_loopback=$(find_loopback_interfaces)
+
+    lib=$(find_file lib.cli-user)
+
+    [ -f $lib ] && . $lib
+
 }
-
-#
-# Verify that we have a compiled firewall script
-#
-verify_firewall_script() {
-    if [ ! -f $g_firewall ]; then
-	echo "   ERROR: $g_product is not properly installed" >&2
-	if [ -L $g_firewall ]; then
-	    echo "          $g_firewall is a symbolic link to a" >&2
-	    echo "          non-existant file" >&2
-	else
-	    echo "          The file $g_firewall does not exist" >&2
-	fi
-
-	exit 2
-    fi
-}
-
-################################################################################
-# The remaining functions are used by the Lite cli - they are overloaded by
-# the Standard CLI by loading lib.cli-std
-################################################################################
 #
 # Start Command Executor
 #
@@ -3407,12 +3704,16 @@ start_command() {
 	[ -n "$g_nolock" ] || mutex_on
 
 	if [ -x ${VARDIR}/firewall ]; then
-	    run_it ${VARDIR}/firewall $g_debugging start
+	    if [ -n "$g_fast" -a -x ${VARDIR}/${RESTOREFILE} -a ! ${VARDIR}/firewall -nt ${VARDIR}/${RESTOREFILE} ]; then
+		run_it ${VARDIR}/${RESTOREFILE} $g_debugging restore
+	    else
+		run_it ${VARDIR}/firewall $g_debugging start
+	    fi
 	    rc=$?
 	else
 	    error_message "${VARDIR}/firewall is missing or is not executable"
 	    logger -p kern.err "ERROR:$g_product start failed"
-	    rc=2
+	    rc=6
 	fi
 
 	[ -n "$g_nolock" ] || mutex_off
@@ -3442,6 +3743,14 @@ start_command() {
 			-)
 			    finished=1
 			    option=
+			    ;;
+			f*)
+			    g_fast=Yes
+			    option=${option#f}
+			    ;;
+			C*)
+			    g_counters=Yes
+			    option=${option#C}
 			    ;;
 			p*)
 			    [ -n "$(which conntrack)" ] || fatal_error "The '-p' option requires the conntrack utility which does not appear to be installed on this system"
@@ -3473,7 +3782,7 @@ start_command() {
 }
 
 #
-# Restart Command Executor
+# Reload/Restart Command Executor
 #
 restart_command() {
     local finished
@@ -3504,6 +3813,10 @@ restart_command() {
 			    g_purge=Yes
 			    option=${option%p}
 			    ;;
+			C*)
+			    g_counters=Yes
+			    option=${option#C}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -3528,12 +3841,12 @@ restart_command() {
     [ -n "$g_nolock" ] || mutex_on
 
     if [ -x ${VARDIR}/firewall ]; then
-	run_it ${VARDIR}/firewall $g_debugging restart
+	run_it ${VARDIR}/firewall $g_debugging $COMMAND
 	rc=$?
     else
 	error_message "${VARDIR}/firewall is missing or is not executable"
-	logger -p kern.err "ERROR:$g_product restart failed"
-	rc=2
+	logger -p kern.err "ERROR:$g_product $COMMAND failed"
+	rc=6
     fi
 
     [ -n "$g_nolock" ] || mutex_off
@@ -3549,6 +3862,12 @@ run_command() {
 }
 
 #
+# Echo the parameters if product is Shorewall or Shorewall6
+#
+ecko() {
+    [ -z "$g_lite" ] && echo "$@"
+}
+#
 # Give Usage Information
 #
 usage() # $1 = exit status
@@ -3557,12 +3876,16 @@ usage() # $1 = exit status
     echo "where <command> is one of:"
     echo "   add <interface>[:<host-list>] ... <zone>"
     echo "   allow <address> ..."
+    ecko "   [ check | ck ] [ -e ] [ -r ] [ -p ] [ -r ] [ -T ] [ -i ] [ <directory> ]"
     echo "   clear"
+    ecko "   [ compile | co ] [ -e ] [ -p ] [ -t ] [ -c ] [ -d ] [ -T ] [ -i ] [ <directory name> ] [ <path name> ]"
+    echo "   close <source> <dest> [ <protocol> [ <port> ] ]" 
     echo "   delete <interface>[:<host-list>] ... <zone>"
     echo "   disable <interface>"
     echo "   drop <address> ..."
     echo "   dump [ -x ] [ -l ] [ -m ]"
     echo "   enable <interface>"
+    ecko "   export [ <directory1> ] [<user>@]<system>[:<directory2>]"
     echo "   forget [ <file name> ]"
     echo "   help"
 
@@ -3572,18 +3895,53 @@ usage() # $1 = exit status
 	echo "   iprange <address>-<address>"
     fi
 
+    if [ $g_family -eq 4 ]; then
+	echo "   iptrace <iptables match expression>"
+    else
+	echo "   iptrace <ip6tables match expression>"
+    fi
+
+    ecko "   load [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ -i ] [ <directory> ] <system>"
     echo "   logdrop <address> ..."
     echo "   logreject <address> ..."
     echo "   logwatch [<refresh interval>]"
+
+    if [ $g_family -eq 4 ]; then
+	echo "   noiptrace <iptables match expression>"
+    else
+	echo "   noiptrace <ip6tables match expression>"
+    fi
+
+    echo "   open <source> <dest> [ <protocol> [ <port> ] ]" 
+    echo "   reenable <interface>"
+    ecko "   refresh [ -d ] [ -n ] [ -T ] [ -D <directory> ] [ <chain>... ]"
     echo "   reject <address> ..."
+    ecko "   reload [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ -i ] [ <directory> ] <system>"
+
+    if [ -z "$g_lite" ]; then
+	echo "   remote-reload [ -s ] [ -c ] [ -r <root-name> ] [ -T ] [ -i ] [ <directory> ] <system>"
+	echo "   remote-restart [ -s ] [ -c ] [ -r <root-name> ] [ -T ] [ -i ] [ <directory> ] <system>"
+	echo "   remote-start [ -s ] [ -c ] [ -r <root-name> ] [ -T ] [ -i ] [ <directory> ] <system>"
+    fi
+
     echo "   reset [ <chain> ... ]"
-    echo "   restart [ -n ] [ -p ] [ -f ] [ <directory> ]"
-    echo "   restore [ -n ] [ <file name> ]"
+
+    if [ -n "$g_lite" ]; then
+	echo "   restart [ -n ] [ -p ] [ -f ] [ -C ] [ <directory> ]"
+    else
+	echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ] [ -T ] [ -i ] [ -C ] [ <directory> ]"
+    fi
+
+    echo "   restore [ -n ] [ -p ] [ -C ] [ <file name> ]"
     echo "   run <command> [ <parameter> ... ]"
-    echo "   save [ <file name> ]"
+    ecko "   safe-restart [ -t <timeout> ] [ <directory> ]"
+    ecko "   safe-start [ -t <timeout> ] [ <directory> ]"
+    echo "   save [ -C ] [ <file name> ]"
+    echo "   savesets"
     echo "   [ show | list | ls ] [ -b ] [ -x ] [ -t {filter|mangle|nat} ] [ {chain [<chain> [ <chain> ... ]"
-    echo "   [ show | list | ls ] [ -f ] capabilities"
+    ecko "   [ show | list | ls ] actions"
     echo "   [ show | list | ls ] arptables"
+    echo "   [ show | list | ls ] [ -f ] capabilities"
     echo "   [ show | list | ls ] [ -x ] {bl|blacklists}"
     echo "   [ show | list | ls ] classifiers"
     echo "   [ show | list | ls ] config"
@@ -3599,15 +3957,26 @@ usage() # $1 = exit status
 
     echo "   [ show | list | ls ] [ -m ] log [<regex>]"
     echo "   [ show | list | ls ] [ -x ] mangle|nat|raw|rawpost"
+    ecko "   [ show | list | ls ] macro <macro>"
+    ecko "   [ show | list | ls ] macros"
     echo "   [ show | list | ls ] nfacct"
+    echo "   [ show | list | ls ] opens"
     echo "   [ show | list | ls ] policies"
     echo "   [ show | list | ls ] routing"
     echo "   [ show | list | ls ] tc [ device ]"
     echo "   [ show | list | ls ] vardir"
     echo "   [ show | list | ls ] zones"
-    echo "   start [ -f ] [ -p ] [ <directory> ]"
-    echo "   stop"
+
+    if [ -n "$g_lite" ]; then
+	echo "   start [ -f ] [ -p ] [ -C ] [ <directory> ]"
+    else
+	echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ -T ] [ -i ] [ -C ] [ <directory> ]"
+    fi
+
     echo "   status [ -i ]"
+    echo "   stop"
+    ecko "   try <directory> [ <timeout> ]"
+    ecko "   update [ -a ] [ -b ] [ -r ] [ -T ]  [ -D ] [ -i ] [-t] [-s] [-n] [-A] [ <directory> ]"
     echo "   version [ -a ]"
     echo
     exit $1
@@ -3645,7 +4014,6 @@ shorewall_cli() {
     g_refreshchains=:none:
     g_confess=
     g_update=
-    g_convert=
     g_annotate=
     g_recovering=
     g_timestamp=
@@ -3654,9 +4022,10 @@ shorewall_cli() {
     g_conditional=
     g_file=
     g_doing="Compiling"
-    g_directives=
     g_inline=
-    g_tcrules=
+    g_counters=
+    g_loopback=
+    g_compiled=
 
     VERBOSE=
     VERBOSITY=1
@@ -3778,10 +4147,6 @@ shorewall_cli() {
 
     [ -n "${VARDIR:=/var/lib/$g_program}" ]
 
-    if [ ! -f ${VARDIR}/firewall ]; then
-	[ -f ${VARDIR}/.restore ] && cp -f ${VARDIR}/.rstore ${VARDIR}/firewall
-    fi
-
     g_firewall=${VARDIR}/firewall
 
     version_file=${g_sharedir}/version
@@ -3839,12 +4204,12 @@ shorewall_cli() {
 	    run_it $g_firewall $g_debugging reset $@
 	    [ -n "$g_nolock" ] || mutex_off
 	    ;;
-	restart)
+	reload|restart)
 	    get_config Yes Yes
 	    shift
 	    restart_command $@
 	    ;;
-	disable|enable)
+	disable|enable|reenable)
 	    get_config Yes
 	    if product_is_started; then
 		run_it ${VARDIR}/firewall $g_debugging $@
@@ -3907,6 +4272,11 @@ shorewall_cli() {
 	    [ $# -eq 1 ] && usage 1
 	    reject_command $@
 	    ;;
+	open|close)
+	    get_config
+	    shift
+	    open_close_command $@
+	    ;;
 	allow)
 	    get_config
 	    allow_command $@
@@ -3951,10 +4321,29 @@ shorewall_cli() {
 	    get_config
 	    [ -n "$g_debugging" ] && set -x
 	    #
-	    # Undocumented way to call functions in the libraries directly
+	    # Way to call functions in the libraries directly
 	    #
 	    shift
-	    $@
+
+	    if [ $# -gt 0 ]; then
+		#
+		# First look for it here
+		#
+		if type $1 2> /dev/null | fgrep -q 'is a function'; then
+		    #
+		    # It's a shell function -- call it
+		    #
+		    $@
+		else
+		    #
+		    # It isn't a function visible to this script -- try
+		    # the compiled firewall
+		    #
+		    run_it $g_firewall $g_debugging call $@
+		fi
+	    else
+		usage 1
+	    fi
 	    ;;
 	help)
 	    shift
@@ -3969,6 +4358,12 @@ shorewall_cli() {
 	    get_config
 	    shift
 	    noiptrace_command $@
+	    ;;
+	savesets)
+	    [ $# -eq 1 ] || usage 1
+	    get_config
+	    [ -n "$g_debugging" ] && set -x
+	    savesets1
 	    ;;
 	*)
 	    if [ -z "$g_lite" ]; then
