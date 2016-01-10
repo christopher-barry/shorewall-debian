@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Hosts file
+# Shorewall6 -- /etc/shorewall6/hosts
 #
 # For information about entries in this file, type "man shorewall6-hosts"
 #
@@ -7,4 +7,4 @@
 # http://www.shorewall.net/manpages6/shorewall6-hosts.html
 #
 ###############################################################################
-#ZONE	HOST(S)					OPTIONS
+#ZONE		HOSTS				OPTIONS

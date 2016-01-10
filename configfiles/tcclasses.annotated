@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Tcclasses File
+# Shorewall6 -- /etc/shorewall6/tcclasses
 #
 # For information about entries in this file, type "man shorewall6-tcclasses"
 #
@@ -9,10 +9,10 @@
 # 
 # A note on the rate/bandwidth definitions used in this file:
 # 
-#   ● don't use a space between the integer value and the unit: 30kbit is valid
+#   • don't use a space between the integer value and the unit: 30kbit is valid
 #     while 30 kbit is NOT.
 # 
-#   ● you can use one of the following units:
+#   • you can use one of the following units:
 # 
 #     kpbs
 # 
@@ -34,7 +34,7 @@
 # 
 #         Bytes per second.
 # 
-#   ● if you want the values to be calculated for you depending on the output
+#   • if you want the values to be calculated for you depending on the output
 #     bandwidth setting defined for an interface in tcdevices, you can use
 #     expressions like the following:
 # 
@@ -141,9 +141,9 @@
 #     following Shorewall-generated classification filters that refer to the
 #     class:
 # 
-#       ● Packet MARK
+#       □ Packet MARK
 # 
-#       ● tcp-ack and the tos options (see below)
+#       □ tcp-ack and the tos options (see below)
 # 
 #     The rules for classes with lower numeric priorities will appear before
 #     those with higher numeric priorities.
@@ -411,4 +411,4 @@
 #             ppp0        4     full/8  full*8/10 4
 # 
 ###############################################################################
-#INTERFACE:CLASS	MARK	RATE	CEIL	PRIORITY	OPTIONS
+#INTERFACE	MARK	RATE		CEIL		PRIO	OPTIONS

@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Tcdevices File
+# Shorewall6 -- /etc/shorewall6/tcdevices
 #
 # For information about entries in this file, type "man shorewall6-tcdevices"
 #
@@ -15,10 +15,10 @@
 # 
 # A note on the bandwidth definitions used in this file:
 # 
-#   ● don't use a space between the integer value and the unit: 30kbit is valid
+#   • don't use a space between the integer value and the unit: 30kbit is valid
 #     while 30 kbit is not.
 # 
-#   ● you can use one of the following units:
+#   • you can use one of the following units:
 # 
 #     kbps
 # 
@@ -40,7 +40,7 @@
 # 
 #         Bytes per second.
 # 
-#   ● Only whole integers are allowed.
+#   • Only whole integers are allowed.
 # 
 # The columns in the file are as follows (where the column name is followed by a
 # different name in parentheses, the different name is used in the alternate
@@ -151,5 +151,4 @@
 #             1:ppp0         6000kbit        500kbit
 # 
 ###############################################################################
-#NUMBER:	IN-BANDWITH	OUT-BANDWIDTH	OPTIONS		REDIRECTED
-#INTERFACE							INTERFACES
+#INTERFACE	IN_BANDWITH	OUT_BANDWIDTH	OPTIONS		REDIRECT

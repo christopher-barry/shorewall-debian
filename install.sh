@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 
 #
 # Change to the directory containing this script
@@ -323,6 +323,7 @@ if [ $PRODUCT = shorewall ]; then
 	    fi
 
 	    eval sed -i \'s/Digest::SHA/Digest::$DIGEST/\' Perl/Shorewall/Chains.pm
+	    eval sed -i \'s/Digest::SHA/Digest::$DIGEST/\' Perl/Shorewall/Config.pm
 	fi
     elif [ "$BUILD" = "$HOST" ]; then
         #
@@ -332,6 +333,7 @@ if [ $PRODUCT = shorewall ]; then
 	if ! perl -e 'use Digest::SHA;' 2> /dev/null ; then
 	    if perl -e 'use Digest::SHA1;' 2> /dev/null ; then
 		sed -i 's/Digest::SHA/Digest::SHA1/' Perl/Shorewall/Chains.pm
+		sed -i 's/Digest::SHA/Digest::SHA1/' Perl/Shorewall/Config.pm
 		DIGEST=SHA1
 	    else
 		echo "ERROR: Shorewall $VERSION requires either Digest::SHA or Digest::SHA1" >&2
@@ -387,7 +389,7 @@ if [ -z "${DESTDIR}" -a $PRODUCT = shorewall -a ! -f ${SHAREDIR}/$PRODUCT/coreve
 fi
 
 install_file $PRODUCT ${DESTDIR}${SBINDIR}/$PRODUCT 0755
-[ $SHAREDIR = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}/${SBINDIR}/${PRODUCT}
+[ $SHAREDIR = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${SBINDIR}/${PRODUCT}
 echo "$PRODUCT control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 
 #
@@ -395,7 +397,7 @@ echo "$PRODUCT control program installed in ${DESTDIR}${SBINDIR}/$PRODUCT"
 #
 if [ -n "$INITFILE" ]; then
     if [ -f "${INITSOURCE}" ]; then
-	initfile="${DESTDIR}/${INITDIR}/${INITFILE}"
+	initfile="${DESTDIR}${INITDIR}/${INITFILE}"
 	install_file $INITSOURCE "$initfile" 0544
 
 	[ "${SHAREDIR}" = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' "$initfile"
@@ -425,38 +427,58 @@ fi
 #
 # Install the .service file
 #
-if [ -n "$SYSTEMD" ]; then
-    mkdir -p ${DESTDIR}${SYSTEMD}
+if [ -z "${SERVICEDIR}" ]; then
+    SERVICEDIR="$SYSTEMD"
+fi
+
+if [ -n "$SERVICEDIR" ]; then
+    mkdir -p ${DESTDIR}${SERVICEDIR}
     [ -z "$SERVICEFILE" ] && SERVICEFILE=$PRODUCT.service
-    run_install $OWNERSHIP -m 644 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
-    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
-    echo "Service file $SERVICEFILE installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
+    run_install $OWNERSHIP -m 644 $SERVICEFILE ${DESTDIR}${SERVICEDIR}/$PRODUCT.service
+    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SERVICEDIR}/$PRODUCT.service
+    echo "Service file $SERVICEFILE installed as ${DESTDIR}${SERVICEDIR}/$PRODUCT.service"
 fi
 
-#
-# These use absolute path names since the files that they are removing existed
-# prior to the use of directory variables
-#
-delete_file ${DESTDIR}/usr/share/$PRODUCT/compiler
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.accounting
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.actions
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.dynamiczones
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.maclist
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.nat
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.providers
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.proxyarp
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.tc
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.tcrules
-delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.tunnels
+if [ -z "$first_install" ]; then
+    #
+    # These use absolute path names since the files that they are removing existed
+    # prior to the use of directory variables
+    #
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/compiler
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.accounting
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.actions
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.dynamiczones
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.maclist
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.nat
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.providers
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.proxyarp
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.tc
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.tcrules
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/lib.tunnels
 
-if [ $PRODUCT = shorewall6 ]; then
-    delete_file ${DESTDIR}/usr/share/shorewall6/lib.cli
-    delete_file ${DESTDIR}/usr/share/shorewall6/lib.common
-    delete_file ${DESTDIR}/usr/share/shorewall6/wait4ifup
+    if [ $PRODUCT = shorewall6 ]; then
+	delete_file ${DESTDIR}/usr/share/shorewall6/lib.cli
+	delete_file ${DESTDIR}/usr/share/shorewall6/lib.common
+	delete_file ${DESTDIR}/usr/share/shorewall6/wait4ifup
+    fi
+
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/prog.header6
+    delete_file ${DESTDIR}/usr/share/$PRODUCT/prog.footer6
+
+    #
+    # Delete obsolete config files and manpages
+    #
+    delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/tos
+    delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/tcrules
+    delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/stoppedrules
+    delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/notrack
+    delete_file ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/blacklist
+    delete_file ${DESTDIR}${MANDIR}/man5/$PRODUCT/${PRODUCT}-tos
+    delete_file ${DESTDIR}${MANDIR}/man5/$PRODUCT/${PRODUCT}-tcrules
+    delete_file ${DESTDIR}${MANDIR}/man5/$PRODUCT/${PRODUCT}-stoppedrules
+    delete_file ${DESTDIR}${MANDIR}/man5/$PRODUCT/${PRODUCT}-notrack
+    delete_file ${DESTDIR}${MANDIR}/man5/$PRODUCT/${PRODUCT}-blacklist
 fi
-
-delete_file ${DESTDIR}/usr/share/$PRODUCT/prog.header6
-delete_file ${DESTDIR}/usr/share/$PRODUCT/prog.footer6
 
 #
 # Install the Modules file
@@ -501,7 +523,7 @@ run_install $OWNERSHIP -m 0644 $PRODUCT.conf           ${DESTDIR}${SHAREDIR}/$PR
 run_install $OWNERSHIP -m 0644 $PRODUCT.conf.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
 if [ ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf ]; then
-    run_install $OWNERSHIP -m 0644 ${PRODUCT}.conf${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf
+    run_install $OWNERSHIP -m 0600 ${PRODUCT}.conf${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/$PRODUCT.conf
 
     if [ "$SHAREDIR" != /usr/share -o "$CONFDIR" != /etc ]; then
 	if [ $PRODUCT = shorewall ]; then
@@ -540,7 +562,7 @@ run_install $OWNERSHIP -m 0644 zones           ${DESTDIR}${SHAREDIR}/$PRODUCT/co
 run_install $OWNERSHIP -m 0644 zones.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/zones ]; then
-    run_install $OWNERSHIP -m 0644 zones${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/zones
+    run_install $OWNERSHIP -m 0600 zones${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/zones
     echo "Zones file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/zones"
 fi
 
@@ -618,7 +640,7 @@ run_install $OWNERSHIP -m 0644 params.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/c
 if [ -f ${DESTDIR}${CONFDIR}/$PRODUCT/params ]; then
     chmod 0644 ${DESTDIR}${CONFDIR}/$PRODUCT/params
 else
-    run_install $OWNERSHIP -m 0644 params${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/params
+    run_install $OWNERSHIP -m 0600 params${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/params
     echo "Parameter file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/params"
 fi
 
@@ -735,16 +757,6 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/tcpri ]; then
     echo "TC Priority file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/tcpri"
 fi
 
-#
-# Install the TOS file
-#
-run_install $OWNERSHIP -m 0644 tos           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
-run_install $OWNERSHIP -m 0644 tos.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
-
-if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/tos ]; then
-    run_install $OWNERSHIP -m 0600 tos${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/tos
-    echo "TOS file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/tos"
-fi
 #
 # Install the Tunnels file
 #
@@ -1012,7 +1024,7 @@ run_install $OWNERSHIP -m 0644 actions           ${DESTDIR}${SHAREDIR}/$PRODUCT/
 run_install $OWNERSHIP -m 0644 actions.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/actions ]; then
-    run_install $OWNERSHIP -m 0644 actions${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/actions
+    run_install $OWNERSHIP -m 0600 actions${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/actions
     echo "Actions file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/actions"
 fi
 
@@ -1023,7 +1035,7 @@ run_install $OWNERSHIP -m 0644 routes           ${DESTDIR}${SHAREDIR}/$PRODUCT/c
 run_install $OWNERSHIP -m 0644 routes.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles/
 
 if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/routes ]; then
-    run_install $OWNERSHIP -m 0644 routes${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/routes
+    run_install $OWNERSHIP -m 0600 routes${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/routes
     echo "Routes file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/routes"
 fi
 
@@ -1070,7 +1082,7 @@ if [ $PRODUCT = shorewall6 ]; then
     # Symbolically link 'functions' to lib.base
     #
     ln -sf lib.base ${DESTDIR}${SHAREDIR}/$PRODUCT/functions
-    [ $SHAREDIR = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}/${SHAREDIR}/${PRODUCT}/lib.base
+    [ $SHAREDIR = /usr/share ] || eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${SHAREDIR}/${PRODUCT}/lib.base
 fi
 
 if [ -d Perl ]; then
@@ -1176,7 +1188,7 @@ if [ -n "$SYSCONFFILE" -a -f "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PR
 fi
 
 if [ $configure -eq 1 -a -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then
-    if [ -n "$SYSTEMD" ]; then
+    if [ -n "$SERVICEDIR" ]; then
 	if systemctl enable ${PRODUCT}.service; then
 	    echo "$Product will start automatically at boot"
 	fi

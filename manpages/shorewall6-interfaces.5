@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-INTERFAC" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -50,9 +50,7 @@ The BROADCAST column is omitted\&.
 .PP
 The format is specified by a line as follows:
 .PP
-\fB[?]FORMAT {1|2}\fR
-.PP
-The optional \*(Aq?\*(Aq was introduced in Shorewall 4\&.5\&.11 and ?FORMAT is the preferred form; the form without the \*(Aq?\*(Aq is deprecated\&.
+\fB?FORMAT {1|2}\fR
 .PP
 The columns in the file are as follows\&.
 .PP
@@ -275,6 +273,13 @@ must be the only OPTION\&.
 Beginning with Shorewall 4\&.5\&.5, may be specified as \*(Aq\fBignore=1\fR\*(Aq which only causes the generated script to ignore up/down events from Shorewall\-init; hairpin filtering is still applied\&. In this case, the above restrictions on the ZONE and OPTIONS columns are lifted\&.
 .RE
 .PP
+loopback
+.RS 4
+Added in Shorewall 4\&.6\&.6\&. Designates the interface as the loopback interface\&. This option is assumed if the interface\*(Aqs physical name is \*(Aqlo\*(Aq\&. Only one interface man have the
+\fBloopback\fR
+option specified\&.
+.RE
+.PP
 \fBmss\fR=\fInumber\fR
 .RS 4
 Causes forwarded TCP SYN packets entering or leaving on this interface to have their MSS field set to the specified
@@ -433,7 +438,7 @@ Only those interfaces with the
 option will have their setting changed; the value assigned to the setting will be the value specified (if any) or 1 if no value is given\&.
 .RE
 .PP
-unmanaged
+\fBunmanaged\fR
 .RS 4
 Added in Shorewall 4\&.5\&.18\&. Causes all traffic between the firewall and hosts on the interface to be accepted\&. When this option is given:
 .sp
@@ -526,7 +531,7 @@ You have a bridge with no IP address and you want to allow traffic through the b
 .nf
 FORMAT 2
 #ZONE   INTERFACE        OPTIONS
-\-       br0              routeback
+\-       br0              bridge
 .fi
 .if n \{\
 .RE

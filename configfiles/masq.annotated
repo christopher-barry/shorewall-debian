@@ -1,12 +1,12 @@
 #
-# Shorewall6 version 4 - MASQUERADE/SNAT file
+# Shorewall6 -- /etc/shorewall6/masq
 #
 # For information about entries in this file, type "man shorewall6-masq"
 #
 # The manpage is also online at
 # http://www.shorewall.net/manpages6/shorewall6-masq.html
 #
-########################################################################################################################
+######################################################################################################
 # 
 # Use this file to define Source NAT (SNAT). Requires Shorewall 4.5.14 or later.
 # 
@@ -24,7 +24,7 @@
 # The columns in the file are as follows.
 # 
 # INTERFACE:DEST - {[+]interfacelist|[:[dest-address[,dest-address]...[exclusion
-#     ]]|[?]COMMENT}
+#     ]]|?COMMENT}
 # 
 #     Outgoing interfacelist. This may be a comma-separated list of interface
 #     names. This is usually your internet interface.
@@ -50,16 +50,11 @@
 #     shorewall6-exclusion(5)) as are ipset names preceded by a plus sign '+'.
 # 
 #     Comments may be attached to Netfilter rules generated from entries in this
-#     file through the use of COMMENT lines. These lines begin with the word
-#     COMMENT; the remainder of the line is treated as a comment which is
-#     attached to subsequent rules until another COMMENT line is found or until
-#     the end of the file is reached. To stop adding comments to rules, use a
-#     line with only the word COMMENT.
-# 
-#     Note
-# 
-#     Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and is
-#     preferred.
+#     file through the use of ?COMMENT lines. These lines begin with ?COMMENT;
+#     the remainder of the line is treated as a comment which is attached to
+#     subsequent rules until another ?COMMENT line is found or until the end of
+#     the file is reached. To stop adding comments to rules, use a line
+#     containing only ?COMMENT.
 # 
 #     Beginning with Shorewall 4.6.0, a new syntax is also accepted. With the
 #     exception of the leading '+', the interfacelist and qualifiers may appear
@@ -132,7 +127,7 @@
 #     Beginning with Shorewall 4.6.0, an ipset name can be specified in this
 #     column. This is intended to be used with bitmap:port ipsets.
 # 
-# PORT(S) (Optional) - {-|[!]port-name-or-number[,port-name-or-number]...|+ipset}
+# DPORT (Optional) - {-|[!]port-name-or-number[,port-name-or-number]...|+ipset}
 # 
 #     If the PROTO column specifies TCP (6), UDP (17), DCCP (33), SCTP (132) or
 #     UDPLITE (136) then you may list one or more port numbers (or names from
@@ -219,8 +214,8 @@
 #         Designates a connection mark. If omitted, the packet mark's value is
 #         tested.
 # 
-# USER/GROUP (Optional) - [!][user-name-or-number][:group-name-or-number][+
-#     program-name]
+# USER (Optional) - [!][user-name-or-number][:group-name-or-number][+program-name
+#     ]
 # 
 #     Only locally-generated connections will match if this column is non-empty.
 # 
@@ -281,7 +276,7 @@
 #     =1, then the switch is initialized to off or on respectively by the start
 #     command. Other commands do not affect the switch setting.
 # 
-# ORIGINAL DEST (origdest) - [-|address[,address]...[exclusion]|exclusion]
+# ORIGDEST - [-|address[,address]...[exclusion]|exclusion]
 # 
 #     (Optional) This column may be included and may contain one or more
 #     addresses (host or network) separated by commas. Address ranges are not
@@ -289,6 +284,16 @@
 #     that the original destination address matches one of the listed addresses.
 #     It is useful for specifying that SNAT should occur only for connections
 #     that were acted on by a DNAT when they entered the firewall.
+# 
+#     This column was formerly labelled ORIGINAL DEST.
+# 
+# PROBABILITY - [probability]
+# 
+#     Added in Shorewall 5.0.0. When non-empty, requires the Statistics Match
+#     capability in your kernel and ip6tables and causes the rule to match
+#     randomly but with the given probability. The probability is a number 0 <
+#     probability <= 1 and may be expressed at up to 8 decimal points of
+#     precision.
 # 
 # Examples
 # 
@@ -324,6 +329,5 @@
 #            sit1          0.0.0.0/0      2001:470:a:227::1 ;  -m statistic --mode random --probability 0.50
 #            sit1          0.0.0.0/0      2001:470:a:227::2
 # 
-########################################################################################################################
-#INTERFACE	SOURCE			ADDRESS			PROTO	PORT(S)	IPSEC	MARK	USER/	SWITCH	ORIGINAL
-#												GROUP		DEST
+######################################################################################################
+#INTERFACE		SOURCE		ADDRESS		PROTO	PORT	IPSEC	MARK	USER	SWITCH

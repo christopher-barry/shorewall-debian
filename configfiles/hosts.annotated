@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Hosts file
+# Shorewall6 -- /etc/shorewall6/hosts
 #
 # For information about entries in this file, type "man shorewall6-hosts"
 #
@@ -35,8 +35,8 @@
 #     The name of a zone declared in shorewall6-zones(5). You may not list the
 #     firewall zone in this column.
 # 
-# HOST(S) (hosts)- interface:[{[{address-or-range[,address-or-range]...|+ipset}[
-#     exclusion]]
+# HOST(S) (hosts)- interface:{address-or-range[,address-or-range]...|+ipset|
+#     dynamic}[exclusion]
 # 
 #     The name of an interface defined in the shorewall6-interfaces(5) file
 #     followed by a colon (":") and a comma-separated list whose elements are
@@ -46,8 +46,8 @@
 # 
 #      b. A network in CIDR format.
 # 
-#      c. An IP address range of the form low.address-high.address. Your kernel
-#         and ip6tables must have iprange match support.
+#      c. An IP address range of the form [low.address]-[high.address]. Your
+#         kernel and ip6tables must have iprange match support.
 # 
 #      d. The name of an ipset.
 # 
@@ -99,4 +99,4 @@
 #         TCP_FLAGS_LOG_LEVEL.
 # 
 ###############################################################################
-#ZONE	HOST(S)					OPTIONS
+#ZONE		HOSTS				OPTIONS

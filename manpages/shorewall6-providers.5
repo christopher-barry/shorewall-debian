@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-PROVIDER" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-PROVIDER" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -136,7 +136,7 @@ Added in Shorewall 4\&.4\&.25\&. Causes a default route to this provider\*(Aqs g
 \fBmain\fR
 routing table (USE_DEFAULT_RT=No) or to the
 \fBbalance\fR
-routing table (USE_DEFAULT_RT=Yes)\&. At most one provider can specify this option\&.
+routing table (USE_DEFAULT_RT=Yes)\&. Only one provider can specify this option\&.
 .RE
 .PP
 \fBfallback\fR
@@ -170,7 +170,14 @@ Shorewall6 normally adds a routing rule for each IP address on an interface whic
 prevents creation of such rules on this interface\&.
 .RE
 .PP
-noautosrc
+\fBload=\fR\fB\fIprobability\fR\fR
+.RS 4
+Added in Shorewall 4\&.6\&.0\&. This option provides an alternative method of load balancing based on probabilities\&. Providers to be balanced are given a
+\fIprobability\fR
+(a number 0 > n >= 1) with up to 8 digits to the right of the decimal point\&. Beginning with Shorewall 4\&.6\&.10, a warning is issued if the sum of the probabilities is not 1\&.00000000\&.
+.RE
+.PP
+\fBnoautosrc\fR
 .RS 4
 Added in Shorewall 4\&.5\&.17\&. Prevents the addition of a host route to the provider\*(Aqs gateway router from being added to the provider\*(Aqs routing table\&. This option must be used with caution as it can cause start and restart failures\&.
 .RE
@@ -190,6 +197,18 @@ option for the INTERFACE in
 is assumed\&. Use of that option is preferred to this one, unless an
 \fIaddress\fR
 is provider in the INTERFACE column\&.
+.RE
+.PP
+\fBprimary\fR
+.RS 4
+Added in Shorewall 4\&.6\&.6,
+\fBprimary\fR
+is a synonym for
+\fBbalance\fR
+(see above) and is preferred when the remaining providers specify
+\fBfallback\fR
+or
+\fBtproxy\fR\&.
 .RE
 .PP
 src=\fIsource\-address\fR
@@ -236,6 +255,50 @@ being inserted into the main routing table and into the provider\*(Aqs routing t
 is not appropriate for older distributions but is appropriate for recent distributions\&.
 \fBnohostroute\fR
 allows Zebra\*(Aqs to correctly add routes on some distributions such as Debian 7\&.
+.RE
+.PP
+\fBpersistent\fR
+.RS 4
+Added in Shorewall 5\&.0\&.2 and alters the behavior of the
+\fBdisable\fR
+command:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The provider\*(Aqs routing table still contains the apprioriate default route\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Unless the
+\fBnoautosrc\fR
+option is specified, routing rules are generated to route traffic from the interfaces address(es) out of the provider\*(Aqs routing table\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+Persistent routing rules in
+\m[blue]\fBshorewall6\-rtrules(5)\fR\m[]\&\s-2\u[6]\d\s+2
+are present\&.
+.RE
 .RE
 .RE
 .PP
@@ -295,9 +358,9 @@ eth2 connects to a local network\&.
 /etc/shorewall6/providers
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/MultiISP\&.html\fR\m[]\&\s-2\u[6]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/MultiISP\&.html\fR\m[]\&\s-2\u[7]\d\s+2
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[7]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[8]\d\s+2
 .PP
 shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-interfaces(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
@@ -327,11 +390,16 @@ http://www.shorewall.net/Shorewall_Squid_Usage.html
 \%http://www.shorewall.net/Shorewall_Squid_Usage.html
 .RE
 .IP " 6." 4
+shorewall6-rtrules(5)
+.RS 4
+\%http://www.shorewall.netshorewall-rtrules.html
+.RE
+.IP " 7." 4
 http://www.shorewall.net/MultiISP.html
 .RS 4
 \%http://www.shorewall.net/MultiISP.html
 .RE
-.IP " 7." 4
+.IP " 8." 4
 http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RS 4
 \%http://www.shorewall.net/configuration_file_basics.htm#Pairs

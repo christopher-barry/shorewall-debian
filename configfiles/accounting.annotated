@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Accounting File
+# Shorewall6 -- /etc/shorewall6/accounting
 #
 # For information about entries in this file, type "man shorewall6-accounting"
 #
@@ -15,13 +15,13 @@
 # Beginning with Shorewall 4.4.18, the accounting structure can be created with
 # three root chains:
 # 
-#   ● accountin: Rules that are valid in the INPUT chain (may not specify an
+#   • accountin: Rules that are valid in the INPUT chain (may not specify an
 #     output interface).
 # 
-#   ● accountout: Rules that are valid in the OUTPUT chain (may not specify an
+#   • accountout: Rules that are valid in the OUTPUT chain (may not specify an
 #     input interface or a MAC address).
 # 
-#   ● accounting: Other rules.
+#   • accounting: Other rules.
 # 
 # The new structure is enabled by sectioning the accounting file in a manner
 # similar to the rules file. The sections are INPUT, OUTPUT and FORWARD and must
@@ -53,43 +53,43 @@
 # 
 # When sections are enabled:
 # 
-#   ● A jump to a user-defined accounting chain must appear before entries that
+#   • A jump to a user-defined accounting chain must appear before entries that
 #     add rules to that chain. This eliminates loops and unreferenced chains.
 # 
-#   ● An output interface may not be specified in the PREROUTING and INPUT
+#   • An output interface may not be specified in the PREROUTING and INPUT
 #     sections.
 # 
-#   ● In the OUTPUT and POSTROUTING sections:
+#   • In the OUTPUT and POSTROUTING sections:
 # 
-#       ○ An input interface may not be specified
+#       □ An input interface may not be specified
 # 
-#       ○ Jumps to a chain defined in the INPUT or PREROUTING sections that
+#       □ Jumps to a chain defined in the INPUT or PREROUTING sections that
 #         specifies an input interface are prohibited
 # 
-#       ○ MAC addresses may not be used
+#       □ MAC addresses may not be used
 # 
-#       ○ Jump to a chain defined in the INPUT or PREROUTING section that
+#       □ Jump to a chain defined in the INPUT or PREROUTING section that
 #         specifies a MAC address are prohibited.
 # 
-#   ● The default value of the CHAIN column is:
+#   • The default value of the CHAIN column is:
 # 
-#       ○ accountin in the INPUT section
+#       □ accountin in the INPUT section
 # 
-#       ○ accountout in the OUTPUT section
+#       □ accountout in the OUTPUT section
 # 
-#       ○ accountfwd in the FORWARD section
+#       □ accountfwd in the FORWARD section
 # 
-#       ○ accountpre in the PREROUTING section
+#       □ accountpre in the PREROUTING section
 # 
-#       ○ accountpost in the POSTROUTING section
+#       □ accountpost in the POSTROUTING section
 # 
-#   ● Traffic addressed to the firewall goes through the rules defined in the
+#   • Traffic addressed to the firewall goes through the rules defined in the
 #     INPUT section.
 # 
-#   ● Traffic originating on the firewall goes through the rules defined in the
+#   • Traffic originating on the firewall goes through the rules defined in the
 #     OUTPUT section.
 # 
-#   ● Traffic being forwarded through the firewall goes through the rules from
+#   • Traffic being forwarded through the firewall goes through the rules from
 #     the FORWARD sections.
 # 
 # The columns in the file are as follows (where the column name is followed by a
@@ -156,17 +156,12 @@
 #         back end (usually nfnetlink_log) where it is available to accounting
 #         daemons through a netlink socket.
 # 
-#     [?]COMMENT
+#     ?COMMENT
 # 
 #         The remainder of the line is treated as a comment which is attached to
-#         subsequent rules until another COMMENT line is found or until the end
+#         subsequent rules until another ?COMMENT line is found or until the end
 #         of the file is reached. To stop adding comments to rules, use a line
-#         with only the word COMMENT.
-# 
-#         Note
-# 
-#         Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and
-#         is preferred.
+#         with only the word ?COMMENT.
 # 
 # CHAIN - {-|chain}
 # 
@@ -184,13 +179,15 @@
 #     followed by ":" and a host or net address. An ipset name is also accepted
 #     as an address.
 # 
-# DESTINATION (dest) - {-|any|all|interface|interface:[address]|address}
+# DEST - {-|any|all|interface|interface:[address]|address}
 # 
 #     Packet Destination.
 # 
 #     Format same as SOURCE column.
 # 
-# PROTOCOL (proto) - {-|any|all|protocol-name|protocol-number|ipp2p[:{udp|all}]}
+#     This column was formerly labelled DESTINATION.
+# 
+# PROTO - {-|any|all|protocol-name|protocol-number|ipp2p[:{udp|all}]}
 # 
 #     A protocol-name (from protocols(5)), a protocol-number, ipp2p, ipp2p:udp or
 #     ipp2p:all
@@ -198,8 +195,9 @@
 #     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
 #     list of protocols.
 # 
-# DEST PORT(S) (dport) - {-|any|all|ipp2p-option|port-name-or-number[,
-#     port-name-or-number]...}
+#     This column was formerly labelled PROTOCOL.
+# 
+# DPORT - {-|any|all|ipp2p-option|port-name-or-number[,port-name-or-number]...}
 # 
 #     Destination Port number. Service name from services(5) or port number. May
 #     only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP
@@ -212,8 +210,9 @@
 #     ("ip6tables -m ipp2p --help") without the leading "--". If no option is
 #     given in this column, ipp2p is assumed.
 # 
-# SOURCE PORT(S) (sport) - {-|any|all|port-name-or-number[,port-name-or-number
-#     ]...}
+#     This column was formerly labelled DEST PORT(S).
+# 
+# SPORT - {-|any|all|port-name-or-number[,port-name-or-number]...}
 # 
 #     Service name from services(5) or port number. May only be specified if the
 #     protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136).
@@ -222,13 +221,14 @@
 #     kernel and ip6tables include multi-port match support.
 # 
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
-#     that the DEST PORT(S) column is non-empty. This causes the rule to match
-#     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
-#     match in your iptables and kernel.
+#     that the DPORT column is non-empty. This causes the rule to match when
+#     either the source port or the destination port in a packet matches one of
+#     the ports specified in DPORT. Use of '=' requires multi-port match in your
+#     iptables and kernel.
 # 
-# USER/GROUP (user) - [!][user-name-or-number][:group-name-or-number][+
-#     program-name]
+#     This column was formerly labelled SOURCE PORT(S).
+# 
+# USER - [!][user-name-or-number][:group-name-or-number][+program-name]
 # 
 #     This column may only be non-empty if the CHAIN is OUTPUT.
 # 
@@ -258,6 +258,8 @@
 # 
 #         The ability to specify a program name was removed from Netfilter in
 #         kernel version 2.6.14.
+# 
+#     This column was formerly labelled USER/GROUP.
 # 
 # MARK - [!]value[/mask][:C]
 # 
@@ -353,13 +355,13 @@
 # 
 #     If this column is non-empty and sections are not used, then:
 # 
-#       ● A chain NAME appearing in the ACTION column must be a chain branched
+#       □ A chain NAME appearing in the ACTION column must be a chain branched
 #         either directly or indirectly from the accipsecin or accipsecout chain.
 # 
-#       ● The CHAIN column must contain either accipsecin or accipsecout or a
+#       □ The CHAIN column must contain either accipsecin or accipsecout or a
 #         chain branched either directly or indirectly from those chains.
 # 
-#       ● These rules will NOT appear in the accounting chain.
+#       □ These rules will NOT appear in the accounting chain.
 # 
 # HEADERS - [!][any:|exactly:]header-list (Optional - Added in Shorewall 4.4.15)
 # 
@@ -406,5 +408,4 @@
 # wildcards.
 # 
 ###############################################################################################################
-#ACTION	CHAIN	SOURCE		DESTINATION	PROTO	DEST		SOURCE	USER/	MARK	IPSEC	HEADERS
-#							PORT(S)		PORT(S)	GROUP
+#ACTION		CHAIN	SOURCE		DEST		PROTO	DPORT	SPORT	USER	MARK	IPSEC	HEADERS

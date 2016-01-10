@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-tunnels
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TUNNELS" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-TUNNELS" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -40,7 +40,7 @@ for details\&.
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBTYPE\fR \- {\fBipsec\fR[\fB:{noah\fR|ah}]|\fBipsecnat\fR|\fBgre\fR|l2tp|\fBpptpclient\fR|\fBpptpserver\fR|{\fBopenvpn\fR|\fBopenvpnclient\fR|\fBopenvpnserver\fR}[:{\fBtcp\fR|\fBudp\fR}]\fB[\fR:\fIport\fR]|\fBgeneric\fR\fB:\fR\fIprotocol\fR[\fB:\fR\fIport\fR]}
+\fBTYPE\fR \- {\fBipsec\fR[\fB:{noah\fR|ah}]|\fBipsecnat\fR|\fBgre\fR|l2tp|\fBpptpclient\fR|\fBpptpserver\fR|?COMMENT|{\fBopenvpn\fR|\fBopenvpnclient\fR|\fBopenvpnserver\fR}[:{\fBtcp\fR|\fBudp\fR}]\fB[\fR:\fIport\fR]|\fBgeneric\fR\fB:\fR\fIprotocol\fR[\fB:\fR\fIport\fR]}
 .RS 4
 Types are as follows:
 .sp
@@ -56,6 +56,7 @@ Types are as follows:
         \fBopenvpnclient\fR \- OpenVPN client runs on the firewall
         \fBopenvpnserver\fR \- OpenVPN server runs on the firewall
         \fBgeneric\fR       \- Other tunnel type
+        \fBtinc\fR          \- TINC (added in Shorewall 4\&.6\&.6)
 .fi
 .if n \{\
 .RE
@@ -100,22 +101,7 @@ or
 \fBudp\fR
 (6 or 17), then it may optionally be followed by ":" and a port number\&.
 .sp
-Comments may be attached to Netfilter rules generated from entries in this file through the use of COMMENT lines\&. These lines begin with the word COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
-.sp .5v
-.RE
+Comments may be attached to Netfilter rules generated from entries in this file through the use of ?COMMENT lines\&. These lines begin with the word ?COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another ?COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word ?COMMENT\&.
 .RE
 .PP
 \fBZONE\fR \- \fIzone\fR
@@ -216,6 +202,22 @@ You have a tunnel that is not one of the supported types\&. Your tunnel uses UDP
 .nf
         #TYPE            ZONE    GATEWAY                GATEWAY ZONES
         generic:udp:4444 net     2001:cec792b4:1::44
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+Example 9:
+.RS 4
+TINC tunnel where the remote gateways are not specified\&. If you wish to specify a list of gateways, you can do so in the GATEWAY column\&.
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #TYPE            ZONE    GATEWAY          GATEWAY ZONES
+        tinc             net     ::/0
 .fi
 .if n \{\
 .RE

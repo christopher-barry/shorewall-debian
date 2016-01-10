@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-rtrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RTRULES" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-RTRULES" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -51,6 +51,8 @@ is specified, the packet must originate from the firewall itself\&.
 .sp
 Beginning with Shorewall 4\&.5\&.0, you may specify &\fIinterface\fR
 in this column to indicate that the source is the primary IP address of the named interface\&.
+.sp
+Beginning with Shorewall 4\&.6\&.8, you may specify a comma\-separated list of addresses in this column\&.
 .RE
 .PP
 \fBDEST\fR (Optional) \- {\fB\-\fR|\fIaddress\fR}
@@ -64,6 +66,8 @@ or
 \fBSOURCE\fR
 and
 \fBDEST\fR\&.
+.sp
+Beginning with Shorewall 4\&.6\&.8, you may specify a comma\-separated list of addresses in this column\&.
 .RE
 .PP
 \fBPROVIDER\fR \- {\fIprovider\-name\fR|\fIprovider\-number\fR|\fBmain\fR}
@@ -73,7 +77,7 @@ The provider to route the traffic through\&. May be expressed either as the prov
 or 254 for the main routing table\&. This can be used in combination with VPN tunnels, see example 2 below\&.
 .RE
 .PP
-\fBPRIORITY\fR \- \fIpriority\fR
+\fBPRIORITY\fR \- \fIpriority\fR\fB[!]\fR
 .RS 4
 The rule\*(Aqs numeric
 \fIpriority\fR
@@ -81,18 +85,20 @@ which determines the order in which the rules are processed\&. Rules with equal 
 .PP
 1000\-1999
 .RS 4
-Before Shorewall6\-generated \*(AqMARK\*(Aq rules
+Before Shorewall\-generated \*(AqMARK\*(Aq rules
 .RE
 .PP
 11000\-11999
 .RS 4
-After \*(AqMARK\*(Aq rules but before Shorewall6\-generated rules for ISP interfaces\&.
+After \*(AqMARK\*(Aq rules but before Shorewall\-generated rules for ISP interfaces\&.
 .RE
 .PP
 26000\-26999
 .RS 4
 After ISP interface rules but before \*(Aqdefault\*(Aq rule\&.
 .RE
+.sp
+Beginning with Shorewall 5\&.0\&.2, the priority may be followed optionally by an exclaimation mark ("!")\&. This causes the rule to remain in place if the interface is disabled\&.
 .RE
 .PP
 \fBMARK \- {\-|\fR\fB\fImark\fR\fR\fB[/\fR\fB\fImask\fR\fR\fB]}\fR

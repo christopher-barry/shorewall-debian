@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Tcpri File
+# Shorewall6 -- /etc/shorewall6/tcpri
 #
 # For information about entries in this file, type "man shorewall6-tcpri"
 #
@@ -85,4 +85,4 @@
 #     made on.
 # 
 ###############################################################################
-#BAND	PROTO	PORT(S)		ADDRESS		IN-INTERFACE	HELPER
+#BAND	PROTO	PORT		ADDRESS		INTERFACE	HELPER

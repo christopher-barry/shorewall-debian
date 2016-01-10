@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Providers File
+# Shorewall6 -- /etc/shorewall6/providers
 #
 # For information about entries in this file, type "man shorewall6-providers"
 #
@@ -10,12 +10,12 @@
 # This file is used to define additional routing tables. You will want to define
 # an additional table if:
 # 
-#   ● You have connections to more than one ISP or multiple connections to the
+#   • You have connections to more than one ISP or multiple connections to the
 #     same ISP
 # 
-#   ● You run Squid as a transparent proxy on a host other than the firewall.
+#   • You run Squid as a transparent proxy on a host other than the firewall.
 # 
-#   ● You have other requirements for policy routing.
+#   • You have other requirements for policy routing.
 # 
 # Each entry in the file defines a single routing table.
 # 
@@ -83,8 +83,8 @@
 # 
 #         Added in Shorewall 4.4.25. Causes a default route to this provider's
 #         gateway to be added to the main routing table (USE_DEFAULT_RT=No) or to
-#         the balance routing table (USE_DEFAULT_RT=Yes). At most one provider
-#         can specify this option.
+#         the balance routing table (USE_DEFAULT_RT=Yes). Only one provider can
+#         specify this option.
 # 
 #     fallback
 # 
@@ -112,6 +112,14 @@
 #         sent using the routing table for that interface. Setting loose prevents
 #         creation of such rules on this interface.
 # 
+#     load=probability
+# 
+#         Added in Shorewall 4.6.0. This option provides an alternative method of
+#         load balancing based on probabilities. Providers to be balanced are
+#         given a probability (a number 0 > n >= 1) with up to 8 digits to the
+#         right of the decimal point. Beginning with Shorewall 4.6.10, a warning
+#         is issued if the sum of the probabilities is not 1.00000000.
+# 
 #     noautosrc
 # 
 #         Added in Shorewall 4.5.17. Prevents the addition of a host route to the
@@ -130,6 +138,12 @@
 #         value of the optional option for the INTERFACE in shorewall6-interfaces
 #         (5) is assumed. Use of that option is preferred to this one, unless an
 #         address is provider in the INTERFACE column.
+# 
+#     primary
+# 
+#         Added in Shorewall 4.6.6, primary is a synonym for balance (see above)
+#         and is preferred when the remaining providers specify fallback or 
+#         tproxy.
 # 
 #     src=source-address
 # 
@@ -169,6 +183,20 @@
 #         for older distributions but is appropriate for recent distributions. 
 #         nohostroute allows Zebra's to correctly add routes on some
 #         distributions such as Debian 7.
+# 
+#     persistent
+# 
+#         Added in Shorewall 5.0.2 and alters the behavior of the disable
+#         command:
+# 
+#           ☆ The provider's routing table still contains the apprioriate default
+#             route.
+# 
+#           ☆ Unless the noautosrc option is specified, routing rules are
+#             generated to route traffic from the interfaces address(es) out of
+#             the provider's routing table.
+# 
+#           ☆ Persistent routing rules in shorewall6-rtrules(5) are present.
 # 
 # COPY - [{none|interface[,interface]...}]
 # 

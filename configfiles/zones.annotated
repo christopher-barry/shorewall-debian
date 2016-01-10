@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Zones File
+# Shorewall6 -- /etc/shorewall6/zones
 #
 # For information about this file, type "man shorewall6-zones"
 #
@@ -28,16 +28,16 @@
 #         “Shorewall:%s:%s:” where the first %s is replaced by the chain name and
 #         the second is replaced by the disposition.
 # 
-#           ● The default formatting string has 12 fixed characters ("Shorewall"
+#           ☆ The default formatting string has 12 fixed characters ("Shorewall"
 #             and three colons).
 # 
-#           ● The longest of the standard dispositions are ACCEPT and REJECT
+#           ☆ The longest of the standard dispositions are ACCEPT and REJECT
 #             which have 6 characters each.
 # 
-#           ● The canonical name for the chain containing the rules for traffic
+#           ☆ The canonical name for the chain containing the rules for traffic
 #             going from zone 1 to zone 2 is "<zone 1>2<zone 2>".
 # 
-#           ● So if M is the maximum zone name length, such chains can have
+#           ☆ So if M is the maximum zone name length, such chains can have
 #             length 2*M + 1.
 # 
 #             12 + 6 + 2*M + 1 = 29 which reduces to
@@ -110,24 +110,24 @@
 #         Normally, Shorewall treats the loopback interface (lo) in the following
 #         way:
 # 
-#           ● By default, all traffic through the interface is ACCEPTed.
+#           ☆ By default, all traffic through the interface is ACCEPTed.
 # 
-#           ● If a $FW -> $FW policy is defined or $FW -> $FW rules are defined,
+#           ☆ If a $FW -> $FW policy is defined or $FW -> $FW rules are defined,
 #             they are placed in a chain named ${FW}2${F2} or ${FW}-${FW} (e.g.,
 #             'fw2fw' or 'fw-fw' ) depending on the ZONE2ZONE setting in
 #             shorewall6.conf(5).
 # 
-#           ● $FW -> $FW traffic is only filtered in the OUTPUT chain.
+#           ☆ $FW -> $FW traffic is only filtered in the OUTPUT chain.
 # 
 #         By defining a loopback zone and associating it with the loopback
 #         interface in shorewall-interfaces(5), you can effect a slightly
 #         different model. Suppose that the loopback zone name is 'local'; then:
 # 
-#           ● Both $FW -> local and local -> $FW chains are created.
+#           ☆ Both $FW -> local and local -> $FW chains are created.
 # 
-#           ● The $FW -> local and local -> $FW policies may be different.
+#           ☆ The $FW -> local and local -> $FW policies may be different.
 # 
-#           ● Both $FW -> local and local -> $FW rules may be specified.
+#           ☆ Both $FW -> local and local -> $FW rules may be specified.
 # 
 #         Rules to/from the loopback zone and any zone other than the firewall
 #         zone are ignored with a warning.
@@ -213,6 +213,5 @@
 #     following column, use "-".
 # 
 ###############################################################################
-#ZONE	TYPE		OPTIONS		IN			OUT
-#					OPTIONS			OPTIONS
-fw	firewall
+#ZONE		TYPE		OPTIONS		IN_OPTIONS	OUT_OPTIONS
+fw		firewall

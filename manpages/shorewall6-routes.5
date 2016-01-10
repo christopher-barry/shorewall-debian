@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-routes
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-ROUTES" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-ROUTES" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -81,6 +81,18 @@ Specifies the device route\&. If neither DEVICE nor GATEWAY is given, then the I
 or
 \fBunreachable\fR
 is specified in the GATEWAY column\&.
+.RE
+.PP
+\fBOPTIONS\fR (Optional)
+.RS 4
+Added in Shorewall 5\&.0\&.2\&.
+.sp
+Allowed options are:
+.PP
+\fBpersistent\fR
+.RS 4
+If specified, the route remains in the provider\*(Aqs routing table even when the provider is disabled\&.
+.RE
 .RE
 .SH "FILES"
 .PP

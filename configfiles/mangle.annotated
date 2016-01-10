@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Mangle File
+# Shorewall6 -- /etc/shorewall6/mangle
 #
 # For information about entries in this file, type "man shorewall6-mangle"
 #
@@ -9,6 +9,7 @@
 #
 # See http://shorewall.net/PacketMarking.html for a detailed description of
 # the Netfilter/Shorewall packet marking mechanism.
+#
 ############################################################################################################################################################
 # 
 # This file was introduced in Shorewall 4.6.0 and is intended to replace
@@ -72,6 +73,18 @@
 # 
 #     The command may be one of the following.
 # 
+#     ADD(ipset:flags)
+# 
+#         Added in Shorewall 4.6.7. Causes addresses and/or port numbers to be
+#         added to the named ipset. The flags specify the address or tuple to be
+#         added to the set and must match the type of ipset involved. For
+#         example, for an iphash ipset, either the SOURCE or DESTINATION address
+#         can be added using flags src or dst respectively (see the -A command in
+#         ipset (8)).
+# 
+#         ADD is non-terminating. Even if a packet matches the rule, it is passed
+#         on to the next rule.
+# 
 #     CHECKSUM
 # 
 #         Compute and fill in the checksum in a packet that lacks a checksum.
@@ -114,7 +127,7 @@
 #         delimited by "/* ... */" in the output of shorewall show mangle
 # 
 #         To stop the comment from being attached to further rules, simply
-#         include COMMENT on a line by itself.
+#         include ?COMMENT on a line by itself.
 # 
 #     CONMARK({mark|range})
 # 
@@ -129,6 +142,17 @@
 #         Currently, CONTINUE may not be used with exclusion (see the SOURCE and
 #         DEST columns below); that restriction will be removed when iptables/
 #         Netfilter provides the necessary support.
+# 
+#     DEL(ipset:flags)
+# 
+#         Added in Shorewall 4.6.7. Causes an entry to be deleted from the named
+#         ipset. The flags specify the address or tuple to be deleted from the
+#         set and must match the type of ipset involved. For example, for an
+#         iphash ipset, either the SOURCE or DESTINATION address can be deleted
+#         using flags src or dst respectively (see the -D command in ipset (8)).
+# 
+#         DEL is non-terminating. Even if a packet matches the rule, it is passed
+#         on to the next rule.
 # 
 #     DIVERT
 # 
@@ -176,6 +200,16 @@
 #         To indicate more than one class, add their hex values together and
 #         specify the result.
 # 
+#     HL([-|+]number)[:P]
+# 
+#         If + is included, packets matching the rule will have their hop limit
+#         incremented by number. Similarly, if - is included, matching packets
+#         have their hop limit decremented by number. If neither + nor - is
+#         given, the hop limit of matching packets is set to number. The valid
+#         range of values for number is 1-255. If :P is included, the rule is
+#         placed in the mangle PREROUTING chain -- otherwise, it is placed in the
+#         FORWARD chain.
+# 
 #     IMQ(number)
 # 
 #         Specifies that the packet should be passed to the IMQ identified by
@@ -189,20 +223,25 @@
 #         action is specified, then you may include your own jump ("-j target [
 #         option] ...") after any matches specified at the end of the rule. If
 #         the target is not one known to Shorewall, then it must be defined as a
-#         builtin action in shorewall6-actions (5).
+#         builtin action in shorewall-actions (5).
 # 
 #         The following rules are equivalent:
 # 
-#         2:P             eth0              -         tcp 22
-#         INLINE(2):P     eth0              -         tcp 22
-#         INLINE(2):P     eth0              -                 ; -p tcp
-#         INLINE          eth0              -         tcp 22  ; -j MARK --set-mark 2
-#         INLINE          eth0              -                 ; -p tcp -j MARK --set-mark 2
+#         2:P                   eth0              -         tcp 22
+#         INLINE(MARK(2)):P     eth0              -         tcp 22
+#         INLINE(MARK(2)):P     eth0              -                 ; -p tcp
+#         INLINE                eth0              -         tcp 22  ; -j MARK --set-mark 2
+#         INLINE                eth0              -                 ; -p tcp -j MARK --set-mark 2
 # 
 #         If INLINE_MATCHES=Yes in shorewall6.conf(5) then the third rule above
 #         can be specified as follows:
 # 
-#         2:P             eth0              -                 ; -p tcp
+#         MARK(2):P             eth0              -                 ; -p tcp
+# 
+#         Beginning with Shorewall 5.0.0, the rule may also be written this way,
+#         irrespective of the setting of INLINE_MATCHES:
+# 
+#         MARK(2):P             eth0              -                 ;; -p tcp
 # 
 #     IPMARK
 # 
@@ -318,12 +357,12 @@
 #         then ( 2 ** MASK_BITS ) - 1 is assumed (MASK_BITS is set in
 #         shorewall6.conf(5)).
 # 
-#     RESTORE[(/mask)]
+#     RESTORE[(mask)]
 # 
 #         Restore the packet's mark from the connection's mark using the supplied
 #         mask if any. Your kernel and iptables must include CONNMARK support.
 # 
-#     SAME
+#     SAME[(timeout)]
 # 
 #         Some websites run applications that require multiple connections from a
 #         client browser. Where multiple 'balanced' providers are configured,
@@ -334,8 +373,7 @@
 #         from an individual local system to all use the same provider. For
 #         example:
 # 
-#         #ACTION           SOURCE         DEST         PROTO      DEST
-#         #                                                        PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DPORT
 #         SAME:P            192.168.1.0/24 0.0.0.0/0    tcp        80,443
 # 
 #         If a host in 192.168.1.0/24 attempts a connection on TCP port 80 or 443
@@ -346,16 +384,18 @@
 #         When used in the OUTPUT chain, it causes all matching connections to an
 #         individual remote system to all use the same provider. For example:
 # 
-#         #ACTION           SOURCE         DEST         PROTO      DEST
-#         #                                                        PORT(S)
+#         #ACTION           SOURCE         DEST         PROTO      DPORT
 #         SAME              $FW            0.0.0.0/0    tcp        80,443
 # 
-#         If the firewall attempts a connection on TCP port 80 or 443 and it has
-#         sent a packet on either of those ports in the last five minutes to the
-#         same remote system then the new connection will use the same provider
-#         as the connection over which that last packet was sent.
+#         The optional timeout parameter was added in Shorewall 4.6.7 and
+#         specifies a number of seconds . When not specified, a value of 300
+#         seconds (5 minutes) is assumed. If the firewall attempts a connection
+#         on TCP port 80 or 443 and it has sent a packet on either of those ports
+#         in the last timeout seconds to the same remote system then the new
+#         connection will use the same provider as the connection over which that
+#         last packet was sent.
 # 
-#     SAVE[(/mask)]
+#     SAVE[(mask)]
 # 
 #         Save the packet's mark to the connection's mark using the supplied mask
 #         if any. Your kernel and iptables must include CONNMARK support.
@@ -389,35 +429,12 @@
 # 
 #         There are three parameters to TPROXY - neither is required:
 # 
-#           ● port - the port on which the proxy server is listening. If omitted,
+#           ☆ port - the port on which the proxy server is listening. If omitted,
 #             the original destination port.
 # 
-#           ● address - a local (to the firewall) IP address on which the proxy
+#           ☆ address - a local (to the firewall) IP address on which the proxy
 #             server is listening. If omitted, the IP address of the interface on
 #             which the request arrives.
-# 
-#     TTL([-|+]number)
-# 
-#         If + is included, packets matching the rule will have their TTL
-#         incremented by number. Similarly, if - is included, matching packets
-#         have their TTL decremented by number. If neither + nor - is given, the
-#         TTL of matching packets is set to number. The valid range of values for
-#         number is 1-255.
-# 
-#      1. TTL([-|+]number)
-# 
-#         Added in Shorewall 4.4.24.
-# 
-#         Prior to Shorewall 4.5.7.2, may be optionally followed by :F but the
-#         resulting rule is always added to the FORWARD chain. Beginning with
-#         Shorewall 4.5.7.s, it may be optionally followed by :P, in which case
-#         the rule is added to the PREROUTING chain.
-# 
-#         If + is included, packets matching the rule will have their TTL
-#         incremented by number. Similarly, if - is included, matching packets
-#         have their TTL decremented by number. If neither + nor - is given, the
-#         TTL of matching packets is set to number. The valid range of values for
-#         number is 1-255.
 # 
 # SOURCE - {-|{interface|$FW}|[{interface|$FW}:]address-or-range[,
 #     address-or-range]...}[exclusion]
@@ -485,7 +502,7 @@
 #     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
 #     list of protocols.
 # 
-# PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
+# DPORT - [-|port-name-number-or-range[,port-name-number-or-range]...]
 # 
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
@@ -502,8 +519,9 @@
 #     (6), udp (17), sctp (132) or udplite (136). Use '-' if any of the following
 #     field is supplied.
 # 
-# SOURCE PORT(S) (sport) - [-|port-name-number-or-range[,
-#     port-name-number-or-range]...]
+#     This column was formerly labelled DEST PORT(S).
+# 
+# SPORT - [-|port-name-number-or-range[,port-name-number-or-range]...]
 # 
 #     Optional source port(s). If omitted, any source port is acceptable.
 #     Specified as a comma-separated list of port names, port numbers or port
@@ -514,10 +532,12 @@
 #     is supplied.
 # 
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
-#     that the DEST PORT(S) column is non-empty. This causes the rule to match
-#     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
-#     match in your iptables and kernel.
+#     that the DPORT column is non-empty. This causes the rule to match when
+#     either the source port or the destination port in a packet matches one of
+#     the ports specified in DPORT. Use of '=' requires multi-port match in your
+#     iptables and kernel.
+# 
+#     This column was formerly labelled SOURCE PORT(S).
 # 
 # USER - [!][user-name-or-number][:group-name-or-number][+program-name]
 # 
@@ -632,8 +652,7 @@
 # 
 #     Example: Mark all FTP data connections with mark 4:
 # 
-#     #ACTION   SOURCE    DEST      PROTO   PORT(S)    SOURCE  USER TEST LENGTH TOS CONNBYTES HELPER
-#     #                                                PORT(S)
+#     #ACTION   SOURCE    DEST      PROTO   DPORT      SPORT   USER TEST LENGTH TOS CONNBYTES HELPER
 #     4:T       0.0.0.0/0 0.0.0.0/0 TCP     -          -       -    -    -      -   -         ftp
 # 
 # HEADERS - [!][any:|exactly:]header-list
@@ -783,8 +802,7 @@
 # 
 #     We assume packet/connection mark 0 means unclassified.
 # 
-#            #ACTION    SOURCE    DEST         PROTO   PORT(S)       SOURCE  USER    TEST
-#            #                                                       PORT(S)
+#            #ACTION    SOURCE    DEST         PROTO   DPORT         SPORT   USER    TEST
 #            MARK(1):T  ::/0      ::/0         icmp    echo-request
 #            MARK(1):T  ::/0      ::/0         icmp    echo-reply
 #            RESTORE:T  ::/0      ::/0         all     -             -       -       0
@@ -798,5 +816,4 @@
 #     save it to the connection mark.
 # 
 ############################################################################################################################################################
-#ACTION		SOURCE		DEST		PROTO	DEST	SOURCE	USER	TEST	LENGTH	TOS	CONNBYTES	HELPER	HEADERS	PROBABILITY	DSCP
-#							PORT(S)	PORT(S)
+#ACTION		SOURCE		DEST		PROTO	DPORT	SPORT	USER	TEST	LENGTH	TOS	CONNBYTES	HELPER	HEADERS	PROBABILITY	DSCP

@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-hosts
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-HOSTS" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-HOSTS" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -80,7 +80,7 @@ The name of a zone declared in
 \m[blue]\fBshorewall6\-zones\fR\m[]\&\s-2\u[1]\d\s+2(5)\&. You may not list the firewall zone in this column\&.
 .RE
 .PP
-\fBHOST(S)\fR (hosts)\- \fIinterface\fR:\fB[\fR{[{\fIaddress\-or\-range\fR[\fB,\fR\fIaddress\-or\-range\fR]\&.\&.\&.|\fB+\fR\fIipset\fR}[\fIexclusion\fR]\fB]\fR
+\fBHOST(S)\fR (hosts)\- \fIinterface\fR:{\fIaddress\-or\-range\fR[,\fIaddress\-or\-range\fR]\&.\&.\&.|+\fIipset\fR|\fBdynamic\fR}[\fIexclusion\fR]
 .RS 4
 The name of an interface defined in the
 \m[blue]\fBshorewall6\-interfaces\fR\m[]\&\s-2\u[2]\d\s+2(5) file followed by a colon (":") and a comma\-separated list whose elements are either:
@@ -117,8 +117,7 @@ A network in CIDR format\&.
 .sp -1
 .IP "  3." 4.2
 .\}
-An IP address range of the form
-\fIlow\&.address\fR\-\fIhigh\&.address\fR\&. Your kernel and ip6tables must have iprange match support\&.
+An IP address range of the form [\fIlow\&.address\fR]\-[\fIhigh\&.address\fR]\&. Your kernel and ip6tables must have iprange match support\&.
 .RE
 .sp
 .RS 4

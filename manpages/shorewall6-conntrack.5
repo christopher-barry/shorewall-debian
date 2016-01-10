@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-conntrack
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-CONNTRAC" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-CONNTRAC" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -70,7 +70,7 @@ in FORMAT 3, the SOURCE column accepts no zone name; rather the ACTION column al
 When an entry in the following form is encountered, the format of the following entries are assumed to be of the specified
 \fIformat\fR\&.
 .RS 4
-\fB[?]FORMAT\fR
+\fB?FORMAT\fR
       \fIformat\fR
 .RE
 .PP
@@ -81,29 +81,13 @@ is either
 or
 \fB3\fR\&.
 .PP
-Format 3 was introduced in Shorewall 4\&.5\&.10\&. The optional \*(Aq?\*(Aq was introduced in Shorewall 4\&.5\&.11 and ?FORMAT is the preferred form; the form without the \*(Aq?\*(Aq is deprecated\&.
+Format 3 was introduced in Shorewall 4\&.5\&.10\&.
 .PP
-Comments may be attached to Netfilter rules generated from entries in this file through the use of COMMENT lines\&. These lines begin with the word COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-.PP
-Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
-.sp .5v
-.RE
+Comments may be attached to Netfilter rules generated from entries in this file through the use of ?COMMENT lines\&. These lines begin with ?COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another ?COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only ?COMMENT\&.
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBACTION\fR \- {\fBNOTRACK\fR|\fBCT\fR:\fBhelper\fR:\fIname\fR[(\fIarg\fR=\fIval\fR[,\&.\&.\&.])|\fBCT:notrack\fR|DROP|LOG|NFLOG(\fInflog\-parameters\fR)|IP6TABLES(\fItarget\fR)}[:\fIlog\-level\fR[:\fIlog\-tag\fR]][:\fIchain\-designator\fR]
+\fBACTION\fR \- {\fBNOTRACK\fR|\fBCT\fR:\fBhelper\fR:\fIname\fR[(\fIarg\fR=\fIval\fR[,\&.\&.\&.])|\fBCT:ctevents:\fR\fB\fIevent\fR\fR\fB[,\&.\&.\&.]|CT:expevents:new|notrack\fR|DROP|LOG|NFLOG(\fInflog\-parameters\fR)|IP6TABLES(\fItarget\fR)}[:\fIlog\-level\fR[:\fIlog\-tag\fR]][:\fIchain\-designator\fR]
 .RS 4
 This column is only present when FORMAT >= 2\&. Values other than NOTRACK require
 CT Targetsupport in your iptables and kernel\&.
@@ -235,10 +219,49 @@ list must be enclosed in parentheses (e\&.g\&., ctevents=(new,related))\&.
 .\}
 \fBexpevents\fR\fB=new\fR
 .sp
-Only generate a
+Only generate
 \fBnew\fR
 expectation events for this connection\&.
 .RE
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+ctevents:\fIevent\fR[,\&.\&.\&.]
+.sp
+Added in Shorewall 4\&.6\&.10\&. Only generate the specified conntrack events for this connection\&. Possible event types are:
+\fBnew\fR,
+\fBrelated\fR,
+\fBdestroy\fR,
+\fBreply\fR,
+\fBassured\fR,
+\fBprotoinfo\fR,
+\fBhelper\fR,
+\fBmark\fR
+(this is connection mark, not packet mark),
+\fBnatseqinfo\fR, and
+\fBsecmark\fR\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+expevents=new
+.sp
+Added in Shorewall 4\&.6\&.10\&. Only generate
+\fBnew\fR
+expectation events for this connection\&.
 .RE
 .sp
 .RS 4
@@ -391,7 +414,7 @@ or a protocol number\&.
 Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated list of protocols\&.
 .RE
 .PP
-DEST PORT(S) (dport) \- {\-|\fIport\-number/service\-name\-list\fR|+\fIipset\fR}
+DPORT \- {\-|\fIport\-number/service\-name\-list\fR|+\fIipset\fR}
 .RS 4
 A comma\-separated list of port numbers and/or service names from
 /etc/services\&. May also include port ranges of the form
@@ -401,27 +424,33 @@ if your kernel and iptables include port range support\&.
 Beginning with Shorewall 4\&.6\&.0, an ipset name can be specified in this column\&. This is intended to be used with
 bitmap:port
 ipsets\&.
+.sp
+This column was formerly labelled DEST PORT(S)\&.
 .RE
 .PP
-SOURCE PORT(S) (sport) \- {\-|\fIport\-number/service\-name\-list\fR|+\fIipset\fR}
+SPORT \- {\-|\fIport\-number/service\-name\-list\fR|+\fIipset\fR}
 .RS 4
 A comma\-separated list of port numbers and/or service names from
 /etc/services\&. May also include port ranges of the form
 \fIlow\-port\fR:\fIhigh\-port\fR
 if your kernel and iptables include port range support\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DPORT column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DPORT\&.
 .sp
 Beginning with Shorewall 4\&.6\&.0, an ipset name can be specified in this column\&. This is intended to be used with
 bitmap:port
 ipsets\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
 .RE
 .PP
-USER/GROUP (user) \(en [\fIuser\fR][:\fIgroup\fR]
+USER \(en [\fIuser\fR][:\fIgroup\fR]
 .RS 4
 May only be specified if the SOURCE
 \fIzone\fR
 is $FW\&. Specifies the effective user id and or group id of the process sending the traffic\&.
+.sp
+This column was formerly labelled USER/GROUP\&.
 .RE
 .PP
 \fBSWITCH \- [!]\fR\fB\fIswitch\-name\fR\fR\fB[={0|1}]\fR
@@ -475,8 +504,7 @@ Use the FTP helper for TCP port 21 connections from the firewall itself\&.
 .\}
 .nf
 FORMAT 2
-#ACTION                       SOURCE            DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE            DEST               PROTO            DPORT             SPORT               USER
 CT:helper:ftp(expevents=new)  fw                \-                  tcp              21              
 .fi
 .if n \{\
@@ -492,8 +520,7 @@ Drop traffic to/from all zones to IP address 2001:1\&.2\&.3::4
 .\}
 .nf
 FORMAT 2
-#ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE             DEST               PROTO            DPORT             SPORT               USER
 DROP                          all\-:2001:1\&.2\&.3::4 \-
 DROP                          all                2001:1\&.2\&.3::4
 .fi
@@ -508,8 +535,7 @@ or
 .\}
 .nf
 FORMAT 3
-#ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE             DEST               PROTO            DPORT             SPORT               USER
 DROP:P                        2001:1\&.2\&.3::4      \-
 DROP:PO                       \-                  2001:1\&.2\&.3::4
 .fi
