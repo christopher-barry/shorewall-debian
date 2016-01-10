@@ -1,4 +1,4 @@
-shorewall (5.0.3.1-1) unstable; urgency=medium
+shorewall (5.0.3.1-1) unstable; urgency=low
 
   * New Upstream Version (Closes: #729256, #773392, #776680, #796695)
 
