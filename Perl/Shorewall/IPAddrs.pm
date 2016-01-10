@@ -82,7 +82,7 @@ our @EXPORT = ( qw( ALLIPv4
 		  validate_icmp6
 		 ) );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.6_0';
+our $VERSION = '4.6_13';
 
 #
 # Some IPv4/6 useful stuff
@@ -778,6 +778,18 @@ sub normalize_6addr( $ ) {
 
 sub validate_6range( $$ ) {
     my ( $low, $high ) = @_;
+
+    if ( $low =~ /^\[(.+)\]$/ ) {
+	$low = $1;
+    } elsif ( $low =~ /^\[(.+)\]\/(\d+)$/ ) {
+	$low = join( '/', $1, $2 );
+    }
+
+    if ( $high =~ /^\[(.+)\]$/ ) {
+	$high = $1;
+    } elsif ( $high =~ /^\[(.+)\]\/(\d+)$/ ) {
+	$high = join( '/', $1, $2 );
+    }
 
     validate_6address $low, 0;
     validate_6address $high, 0;

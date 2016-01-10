@@ -1,11 +1,11 @@
 #
-# Shorewall version 4 - Tcfilters File
+# Shorewall -- /etc/shorewall/tcfilters
 #
 # For information about entries in this file, type "man shorewall-tcfilters"
 #
 # See http://shorewall.net/traffic_shaping.htm for additional information.
 #
-########################################################################################################
+######################################################################################
 # 
 # Entries in this file cause packets to be classified for traffic shaping.
 # 
@@ -66,34 +66,38 @@
 #     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
 #     list of protocols.
 # 
-# DEST PORT (dport) - [-|port-name-or-number]
+# DPORT - [-|port-name-or-number]
 # 
 #     Optional destination Ports. A Port name (from services(5)) or a port number
 #     ; if the protocol is icmp, this column is interpreted as the destination
 #     icmp-type(s).
 # 
-# SOURCE PORT (sport) - [-|port-name-or-number]
+#     This column was previously labelled DEST PORT(S).
+# 
+# SPORT - [-|port-name-or-number]
 # 
 #     Optional source port.
+# 
+#     This column was previously labelled SOURCE PORT(S).
 # 
 # TOS (Optional) - [-|tos]
 # 
 #     Specifies the value of the TOS field. The tos value can be any of the
 #     following:
 # 
-#       ● tos-minimize-delay
+#       □ tos-minimize-delay
 # 
-#       ● tos-maximize-throughput
+#       □ tos-maximize-throughput
 # 
-#       ● tos-maximize-reliability
+#       □ tos-maximize-reliability
 # 
-#       ● tos-minimize-cost
+#       □ tos-minimize-cost
 # 
-#       ● tos-normal-service
+#       □ tos-normal-service
 # 
-#       ● hex-number
+#       □ hex-number
 # 
-#       ● hex-number/hex-number
+#       □ hex-number/hex-number
 # 
 #     The hex-numbers must be exactly two digits (e.g., 0x04)x.
 # 
@@ -110,9 +114,9 @@
 # 
 #     When a priority is not given:
 # 
-#       ● For Shorewall versions prior to 4.5.8 - all filters have priority 10.
+#       □ For Shorewall versions prior to 4.5.8 - all filters have priority 10.
 # 
-#       ● For Shorewall 4.5.8 and later - for each device, the compiler maintains
+#       □ For Shorewall 4.5.8 and later - for each device, the compiler maintains
 #         a high-water priority with an initial value of 0. When a filter has no
 #         priority, the high-water priority is incremented by 1 and assigned to
 #         the filter. When a priority greater than the high-water priority is
@@ -123,17 +127,17 @@
 #     The default priority values used by other Shorewall-generated filters are
 #     as follows:
 # 
-#       ● Classify by packet mark - ( class priority << 8 ) | 20.
+#       □ Classify by packet mark - ( class priority << 8 ) | 20.
 # 
-#       ● Ingress policing - 10
+#       □ Ingress policing - 10
 # 
-#       ● Simple TC ACK packets - 1
+#       □ Simple TC ACK packets - 1
 # 
-#       ● Complex TC ACK packets - ( class priority << 8 ) | 10.
+#       □ Complex TC ACK packets - ( class priority << 8 ) | 10.
 # 
-#       ● Classify by TOS - ( class priority << 8 ) | 15.
+#       □ Classify by TOS - ( class priority << 8 ) | 15.
 # 
-#       ● Class with 'occurs' - 65535
+#       □ Class with 'occurs' - 65535
 # 
 # Example
 # 
@@ -142,8 +146,7 @@
 #     Place all 'ping' traffic on interface 1 in class 10. Note that ALL cannot
 #     be used because IPv4 ICMP and IPv6 ICMP are two different protocols.
 # 
-#            #CLASS    SOURCE    DEST         PROTO   DEST
-#            #                                        PORT
+#            #CLASS    SOURCE    DEST         PROTO   DPORT
 # 
 #            IPV4
 # 
@@ -159,14 +162,12 @@
 # 
 #     Add two filters with priority 10 (Shorewall 4.5.8 or later).
 # 
-#            #CLASS    SOURCE    DEST         PROTO   DEST            PRIORITY
-#            #                                        PORT
+#            #CLASS    SOURCE    DEST         PROTO   DPORT           PRIORITY
 # 
 #            IPV4
 # 
 #            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-request    10
 #            1:10      0.0.0.0/0 0.0.0.0/0    icmp    echo-reply      10
 # 
-########################################################################################################
-#INTERFACE:	SOURCE		DEST		PROTO	DEST	SOURCE	TOS		LENGTH	PRIORITY
-#CLASS							PORT(S)	PORT(S)
+######################################################################################
+#CLASS		SOURCE		DEST		PROTO	DPORT	SPORT	TOS	LENGTH

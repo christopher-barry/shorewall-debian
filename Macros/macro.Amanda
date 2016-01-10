@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Amanda Macro
+# Shorewall - Amanda Macro
 #
 # /usr/share/shorewall/macro.Amanda
 #
@@ -7,8 +7,6 @@
 #	to back up remote nodes.  It does not provide the ability to restore
 #	files from those nodes.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

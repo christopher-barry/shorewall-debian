@@ -37,7 +37,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '4.6_4';
+our $VERSION = '5.0.0';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
@@ -433,13 +433,8 @@ sub process_accounting_rule( ) {
 
     fatal_error 'ACTION must be specified' if $action eq '-';
 
-    if ( $action eq 'SECTION' ) {
-	section_warning;
-	process_section( $chain );
-    } else {
-	for my $proto ( split_list $protos, 'Protocol' ) {
-	    $nonempty |= process_accounting_rule1( $action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers );
-	}
+    for my $proto ( split_list $protos, 'Protocol' ) {
+	$nonempty |= process_accounting_rule1( $action, $chain, $source, $dest, $proto, $ports, $sports, $user, $mark, $ipsec, $headers );
     }
 
     $nonempty;
@@ -521,9 +516,9 @@ sub setup_accounting() {
 
 		while ( $chainswithjumps && $progress ) {
 		    $progress = 0;
-		    for my $chain1 (  keys %accountingjumps ) {
+		    for my $chain1 ( sort  keys %accountingjumps ) {
 			if ( keys %{$accountingjumps{$chain1}} ) {
-			    for my $chain2 ( keys %{$accountingjumps{$chain1}} ) {
+			    for my $chain2 ( sort keys %{$accountingjumps{$chain1}} ) {
 				delete $accountingjumps{$chain1}{$chain2}, $progress = 1 unless $accountingjumps{$chain2};
 			    }
 			} else {

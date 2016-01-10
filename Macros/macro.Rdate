@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Rdate Macro
+# Shorewall - Rdate Macro
 #
 # /usr/share/shorewall/macro.Rdate
 #
@@ -9,8 +9,6 @@
 #	And even if you need to use rfc 868 Time protocol you should
 #	use Time macro instead.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

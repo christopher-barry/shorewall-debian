@@ -1,12 +1,10 @@
 #
-# Shorewall version 3.2 - Printer Macro
+# Shorewall - Printer Macro
 #
 # /usr/share/shorewall/macro.Printer
 #
 #	This macro handles Line Printer protocol printing.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

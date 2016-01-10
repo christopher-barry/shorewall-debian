@@ -1,12 +1,10 @@
 #
-# Shorewall version 4 - blacklist Macro
+# Shorewall - blacklist Macro
 #
 # /usr/share/shorewall/macro.blacklist
 #
 #	This macro handles blacklisting using BLACKLIST_DISPOSITION and BLACKLIST_LOGLEVEL
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Stopped Rules File
+# Shorewall -- /etc/shorewall/stoppedrules
 #
 # For information about entries in this file, type "man shorewall-stoppedrules"
 #
@@ -17,7 +17,7 @@
 # Warning
 # 
 # Changes to this file do not take effect until after the next shorewall start, 
-# shorewall restart, or shorewall compile command.
+# shorewall reload, shorewall restart, or shorewall compile command.
 # 
 # The columns in the file are as follows (where the column name is followed by a
 # different name in parentheses, the different name is used in the alternate
@@ -69,24 +69,27 @@
 #     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
 #     list of protocols.
 # 
-# DEST PORT(S) (dport) ‒ service-name/port-number-list
+# DPORT ‒ service-name/port-number-list
 # 
 #     Optional. A comma-separated list of port numbers and/or service names from
 #     /etc/services. May also include port ranges of the form low-port:high-port
 #     if your kernel and iptables include port range support.
 # 
-# SOURCE PORT(S) (sport) ‒ service-name/port-number-list
+#     This column was formerly labelled DEST PORT(S).
+# 
+# SPORT ‒ service-name/port-number-list
 # 
 #     Optional. A comma-separated list of port numbers and/or service names from
 #     /etc/services. May also include port ranges of the form low-port:high-port
 #     if your kernel and iptables include port range support.
 # 
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
-#     that the DEST PORT(S) column is non-empty. This causes the rule to match
-#     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
-#     match in your iptables and kernel.
+#     that the DPORT column is non-empty. This causes the rule to match when
+#     either the source port or the destination port in a packet matches one of
+#     the ports specified in DEST PORTS(S). Use of '=' requires multi-port match
+#     in your iptables and kernel.
+# 
+#     This column was formerly labelled SOURCE PORT(S).
 # 
 ###############################################################################
-#ACTION		SOURCE			DEST		PROTO	DEST	SOURCE
-#								PORT(S)	PORT(S)
+#ACTION		SOURCE			DEST		PROTO	DPORT	SPORT

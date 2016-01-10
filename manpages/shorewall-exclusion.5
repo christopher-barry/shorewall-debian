@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-exclusion
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-EXCLUSION" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-EXCLUSION" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -100,8 +100,7 @@ z2              net           REJECT
 .RS 4
 .\}
 .nf
-#ACTION         SOURCE        DEST        PROTO         DEST
-#                                                       PORT(S)
+#ACTION         SOURCE        DEST        PROTO         DPORT
 ACCEPT          all!z2        net         tcp           22
 .fi
 .if n \{\

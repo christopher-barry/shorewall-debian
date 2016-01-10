@@ -1,12 +1,10 @@
 #
-# Shorewall version 4 - CVS Macro
+# Shorewall - CVS Macro
 #
 # /usr/share/shorewall/macro.CVS
 #
 #	This macro handles connections to the CVS pserver.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

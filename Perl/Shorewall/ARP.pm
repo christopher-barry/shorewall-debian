@@ -34,6 +34,7 @@ use strict;
 
 our @ISA = qw(Exporter);
 our @EXPORT = ( qw( process_arprules create_arptables_load preview_arptables_load ) );
+our $VERSION = '4.6_0';
 
 our %arp_table;
 our $arp_input;

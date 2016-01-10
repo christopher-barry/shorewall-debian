@@ -1,12 +1,12 @@
 #
-# Shorewall version 4 - Accounting File
+# Shorewall -- /etc/shorewall/accounting
 #
 # For information about entries in this file, type "man shorewall-accounting"
 #
 # Please see http://shorewall.net/Accounting.html for examples and
 # additional information about how to use this file.
 #
-#################################################################################################################
+#####################################################################################################
 # 
 # Accounting rules exist simply to count packets and bytes in categories that you
 # define in this file. You may display these rules and their packet and byte
@@ -15,13 +15,13 @@
 # Beginning with Shorewall 4.4.18, the accounting structure can be created with
 # three root chains:
 # 
-#   ● accountin: Rules that are valid in the INPUT chain (may not specify an
+#   • accountin: Rules that are valid in the INPUT chain (may not specify an
 #     output interface).
 # 
-#   ● accountout: Rules that are valid in the OUTPUT chain (may not specify an
+#   • accountout: Rules that are valid in the OUTPUT chain (may not specify an
 #     input interface or a MAC address).
 # 
-#   ● accounting: Other rules.
+#   • accounting: Other rules.
 # 
 # The new structure is enabled by sectioning the accounting file in a manner
 # similar to the rules file. The sections are INPUT, OUTPUT and FORWARD and must
@@ -45,51 +45,47 @@
 # 
 # Section headers have the form:
 # 
-# [?]SECTION section-name
-# 
-# The optional "?" was added in Shorewalll 4.6.0 and is preferred. Existing
-# configurations may be converted to use this form using the shorewall update
-# command.
+# ?SECTION section-name
 # 
 # When sections are enabled:
 # 
-#   ● A jump to a user-defined accounting chain must appear before entries that
+#   • A jump to a user-defined accounting chain must appear before entries that
 #     add rules to that chain. This eliminates loops and unreferenced chains.
 # 
-#   ● An output interface may not be specified in the PREROUTING and INPUT
+#   • An output interface may not be specified in the PREROUTING and INPUT
 #     sections.
 # 
-#   ● In the OUTPUT and POSTROUTING sections:
+#   • In the OUTPUT and POSTROUTING sections:
 # 
-#       ○ An input interface may not be specified
+#       □ An input interface may not be specified
 # 
-#       ○ Jumps to a chain defined in the INPUT or PREROUTING sections that
+#       □ Jumps to a chain defined in the INPUT or PREROUTING sections that
 #         specifies an input interface are prohibited
 # 
-#       ○ MAC addresses may not be used
+#       □ MAC addresses may not be used
 # 
-#       ○ Jump to a chain defined in the INPUT or PREROUTING section that
+#       □ Jump to a chain defined in the INPUT or PREROUTING section that
 #         specifies a MAC address are prohibited.
 # 
-#   ● The default value of the CHAIN column is:
+#   • The default value of the CHAIN column is:
 # 
-#       ○ accountin in the INPUT section
+#       □ accountin in the INPUT section
 # 
-#       ○ accountout in the OUTPUT section
+#       □ accountout in the OUTPUT section
 # 
-#       ○ accountfwd in the FORWARD section
+#       □ accountfwd in the FORWARD section
 # 
-#       ○ accountpre in the PREROUTING section
+#       □ accountpre in the PREROUTING section
 # 
-#       ○ accountpost in the POSTROUTING section
+#       □ accountpost in the POSTROUTING section
 # 
-#   ● Traffic addressed to the firewall goes through the rules defined in the
+#   • Traffic addressed to the firewall goes through the rules defined in the
 #     INPUT section.
 # 
-#   ● Traffic originating on the firewall goes through the rules defined in the
+#   • Traffic originating on the firewall goes through the rules defined in the
 #     OUTPUT section.
 # 
-#   ● Traffic being forwarded through the firewall goes through the rules from
+#   • Traffic being forwarded through the firewall goes through the rules from
 #     the FORWARD sections.
 # 
 # The columns in the file are as follows (where the column name is followed by a
@@ -189,17 +185,12 @@
 #         back-end (usually nfnetlink_log) where it is available to accounting
 #         daemons through a netlink socket.
 # 
-#     [?]COMMENT
+#     ?COMMENT
 # 
 #         The remainder of the line is treated as a comment which is attached to
 #         subsequent rules until another COMMENT line is found or until the end
 #         of the file is reached. To stop adding comments to rules, use a line
-#         with only the word COMMENT.
-# 
-#         Note
-# 
-#         Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and
-#         is preferred.
+#         with only the word ?COMMENT.
 # 
 # CHAIN - {-|chain}
 # 
@@ -217,14 +208,17 @@
 #     followed by ":" and a host or net address. An ipset name is also accepted
 #     as an address.
 # 
-# DESTINATION (dest) - {-|any|all|interface|interface:address|address}
+# DEST - {-|any|all|interface|interface:address|address}
+# 
+#     This column was formerly named DESTINATION.
 # 
 #     Packet Destination.
 # 
 #     Format same as SOURCE column.
 # 
-# PROTOCOL (proto) - {-|{any|all|protocol-name|protocol-number|ipp2p[:{udp|all}]}
-#     [,...]}
+# PROTO - {-|{any|all|protocol-name|protocol-number|ipp2p[:{udp|all}]}[,...]}
+# 
+#     This column was formerly named PROTOCOL
 # 
 #     A protocol-name (from protocols(5)), a protocol-number, ipp2p, ipp2p:udp or
 #     ipp2p:all
@@ -232,8 +226,7 @@
 #     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
 #     list of protocols.
 # 
-# DEST PORT(S) (dport) - {-|any|all|ipp2p-option|port-name-or-number[,
-#     port-name-or-number]...}
+# DPORT - {-|any|all|ipp2p-option|port-name-or-number[,port-name-or-number]...}
 # 
 #     Destination Port number. Service name from services(5) or port number. May
 #     only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP
@@ -246,8 +239,9 @@
 #     ("iptables -m ipp2p --help") without the leading "--". If no option is
 #     given in this column, ipp2p is assumed.
 # 
-# SOURCE PORT(S) (sport)- {-|any|all|port-name-or-number[,port-name-or-number
-#     ]...}
+#     This column was formerly named DEST PORT(S).
+# 
+# SPORT - {-|any|all|port-name-or-number[,port-name-or-number]...}
 # 
 #     Service name from services(5) or port number. May only be specified if the
 #     protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136).
@@ -258,13 +252,15 @@
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
 #     that the DEST PORT(S) column is non-empty. This causes the rule to match
 #     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
-#     match in your iptables and kernel.
+#     of the ports specified in DPORT. Use of '=' requires multi-port match in
+#     your iptables and kernel.
 # 
-# USER/GROUP (user) - [!][user-name-or-number][:group-name-or-number][+
-#     program-name]
+#     This column was formerly labelled SOURCE PORT(S).
 # 
-#     This column may only be non-empty if the CHAIN is OUTPUT.
+# USER - [!][user-name-or-number][:group-name-or-number][+program-name]
+# 
+#     This column was formerly named USER/GROUP and may only be non-empty if the 
+#     CHAIN is OUTPUT.
 # 
 #     When this column is non-empty, the rule applies only if the program
 #     generating the output is running under the effective user and/or group
@@ -387,18 +383,17 @@
 # 
 #     If this column is non-empty and sections are not used, then:
 # 
-#       ● A chain NAME appearing in the ACTION column must be a chain branched
+#       □ A chain NAME appearing in the ACTION column must be a chain branched
 #         either directly or indirectly from the accipsecin or accipsecout chain.
 # 
-#       ● The CHAIN column must contain either accipsecin or accipsecout or a
+#       □ The CHAIN column must contain either accipsecin or accipsecout or a
 #         chain branched either directly or indirectly from those chains.
 # 
-#       ● These rules will NOT appear in the accounting chain.
+#       □ These rules will NOT appear in the accounting chain.
 # 
 # In all of the above columns except ACTION and CHAIN, the values -, any and all
 # may be used as wildcard'gs. Omitted trailing columns are also treated as
 # wildcard'g.
 # 
-#################################################################################################################
-#ACTION	CHAIN	SOURCE		DESTINATION	PROTO	DEST		SOURCE	USER/	MARK	IPSEC
-#							PORT(S)		PORT(S)	GROUP
+#####################################################################################################
+#ACTION		CHAIN	SOURCE		DEST		PROTO	DPORT	SPORT	USER	MARK	IPSEC

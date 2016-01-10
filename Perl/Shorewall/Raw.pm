@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_conntrack );
 our @EXPORT_OK = qw( handle_helper_rule );
-our $VERSION = '4.6_0';
+our $VERSION = '4.6_10';
 
 our %valid_ctevent = ( new        => 1,
 		       related    => 1,
@@ -113,7 +113,7 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 	    $action      = $1;
 	    $disposition = $1;
 	}
-    } elsif ( $action =~ /^IP(6)?TABLES\((.+)\)(:(.*))$/ ) {
+    } elsif ( $action =~ /^IP(6)?TABLES\((.+)\)(:(.*))?$/ ) {
 	if ( $family == F_IPV4 ) {
 	    fatal_error 'Invalid conntrack ACTION (IP6TABLES)' if $1;
 	} else {
@@ -125,8 +125,8 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 	fatal_error "Unknown target ($tgt)" unless $target_type;
 	fatal_error "The $tgt TARGET is not allowed in the raw table" unless $target_type & RAW_TABLE;
 	$disposition = $tgt;
-	$action      = 2;
-	validate_level( $level = $3 ) if supplied $3;
+	$action      = $2;
+	validate_level( $level = $4 ) if supplied $4;
     } else {
 	(  $disposition, my ( $option, $args ), $level ) = split ':', $action, 4;
 
@@ -146,7 +146,7 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 	    if ( $option eq 'helper' ) {
 		my $modifiers = '';
 
-		$disposition = "helper";
+		$disposition = 'helper';
 
 		if ( $args =~ /^([-\w.]+)\((.+)\)$/ ) {
 		    $args      = $1;
@@ -156,8 +156,9 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 		fatal_error "Invalid helper' ($args)" if $args =~ /,/;
 		validate_helper( $args, $proto );
 		$action = "CT --helper $helpers_aliases{$args}";
-		$exception_rule = do_proto( $proto, '-', '-' );
 
+		$exception_rule = do_proto( $proto, '-', '-' );
+		
 		for my $mod ( split_list1( $modifiers, 'ctevents' ) ) {
 		    fatal_error "Invalid helper option ($mod)" unless $mod =~ /^(\w+)=(.+)$/;
 		    $mod    = $1;
@@ -176,6 +177,17 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 			fatal_error "Invalid helper option ($mod)";
 		    }
 		}
+	    } elsif ( $option eq 'ctevents' ) {
+		$disposition = 'helper';
+
+		for ( split_list( $args, 'ctevents' ) ) {
+		    fatal_error "Invalid 'ctevents' event ($_)" unless $valid_ctevent{$_};
+		}
+
+		$action = "CT --ctevents $args";
+	    } elsif ( $option eq 'expevents' ) {
+		fatal_error "Invalid expevent argument ($args)" unless $args eq 'new';
+		$action = 'CT --expevents new';
 	    } else {
 		fatal_error "Invalid CT option ($option)";
 	    }
@@ -263,11 +275,14 @@ sub process_format( $ ) {
     $file_format = $format;
 }
 
-sub setup_conntrack() {
+sub setup_conntrack($) {
+    my $convert = shift;
+    my $fn;
+    my @files = $convert ? ( qw/notrack conntrack/ ) : ( 'conntrack' );
 
-    for my $name ( qw/notrack conntrack/ ) {
+    for my $name ( @files ) {
 
-	my $fn = open_file( $name, 3 , 1 );
+	$fn = open_file( $name, 3 , 1 );
 
 	if ( $fn ) {
 
@@ -329,11 +344,75 @@ sub setup_conntrack() {
 		    } else {
 			warning_message "Unable to remove empty notrack file ($fn): $!";
 		    }
+		    $convert = undef;
+		}
+	    }
+	} elsif ( $name eq 'notrack' ) {
+	    $convert = undef;
+
+	    if ( -f ( my $fn1 = find_file( $name ) ) ) {
+		if ( unlink( $fn1 ) ) {
+		    warning_message "Empty notrack file ($fn1) removed";
 		} else {
-		    warning_message "Non-empty notrack file ($fn); please move its contents to the conntrack file";
+		    warning_message "Unable to remove empty notrack file ($fn1): $!";
 		}
 	    }
 	}
+    }
+
+    if ( $convert ) {
+	my $conntrack;
+	my $empty  = 1;
+	my $date = localtime;
+
+	if ( $fn ) {
+	    open $conntrack, '>>', $fn or fatal_error "Unable to open $fn for notrack conversion: $!";
+	} else {
+	    open $conntrack, '>', $fn = find_file 'conntrack' or fatal_error "Unable to open $fn for notrack conversion: $!";
+
+	    print $conntrack <<'EOF';
+#
+# Shorewall version 5 - conntrack File
+#
+# For information about entries in this file, type "man shorewall-conntrack"
+#
+##############################################################################################################
+EOF
+	    print $conntrack '?' . "FORMAT 3\n";
+	    
+	    print $conntrack <<'EOF';
+#ACTION                 SOURCE          DESTINATION     PROTO   DEST            SOURCE  USER/           SWITCH
+#                                                               PORT(S)         PORT(S) GROUP
+EOF
+	}
+
+	print( $conntrack
+	       "#\n" ,
+	       "# Rules generated from notrack file $fn by Shorewall $globals{VERSION} - $date\n" ,
+	       "#\n" );
+
+	$fn = open_file( 'notrack' , 3, 1 ) || fatal_error "Unable to open the notrack file for conversion: $!";
+
+	while ( read_a_line( PLAIN_READ ) ) {
+	    #
+	    # Don't copy the header comments from the old notrack file
+	    #
+	    next if $empty && ( $currentline =~ /^\s*#/ || $currentline =~ /^\s*$/ );
+
+	    if ( $empty ) {
+		#
+		# First non-commentary line
+		#
+		$empty = undef;
+
+		print $conntrack '?' . "FORMAT 1\n" unless $currentline =~ /^\s*\??FORMAT/i;
+	    }
+
+	    print $conntrack "$currentline\n";
+	}
+
+	rename $fn, "$fn.bak" or fatal_error "Unable to rename $fn to $fn.bak: $!";
+	progress_message2 "notrack file $fn saved in $fn.bak"
     }
 }
 

@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-netmap
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-NETMAP" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-NETMAP" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -108,7 +108,7 @@ Added in Shorewall 4\&.4\&.11\&. If specified, qualifies INTERFACE\&. It specifi
 Optional \-\- added in Shorewall 4\&.4\&.23\&.2\&. Only packets specifying this protocol will have their IP header modified\&.
 .RE
 .PP
-\fBDEST PORT(S) (dport)\fR \- \fIport\-number\-or\-name\-list\fR
+\fBDPORT\fR \- \fIport\-number\-or\-name\-list\fR
 .RS 4
 Optional \- added in Shorewall 4\&.4\&.23\&.2\&. Destination Ports\&. A comma\-separated list of Port names (from services(5)),
 \fIport number\fRs or
@@ -124,13 +124,17 @@ for bit\-torrent)\&. If no PORT is given,
 is assumed\&.
 .sp
 An entry in this field requires that the PROTO column specify icmp (1), tcp (6), udp (17), sctp (132) or udplite (136)\&. Use \*(Aq\-\*(Aq if any of the following field is supplied\&.
+.sp
+This column was formerly labelled DEST PORT(S)\&.
 .RE
 .PP
-\fBSOURCE PORT(S) (sport)\fR \- \fIport\-number\-or\-name\-list\fR
+\fBSPORT\fR \- \fIport\-number\-or\-name\-list\fR
 .RS 4
 Optional \-\- added in Shorewall 4\&.4\&.23\&.2\&. Source port(s)\&. If omitted, any source port is acceptable\&. Specified as a comma\-separated list of port names, port numbers or port ranges\&.
 .sp
 An entry in this field requires that the PROTO column specify tcp (6), udp (17), sctp (132) or udplite (136)\&. Use \*(Aq\-\*(Aq if any of the following fields is supplied\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
 .RE
 .SH "FILES"
 .PP

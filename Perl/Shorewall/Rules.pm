@@ -44,7 +44,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw(
 		  process_policies
-		  apply_policy_rules
+		  complete_policy_chains
 		  complete_standard_chain
 		  setup_syn_flood_chains
 		  save_policies
@@ -60,7 +60,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize process_rule );
-our $VERSION = '4.6_4';
+our $VERSION = '5.0.3';
 #
 # Globals are documented in the initialize() function
 #
@@ -126,9 +126,9 @@ our @builtins;
 #
 # Commands that can be embedded in a basic rule and how many total tokens on the line (0 => unlimited).
 #
-our $rule_commands   = { SECTION => 2 };
-our $action_commands = { SECTION => 2, DEFAULTS => 2 };
-our $macro_commands  = { SECTION => 2, DEFAULT => 2 };
+our $rule_commands   = {};
+our $action_commands = { DEFAULTS => 2 };
+our $macro_commands  = { DEFAULT => 2 };
 #
 # There is an implicit assumption that the last column of the @rulecolumns hash is always the last column of the @columns array.
 # The @columns array doesn't include the ACTION but does include a 'wildcard' last element.
@@ -224,6 +224,7 @@ sub initialize( $ ) {
     $family            = shift;
     #
     # Chains created as a result of entries in the policy file
+    #
     @policy_chains  = ();
     #
     # This is updated from the *_DEFAULT settings in shorewall.conf. Those settings were stored
@@ -348,44 +349,44 @@ sub new_policy_chain($$$$$)
 #
 sub set_policy_chain($$$$$$)
 {
-    my ($source, $dest, $chain1, $chainref, $policy, $intrazone) = @_;
+    my ( $chain, $source, $dest, $polchainref, $policy, $intrazone ) = @_;
 
-    my $chainref1 = $filter_table->{$chain1};
+    my $chainref = $filter_table->{$chain};
 
-    if ( $chainref1 ) {
-	if ( $intrazone && $source eq $dest && $chainref1->{provisional} ) {
-	    $chainref1->{policychain} = '';
-	    $chainref1->{provisional} = '';
+    if ( $chainref ) {
+	if ( $intrazone && $source eq $dest && $chainref->{provisional} ) {
+	    $chainref->{policychain} = '';
+	    $chainref->{provisional} = '';
 	}
     } else {
-	$chainref1 = new_rules_chain $chain1;
+	$chainref = new_rules_chain $chain;
     }
 
-    unless ( $chainref1->{policychain} ) {
+    unless ( $chainref->{policychain} ) {
 	if ( $config{EXPAND_POLICIES} ) {
 	    #
 	    # We convert the canonical chain into a policy chain, using the settings of the
 	    # passed policy chain.
 	    #
-	    $chainref1->{policychain} = $chain1;
-	    $chainref1->{loglevel}    = $chainref->{loglevel} if defined $chainref->{loglevel};
-	    $chainref1->{audit}       = $chainref->{audit}    if defined $chainref->{audit};
+	    $chainref->{policychain} = $chain;
+	    $chainref->{loglevel}    = $polchainref->{loglevel} if defined $polchainref->{loglevel};
+	    $chainref->{audit}       = $polchainref->{audit}    if defined $polchainref->{audit};
 
-	    if ( defined $chainref->{synparams} ) {
-		$chainref1->{synparams}   = $chainref->{synparams};
-		$chainref1->{synchain}    = $chainref->{synchain};
+	    if ( defined $polchainref->{synparams} ) {
+		$chainref->{synparams}   = $polchainref->{synparams};
+		$chainref->{synchain}    = $polchainref->{synchain};
 	    }
 
-	    $chainref1->{default}     = $chainref->{default} if defined $chainref->{default};
-	    $chainref1->{is_policy}   = 1;
-	    push @policy_chains, $chainref1;
+	    $chainref->{default}     = $polchainref->{default} if defined $polchainref->{default};
+	    $chainref->{is_policy}   = 1;
+	    push @policy_chains, $chainref;
 	} else {
-	    $chainref1->{policychain} = $chainref->{name};
+	    $chainref->{policychain} = $polchainref->{name};
 	}
 
-	$chainref1->{policy} = $policy;
-	$chainref1->{policypair} = [ $source, $dest ];
-	$chainref1->{origin} = $chainref->{origin};
+	$chainref->{policy}     = $policy;
+	$chainref->{policypair} = [ $source, $dest ];
+	$chainref->{origin}     = $polchainref->{origin};
     }
 }
 
@@ -469,6 +470,64 @@ sub process_default_action( $$$$ ) {
 }
 
 #
+# Verify an NFQUEUE specification and return the appropriate ip[6]tables target
+#
+sub handle_nfqueue( $$ ) {
+    my ($params, $allow_bypass ) = @_;
+    my ( $action, $bypass );
+    my ( $queue1, $queue2, $queuenum1, $queuenum2 );
+
+    require_capability( 'NFQUEUE_TARGET', 'NFQUEUE Rules and Policies', '' );
+
+    if ( supplied( $params ) ) {
+	( my $queue, $bypass, my $junk ) = split ',', $params, 3;
+
+	fatal_error "Invalid NFQUEUE parameter list ($params)" if defined $junk;
+
+	if ( supplied $queue ) {
+	    if ( $queue eq 'bypass' ) {
+		fatal_error "'bypass' is not allowed in this context" unless $allow_bypass;
+		fatal_error "Invalid NFQUEUE options (bypass,$bypass)" if supplied $bypass;
+		return 'NFQUEUE --queue-bypass';
+	    }
+
+	    ( $queue1, $queue2 ) = split ':', $queue, 2;
+
+	    fatal_error "Invalid NFQUEUE parameter list ($params)" unless supplied $queue1;
+
+	    $queuenum1 = numeric_value( $queue1 );
+
+	    fatal_error "Invalid NFQUEUE queue number ($queue1)" unless defined( $queuenum1) && $queuenum1 >= 0 && $queuenum1 <= 65535;
+
+	    if ( supplied $queue2 ) {
+		$queuenum2 = numeric_value( $queue2 );
+
+		fatal_error "Invalid NFQUEUE queue number ($queue2)" unless defined( $queuenum2) && $queuenum2 >= 0 && $queuenum2 <= 65535 && $queuenum1 < $queuenum2;
+	    }
+	} else {
+	    $queuenum1 = 0;
+	}
+    } else {
+	$queuenum1 = 0;
+    }
+
+    if ( supplied $bypass ) {
+	fatal_error "Invalid NFQUEUE option ($bypass)" if $bypass ne 'bypass';
+	fatal_error "'bypass' is not allowed in this context" unless $allow_bypass;
+
+	$bypass =' --queue-bypass';
+    } else {
+	$bypass = '';
+    }
+
+    if ( supplied $queue2 ) {
+	return "NFQUEUE --queue-balance ${queuenum1}:${queuenum2}${bypass}";
+    } else {
+	return "NFQUEUE --queue-num ${queuenum1}${bypass}";
+    }
+}
+
+#
 # Process an entry in the policy file.
 #
 sub process_a_policy() {
@@ -518,11 +577,9 @@ sub process_a_policy() {
     $default = process_default_action( $originalpolicy, $policy, $default, $level );
 
     if ( defined $queue ) {
-	fatal_error "Invalid policy ($policy($queue))" unless $policy eq 'NFQUEUE';
-	require_capability( 'NFQUEUE_TARGET', 'An NFQUEUE Policy', 's' );
-	my $queuenum = numeric_value( $queue );
-	fatal_error "Invalid NFQUEUE queue number ($queue)" unless defined( $queuenum) && $queuenum <= 65535;
-	$policy = "NFQUEUE --queue-num $queuenum";
+	$policy = handle_nfqueue( $queue,
+				  0 # Don't allow 'bypass'
+	    );
     } elsif ( $policy eq 'NONE' ) {
 	fatal_error "NONE policy not allowed with \"all\""
 	    if $clientwild || $serverwild;
@@ -548,10 +605,10 @@ sub process_a_policy() {
 		$chainref->{provisional} = 0;
 		$chainref->{policy} = $policy;
 	    } else {
-		fatal_error qq(Policy "$client $server $policy" duplicates earlier policy "@{$chainref->{policypair}} $chainref->{policy}");
+		fatal_error qq(Policy "$client $server $originalpolicy" duplicates earlier policy "@{$chainref->{policypair}} $chainref->{policy}");
 	    }
 	} elsif ( $chainref->{policy} ) {
-	    fatal_error qq(Policy "$client $server $policy" duplicates earlier policy "@{$chainref->{policypair}} $chainref->{policy}");
+	    fatal_error qq(Policy "$client $server $originalpolicy" duplicates earlier policy "@{$chainref->{policypair}} $chainref->{policy}");
 	} else {
 	    convert_to_policy_chain( $chainref, $client, $server, $policy, 0 , $audit );
 	    push @policy_chains, ( $chainref ) unless $config{EXPAND_POLICIES} && ( $clientwild || $serverwild );
@@ -582,24 +639,24 @@ sub process_a_policy() {
 	if ( $serverwild ) {
 	    for my $zone ( @zonelist ) {
 		for my $zone1 ( @zonelist ) {
-		    set_policy_chain $client, $server, rules_chain( ${zone}, ${zone1} ), $chainref, $policy, $intrazone;
-		    print_policy $zone, $zone1, $policy, $chain;
+		    set_policy_chain rules_chain( ${zone}, ${zone1} ), $client, $server, $chainref, $policy, $intrazone;
+		    print_policy $zone, $zone1, $originalpolicy, $chain;
 		}
 	    }
 	} else {
 	    for my $zone ( all_zones ) {
-		set_policy_chain $client, $server, rules_chain( ${zone}, ${server} ), $chainref, $policy, $intrazone;
-		print_policy $zone, $server, $policy, $chain;
+		set_policy_chain rules_chain( ${zone}, ${server} ), $client, $server, $chainref, $policy, $intrazone;
+		print_policy $zone, $server, $originalpolicy, $chain;
 	    }
 	}
     } elsif ( $serverwild ) {
 	for my $zone ( @zonelist ) {
-	    set_policy_chain $client, $server, rules_chain( ${client}, ${zone} ), $chainref, $policy, $intrazone;
-	    print_policy $client, $zone, $policy, $chain;
+	    set_policy_chain rules_chain( ${client}, ${zone} ), $client, $server, $chainref, $policy, $intrazone;
+	    print_policy $client, $zone, $originalpolicy, $chain;
 	}
 
     } else {
-	print_policy $client, $server, $policy, $chain;
+	print_policy $client, $server, $originalpolicy, $chain;
     }
 }
 
@@ -670,8 +727,8 @@ sub process_policies()
 		unless ( $zone eq $zone1 ) {
 		    my $name  = rules_chain( $zone,  $zone1 );
 		    my $name1 = rules_chain( $zone1, $zone  );
-		    set_policy_chain( $zone,  $zone1, $name,  ensure_rules_chain( $name  ), 'NONE', 0 );
-		    set_policy_chain( $zone1, $zone,  $name1, ensure_rules_chain( $name1 ), 'NONE', 0 );
+		    set_policy_chain( $name,  $zone,  $zone1, ensure_rules_chain( $name  ), 'NONE', 0 );
+		    set_policy_chain( $name1, $zone1, $zone,  ensure_rules_chain( $name1 ), 'NONE', 0 );
 		}
 	    }
 	} elsif ( $type == LOOPBACK ) {
@@ -679,8 +736,8 @@ sub process_policies()
 		unless ( $zone eq $zone1 || zone_type( $zone1 ) == LOOPBACK ) {
 		    my $name  = rules_chain( $zone,  $zone1 );
 		    my $name1 = rules_chain( $zone1, $zone  );
-		    set_policy_chain( $zone,  $zone1, $name,  ensure_rules_chain( $name  ), 'NONE', 0 );
-		    set_policy_chain( $zone1, $zone,  $name1, ensure_rules_chain( $name1 ), 'NONE', 0 );
+		    set_policy_chain( $name,  $zone,  $zone1, ensure_rules_chain( $name  ), 'NONE', 0 );
+		    set_policy_chain( $name1, $zone1, $zone,  ensure_rules_chain( $name1 ), 'NONE', 0 );
 		}
 	    }
 	}
@@ -712,9 +769,9 @@ sub process_policies()
 #
 # Policy Rule application
 #
-sub process_inline ($$$$$$$$$$$$$$$$$$$$$);
+sub process_inline ($$$$$$$$$$$$$$$$$$$$$$);
 
-sub policy_rules( $$$$$ ) {
+sub add_policy_rules( $$$$$ ) {
     my ( $chainref , $target, $loglevel, $default, $dropmulticast ) = @_;
 
     unless ( $target eq 'NONE' ) {
@@ -737,6 +794,7 @@ sub policy_rules( $$$$$ ) {
 		process_inline( $action,      #Inline
 				$chainref,    #Chain
 				'',           #Matches
+				'',           #Matches1
 				$loglevel,    #Log Level and Tag
 				$default,     #Target
 				$param || '', #Param
@@ -774,7 +832,7 @@ sub report_syn_flood_protection() {
 #
 # Complete a policy chain - Add policy-enforcing rules and syn flood, if specified
 #
-sub default_policy( $$$ ) {
+sub complete_policy_chain( $$$ ) { #Chainref, Source Zone, Destination Zone
     my $chainref   = $_[0];
     my $policyref  = $filter_table->{$chainref->{policychain}};
     my $synparams  = $policyref->{synparams};
@@ -785,20 +843,20 @@ sub default_policy( $$$ ) {
     assert( $policyref );
 
     if ( $chainref eq $policyref ) {
-	policy_rules $chainref , $policy, $loglevel , $default, $config{MULTICAST};
+	add_policy_rules $chainref , $policy, $loglevel , $default, $config{MULTICAST};
     } else {
 	if ( $policy eq 'ACCEPT' || $policy eq 'QUEUE' || $policy =~ /^NFQUEUE/ ) {
 	    if ( $synparams ) {
 		report_syn_flood_protection;
-		policy_rules $chainref , $policy , $loglevel , $default, $config{MULTICAST};
+		add_policy_rules $chainref , $policy , $loglevel , $default, $config{MULTICAST};
 	    } else {
 		add_ijump $chainref,  g => $policyref;
 		$chainref = $policyref;
-		policy_rules( $chainref, $policy, $loglevel, $default, $config{MULTICAST} ) if $default =~/^macro\./;
+		add_policy_rules( $chainref, $policy, $loglevel, $default, $config{MULTICAST} ) if $default =~/^macro\./;
 	    }
 	} elsif ( $policy eq 'CONTINUE' ) {
 	    report_syn_flood_protection if $synparams;
-	    policy_rules $chainref , $policy , $loglevel , $default, $config{MULTICAST};
+	    add_policy_rules $chainref , $policy , $loglevel , $default, $config{MULTICAST};
 	} else {
 	    report_syn_flood_protection if $synparams;
 	    add_ijump $chainref , g => $policyref;
@@ -814,7 +872,7 @@ sub ensure_rules_chain( $ );
 #
 # Finish all policy Chains
 #
-sub apply_policy_rules() {
+sub complete_policy_chains() {
     progress_message2 'Applying Policies...';
 
     for my $chainref ( @policy_chains ) {
@@ -845,7 +903,7 @@ sub apply_policy_rules() {
 
 	    if ( $name =~ /^all[-2]|[-2]all$/ ) {
 		run_user_exit $chainref;
-		policy_rules $chainref , $policy, $loglevel , $default, $config{MULTICAST};
+		add_policy_rules $chainref , $policy, $loglevel , $default, $config{MULTICAST};
 	    }
 	}
     }
@@ -856,7 +914,7 @@ sub apply_policy_rules() {
 
 	    if ( $chainref->{referenced} ) {
 		run_user_exit $chainref;
-		default_policy $chainref, $zone, $zone1;
+		complete_policy_chain $chainref, $zone, $zone1;
 	    }
 	}
     }
@@ -890,7 +948,7 @@ sub complete_standard_chain ( $$$$ ) {
     }
 
 
-    policy_rules $stdchainref , $policy , $loglevel, $defaultaction, 0;
+    add_policy_rules $stdchainref , $policy , $loglevel, $defaultaction, 0;
 }
 
 #
@@ -964,7 +1022,7 @@ sub finish_chain_section ($$$) {
 
     for ( qw( ESTABLISHED RELATED INVALID UNTRACKED ) ) {
 	if ( $state{$_} ) {
-	    my ( $char, $level, $target ) = @{$statetable{$_}};
+	    my ( $char, $level, $tag, $target ) = @{$statetable{$_}};
 	    my $twochains = substr( $chainref->{name}, 0, 1 ) eq $char;
 
 	    if ( $twochains || $level || $target ne 'ACCEPT' ) {
@@ -977,10 +1035,14 @@ sub finish_chain_section ($$$) {
 			$chain2ref = new_chain( 'filter', "${char}$chainref->{name}" );
 		    }
 
-		    log_rule( $level,
-			      $chain2ref,
-			      uc $target,
-			      '' );
+		    log_rule_limit( $level,
+				    $chain2ref,
+				    $chain2ref->{name},
+				    uc $target,
+				    $globals{LOGLIMIT},
+				    $tag ,
+				    'add' ,
+				    '');
 
 		    $target = ensure_audit_chain( $target ) if ( $targets{$target} || 0 ) & AUDIT;
 
@@ -1140,7 +1202,7 @@ sub normalize_action_name( $ ) {
 #
 # Produce a recognizable target from a normalized action
 #
-sub externalize( $ ) {
+sub external_name( $ ) {
     my ( $target, $level, $tag, $params ) = split /:/, shift, 4;
 
     $target  = join( '', $target, '(', $params , ')' ) if $params;
@@ -1622,7 +1684,7 @@ my %builtinops = ( 'dropBcast'      => \&dropBcast,
 		   'Limit'          => \&Limit,
 		 );
 
-sub process_rule ( $$$$$$$$$$$$$$$$$$$ );
+sub process_rule ( $$$$$$$$$$$$$$$$$$$$ );
 
 #
 # Populate an action invocation chain. As new action tuples are encountered,
@@ -1645,7 +1707,7 @@ sub process_action($$) {
 
     progress_message2 "$doing $actionfile for chain $chainref->{name}...";
 
-    push_open $actionfile, 2, 1;
+    push_open $actionfile, 2, 1, undef, 2;
 
     my $oldparms = push_action_params( $action, $chainref, $param, $level, $tag, $caller );
 
@@ -1661,14 +1723,7 @@ sub process_action($$) {
 	my ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper );
 
 	if ( $file_format == 1 ) {
-	    warning_message( "FORMAT-1 actions are deprecated and support will be dropped in a future release" ) unless $fmt1actionwarn{$action}++;
-
-	    ($target, $source, $dest, $proto, $ports, $sports, $rate, $user, $mark ) =
-		split_line1( 
-		    'action file',
-		    { target => 0, source => 1, dest => 2, proto => 3, dport => 4, sport => 5, rate => 6, user => 7, mark => 8 },
-		    $rule_commands );
-	    $origdest = $connlimit = $time = $headers = $condition = $helper = '-';
+	    fatal_error( "FORMAT-1 actions are no longer supported" );
 	} else {
 	    ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper )
 		= split_line2( 'action file',
@@ -1686,6 +1741,7 @@ sub process_action($$) {
 	}
 
 	process_rule( $chainref,
+		      '',
 		      '',
 		      $nolog ? $target : merge_levels( join(':', @actparms{'chain','loglevel','logtag'}), $target ),
 		      '',
@@ -1748,15 +1804,31 @@ sub process_actions() {
 						    undef, #Columns
 						    1 );   #Allow inline matches
 
-	    my $type        = ( $action eq $config{REJECT_ACTION} ? INLINE : ACTION );
-	    my $noinline    = 0;
-	    my $nolog       = ( $type == INLINE ) || 0;
-	    my $builtin     = 0;
-	    my $raw         = 0;
-	    my $mangle      = 0;
-	    my $filter      = 0;
-	    my $nat         = 0;
-	    my $terminating = 0;
+	    my $type = ( $action eq $config{REJECT_ACTION} ? INLINE : ACTION );
+
+	    use constant { INLINE_OPT           => 1 ,
+			   NOINLINE_OPT         => 2 ,
+			   NOLOG_OPT            => 4 ,
+			   BUILTIN_OPT          => 8 ,
+			   RAW_OPT              => 16 ,
+			   MANGLE_OPT           => 32 ,
+			   FILTER_OPT           => 64 ,
+			   NAT_OPT              => 128 ,
+			   TERMINATING_OPT      => 256 ,
+		       };
+
+	    my %options = ( inline      => INLINE_OPT ,
+			    noinline    => NOINLINE_OPT ,
+			    nolog       => NOLOG_OPT ,
+			    builtin     => BUILTIN_OPT ,
+			    raw         => RAW_OPT ,
+			    mangle      => MANGLE_OPT ,
+			    filter      => FILTER_OPT ,
+			    nat         => NAT_OPT ,
+			    terminating => TERMINATING_OPT ,
+			  );
+
+	    my $opts = $type == INLINE ? NOLOG_OPT : 0;
 
 	    if ( $action =~ /:/ ) {
 		warning_message 'Default Actions are now specified in /etc/shorewall/shorewall.conf';
@@ -1767,31 +1839,14 @@ sub process_actions() {
 
 	    if ( $options ne '-' ) {
 		for ( split_list( $options, 'option' ) ) {
-		    if ( $_ eq 'inline' ) {
-			$type = INLINE;
-		    } elsif ( $_ eq 'noinline' ) {
-			$noinline = 1;
-		    } elsif ( $_ eq 'nolog' ) {
-			$nolog = 1;
-		    } elsif ( $_ eq 'builtin' ) {
-			$builtin = 1;
-		    } elsif ( $_ eq 'terminating' ) {
-			$terminating = 1;
-		    } elsif ( $_ eq 'mangle' ) {
-			$mangle = 1;
-		    } elsif ( $_ eq 'raw' ) {
-			$raw = 1;
-		    } elsif ( $_ eq 'filter' ) {
-			$filter = 1;
-		    } elsif ( $_ eq 'nat' ) {
-			$nat = 1;
-		    } else {
-			fatal_error "Invalid option ($_)";
-		    }
+		    fatal_error "Invalid option ($_)" unless $options{$_};
+		    $opts |= $options{$_};
 		}
+
+		$type = INLINE if $opts & INLINE_OPT;
 	    }
 
-	    fatal_error "Conflicting OPTIONS ($options)" if $noinline && $type == INLINE;
+	    fatal_error "Conflicting OPTIONS ($options)" if ( $opts & NOINLINE_OPT && $type == INLINE ) || ( $opts & INLINE_OPT && $opts & BUILTIN_OPT );
 
 	    if ( my $actiontype = $targets{$action} ) {
 		if ( ( $actiontype & ACTION ) && ( $type == INLINE ) ) {
@@ -1808,15 +1863,15 @@ sub process_actions() {
 		}
 	    }
 
-	    if ( $builtin ) {
+	    if ( $opts & BUILTIN_OPT ) {
 		my $actiontype = USERBUILTIN | OPTIONS;
-		$actiontype   |= MANGLE_TABLE if $mangle;
-		$actiontype   |= RAW_TABLE    if $raw;
-		$actiontype   |= NAT_TABLE    if $nat;
+		$actiontype   |= MANGLE_TABLE if $opts & MANGLE_OPT;
+		$actiontype   |= RAW_TABLE    if $opts & RAW_OPT;
+		$actiontype   |= NAT_TABLE    if $opts & NAT_OPT;
 		#
 		# For backward compatibility, we assume that user-defined builtins are valid in the filter table
 		#
-		$actiontype |= FILTER_TABLE if $filter || ! ($mangle || $raw || $nat);
+		$actiontype |= FILTER_TABLE if $opts & FILTER_OPT || ! ( $opts & ( MANGLE_OPT | RAW_OPT | NAT_OPT ) );
 
 		if ( $builtin_target{$action} ) {
 		    $builtin_target{$action} |= $actiontype;
@@ -1826,16 +1881,17 @@ sub process_actions() {
 
 		$targets{$action} = $actiontype;
 
-		make_terminating( $action ) if $terminating;
+		make_terminating( $action ) if $opts & TERMINATING_OPT
 	    } else {
-		fatal_error "Table names are only allowed for builtin actions" if $mangle || $raw || $nat || $filter;
-		new_action $action, $type, $noinline, $nolog;
+		fatal_error "Table names are only allowed for builtin actions" if $opts & ( MANGLE_OPT | RAW_OPT | NAT_OPT | FILTER_OPT );
+
+		new_action $action, $type, ( $opts & NOINLINE_OPT ) != 0 , ( $opts & NOLOG_OPT ) != 0;
 
 		my $actionfile = find_file( "action.$action" );
 
 		fatal_error "Missing Action File ($actionfile)" unless -f $actionfile;
 
-		$inlines{$action} = { file => $actionfile, nolog => $nolog } if $type == INLINE;
+		$inlines{$action} = { file => $actionfile, nolog => $opts & NOLOG_OPT } if $type == INLINE;
 	    }
 	}
     }
@@ -1874,6 +1930,7 @@ sub process_reject_action() {
 	process_inline( $action,      #Inline
 			$rejectref,   #Chain
 			'',           #Matches
+			'',           #Matches1
 			'',           #Log Level and Tag
 			$action,      #Target
 		        '',           #Param
@@ -1902,8 +1959,8 @@ sub process_reject_action() {
 #
 # Expand a macro rule from the rules file
 #
-sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
-    my ($macro, $chainref, $matches, $target, $param, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper, $wildcard ) = @_;
+sub process_macro ($$$$$$$$$$$$$$$$$$$$$) {
+    my ($macro, $chainref, $matches, $matches1, $target, $param, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper, $wildcard ) = @_;
 
     my $generated = 0;
 
@@ -1912,7 +1969,7 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
 
     progress_message "..Expanding Macro $macrofile...";
 
-    push_open $macrofile, 2, 1, no_comment;
+    push_open $macrofile, 2, 1, no_comment, 2;
 
     macro_comment $macro;
 
@@ -1921,15 +1978,7 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
 	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark, $mconnlimit, $mtime, $mheaders, $mcondition, $mhelper);
 
 	if ( $file_format == 1 ) {
-	    warning_message( "FORMAT-1 macros are deprecated and support will be dropped in a future release" ) unless $fmt1macrowarn{$macro}++;
-
-	    ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $mrate, $muser ) = 
-		split_line2( 'macro file',
-			     \%rulecolumns,
-			     $rule_commands,
-			     undef, #Columns
-			     1 );   #Allow inline matches
-	    ( $morigdest, $mmark, $mconnlimit, $mtime, $mheaders, $mcondition, $mhelper ) = qw/- - - - - - -/;
+	    fatal_error( "FORMAT-1 macros are no longer supported" );
 	} else {
 	    ( $mtarget,
 	      $msource,
@@ -2002,7 +2051,8 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
 
 	$generated |= process_rule(
 				   $chainref,
-				   $matches,
+	                           $matches,
+	                           $matches1,
 				   $mtarget,
 				   $param,
 				   $msource,
@@ -2035,8 +2085,8 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$) {
 #
 # Expand an inline action rule from the rules file
 #
-sub process_inline ($$$$$$$$$$$$$$$$$$$$$) {
-    my ($inline, $chainref, $matches, $loglevel, $target, $param, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper, $wildcard ) = @_;
+sub process_inline ($$$$$$$$$$$$$$$$$$$$$$) {
+    my ($inline, $chainref, $matches, $matches1, $loglevel, $target, $param, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper, $wildcard ) = @_;
 
     my $generated = 0;
 
@@ -2055,7 +2105,7 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$) {
 
     progress_message "..Expanding inline action $inlinefile...";
 
-    push_open $inlinefile, 2, 1;
+    push_open $inlinefile, 2, 1, undef , 2;
 
     my $save_comment = push_comment;
 
@@ -2126,7 +2176,8 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$) {
 
 	$generated |= process_rule(
 				   $chainref,
-				   $matches,
+	                           $matches,
+	                           $matches1,
 				   $mtarget,
 				   $param,
 				   $msource,
@@ -2179,9 +2230,10 @@ sub verify_audit($;$$) {
 # reference is also passed when rules are being generated during processing of a macro used as a default action.
 #
 
-sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
+sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
     my ( $chainref,   #reference to Action Chain if we are being called from process_action(); undef otherwise
 	 $rule,       #Matches
+	 $matches1,   #Matches after the ones generated by the columns
 	 $target,
 	 $current_param,
 	 $source,
@@ -2211,6 +2263,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
     my $blacklist   = ( $section == BLACKLIST_SECTION );
     my $matches     = $rule;
     my $raw_matches = '';
+    my $exceptionrule = '';
 
     if ( $inchain = defined $chainref ) {
 	( $inaction, undef, undef, undef ) = split /:/, $normalized_action = $chainref->{action}, 4 if $chainref->{action};
@@ -2220,7 +2273,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 
     if ( $basictarget eq 'INLINE' ) {
 	( $action, $basictarget, $param, $loglevel, $raw_matches ) = handle_inline( FILTER_TABLE, 'filter', $action, $basictarget, $param, $loglevel );
-    } elsif ( $config{INLINE_MATCHES} ) {
+    } else {
 	$raw_matches = get_inline_matches(0);
     }
     #
@@ -2245,6 +2298,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	my $generated = process_macro( $basictarget,
 				       $chainref,
 				       $rule . $raw_matches,
+				       $matches1,
 				       $target,
 				       $current_param,
 				       $source,
@@ -2268,10 +2322,9 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	return $generated;
 
     } elsif ( $actiontype & NFQ ) {
-	require_capability( 'NFQUEUE_TARGET', 'NFQUEUE Rules', '' );
-	my $paramval = $param eq '' ? 0 : numeric_value( $param );
-	fatal_error "Invalid value ($param) for NFQUEUE queue number" unless defined($paramval) && $paramval <= 65535;
-	$action = "NFQUEUE --queue-num $paramval";
+	$action = handle_nfqueue( $param,
+				  1 # Allow 'bypass'
+	    );
     } elsif ( $actiontype & SET ) {
 	require_capability( 'IPSET_MATCH', 'SET and UNSET rules', '' );
 	fatal_error "$action rules require a set name parameter" unless $param;
@@ -2284,7 +2337,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	validate_level( $action );
 	$loglevel = supplied $loglevel ? join( ':', $action, $loglevel ) : $action;
 	$action   = 'LOG';
-    } elsif ( ! ( $actiontype & (ACTION | INLINE | IPTABLES ) ) ) {
+    } elsif ( ! ( $actiontype & (ACTION | INLINE | IPTABLES | TARPIT ) ) ) {
 	fatal_error "'builtin' actions may only be used in INLINE rules" if $actiontype == USERBUILTIN;
 	fatal_error "The $basictarget TARGET does not accept a parameter" unless $param eq '';
     }
@@ -2294,7 +2347,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
     #
     fatal_error "The +, - and ! modifiers are not allowed in the blrules file" if $action =~ s/[-+!]$// && $blacklist;
     
-    unless ( $actiontype & ( ACTION | INLINE | IPTABLES ) ) {
+    unless ( $actiontype & ( ACTION | INLINE | IPTABLES | TARPIT ) ) {
 	#
 	# Catch empty parameter list
 	#
@@ -2398,6 +2451,22 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		      $action = '';
 		  }
 	      },
+
+	      TARPIT => sub {
+		  require_capability 'TARPIT_TARGET', 'TARPIT', 's';
+
+		  fatal_error "TARPIT is only valid with PROTO tcp (6)" if ( resolve_proto( $proto ) || 0 ) != TCP;
+
+		  if ( supplied $param ) {
+		      fatal_error "TARPIT Parameter must be 'tarpit', 'honeypot' or 'reset'" unless $param =~ /^(tarpit|honeypot|reset)$/;
+		      $action     = "TARPIT --$param";
+		      $log_action = 'TARPIT';
+		  } else {
+		      $action = $log_action = 'TARPIT';
+		  }
+
+		  $exceptionrule = '-p 6 ';
+	      },
 	    );
 
 	my $function = $functions{ $bt };
@@ -2408,13 +2477,21 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	    $actiontype |= HELPER;
 	} elsif ( $actiontype & SET ) {
 	    my %xlate = ( ADD => 'add-set' , DEL => 'del-set' );
+	    my ( $setname, $flags, $timeout, $rest ) = split ':', $param, 4;
 
-	    my ( $setname, $flags, $rest ) = split ':', $param, 3;
 	    fatal_error "Invalid ADD/DEL parameter ($param)" if $rest;
 	    $setname =~ s/^\+//;
 	    fatal_error "Expected ipset name ($setname)" unless $setname =~ /^(6_)?[a-zA-Z][-\w]*$/;
-	    fatal_error "Invalid flags ($flags)" unless defined $flags && $flags =~ /^(dst|src)(,(dst|src)){0,5}$/;
+	    fatal_error "Invalid flags ($flags)"         unless defined $flags && $flags =~ /^(dst|src)(,(dst|src)){0,5}$/;
+
 	    $action = join( ' ', 'SET --' . $xlate{$basictarget} , $setname , $flags );
+
+	    if ( supplied $timeout ) {
+		fatal_error "A timeout may only be supplied in an ADD rule" unless $basictarget eq 'ADD';
+		fatal_error "Invalid Timeout ($timeout)"                    unless $timeout && $timeout =~ /^\d+$/;
+
+		$action .= " --timeout $timeout";
+	    }
 	}
     }
     #
@@ -2466,11 +2543,9 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		$destzone = '';
 	    }
 	}
-    } else {
-	unless ( $inchain ) {
-	    fatal_error "Missing destination zone" if $destzone eq '-' || $destzone eq '';
-	    fatal_error "Unknown destination zone ($destzone)" unless $destref = defined_zone( $destzone );
-	}
+    } elsif ( ! $inchain ) {
+	fatal_error "Missing destination zone" if $destzone eq '-' || $destzone eq '';
+	fatal_error "Unknown destination zone ($destzone)" unless $destref = defined_zone( $destzone );
     }
 
     my $restriction = NO_RESTRICT;
@@ -2590,7 +2665,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	#
 	$normalized_target = normalize_action( $basictarget, $loglevel, $param );
 
-	fatal_error( "Action $basictarget invoked Recursively (" .  join( '->', map( externalize( $_ ), @actionstack , $normalized_target ) ) . ')' ) if $active{$basictarget};
+	fatal_error( "Action $basictarget invoked Recursively (" .  join( '->', map( external_name( $_ ), @actionstack , $normalized_target ) ) . ')' ) if $active{$basictarget};
 
 	if ( my $ref = use_action( $normalized_target ) ) {
 	    #
@@ -2634,6 +2709,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 	my $generated = process_inline( $basictarget,
 					$chainref,
 					$rule . $raw_matches,
+					$matches1,
 					$loglevel,
 					$target,
 					$current_param,
@@ -2688,7 +2764,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		       do_headers( $headers ) ,
 		       do_condition( $condition , $chain ) ,
 		       do_helper( $helper ) ,
-		       $raw_matches ,
+		       $matches1 . $raw_matches ,
 		     );
     } else {
 	$rule .= join( '',
@@ -2700,7 +2776,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		       do_time( $time ) ,
 		       do_headers( $headers ) ,
 		       do_condition( $condition , $chain ) ,
-		       $raw_matches ,
+		       $matches1 . $raw_matches ,
 		     );
     }
 
@@ -2833,7 +2909,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$ ) {
 		     $action ,
 		     $loglevel ,
 		     $log_action ,
-		     '' )
+		     $exceptionrule )
 	    unless unreachable_warning( $wildcard || $section == DEFAULTACTION_SECTION, $chainref );
     }
 
@@ -2945,8 +3021,8 @@ sub merge_target( $$ ) {
 #
 # May be called by Perl code in action bodies (regular and inline) to generate a rule.
 #
-sub perl_action_helper($$;$) {
-    my ( $target, $matches, $isstatematch ) = @_;
+sub perl_action_helper($$;$$) {
+    my ( $target, $matches, $isstatematch , $matches1 ) = @_;
     my $action   = $actparms{action};
     my $chainref = $actparms{0};
     my $result;
@@ -2954,6 +3030,12 @@ sub perl_action_helper($$;$) {
     assert( $chainref );
 
     $matches .= ' ' unless $matches =~ /^(?:.+\s)?$/;
+
+    if ( $matches1 ) {
+	$matches1 .= ' ' unless $matches1 =~ /^(?:.+\s)?$/;
+    } else {
+	$matches1 = '';
+    }
 
     set_inline_matches( $target =~ /^INLINE(?::.*)?$/ ? $matches : '' );
 
@@ -2978,6 +3060,7 @@ sub perl_action_helper($$;$) {
     if ( my $ref = $inlines{$action} ) {
 	$result = &process_rule( $chainref,
 				 $matches,
+				 $matches1,
 				 merge_target( $ref, $target ),
 				 '',                              # CurrentParam
 				 @columns );
@@ -2986,6 +3069,7 @@ sub perl_action_helper($$;$) {
 
 	$result = process_rule( $chainref,
 				$matches,
+				$matches1,
 				merge_target( $actions{$action}, $target ),
 				'',                               # Current Param
 				'-',                              # Source
@@ -3037,6 +3121,7 @@ sub perl_action_tcp_helper($$) {
 	if ( my $ref = $inlines{$action} ) {
 	    $result = &process_rule( $chainref,
 				     $proto,
+				     '',
 				     merge_target( $ref, $target ),
 				     '',
 				     @columns[0,1],
@@ -3046,6 +3131,7 @@ sub perl_action_tcp_helper($$) {
 	} else {
 	    $result = process_rule( $chainref,
 				    $proto,
+				    '',
 				    merge_target( $actions{$action}, $target ),
 				    '',                               # Current Param
 				    '-',                              # Source
@@ -3198,8 +3284,6 @@ sub process_raw_rule ( ) {
 
 
     fatal_error 'ACTION must be specified' if $target eq '-';
-
-    section_warning, process_section( $source ), return 1 if $target eq 'SECTION';
     #
     # Section Names are optional so once we get to an actual rule, we need to be sure that
     # we close off any missing sections.
@@ -3240,6 +3324,7 @@ sub process_raw_rule ( ) {
 		    for my $user ( @users ) {
 			if ( process_rule( undef,
 					   '',
+					   '',
 					   $target,
 					   '',
 					   $source,
@@ -3277,83 +3362,18 @@ sub intrazone_allowed( $$ ) {
 }
 
 #
-# Add jumps to the blacklst and blackout chains
-#
-sub classic_blacklist() {
-    my $fw       = firewall_zone;
-    my @zones    = off_firewall_zones;
-    my @vservers = vserver_zones;
-    my @state = $config{BLACKLISTNEWONLY} ? have_capability( 'RAW_TABLE' ) ? state_imatch 'NEW,INVALID,UNTRACKED' : state_imatch 'NEW,INVALID' : ();
-    my $result;
-
-    for my $zone ( @zones ) {
-	my $zoneref = find_zone( $zone );
-	my $simple  =  @zones <= 2 && ! $zoneref->{complex};
-
-	if ( my $blackref = $filter_table->{blacklst} ) {
-	    if ( $zoneref->{options}{in}{blacklist} ) {
-		add_ijump ensure_rules_chain( rules_chain( $zone, $_ ) ) , j => $blackref , @state for firewall_zone, @vservers;
-
-		if ( $simple ) {
-		    #
-		    # We won't create a zone forwarding chain for this zone so we must add blacklisting jumps to the rules chains
-		    #
-		    for my $zone1 ( @zones ) {
-			my $ruleschain    = rules_chain( $zone, $zone1 );
-			my $ruleschainref = $filter_table->{$ruleschain};
-
-			if ( $zone ne $zone1 || intrazone_allowed( $zone, $zoneref ) ) {
-			    add_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, @state );
-			}
-		    }
-		}
-
-		$result = 1;
-	    }
-
-	    if ( $zoneref->{options}{out}{blacklist} ) {
-		$blackref = $filter_table->{blackout};
-		add_ijump ensure_rules_chain( rules_chain( firewall_zone, $zone ) ) , j => $blackref , @state;
-
-		for my $zone1 ( @zones, @vservers ) {
-		    my $ruleschain    = rules_chain( $zone1, $zone );
-		    my $ruleschainref = $filter_table->{$ruleschain};
-
-		    if ( ( $zone ne $zone1 || intrazone_allowed( $zone, $zoneref ) ) ) {
-			add_ijump( ensure_rules_chain( $ruleschain ), j => $blackref, @state );
-		    }
-		}
-
-		$result = 1;
-	    }
-	}
-
-	unless ( $simple ) {
-	    #
-	    # Complex zone or we have more than one non-firewall zone -- create a zone forwarding chain
-	    #
-	    my $frwd_ref = new_standard_chain zone_forward_chain( $zone );
-
-	    add_ijump( $frwd_ref , j => $filter_table->{blacklst}, @state ) if $filter_table->{blacklst} && $zoneref->{options}{in}{blacklist};
-	}
-    }
-
-    $result;
-}
-
-#
 # Process the BLRules and Rules Files
 #
-sub process_rules( $ ) {
-    my $convert = shift;
+sub process_rules() {
     my $blrules = 0;
+    my @zones   = off_firewall_zones;
     #
     # Populate the state table
     #
-    %statetable          = ( ESTABLISHED => [ '^', '',                           'ACCEPT'                 ] ,
-			     RELATED     => [ '+', $config{RELATED_LOG_LEVEL},   $globals{RELATED_TARGET} ] ,
-			     INVALID     => [ '_', $config{INVALID_LOG_LEVEL},   $globals{INVALID_TARGET} ] ,
-			     UNTRACKED   => [ '&', $config{UNTRACKED_LOG_LEVEL}, $globals{UNTRACKED_TARGET} ] ,
+    %statetable          = ( ESTABLISHED => [ '^', '',                           '',                          'ACCEPT' ] ,
+			     RELATED     => [ '+', $config{RELATED_LOG_LEVEL},   $globals{RELATED_LOG_TAG},   $globals{RELATED_TARGET}  ] ,
+			     INVALID     => [ '_', $config{INVALID_LOG_LEVEL},   $globals{INVALID_LOG_TAG},   $globals{INVALID_TARGET} ] ,
+			     UNTRACKED   => [ '&', $config{UNTRACKED_LOG_LEVEL}, $globals{UNTRACKED_LOG_TAG}, $globals{UNTRACKED_TARGET} ] ,
 			   );
     %section_states = ( BLACKLIST_SECTION ,  $globals{BLACKLIST_STATES},
 			ESTABLISHED_SECTION, 'ESTABLISHED',
@@ -3361,9 +3381,19 @@ sub process_rules( $ ) {
 			INVALID_SECTION,     'INVALID',
 			UNTRACKED_SECTION,   'UNTRACKED' );
     #
-    # Generate jumps to the classic blacklist chains
+    # Create zone-forwarding chains if required
     #
-    $blrules = classic_blacklist unless $convert;
+    for my $zone ( @zones ) {
+	my $zoneref = find_zone( $zone );
+	my $simple  =  @zones <= 2 && ! $zoneref->{complex};
+
+	unless ( @zones <= 2 && ! $zoneref->{complex} ) {
+	    #
+	    # Complex zone or we have more than one non-firewall zone -- create a zone forwarding chain
+	    #
+	    new_standard_chain zone_forward_chain( $zone );
+	}
+    }
     #
     # Process the blrules file
     #
@@ -3373,14 +3403,14 @@ sub process_rules( $ ) {
 
     if ( $fn ) {
 	first_entry( sub () {
-			 my ( $level, $disposition ) = @config{'BLACKLIST_LOG_LEVEL', 'BLACKLIST_DISPOSITION' };
+			 my ( $level, $disposition , $tag ) = ( @config{'BLACKLIST_LOG_LEVEL', 'BLACKLIST_DISPOSITION' }, $globals{BLACKLIST_LOG_TAG} ) ;
 			 my  $audit       = $disposition =~ /^A_/;
 			 my  $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
 
 			 progress_message2 "$doing $currentfilename...";
 
 			 if ( supplied $level ) {
-			     ensure_blacklog_chain( $target, $disposition, $level, $audit );
+			     ensure_blacklog_chain( $target, $disposition, $level, $tag, $audit );
 			     ensure_audit_blacklog_chain( $target, $disposition, $level ) if have_capability 'AUDIT_TARGET';
 			 } elsif ( $audit ) {
 			     require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$disposition", 's';

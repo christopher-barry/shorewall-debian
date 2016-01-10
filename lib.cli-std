@@ -1,7 +1,7 @@
 #
-# Shorewall 4.5 -- /usr/share/shorewall/lib.cli-std.
+# Shorewall 5.0 -- /usr/share/shorewall/lib.cli-std.
 #
-#     (c) 1999-2014 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2015 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -31,6 +31,7 @@
 #
 get_config() {
     local prog
+    local lib
 
     ensure_config_path
 
@@ -70,15 +71,7 @@ get_config() {
 	# This block is avoided for compile for export and when the user isn't root
 	#
 	if [ "$3" = Yes ]; then
-	    if [ -n "$LOGFILE" ]; then
-		if [ -n "$(syslog_circular_buffer)" ]; then
-		    g_logread="logread | tac"
-		elif [ -r $LOGFILE ]; then
-		    g_logread="tac $LOGFILE"
-		else
-		    fatal_error "LOGFILE ($LOGFILE) does not exist!"
-		fi
-	    fi
+	    setup_logread
 	fi
 
 	if [ $g_family -eq 4 ]; then
@@ -107,25 +100,6 @@ get_config() {
 	    fi
 
 	    g_tool=$IP6TABLES
-	fi
-
-	if [ -n "$IP" ]; then
-	    case "$IP" in
-		*/*)
-		    if [ ! -x "$IP" ] ; then
-			fatal_error "The program specified in IP ($IP) does not exist or is not executable"
-		    fi
-		    ;;
-		*)
-		    prog="$(mywhich $IP 2> /dev/null)"
-		    if [ -z "$prog" ] ; then
-			fatal_error "Can't find $IP executable"
-		    fi
-		    IP=$prog
-		    ;;
-	    esac
-	else
-	    IP='ip'
 	fi
 
 	if [ -n "$IPSET" ]; then
@@ -181,14 +155,13 @@ get_config() {
 	if [ "$2" = Yes ]; then
 	    case $STARTUP_ENABLED in
 		No|no|NO)
-		    fatal_error "$g_product startup is disabled. To enable startup, set STARTUP_ENABLED=Yes in ${g_confdir}/${g_program}.conf"
+		    not_configured_error "$g_product startup is disabled. To enable startup, set STARTUP_ENABLED=Yes in ${g_confdir}/${g_program}.conf"
 		    ;;
 		Yes|yes|YES)
 		    ;;
 		*)
 		    if [ -n "$STARTUP_ENABLED" ]; then
-			fatal_error "Invalid Value for STARTUP_ENABLED: $STARTUP_ENABLED"
-			exit 2
+			not_configured_error "Invalid Value for STARTUP_ENABLED: $STARTUP_ENABLED"
 		    fi
 		    ;;
 	    esac
@@ -243,6 +216,25 @@ get_config() {
 	    echo "   WARNING: The program specified in SHOREWALL_SHELL does not exist or is not executable; falling back to /bin/sh" >&2
 	    SHOREWALL_SHELL=/bin/sh
 	fi
+    fi
+
+    if [ -n "$IP" ]; then
+	case "$IP" in
+	    */*)
+		if [ ! -x "$IP" ] ; then
+		    fatal_error "The program specified in IP ($IP) does not exist or is not executable"
+		fi
+		;;
+	    *)
+		prog="$(mywhich $IP 2> /dev/null)"
+		if [ -z "$prog" ] ; then
+		    fatal_error "Can't find $IP executable"
+		fi
+		IP=$prog
+		;;
+	esac
+    else
+	IP='ip'
     fi
 
     case $VERBOSITY in
@@ -309,20 +301,24 @@ get_config() {
 	    ;;
     esac
 
-    case $LEGACY_FASTSTART in
-	Yes|yes)
-	    ;;
-	No|no)
-	    LEGACY_FASTSTART=
-	    ;;
-	*)
-	    if [ -n "$LEGACY_FASTSTART" ]; then
-		fatal_error "Invalid LEGACY_FASTSTART setting ($LEGACY_FASTSTART)"
-	    fi
+    if [ -n "$WORKAROUNDS" ]; then
+	case $WORKAROUNDS in
+	    [Yy]es)
+	        ;;
+	    [Nn]o)
+		WORKAROUNDS=''
+		;;
+	    *)
+		fatal_error "Invalid setting ($WORKAROUNDS) for WORKAROUNDS"
+		;;
+	esac
+    fi
 
-	    LEGACY_FASTSTART=Yes
-	    ;;
-    esac
+    g_loopback=$(find_loopback_interfaces)
+
+    lib=$(find_file lib.cli-user)
+
+    [ -f $lib ] && . $lib
 }
 
 #
@@ -350,17 +346,33 @@ uptodate() {
 }
 
 #
+# Run the postcompile user exit
+#
+run_postcompile() { # $1 is the compiled script
+    local script
+
+    script=$(find_file postcompile)
+
+    if [ -f $script ]; then
+	. $script $1
+    else
+	return 0
+    fi
+}
+
+#
 # Run the compiler
 #
 compiler() {
     local pc
     local shorewallrc
     local shorewallrc1
+    local options
 
     pc=${LIBEXECDIR}/shorewall/compiler.pl
 
     if [ $(id -u) -ne 0 ]; then
-	if [ -z "$g_shorewalldir" -o "$g_shorewalldir" = /etc/$g_program ]; then
+	if [ -z "$g_shorewalldir" -o "$g_shorewalldir" = $CONFDIR/$g_program ]; then
 	    startup_error "Ordinary users may not $COMMAND the $CONFDIR/$g_program configuration"
 	fi
     fi
@@ -373,8 +385,6 @@ compiler() {
     #
     get_config Yes
 
-    [ -n "$g_doing" ] && progress_message3 "$g_doing..."
-
     case $COMMAND in
 	*start|try|refresh)
 	    ;;
@@ -386,11 +396,11 @@ compiler() {
 
     debugflags="-w"
     [ -n "$g_debug" ]   && debugflags='-wd'
-    [ -n "$g_profile" ] && debugflags='-wd:DProf'
+    [ -n "$g_profile" ] && debugflags='-wd:NYTProf'
 
     # Perl compiler only takes the output file as a argument
 
-    [ "$1" = debug -o "$1" = trace ]  && shift;
+    [ "$1" = debug -o "$1" = trace ] && shift;
     [ "$1" = nolock ] && shift;
     shift
 
@@ -401,8 +411,9 @@ compiler() {
 	[ -f "$shorewallrc1" ] || fatal_error "Compiling for export requires a shorewallrc file"
     fi
 
-    if [ -n "$g_conditional" ] && uptodate $g_file; then
+    if [ -n "$g_conditional" ] && uptodate "$g_file"; then
 	echo "$g_file is up to date -- no compilation required"
+	g_compiled="$g_file"
 	return 0
     fi
 
@@ -419,10 +430,7 @@ compiler() {
     [ -n "$g_refreshchains" ] && options="$options --refresh=$g_refreshchains"
     [ -n "$g_confess" ] && options="$options --confess"
     [ -n "$g_update" ] && options="$options --update"
-    [ -n "$g_convert" ] && options="$options --convert"
     [ -n "$g_annotate" ] && options="$options --annotate"
-    [ -n "$g_directives" ] && options="$options --directives"
-    [ -n "$g_tcrules" ] && options="$options --tcrules"
     [ -n "$g_inline" ] && options="$options --inline"
 
     if [ -n "$PERL" ]; then
@@ -434,28 +442,33 @@ compiler() {
 	PERL=/usr/bin/perl
     fi
 
+    case "$g_doing" in
+	Compiling|Checking)
+	    progress_message3 "$g_doing using $g_product $SHOREWALL_VERSION..."
+	    ;;
+	Updating)
+	    progress_message3 "Updating $g_product configuration to $SHOREWALL_VERSION..."
+	    ;;
+	*)
+	    [ -n "$g_doing" ] && progress_message3 "$g_doing using $g_product $SHOREWALL_VERSION..."
+	    ;;
+    esac
+
     if [ ${PERLLIBDIR} = ${LIBEXECDIR}/shorewall ]; then
 	$PERL $debugflags $pc $options $@
     else
-	PERL5LIB=${PERLLIBDIR}
-	export PERL5LIB
-	$PERL $debugflags $pc $options $@
+	PERL5LIB=${PERLLIBDIR} $PERL $debugflags $pc $options $@
     fi
-}
 
-#
-# Run the postcompile user exit
-#
-run_postcompile() { # $1 is the compiled script
-    local script
+    status=$?
 
-    script=$(find_file postcompile)
-
-    if [ -f $script ]; then
-	. $script $1
-    else
-	return 0
+    if [ $status -eq 0 -a $COMMAND != check -a $COMMAND != update ]; then
+	g_compiled="$g_file"
+	run_postcompile "$g_compiled"
+	return
     fi
+
+    return $status
 }
 
 #
@@ -475,8 +488,8 @@ start_command() {
 	    rc=$?
 	    [ -n "$nolock" ] || mutex_off
 	else
-	    if compiler $g_debugging $nolock compile ${VARDIR}/.start; then
-		run_postcompile ${VARDIR}/.start
+	    g_file="${VARDIR}/.start"
+	    if compiler $g_debugging $nolock compile "$g_file"; then
 		[ -n "$nolock" ] || mutex_on
 		run_it ${VARDIR}/.start $g_debugging start
 		rc=$?
@@ -495,7 +508,7 @@ start_command() {
 	exit 0
     fi
 
-    [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
+    [ -n "$STARTUP_ENABLED" ] || not_configured_error "Startup is disabled"
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -534,6 +547,10 @@ start_command() {
 			    g_inline=Yes
 			    option=${option#i}
 			    ;;
+			C*)
+			    g_counters=Yes
+			    option=${option#C}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -570,38 +587,13 @@ start_command() {
     esac
 
     if [ -n "${g_fast}${AUTOMAKE}" ]; then
-	if [ -z "$g_fast" -o -z "$LEGACY_FASTSTART" ]; then
-	    #
-	    # Automake or LEGACY_FASTSTART=No -- use the last compiled script
-	    #
-	    object=firewall
-	else
-	    #
-	    # 'start -f' with LEGACY_FASTSTART=Yes -- use last saved configuration
-	    #
-	    object=$RESTOREFILE
-	fi
-
 	if ! uptodate ${VARDIR}/$object; then
 	    g_fast=
 	    AUTOMAKE=
 	fi
-
-	if [ -n "$g_fast" -a $object = $RESTOREFILE ]; then
-	    g_restorepath=${VARDIR}/$object
-	    [ -n "$nolock" ] || mutex_on
-	    echo Restoring Shorewall...
-	    run_it $g_restorepath restore
-	    rc=$?
-	    [ -n "$nolock" ] || mutex_off
-	    [ $rc -eq 0 ] && progress_message3 "$g_product restored from $g_restorepath"
-	    exit $rc
-	else
-	    do_it
-	fi
-    else
-	do_it
     fi
+
+    do_it
 }
 
 #
@@ -676,7 +668,7 @@ compile_command() {
 	    ;;
 	1)
 	    g_file=$1
-	    [ -d $g_file ] && fatal_error "$g_file is a directory"
+	    [ -d "$g_file" ] && fatal_error "$g_file is a directory"
 	    ;;
 	2)
 	    [ -n "$g_shorewalldir" -a -z "$g_export" ] && usage 2
@@ -699,7 +691,7 @@ compile_command() {
 
     [ "x$g_file" = x- ] && g_doing=''
 
-    compiler $g_debugging compile $g_file && run_postcompile $g_file
+    compiler $g_debugging compile "$g_file"
 }
 
 #
@@ -834,23 +826,8 @@ update_command() {
 			    g_annotate=Yes
 			    option=${option#a}
 			    ;;
-			b*)
-			    g_convert=Yes
-			    option=${option#b}
-			    ;;
-			D*)
-			    g_directives=Yes
-			    option=${option#D}
-			    ;;
-			t*)
-			    g_tcrules=Yes
-			    option=${option#t}
-			    ;;
 			A*)
 			    g_inline=Yes
-			    g_convert=Yes
-			    g_directives=Yes
-			    g_tcrules=Yes
 			    option=${option#A}
 			    ;;
 			*)
@@ -887,13 +864,13 @@ update_command() {
 	    ;;
     esac
 
-    g_doing="Updating..."
+    g_doing="Updating"
 
     compiler $g_debugging $nolock check
 }
 
 #
-# Restart Command Executor
+# Reload/Restart Command Executor
 #
 restart_command() {
     local finished
@@ -943,6 +920,10 @@ restart_command() {
 			    g_inline=Yes
 			    option=${option#i}
 			    ;;
+			C*)
+			    g_counters=Yes
+			    option=${option#C}
+			    ;;
 			*)
 			    usage 1
 			    ;;
@@ -979,27 +960,28 @@ restart_command() {
 	    ;;
     esac
 
-    [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
+    [ -n "$STARTUP_ENABLED" ] || not_configured_error "Startup is disabled"
 
     if [ -z "$g_fast" -a -n "$AUTOMAKE" ]; then
 	uptodate ${VARDIR}/firewall && g_fast=Yes
     fi
 
+    g_file="${VARDIR}/.${COMMAND}"
+
     if [ -z "$g_fast" ]; then
-	if compiler $g_debugging $nolock compile ${VARDIR}/.restart; then
-	    run_postcompile ${VARDIR}/.restart
+	if compiler $g_debugging $nolock compile "$g_file"; then
 	    [ -n "$nolock" ] || mutex_on
-	    run_it ${VARDIR}/.restart $g_debugging restart
+	    run_it ${VARDIR}/.${COMMAND} $g_debugging ${COMMAND}
 	    rc=$?
 	    [ -n "$nolock" ] || mutex_off
 	else
 	    rc=$?
-	    logger -p kern.err "ERROR:$g_product restart failed"
+	    logger -p kern.err "ERROR:$g_product ${COMMAND} failed"
 	fi
     else
 	[ -x ${VARDIR}/firewall ] || fatal_error "No ${VARDIR}/firewall file found"
 	[ -n "$nolock" ] || mutex_on
-	run_it ${VARDIR}/firewall $g_debugging restart
+	run_it ${VARDIR}/firewall $g_debugging $COMMAND
 	rc=$?
 	[ -n "$nolock" ] || mutex_off
     fi
@@ -1078,10 +1060,11 @@ refresh_command() {
 
     product_is_started || fatal_error "$g_product is not running"
 
-    [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
+    [ -n "$STARTUP_ENABLED" ] || not_configured_error "Startup is disabled"
 
-    if compiler $g_debugging $nolock compile ${VARDIR}/.refresh; then
-	run_postcompile ${VARDIR}/.refresh
+    g_file="${VARDIR}/.refresh"
+
+    if compiler $g_debugging $nolock compile "$g_file"; then
 	[ -n "$nolock" ] || mutex_on
 	run_it ${VARDIR}/.refresh $g_debugging refresh
 	rc=$?
@@ -1094,7 +1077,7 @@ refresh_command() {
 }
 
 #
-# Safe-start/safe-restart Command Executor
+# Safe-start/safe-reload/safe-restart Command Executor
 #
 safe_commands() {
     local finished
@@ -1167,7 +1150,7 @@ safe_commands() {
 	    ;;
     esac
 
-    [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
+    [ -n "$STARTUP_ENABLED" ] || not_configured_error "Startup is disabled"
 
     if product_is_started; then
 	running=Yes
@@ -1185,21 +1168,27 @@ safe_commands() {
 	# the command is safe-start or shorewall[6] is not started yet
 	command="start"
     else
-	# the command is safe-restart and the firewall is already running
-	command="restart"
+	# the command is safe-reload or safe-restart and the firewall is already running
+	command="${COMMAND#safe-}"
     fi
 
-    if ! compiler $g_debugging nolock compile ${VARDIR}/.$command; then
+    g_file="${VARDIR}/.$command"
+
+    if ! compiler $g_debugging nolock compile "$g_file"; then
 	status=$?
 	exit $status
     fi
-
-    run_postcompile ${VARDIR}/.$command
 
     case $command in
 	start)
 	    RESTOREFILE=NONE
 	    progress_message3 "Starting..."
+	    ;;
+	reload)
+	    RESTOREFILE=.safe
+	    g_restorepath=${VARDIR}/.safe
+	    save_config
+	    progress_message3 "Reloading..."
 	    ;;
 	restart)
 	    RESTOREFILE=.safe
@@ -1218,7 +1207,7 @@ safe_commands() {
 	if read_yesno_with_timeout $timeout ; then
 	    echo "New configuration has been accepted"
 	else
-	    if [ "$command" = "restart" ]; then
+	    if [ "$command" = "restart" -o "$command" = "reload" ]; then
 		run_it ${VARDIR}/.safe restore
 	    else
 		run_it ${VARDIR}/.$command clear
@@ -1304,7 +1293,7 @@ try_command() {
 	    ;;
     esac
 
-    [ -n "$STARTUP_ENABLED" ] || fatal_error "Startup is disabled"
+    [ -n "$STARTUP_ENABLED" ] || not_configured_error "Startup is disabled"
 
     if product_is_started; then
 	running=Yes
@@ -1317,10 +1306,12 @@ try_command() {
 	command="start"
     else
 	# the firewall is already running
-	command="restart"
+	command="reload"
     fi
 
-    if ! compiler $g_debugging $nolock compile ${VARDIR}/.$command; then
+    g_file="${VARDIR}/.$command"
+
+    if ! compiler $g_debugging $nolock compile "$g_file"; then
 	status=$?
 	exit $status
     fi
@@ -1332,11 +1323,11 @@ try_command() {
 	    RESTOREFILE=NONE
 	    progress_message3 "Starting..."
 	    ;;
-	restart)
+	reload)
 	    RESTOREFILE=.try
 	    g_restorepath=${VARDIR}/.try
 	    save_config
-	    progress_message3 "Restarting..."
+	    progress_message3 "Reloading..."
 	    ;;
     esac
 
@@ -1345,7 +1336,7 @@ try_command() {
     if run_it ${VARDIR}/.$command $g_debugging $command && [ -n "$timeout" ]; then
 	sleep $timeout
 
-	if [ "$command" = "restart" ]; then
+	if [ "$command" = "reload" ]; then
 	    run_it ${VARDIR}/.try restore
 	else
 	    run_it ${VARDIR}/.$command clear
@@ -1371,9 +1362,9 @@ rcp_command() {
 }
 
 #
-# [Re]load command executor
+# Remote-{start|reload|restart} command executor
 #
-reload_command() # $* = original arguments less the command.
+remote_reload_command() # $* = original arguments less the command.
 {
     local verbose
     verbose=$(make_verbose)
@@ -1400,6 +1391,7 @@ reload_command() # $* = original arguments less the command.
     local sharedir
     sharedir=${SHAREDIR}
     local litedir
+    local exitstatus
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -1514,29 +1506,62 @@ reload_command() # $* = original arguments less the command.
 
     [ -n "$litedir" ] || litedir=${VARLIB}/${g_program}-lite
 
-    if compiler $g_debugging compiler $g_shorewalldir/firewall && \
-	progress_message3 "Copying $file and ${file}.conf to ${system}:${litedir}..." && \
-	rcp_command "$g_shorewalldir/firewall $g_shorewalldir/firewall.conf" ${litedir}
-    then
-	save=$(find_file save);
+    g_file="$g_shorewalldir/firewall"
 
-	[ -f $save ] && progress_message3 "Copying $save to ${system}:${confdir}/${g_program}-lite/" && rcp_command $save ${confdir}/shorewall-lite/
+    exitstatus=0
 
-	progress_message3 "Copy complete"
+    if compiler $g_debugging compiler "$g_file"; then
+	progress_message3 "Copying $file and ${file}.conf to ${system}:${litedir}..."
+	if rcp_command "$g_shorewalldir/firewall $g_shorewalldir/firewall.conf" ${litedir};  then
+	    save=$(find_file save);
 
-	if [ $COMMAND = reload ]; then
-	    rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp restart" && \
-	    progress_message3 "System $system reloaded" || saveit=
+	    if [ -f $save ]; then
+		progress_message3 "Copying $save to ${system}:${confdir}/${g_program}-lite/"
+		rcp_command $save ${confdir}/shorewall-lite/
+		exitstatus=$?
+	    fi
+
+	    if [ $exitstatus -eq 0 ]; then
+
+		progress_message3 "Copy complete"
+
+		if [ $COMMAND = remote-reload ]; then
+		    if rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp reload"; then
+			progress_message3 "System $system reloaded"
+		    else
+			exitstatus=$?
+			savit=
+		    fi
+		elif [ $COMMAND = remote-restart ]; then
+		    if rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp restart"; then
+			progress_message3 "System $system restarted"
+		    else
+			exitstatus=$?
+			saveit=
+		    fi
+		elif rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp start"; then
+		    progress_message3 "System $system started"
+		else
+		    exitstatus=$?
+		    saveit=
+		fi
+
+		if [ -n "$saveit" ]; then
+		    if rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp save"; then
+			progress_message3 "Configuration on system $system saved"
+		    else
+			exitstatus=$?
+		    fi
+		fi
+	    fi
 	else
-	    rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp start" && \
-	    progress_message3 "System $system loaded" || saveit=
+	    exitstatus=$?
 	fi
-
-	if [ -n "$saveit" ]; then
-	    rsh_command "${sbindir}/${g_program}-lite $g_debugging $verbose $timestamp save" && \
-	    progress_message3 "Configuration on system $system saved"
-	fi
+    else
+	exitstatus=$?
     fi
+
+    return $exitstatus
 }
 
 #
@@ -1603,7 +1628,9 @@ export_command() # $* = original arguments less the command.
 
     g_export=Yes
 
-    if compiler $g_debugging compile $g_shorewalldir/firewall && \
+    g_file="$g_shorewalldir/firewall"
+
+    if compiler $g_debugging compile "$g_file" && \
 	echo "Copying $file and ${file}.conf to ${target#*@}..." && \
 	scp $g_shorewalldir/firewall $g_shorewalldir/firewall.conf $target
     then
@@ -1622,97 +1649,6 @@ run_command() {
     else
 	fatal_error "${VARDIR}/firewall does not exist or is not executable"
     fi
-}
-
-#
-# Give Usage Information
-#
-usage() # $1 = exit status
-{
-    echo "Usage: $(basename $0) [debug|trace] [nolock] [ -q ] [ -v[-1|{0-2}] ] [ -t ] <command>"
-    echo "where <command> is one of:"
-    echo "   add <interface>[:<host-list>] ... <zone>"
-    echo "   allow <address> ..."
-    echo "   [ check | ck ] [ -e ] [ -r ] [ -p ] [ -r ] [ -T ] [ -i ] [ <directory> ]"
-    echo "   clear"
-    echo "   [ compile | co ] [ -e ] [ -p ] [ -t ] [ -c ] [ -d ] [ -T ] [ -i ] [ <directory name> ] [ <path name> ]"
-    echo "   delete <interface>[:<host-list>] ... <zone>"
-    echo "   disable <interface>"
-    echo "   drop <address> ..."
-    echo "   dump [ -x ] [ -l ] [ -m ]"
-    echo "   enable <interface>"
-    echo "   export [ <directory1> ] [<user>@]<system>[:<directory2>]"
-    echo "   forget [ <file name> ]"
-    echo "   help"
-
-    if [ $g_family -eq 4 ]; then
-	echo "   hits [ -t ]"
-	echo "   ipcalc { <address>/<vlsm> | <address> <netmask> }"
-	echo "   ipdecimal { <address> | <integer> }"
-	echo "   iprange <address>-<address>"
-    fi
-
-    if [ $g_family -eq 4 ]; then
-	echo "   iptrace <iptables match expression>"
-    else
-	echo "   iptrace <ip6tables match expression>"
-    fi
-
-    echo "   load [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ -i ] [ <directory> ] <system>"
-    echo "   logdrop <address> ..."
-    echo "   logreject <address> ..."
-    echo "   logwatch [<refresh interval>]"
-
-    if [ $g_family -eq 4 ]; then
-	echo "   noiptrace <iptables match expression>"
-    else
-	echo "   noiptrace <ip6tables match expression>"
-    fi
-
-    echo "   refresh [ -d ] [ -n ] [ -T ] [ -D <directory> ] [ <chain>... ]"
-    echo "   reject <address> ..."
-    echo "   reload [ -s ] [ -c ] [ -r <root user> ] [ -T ] [ -i ] [ <directory> ] <system>"
-    echo "   reset [ <chain> ... ]"
-    echo "   restart [ -n ] [ -p ] [-d] [ -f ] [ -c ] [ -T ] [ -i ] [ <directory> ]"
-    echo "   restore [ -n ] [ <file name> ]"
-    echo "   run <command> [ <parameter> ... ]"
-    echo "   safe-restart [ -t <timeout> ] [ <directory> ]"
-    echo "   safe-start [ -t <timeout> ] [ <directory> ]"
-    echo "   save [ <file name> ]"
-    echo "   [ show | list | ls ] [ -x ] [ -t {filter|mangle|nat|raw|rawpost} ] [ {chain [<chain> [ <chain> ... ]"
-    echo "   [ show | list | ls ] actions"
-    echo "   [ show | list | ls ] [ -x ] {bl|blacklists}"
-    echo "   [ show | list | ls ] [ -f ] capabilities"
-    echo "   [ show | list | ls ] classifiers"
-    echo "   [ show | list | ls ] config"
-    echo "   [ show | list | ls ] connections"
-    echo "   [ show | list | ls ] dynamic <zone>"
-    echo "   [ show | list | ls ] filters"
-    echo "   [ show | list | ls ] ip"
-
-    if [ $g_family -eq 4 ]; then
-	echo "   [ show | list | ls ] ipa"
-    fi
-
-    echo "   [ show | list | ls ] [ -m ] log [<regex>]"
-    echo "   [ show | list | ls ] macro <macro>"
-    echo "   [ show | list | ls ] macros"
-    echo "   [ show | list | ls ] marks"
-    echo "   [ show | list | ls ] [ -x ] mangle|nat|raw|rawpost|routing"
-    echo "   [ show | list | ls ] nfacct"
-    echo "   [ show | list | ls ] policies"
-    echo "   [ show | list | ls ] routing"
-    echo "   [ show | list | ls ] tc [ device ]"
-    echo "   [ show | list | ls ] vardir"
-    echo "   [ show | list | ls ] zones"
-    echo "   start [ -f ] [ -n ] [ -p ] [ -c ] [ -T ] [ -i ] [ <directory> ]"
-    echo "   status [ -i ]"
-    echo "   stop"
-    echo "   try <directory> [ <timeout> ]"
-    echo "   update [ -a ] [ -b ] [ -r ] [ -T ] [ -D ] [ -i ] [-t] [-A] [ <directory> ]"
-    echo "   version [ -a ]"
-    echo
-    exit $1
 }
 
 compiler_command() {
@@ -1735,9 +1671,9 @@ compiler_command() {
 	    shift
 	    update_command $@
 	    ;;
-	load|reload)
+	remote-start|remote-reload|remote-restart)
 	    shift
-	    reload_command $@
+	    remote_reload_command $@
 	    ;;
 	export)
 	    shift
@@ -1748,7 +1684,7 @@ compiler_command() {
 	    shift
 	    try_command $@
 	    ;;
-	safe-restart|safe-start)
+	safe-reload|safe-restart|safe-start)
 	    get_config Yes
 	    shift
 	    safe_commands $@

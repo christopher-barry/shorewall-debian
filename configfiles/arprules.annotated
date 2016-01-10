@@ -1,9 +1,9 @@
 #
-# Shorewall version 4 - arprules File
+# Shorewall -- /etc/shorewall/arprules
 #
 # For information about entries in this file, type "man shorewall-arprules"
 #
-##############################################################################################################
+###############################################################################
 # 
 # This file was added in Shorewall 4.5.12 and is used to describe low-level rules
 # managed by arptables (8). These rules only affect Address Resolution Protocol
@@ -129,7 +129,7 @@
 # 
 #     Either SOURCE or DEST must be specified.
 # 
-# ARP OPCODE - [[!]opcode]
+# OPCODE - [[!]opcode]
 # 
 #     Optional. Describes the type of frame. Possible opcode values are:
 # 
@@ -181,6 +181,5 @@
 # #ACTION                SOURCE                  DEST                ARP OPCODE
 # SNAT:10.1.10.11        -                       eth1:10.1.10.0/24   1
 # 
-##############################################################################################################
-#ACTION				SOURCE				DEST				ARP
-#												OPCODE
+###############################################################################
+#ACTION		SOURCE			DEST			OPCODE

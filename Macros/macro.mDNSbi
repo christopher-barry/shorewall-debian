@@ -1,12 +1,10 @@
 #
-# Shorewall version 4 - Bi-directional Multicast DNS Macro.
+# Shorewall - Bi-directional Multicast DNS Macro.
 #
 # /usr/share/shorewall/macro.mDNSbi
 #
 #	This macro handles multicast DNS traffic
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST			PROTO	DEST	SOURCE	ORIGIN	RATE
 #						PORT(S)	PORT(S)	DEST	LIMIT

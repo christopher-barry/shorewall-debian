@@ -1,13 +1,14 @@
 #
-# Shorewall version 4 - Actions File
-#
-# /etc/shorewall/actions
+# Shorewall -- /etc/shorewall/actions
 #
 # For information about entries in this file, type "man shorewall-actions"
 #
 # Please see http://shorewall.net/Actions.html for additional information.
 #
-########################################################################################
+# Place '# ' below the 'C' in COMMENT followed by a comment describing
+# the action.
+#
+###############################################################################
 # 
 # This file allows you to define new ACTIONS for use in rules (see
 # shorewall-rules(5)). You define the iptables rules to be performed in an ACTION
@@ -85,6 +86,5 @@
 #         built-in action is termiating (i.e., if the action is jumped to, the
 #         next rule in the chain is not evaluated).
 # 
-########################################################################################
-#ACTION    OPTIONS		COMMENT (place '# ' below the 'C' in comment followed by
-#                        	v        a comment describing the action)
+###############################################################################
+#ACTION		OPTIONS		COMMENT

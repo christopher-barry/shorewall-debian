@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Tcinterfaces File
+# Shorewall -- /etc/shorewall/tcinterfaces
 #
 # For information about entries in this file, type "man shorewall-tcinterfaces"
 #
@@ -14,10 +14,10 @@
 # 
 # A note on the bandwidth definition used in this file:
 # 
-#   ● don't use a space between the integer value and the unit: 30kbit is valid
+#   • don't use a space between the integer value and the unit: 30kbit is valid
 #     while 30 kbit is not.
 # 
-#   ● you can use one of the following units:
+#   • you can use one of the following units:
 # 
 #     kbps
 # 
@@ -47,7 +47,7 @@
 # 
 #         Megabytes.
 # 
-#   ● Only whole integers are allowed.
+#   • Only whole integers are allowed.
 # 
 # The columns in the file are as follows (where the column name is followed by a
 # different name in parentheses, the different name is used in the alternate
@@ -107,4 +107,4 @@
 #     The remaining options are defaulted by tc(8).
 # 
 ###############################################################################
-#INTERFACE	TYPE		IN-BANDWIDTH		OUT-BANDWIDTH
+#INTERFACE	TYPE		IN_BANDWIDTH		OUT_BANDWIDTH

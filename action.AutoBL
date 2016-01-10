@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Auto Blacklist Action
+# Shorewall version 5 - Auto Blacklist Action
 #
 # Parameters are:
 #
@@ -18,7 +18,8 @@
 #    Log Level      - Level to Log Rejects
 #                     Default is info (6)
 #
-?format 2
+###############################################################################
+
 DEFAULTS -,60,5,2,300,DROP,info
 
 ?begin perl
@@ -33,7 +34,7 @@ fatal_error "Invalid successive interval ($succesive) passed to AutoBL" unless $
 fatal_error "Invalid packet count ($count) passed to AutoBL"            unless $count =~ /^\d+$/ && $count;
 fatal_error "Invalid blacklist time ($bltime) passed to AutoBL"         unless $bltime =~ /^\d+$/ && $bltime;
 validate_level( $level );
-
+1;
 ?end perl
 ###############################################################################
 #TARGET		SOURCE	DEST	PROTO	DPORT	SPORT

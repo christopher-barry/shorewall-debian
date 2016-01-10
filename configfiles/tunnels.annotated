@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Tunnels File
+# Shorewall -- /etc/shorewall/tunnels
 #
 # For information about entries in this file, type "man shorewall-tunnels"
 #
@@ -15,9 +15,9 @@
 # 
 # The columns in the file are as follows.
 # 
-# TYPE - {ipsec[:{noah|ah}]|ipsecnat|ipip|gre|l2tp|pptpclient|pptpserver|[?]
-#     COMMENT|{openvpn|openvpnclient|openvpnserver}[:{tcp|udp}][:port]|generic:
-#     protocol[:port]}
+# TYPE - {ipsec[:{noah|ah}]|ipsecnat|ipip|gre|l2tp|pptpclient|pptpserver|?COMMENT
+#     |{openvpn|openvpnclient|openvpnserver}[:{tcp|udp}][:port]|generic:protocol[
+#     :port]}
 # 
 #     Types are as follows:
 # 
@@ -33,6 +33,7 @@
 #             openvpnclient - OpenVPN client runs on the firewall
 #             openvpnserver - OpenVPN server runs on the firewall
 #             generic       - Other tunnel type
+#             tinc          - TINC (added in Shorewall 4.6.6)
 # 
 #     If the type is ipsec, it may be followed by :ah to indicate that the
 #     Authentication Headers protocol (51) is used by the tunnel (the default is
@@ -55,11 +56,11 @@
 #     17), then it may optionally be followed by ":" and a port number.
 # 
 #     Comments may be attached to Netfilter rules generated from entries in this
-#     file through the use of COMMENT lines. These lines begin with the word
-#     COMMENT; the remainder of the line is treated as a comment which is
-#     attached to subsequent rules until another COMMENT line is found or until
-#     the end of the file is reached. To stop adding comments to rules, use a
-#     line with only the word COMMENT.
+#     file through the use of /COMMENT lines. These lines begin with ?COMMENT;
+#     the remainder of the line is treated as a comment which is attached to
+#     subsequent rules until another ?COMMENT line is found or until the end of
+#     the file is reached. To stop adding comments to rules, use a line
+#     containing only ?COMMENT.
 # 
 #     Note
 # 
@@ -158,6 +159,13 @@
 #             #TYPE            ZONE    GATEWAY         GATEWAY ZONES
 #             generic:udp:4444 net     4.3.99.124
 # 
+# Example 9:
+# 
+#     TINC tunnel where the remote gateways are not specified. If you wish to
+#     specify a list of gateways, you can do so in the GATEWAY column.
+# 
+#             #TYPE            ZONE    GATEWAY          GATEWAY ZONES
+#             tinc             net     0.0.0.0/0
+# 
 ###############################################################################
-#TYPE			ZONE	GATEWAY(S)			GATEWAY
-#								ZONE(S)
+#TYPE			ZONE		GATEWAY			GATEWAY_ZONE

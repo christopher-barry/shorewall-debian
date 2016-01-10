@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-ipsets
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-IPSETS" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-IPSETS" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -54,7 +54,7 @@ Whether the set is matched against the packet source or destination is determine
       \fBdst\fR\&. Example: myset[src,dst]\&.
 .RE
 .PP
-In a SOURCE or SOURCE PORT(S) column, the following pairs are equivalent:
+In a SOURCE or SPORT column, the following pairs are equivalent:
 .sp
 .RS 4
 .ie n \{\
@@ -67,7 +67,7 @@ In a SOURCE or SOURCE PORT(S) column, the following pairs are equivalent:
 +myset[2] and +myset[src,src]
 .RE
 .PP
-In a DEST or DEST PORT(S) column, the following pairs are equivalent:
+In a DEST or DPORT column, the following pairs are equivalent:
 .sp
 .RS 4
 .ie n \{\

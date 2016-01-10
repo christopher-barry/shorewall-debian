@@ -55,6 +55,7 @@ our @EXPORT = ( qw( NOTHING
 		    find_zone
 		    firewall_zone
 		    loopback_zones
+		    loopback_interface
 		    local_zones
 		    defined_zone
 		    zone_type
@@ -106,7 +107,7 @@ our @EXPORT = ( qw( NOTHING
 	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.6_4';
+our $VERSION = '5.0.0';
 
 #
 # IPSEC Option types
@@ -219,6 +220,7 @@ our $minroot;
 our $zonemark;
 our $zonemarkincr;
 our $zonemarklimit;
+our $loopback_interface;
 
 use constant { FIREWALL => 1,
 	       IP       => 2,
@@ -329,6 +331,7 @@ sub initialize( $$ ) {
     %mapbase1 = ();
     $baseseq = 0;
     $minroot = 0;
+    $loopback_interface = '';
 
     if ( $family == F_IPV4 ) {
 	%validinterfaceoptions = (arp_filter  => BINARY_IF_OPTION,
@@ -341,6 +344,7 @@ sub initialize( $$ ) {
 				  ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
 				  maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  logmartians => BINARY_IF_OPTION,
+				  loopback    => BINARY_IF_OPTION,
 				  nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				  norfc1918   => OBSOLETE_IF_OPTION,
 				  nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -386,6 +390,7 @@ sub initialize( $$ ) {
 				    destonly    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    dhcp        => SIMPLE_IF_OPTION,
 				    ignore      => NUMERIC_IF_OPTION + IF_OPTION_WILDOK,
+				    loopback    => BINARY_IF_OPTION,
 				    maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
@@ -460,6 +465,7 @@ sub parse_zone_option_list($$\$$)
 	    } else {
 		fatal_error "Missing value for option \"$e\""        unless defined $val;
 		fatal_error "Invalid value ($val) for option \"$e\"" unless $val =~ /^($fmt)$/;
+		require_capability 'TCPMSS_TARGET', "mss=$val", 's' if $e eq 'mss';
 	    }
 
 	    my $key = $zonekey{$e};
@@ -612,7 +618,7 @@ sub process_zone( \$ ) {
     }
 
     if ( $zoneref->{options}{in_out}{blacklist} ) {
-	warning_message q(The 'blacklist' option is deprecated);
+	warning_message q(The 'blacklist' option is no longer supported);
 	for ( qw/in out/ ) {
 	    unless ( $zoneref->{options}{$_}{blacklist} ) {
 		$zoneref->{options}{$_}{blacklist} = 1;
@@ -622,7 +628,7 @@ sub process_zone( \$ ) {
 	}
     } else {
 	for ( qw/in out/ ) {
-	    warning_message q(The 'blacklist' option is deprecated), last if  $zoneref->{options}{$_}{blacklist};
+	    warning_message q(The 'blacklist' option is no longer supported), last if  $zoneref->{options}{$_}{blacklist};
 	}
     }
 
@@ -823,7 +829,7 @@ sub add_group_to_zone($$$$$$)
 	#
 	# Make 'find_hosts_by_option()' work correctly for this zone
 	#
-	for ( qw/blacklist maclist nosmurfs tcpflags/ ) {
+	for ( qw/maclist nosmurfs tcpflags/ ) {
 	    $options->{$_} = $interfaceref->{options}{$_} if $interfaceref->{options}{$_} && ! exists $options->{$_}; 
 	}
     }
@@ -1202,21 +1208,24 @@ sub process_interface( $$ ) {
 
 	    fatal_error "Invalid Interface option ($option)" unless my $type = $validinterfaceoptions{$option};
 
-	    if ( $zone ) {
-		fatal_error qq(The "$option" option may not be specified for a Vserver zone") if $zoneref->{type} & VSERVER && ! ( $type & IF_OPTION_VSERVER );
-	    } else {
-		fatal_error "The \"$option\" option may not be specified on a multi-zone interface" if $type & IF_OPTION_ZONEONLY;
-	    }
-
 	    my $hostopt = $type & IF_OPTION_HOST;
 
-	    fatal_error "The \"$option\" option is not allowed on a bridge port" if $port && ! $hostopt;
-
 	    $type &= MASK_IF_OPTION;
+
+	    unless ( $type == BINARY_IF_OPTION && defined $value && $value eq '0' ) {
+		if ( $zone ) {
+		    fatal_error qq(The "$option" option may not be specified for a Vserver zone") if $zoneref->{type} & VSERVER && ! ( $type & IF_OPTION_VSERVER );
+		} else {
+		    fatal_error "The \"$option\" option may not be specified on a multi-zone interface" if $type & IF_OPTION_ZONEONLY;
+		}
+	    }
+
+	    fatal_error "The \"$option\" option is not allowed on a bridge port" if $port && ! $hostopt;
 
 	    if ( $type == SIMPLE_IF_OPTION ) {
 		fatal_error "Option $option does not take a value" if defined $value;
 		if ( $option eq 'blacklist' ) {
+		    warning_message "The 'blacklist' interface option is no longer supported";
 		    if ( $zone ) {
 			$zoneref->{options}{in}{blacklist} = 1;
 		    } else {
@@ -1253,6 +1262,7 @@ sub process_interface( $$ ) {
 		fatal_error "The '$option' option requires a value" unless defined $value;
 		my $numval = numeric_value $value;
 		fatal_error "Invalid value ($value) for option $option" unless defined $numval && $numval <= $maxoptionvalue{$option};
+		require_capability 'TCPMSS_TARGET', "mss=$value", 's' if $option eq 'mss';
 		$options{$option} = $numval;
 		$hostoptions{$option} = $numval if $hostopt;
 	    } elsif ( $type == IPLIST_IF_OPTION ) {
@@ -1353,8 +1363,15 @@ sub process_interface( $$ ) {
 	$options{ignore} ||= 0;
     }
 
+    $options{loopback} ||= ( $physical eq 'lo' );
+
+    if ( $options{loopback} ) {
+	fatal_error "Only one 'loopback' interface is allowed" if $loopback_interface;
+	$loopback_interface = $physical;
+    }
+
     if ( $options{unmanaged} ) {
-	fatal_error "The 'lo' interface may not be unmanaged when there are vserver zones" if $physical eq 'lo' && vserver_zones;
+	fatal_error "The loopback interface ($loopback_interface) may not be unmanaged when there are vserver zones" if $options{loopback} && vserver_zones;
 
 	while ( my ( $option, $value ) = each( %options ) ) {
 	    fatal_error "The $option option may not be specified with 'unmanaged'" if $prohibitunmanaged{$option};
@@ -1382,13 +1399,12 @@ sub process_interface( $$ ) {
     if ( $zone ) {
 	fatal_error "Unmanaged interfaces may not be associated with a zone" if $options{unmanaged};
 
-	if ( $physical eq 'lo' ) {
-	    fatal_error "Only a loopback zone may be assigned to 'lo'" unless $zoneref->{type} == LOOPBACK;
-	    fatal_error "Invalid definition of 'lo'"                   if $bridge ne $interface;
+	if ( $options{loopback} ) {
+	    fatal_error "Only a loopback zone may be assigned to '$physical'" unless $zoneref->{type} == LOOPBACK;
+	    fatal_error "Invalid definition of '$physical'"                   if $bridge ne $interface;
 	    
 	    for ( qw/arp_filter
 		     arp_ignore
-		     blacklist
 		     bridge
 		     detectnets
 		     dhcp
@@ -1406,10 +1422,10 @@ sub process_interface( $$ ) {
 		     upnpclient
 		     mss
 		    / ) {
-		fatal_error "The 'lo' interface may not specify the '$_' option" if supplied $options{$_};
+		fatal_error "The '$config{LOOPBACK}' interface may not specify the '$_' option" if supplied $options{$_};
 	    }
 	} else {
-	    fatal_error "A loopback zone may only be assigned to 'lo'" if $zoneref->{type} == LOOPBACK;
+	    fatal_error "A loopback zone may only be assigned to the loopback interface" if $zoneref->{type} == LOOPBACK;
 	}
 
 	$netsref ||= [ allip ];
@@ -1466,6 +1482,22 @@ sub validate_interfaces_file( $ ) {
     #
     fatal_error "No network interfaces defined" unless @interfaces;
 
+    #
+    # Define the loopback interface if it hasn't been already
+    #
+    unless ( $loopback_interface ) {
+	$interfaces{lo} = { name             => 'lo',
+			    bridge           => 'lo',
+			    nets             => 0,
+			    number           => $nextinum++,
+			    root             => 'lo',
+			    broadcasts       => undef,
+			    options          => { loopback => 1 , ignore => 1 },
+			    zone             => '',
+			    physical         => 'lo' };
+	push @interfaces, $loopback_interface = 'lo';
+    }
+
     if ( vserver_zones ) {
 	#
 	# While the user thinks that vservers are associated with a particular interface, they really are not.
@@ -1481,7 +1513,7 @@ sub validate_interfaces_file( $ ) {
 				    broadcasts => undef ,
 				    options    => {} ,
 				    zone       => '',
-				    physical   => 'lo',
+				    physical   => $loopback_interface,
 				  };
 
 	push @interfaces, $interface;
@@ -1519,10 +1551,16 @@ sub known_interface($)
     my $iface = $interface;
 
     if ( $minroot ) {
+	#
+	# We have wildcard interfaces -- see if this interface matches one of their roots
+	#
 	while ( length $iface > $minroot ) {
 	    chop $iface;
 
 	    if ( my $i = $roots{$iface} ) {
+		#
+		# Found one
+		#
 		$interfaceref = $interfaces{$i};
 
 		my $physical = map_physical( $interface, $interfaceref );
@@ -1541,6 +1579,13 @@ sub known_interface($)
     }
 
     $physical{$interface} || 0;
+}
+
+# 
+# Return the loopback interface physical name
+#
+sub loopback_interface() {
+    $loopback_interface;
 }
 
 #
@@ -1589,7 +1634,7 @@ sub managed_interfaces() {
 # Return a list of unmanaged interfaces (skip 'lo' since it is implicitly unmanaged when there are no loopback zones).
 #
 sub unmanaged_interfaces() {
-    grep ( $interfaces{$_}{options}{unmanaged} && $_ ne 'lo', @interfaces );
+    grep ( $interfaces{$_}{options}{unmanaged} && ! $interfaces{$_}{options}{loopback}, @interfaces );
 }
 
 #
@@ -1645,9 +1690,8 @@ sub source_port_to_bridge( $ ) {
     return $portref ? $portref->{bridge} : '';
 }
 
-
 #
-# Returns a hash reference for the zones interface through the interface
+# Returns a hash reference for the zones interfaced through the interface
 #
 sub interface_zones( $ ) {
     my $interfaceref = known_interface( $_[0] );
@@ -1682,7 +1726,7 @@ sub interface_is_required($) {
 }
 
 #
-# Return true if the interface is 'plain'
+# Return true if the interface is 'plain' (not optional, required or ignored and not a bridge port).
 #
 sub interface_is_plain($) {
     my $interfaceref = $interfaces{$_[0]};
@@ -1763,7 +1807,7 @@ sub find_interfaces_by_option1( $ ) {
     my @ints = ();
     my $wild = 0;
 
-    for my $interface ( sort { $interfaces{$a}->{number} <=> $interfaces{$b}->{number} } keys %interfaces ) {
+    for my $interface ( @interfaces ) {
 	my $interfaceref = $interfaces{$interface};
 
 	next unless defined $interfaceref->{physical};
@@ -1842,7 +1886,7 @@ sub verify_required_interfaces( $ ) {
 
 	push_indent;
 
-	emit( 'start|restart|restore)' );
+	emit( 'start|reload|restore)' );
 
 	push_indent;
 
@@ -1904,7 +1948,7 @@ sub verify_required_interfaces( $ ) {
 	if ( $generate_case ) {
 	    emit( 'case "$COMMAND" in' );
 	    push_indent;
-	    emit( 'start|restart|restore|refresh)' );
+	    emit( 'start|reload|restore|refresh)' );
 	    push_indent;
 	}
 
@@ -1989,10 +2033,10 @@ sub process_host( ) {
 	fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
 	fatal_error "Unmanaged interfaces may not be associated with a zone" if $interfaceref->{unmanaged};
 
-	if ( $interfaceref->{name} eq 'lo' ) {
-	    fatal_error "Only a loopback zone may be associated with the loopback interface (lo)" if $type != LOOPBACK;
+	if ( $interfaceref->{physical} eq $loopback_interface ) {
+	    fatal_error "Only a loopback zone may be associated with the loopback interface ($loopback_interface)" if $type != LOOPBACK;
 	} else {
-	    fatal_error "Loopback zones may only be associated with the loopback interface (lo)" if $type == LOOPBACK;
+	    fatal_error "Loopback zones may only be associated with the loopback interface ($loopback_interface)" if $type == LOOPBACK;
 	}
     } else {
 	fatal_error "Invalid HOST(S) column contents: $hosts"
@@ -2028,10 +2072,11 @@ sub process_host( ) {
 	    } elsif ( $option eq 'norfc1918' ) {
 		warning_message "The 'norfc1918' host option is no longer supported"
 	    } elsif ( $option eq 'blacklist' ) {
-		warning_message "The 'blacklist' option is deprecated";
+		warning_message "The 'blacklist' option is no longer supported";
 		$zoneref->{options}{in}{blacklist} = 1;
 	    } elsif ( $option =~ /^mss=(\d+)$/ ) {
 		fatal_error "Invalid mss ($1)" unless $1 >= 500;
+		require_capability 'TCPMSS_TARGET', $option, 's';
 		$options{mss} = $1;
 		$zoneref->{options}{complex} = 1;
 	    } elsif ( $validhostoptions{$option}) {
@@ -2132,8 +2177,10 @@ sub find_hosts_by_option( $ ) {
     }
 
     for my $zone ( grep ! ( $zones{$_}{type} & FIREWALL ) , @zones ) {
-	while ( my ($type, $interfaceref) = each %{$zones{$zone}{hosts}} ) {
-	    while ( my ( $interface, $arrayref) = ( each %{$interfaceref} ) ) {
+	for my $type (sort keys %{$zones{$zone}{hosts}} ) {
+	    my $interfaceref = $zones{$zone}{hosts}->{$type};
+	    for my $interface ( sort keys %$interfaceref ) {
+		my $arrayref = $interfaceref->{$interface};
 		for my $host ( @{$arrayref} ) {
 		    my $ipsec = $host->{ipsec};
 		    unless ( $done{$interface} ) { 
@@ -2159,8 +2206,10 @@ sub find_zone_hosts_by_option( $$ ) {
     my @hosts;
 
     unless ( $zones{$zone}{type} & FIREWALL ) {
-	while ( my ($type, $interfaceref) = each %{$zones{$zone}{hosts}} ) {
-	    while ( my ( $interface, $arrayref) = ( each %{$interfaceref} ) ) {
+	for my $type (sort keys %{$zones{$zone}{hosts}} ) {
+	    my $interfaceref = $zones{$zone}{hosts}->{$type};
+	    for my $interface ( sort keys %$interfaceref ) {
+		my $arrayref = $interfaceref->{$interface};
 		for my $host ( @{$arrayref} ) {
 		    if ( my $value = $host->{options}{$option} ) {
 			for my $net ( @{$host->{hosts}} ) {
@@ -2172,7 +2221,7 @@ sub find_zone_hosts_by_option( $$ ) {
 	}
     }
 
-    \@hosts;
+    \@hosts
 }
 
 #

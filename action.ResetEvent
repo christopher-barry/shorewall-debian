@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Reset an Event
+# Shorewall version 5 - Reset an Event
 #
 # /etc/shorewall/action.ResetEvent
 #
@@ -14,7 +14,6 @@
 #
 #######################################################################################################
 #                                         DO NOT REMOVE THE FOLLOWING LINE
-?format 2
 #################################################################################################################################################################################################
 #ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME         HEADERS         SWITCH        HELPER
 #							PORT	PORT(S)		DEST		LIMIT		GROUP
@@ -41,9 +40,9 @@ set_action_disposition( $disposition) if supplied $disposition;
 set_action_name_to_caller;
 
 if ( $destination eq 'dst' ) {
-    perl_action_helper( $action, "-m recent --name $event --remove --rdest" );
+    perl_action_helper( $action, '', '', "-m recent --name $event --remove --rdest" );
 } else {
-    perl_action_helper( $action, "-m recent --name $event --remove --rsource" );
+    perl_action_helper( $action, '', '', "-m recent --name $event --remove --rsource" );
 }
 
 1;

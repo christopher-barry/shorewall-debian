@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-conntrack
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-CONNTRAC" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-CONNTRAC" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -43,7 +43,7 @@ The role of the file was expanded in Shorewall 4\&.4\&.27 to include all rules t
 table\&. In 4\&.5\&.7, the file\*(Aqs name was changed to
 \fBconntrack\fR\&.
 .PP
-The file supports two different column layouts: FORMAT 1, FORMAT 2, and FORMAT 3, FORMAT 1 being the default\&. The three differ as follows:
+The file supports three different column layouts: FORMAT 1, FORMAT 2, and FORMAT 3, FORMAT 1 being the default\&. The three differ as follows:
 .sp
 .RS 4
 .ie n \{\
@@ -70,7 +70,7 @@ in FORMAT 3, the SOURCE column accepts no zone name; rather the ACTION column al
 When an entry in the following form is encountered, the format of the following entries are assumed to be of the specified
 \fIformat\fR\&.
 .RS 4
-\fB[?]FORMAT\fR
+\fB?FORMAT\fR
       \fIformat\fR
 .RE
 .PP
@@ -81,29 +81,13 @@ is either
 or
 \fB3\fR\&.
 .PP
-Format 3 was introduced in Shorewall 4\&.5\&.10\&. The optional \*(Aq?\*(Aq was introduced in Shorewall 4\&.5\&.11 and ?FORMAT is the preferred form; the form without the \*(Aq?\*(Aq is deprecated\&.
+Format 3 was introduced in Shorewall 4\&.5\&.10\&.
 .PP
-Comments may be attached to Netfilter rules generated from entries in this file through the use of COMMENT lines\&. These lines begin with the word COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-.PP
-Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
-.sp .5v
-.RE
+Comments may be attached to Netfilter rules generated from entries in this file through the use of ?COMMENT lines\&. These lines begin with ?COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another ?COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line containing only ?COMMENT\&.
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
 .PP
-\fBACTION\fR \- {\fBNOTRACK\fR|\fBCT\fR:\fBhelper\fR:\fIname\fR[(\fIarg\fR=\fIval\fR[,\&.\&.\&.])|\fBCT:notrack\fR|DROP|LOG|ULOG(\fIulog\-parameters\fR):NFLOG(\fInflog\-parameters\fR)|IPTABLES(\fItarget\fR)}[\fIlog\-level\fR[:\fIlog\-tag\fR]][:\fIchain\-designator\fR]
+\fBACTION\fR \- {\fBNOTRACK\fR|\fBCT\fR:\fBhelper\fR:\fIname\fR[(\fIarg\fR=\fIval\fR[,\&.\&.\&.])|\fBCT:ctevents:\fR\fB\fIevent\fR\fR\fB[,\&.\&.\&.]|CT:expevents:new\fR\fB|CT:notrack\fR|DROP|LOG|ULOG(\fIulog\-parameters\fR):NFLOG(\fInflog\-parameters\fR)|IPTABLES(\fItarget\fR)}[\fIlog\-level\fR[:\fIlog\-tag\fR]][:\fIchain\-designator\fR]
 .RS 4
 This column is only present when FORMAT >= 2\&. Values other than NOTRACK or DROP require
 CT Targetsupport in your iptables and kernel\&.
@@ -139,7 +123,7 @@ Attach the helper identified by the
 \fIname\fR
 to this connection\&. This is more flexible than loading the conntrack helper with preset ports\&. If a
 \fIlog\-level\fR
-is specified, the packet will also be logged at that level\&.
+is specified, the packet will also be logged at that level\&. Beginning with Shorewall 4\&.6\&.10, the helper name is optional
 .sp
 At this writing, the available helpers are:
 .PP
@@ -249,6 +233,45 @@ expectation events for this connection\&.
 .sp -1
 .IP \(bu 2.3
 .\}
+ctevents:\fIevent\fR[,\&.\&.\&.]
+.sp
+Added in Shorewall 4\&.6\&.10\&. Only generate the specified conntrack events for this connection\&. Possible event types are:
+\fBnew\fR,
+\fBrelated\fR,
+\fBdestroy\fR,
+\fBreply\fR,
+\fBassured\fR,
+\fBprotoinfo\fR,
+\fBhelper\fR,
+\fBmark\fR
+(this is connection mark, not packet mark),
+\fBnatseqinfo\fR, and
+\fBsecmark\fR\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+expevents=new
+.sp
+Added in Shorewall 4\&.6\&.10\&. Only generate
+\fBnew\fR
+expectation events for this connection\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
 \fBDROP\fR
 .sp
 Added in Shorewall 4\&.5\&.10\&. Silently discard the packet\&. If a
@@ -347,7 +370,7 @@ The rule is added to the raw table PREROUTING and OUTPUT chains\&.
 .RE
 .RE
 .PP
-SOURCE (formats 1 and 2) \(en {\fIzone\fR[:\fIinterface\fR][:\fIaddress\-list\fR]|COMMENT}
+SOURCE (formats 1 and 2) \(en {\fIzone\fR[:\fIinterface\fR][:\fIaddress\-list\fR]}
 .RS 4
 where
 \fIzone\fR
@@ -383,8 +406,6 @@ is an interface to that zone, and
 is a comma\-separated list of addresses (may contain exclusion \- see
 \m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[2]\d\s+2
 (5))\&.
-.sp
-COMMENT is only allowed in format 1; the remainder of the line is treated as a comment that will be associated with the generated rule(s)\&.
 .RE
 .PP
 DEST \(en {\-|\fIinterface\fR[:\fIaddress\-list\fR]|\fIaddress\-list\fR}
@@ -411,27 +432,31 @@ or
 is accepted in the alternate input format\&.
 .RE
 .PP
-DEST PORT(S) (dport) \- port\-number/service\-name\-list
-.RS 4
-A comma\-separated list of port numbers and/or service names from
-/etc/services\&. May also include port ranges of the form
-\fIlow\-port\fR:\fIhigh\-port\fR
-if your kernel and iptables include port range support\&.
-.RE
-.PP
-SOURCE PORT(S) (sport) \- port\-number/service\-name\-list
+DPORT \- port\-number/service\-name\-list
 .RS 4
 A comma\-separated list of port numbers and/or service names from
 /etc/services\&. May also include port ranges of the form
 \fIlow\-port\fR:\fIhigh\-port\fR
 if your kernel and iptables include port range support\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+This column was formerly labelled DEST PORT(S)\&.
 .RE
 .PP
-USER/GROUP (user) \(en [\fIuser\fR][:\fIgroup\fR]
+SPORT \- port\-number/service\-name\-list
 .RS 4
-May only be specified if the SOURCE
+A comma\-separated list of port numbers and/or service names from
+/etc/services\&. May also include port ranges of the form
+\fIlow\-port\fR:\fIhigh\-port\fR
+if your kernel and iptables include port range support\&.
+.sp
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DPORT column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DPORT\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
+.RE
+.PP
+USER \(en [\fIuser\fR][:\fIgroup\fR]
+.RS 4
+This column was formerly named USER/GROUP and may only be specified if the SOURCE
 \fIzone\fR
 is $FW\&. Specifies the effective user id and or group id of the process sending the traffic\&.
 .RE
@@ -484,8 +509,7 @@ Example 1:
 .RS 4
 .\}
 .nf
-#ACTION                       SOURCE            DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE            DEST               PROTO            DPORT             SPORT               USER
 CT:helper:ftp(expevents=new)  fw                \-                  tcp              21              
 .fi
 .if n \{\
@@ -501,8 +525,7 @@ Drop traffic to/from all zones to IP address 1\&.2\&.3\&.4
 .\}
 .nf
 FORMAT 2
-#ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE             DEST               PROTO           DPORT             SPORT               USER
 DROP                          all\-:1\&.2\&.3\&.4       \-
 DROP                          all                1\&.2\&.3\&.4
 .fi
@@ -517,8 +540,7 @@ or
 .\}
 .nf
 FORMAT 3
-#ACTION                       SOURCE             DEST               PROTO            DEST              SOURCE              USER/GROUP
-#                                                                                   PORT(S)           PORT(S)
+#ACTION                       SOURCE             DEST               PROTO           DPORT             SPORT               USER
 DROP:P                        1\&.2\&.3\&.4            \-
 DROP:PO                       \-                  1\&.2\&.3\&.4
 .fi
@@ -527,7 +549,7 @@ DROP:PO                       \-                  1\&.2\&.3\&.4
 .\}
 .SH "FILES"
 .PP
-/etc/shorewall/notrack
+/etc/shorewall/conntrack
 .SH "SEE ALSO"
 .PP
 \m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[3]\d\s+2

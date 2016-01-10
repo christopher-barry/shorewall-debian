@@ -1,6 +1,6 @@
 #
-# Shorewall version 4.0 - Sample Interfaces File for two-interface configuration.
-# Copyright (C) 2006-2014 by the Shorewall Team
+# Shorewall - Sample Interfaces File for two-interface configuration.
+# Copyright (C) 2006-2015 by the Shorewall Team
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -30,10 +30,7 @@
 # 
 # The format is specified by a line as follows:
 # 
-#     [?]FORMAT {1|2}
-# 
-# The optional '?' was introduced in Shorewall 4.5.11 and ?FORMAT is the
-# preferred form; the form without the '?' is deprecated.
+#     ?FORMAT {1|2}
 # 
 # The columns in the file are as follows.
 # 
@@ -172,11 +169,11 @@
 # 
 #         Beginning with Shorewall 4.4.13:
 # 
-#           ● If a zone is given in the ZONES column, then the behavior is as if 
+#           ☆ If a zone is given in the ZONES column, then the behavior is as if 
 #             blacklist had been specified in the IN_OPTIONS column of
 #             shorewall-zones(5).
 # 
-#           ● Otherwise, the option is ignored with a warning:
+#           ☆ Otherwise, the option is ignored with a warning:
 # 
 #                 WARNING: The 'blacklist' option is ignored on multi-zone
 #                 interfaces
@@ -224,6 +221,12 @@
 #         only causes the generated script to ignore up/down events from
 #         Shorewall-init; hairpin filtering is still applied. In this case, the
 #         above restrictions on the ZONE and OPTIONS columns are lifted.
+# 
+#     loopback
+# 
+#         Added in Shorewall 4.6.6. Designates the interface as the loopback
+#         interface. This option is assumed if the interface's physical name is
+#         'lo'. Only one interface man have the loopback option specified.
 # 
 #     logmartians[={0|1}]
 # 
@@ -297,10 +300,10 @@
 #         When optional is specified for an interface, Shorewall will be silent
 #         when:
 # 
-#           ● a /proc/sys/net/ipv4/conf/ entry for the interface cannot be
+#           ☆ a /proc/sys/net/ipv4/conf/ entry for the interface cannot be
 #             modified (including for proxy ARP).
 # 
-#           ● The first address of the interface cannot be obtained.
+#           ☆ The first address of the interface cannot be obtained.
 # 
 #         May not be specified with required.
 # 
@@ -391,13 +394,13 @@
 #         There are certain cases where routefilter cannot be used on an
 #         interface:
 # 
-#           ● If USE_DEFAULT_RT=Yes in shorewall.conf(5) and the interface is
+#           ☆ If USE_DEFAULT_RT=Yes in shorewall.conf(5) and the interface is
 #             listed in shorewall-providers(5).
 # 
-#           ● If there is an entry for the interface in shorewall-providers(5)
+#           ☆ If there is an entry for the interface in shorewall-providers(5)
 #             that doesn't specify the balance option.
 # 
-#           ● If IPSEC is used to allow a road-warrior to have a local address,
+#           ☆ If IPSEC is used to allow a road-warrior to have a local address,
 #             then any interface through which the road-warrior might connect
 #             cannot specify routefilter.
 # 
@@ -450,9 +453,9 @@
 #         Added in Shorewall 4.5.18. Causes all traffic between the firewall and
 #         hosts on the interface to be accepted. When this option is given:
 # 
-#           ● The ZONE column must contain '-'.
+#           ☆ The ZONE column must contain '-'.
 # 
-#           ● Only the following other options are allowed with unmanaged:
+#           ☆ Only the following other options are allowed with unmanaged:
 # 
 #             arp_filter
 #             arp_ignore
@@ -528,7 +531,7 @@
 # 
 #     FORMAT 2
 #     #ZONE   INTERFACE OPTIONS
-#     -       br0       routeback
+#     -       br0       bridge
 # 
 ###############################################################################
 ?FORMAT 2

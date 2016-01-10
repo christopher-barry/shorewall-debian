@@ -1,12 +1,10 @@
 #
-# Shorewall version 4 - SIP Macro
+# Shorewall - SIP Macro
 #
 # /usr/share/shorewall/macro.SIP
 #
 #	This macro handles SIP traffic.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

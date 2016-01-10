@@ -15,12 +15,15 @@ usage() {
     echo "   down <interface>"
     echo "   enable <interface>"
     echo "   reset"
+    echo "   reenable <interface>"
     echo "   refresh"
+    echo "   reload"
     echo "   restart"
     echo "   run <command> [ <parameter> ... ]"
     echo "   status"
     echo "   up <interface>"
     echo "   savesets <file>"
+    echo "   call <function> [ <parameter> ... ]"
     echo "   version"
     echo
     echo "Options are:"
@@ -29,33 +32,56 @@ usage() {
     echo "   -n               Don't update routing configuration"
     echo "   -p               Purge Conntrack Table"
     echo "   -t               Timestamp progress Messages"
+    echo "   -c               Save/restore iptables counters"
     echo "   -V <verbosity>   Set verbosity explicitly"
     echo "   -R <file>        Override RESTOREFILE setting"
     exit $1
 }
 
-checkkernelversion() {
-?if __IPV6
-    local kernel
-
-    kernel=$(uname -r 2> /dev/null | sed -e 's/-.*//')
-
-    case "$kernel" in
-	*.*.*)
-	    kernel=$(printf "%d%02d%02d" $(echo $kernel | sed -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\)\.\([0-9][0-9]*\).*$/\1 \2 \3/g'))
-	    ;;
-	*)
-	    kernel=$(printf "%d%02d00" $(echo $kernel | sed -e 's/^\([0-9][0-9]*\)\.\([0-9][0-9]*\).*$/\1 \2/g'))
-	    ;;
-    esac
-
-    if [ $kernel -lt 20624 ]; then
-	error_message "ERROR: $g_product requires Linux kernel 2.6.24 or later"
-	return 1
+start_command() {
+    if product_is_started; then
+	error_message "$g_product is already Running"
+	status=0
+    else
+	progress_message3 "Starting $g_product...."
+	detect_configuration
+	define_firewall
+	status=$?
+	if [ $status -eq 0 ]; then
+	    [ -n "$SUBSYSLOCK" ] && touch $SUBSYSLOCK
+	    progress_message3 "done."
+	fi
     fi
-?endif
 
+    return $status
+}
+
+stop_command() {
+    progress_message3 "Stopping $g_product...."
+    detect_configuration
+    stop_firewall
+    [ -n "$SUBSYSLOCK" ] && rm -f $SUBSYSLOCK
+    progress_message3 "done."
     return 0
+}
+
+reload_command() {
+    if product_is_started; then
+	progress_message3 "Reloading $g_product...."
+    else
+	error_message "$g_product is not running"
+	progress_message3 "Starting $g_product...."
+	COMMAND=start
+    fi
+
+    detect_configuration
+    define_firewall
+    status=$?
+    if [ -n "$SUBSYSLOCK" ]; then
+ 	[ $status -eq 0 ] && touch $SUBSYSLOCK || rm -f $SUBSYSLOCK
+    fi
+
+    [ $status -eq 0 ] && progress_message3 "done."
 }
 
 ################################################################################
@@ -86,6 +112,19 @@ g_purge=$PURGE
 g_noroutes=$NOROUTES
 g_timestamp=$TIMESTAMP
 g_recovering=$RECOVERING
+#
+# These two variables contain the high-order and low-order parts respectively of
+# an SHA1 digest of this file. The digest is generated before the two following
+# lines are updated to contain the value of that digest.
+#
+g_sha1sum1=
+g_sha1sum2=
+#
+# Other Globals
+#
+g_counters=
+g_compiled=
+g_file=
 
 initialize
 
@@ -136,6 +175,10 @@ while [ $finished -eq 0 -a $# -gt 0 ]; do
 		    r*)
 			g_recovering=Yes
 			option=${option#r}
+			;;
+		    c*)
+			g_counters=Yes
+			option=${option#c}
 			;;
 		    V*)
 			option=${option#V}
@@ -204,94 +247,84 @@ COMMAND="$1"
 case "$COMMAND" in
     start)
 	[ $# -ne 1 ] && usage 2
-	if product_is_started; then
-	    error_message "$g_product is already Running"
-	    status=0
-	else
-	    progress_message3 "Starting $g_product...."
-	    if checkkernelversion; then
-		detect_configuration
-		define_firewall
-		status=$?
-		if [ $status -eq 0 ]; then
-		    [ -n "$SUBSYSLOCK" ] && touch $SUBSYSLOCK
-		    progress_message3 "done."
-		fi
-	    fi
-	fi
+	start_command
 	;;
     stop)
 	[ $# -ne 1 ] && usage 2
-	if checkkernelversion; then
-	    progress_message3 "Stopping $g_product...."
-	    detect_configuration
-	    stop_firewall
-	    status=0
-	    [ -n "$SUBSYSLOCK" ] && rm -f $SUBSYSLOCK
-	    progress_message3 "done."
-	fi
+	stop_command
 	;;
     reset)
 	if ! product_is_started ; then
 	    error_message "$g_product is not running"
 	    status=2
-	elif checkkernelversion; then
-	    if [ $# -eq 1 ]; then
-		$g_tool -Z
-		$g_tool -t mangle -Z
-		date > ${VARDIR}/restarted
-		status=0
-		progress_message3 "$g_product Counters Reset"
-	    else
-		shift
-		status=0
-		for chain in $@; do
-		    if chain_exists $chain; then
-			if qt $g_tool-Z $chain; then
-			    progress_message3 "Filter $chain Counters Reset"
+	elif [ $# -eq 1 ]; then
+	    $g_tool -Z
+	    $g_tool -t mangle -Z
+	    date > ${VARDIR}/restarted
+	    status=0
+	    progress_message3 "$g_product Counters Reset"
+	else
+	    shift
+	    status=0
+	    table=filter
+	    for chain in $@; do
+	    	case $chain in
+		    *:*)
+			table=${chain%:*}
+			chain=${chain#*:}
+			case $table in
+			    raw|nat|mangle|filter)
+			        ;;
+			    *)
+				error_message "ERROR: Invalid table name ($table)"
+				status=2
+				;;
+			esac
+			;;
+		    *)
+			;;
+		esac
+
+		if [ $status -eq 0 ]; then
+		    if chain_exists $chain $table; then
+			if qt $g_tool -t $table -Z $chain; then
+			    progress_message3 "Completed counter reset of $table chain $chain"
 			else
-			    error_message "ERROR: Reset of chain $chain failed"
+			    error_message "ERROR: Reset of $table chain $chain failed"
 			    status=2
 			    break
 			fi
 		    else
-			error_message "WARNING: Filter Chain $chain does not exist"
+			error_message "WARNING: $table chain $chain does not exist"
 		    fi
-		done
-	    fi
+		else
+		    break;
+		fi
+	    done
 	fi
+	;;
+    reload)
+	[ $# -ne 1 ] && usage 2
+	reload_command
 	;;
     restart)
 	[ $# -ne 1 ] && usage 2
-	if product_is_started; then
-	    progress_message3 "Restarting $g_product...."
+
+	if [ "$RESTART" = restart ]; then
+	    COMMAND=stop stop_command && COMMAND=start start_command
 	else
-	    error_message "$g_product is not running"
-	    progress_message3 "Starting $g_product...."
-	    COMMAND=start
-	fi
-
-	if checkkernelversion; then
-	    detect_configuration
-	    define_firewall
-	    status=$?
-	    if [ -n "$SUBSYSLOCK" ]; then
- 		[ $status -eq 0 ] && touch $SUBSYSLOCK || rm -f $SUBSYSLOCK
-            fi
-
-	    [ $status -eq 0 ] && progress_message3 "done."
+	    COMMAND=reload
+	    reload_command
 	fi
 	;;
     refresh)
 	[ $# -ne 1 ] && usage 2
 	if product_is_started; then
 	    progress_message3 "Refreshing $g_product...."
-	    if checkkernelversion; then
-		detect_configuration
-		define_firewall
-		status=$?
-		[ $status -eq 0 ] && progress_message3 "done."
-	    fi
+	    detect_configuration
+	    define_firewall
+	    status=$?
+	    [ $status -eq 0 ] && progress_message3 "done."
 	else
 	    echo "$g_product is not running" >&2
 	    status=2
@@ -299,27 +332,23 @@ case "$COMMAND" in
 	;;
     restore)
 	[ $# -ne 1 ] && usage 2
-	if checkkernelversion; then
-	    detect_configuration
-	    define_firewall
-	    status=$?
-	    if [ -n "$SUBSYSLOCK" ]; then
- 		[ $status -eq 0 ] && touch $SUBSYSLOCK || rm -f $SUBSYSLOCK
-            fi
-	    [ $status -eq 0 ] && progress_message3 "done."
-	fi
+	detect_configuration
+	define_firewall
+	status=$?
+	if [ -n "$SUBSYSLOCK" ]; then
+ 	    [ $status -eq 0 ] && touch $SUBSYSLOCK || rm -f $SUBSYSLOCK
+        fi
+	[ $status -eq 0 ] && progress_message3 "done."
 	;;
     clear)
 	[ $# -ne 1 ] && usage 2
 	progress_message3 "Clearing $g_product...."
-	if checkkernelversion; then
-	    clear_firewall
-	    status=0
-	    if [ -n "$SUBSYSLOCK" ]; then
-		rm -f $SUBSYSLOCK
-	    fi
-	    progress_message3 "done."
+	clear_firewall
+	status=0
+	if [ -n "$SUBSYSLOCK" ]; then
+	    rm -f $SUBSYSLOCK
 	fi
+	progress_message3 "done."
 	;;
     status)
 	[ $# -ne 1 ] && usage 2
@@ -357,20 +386,37 @@ case "$COMMAND" in
 	[ $# -eq 1 ] && exit 0
 	shift
 	[ $# -ne 1 ] && usage 2
+	mutex_on
 	if product_is_started; then
-	    detect_configuration
-	    enable_provider $1
+	    detect_configuration $1
+	    enable_provider $1 Yes
 	fi
+	mutex_off
 	status=0
 	;;
     disable)
 	[ $# -eq 1 ] && exit 0
 	shift
 	[ $# -ne 1 ] && usage 2
+	mutex_on
 	if product_is_started; then
-	    detect_configuration
-	    disable_provider $1
+	    detect_configuration $1
+	    disable_provider $1 Yes
 	fi
+	mutex_off
+	status=0
+	;;
+    reenable)
+	[ $# -eq 1 ] && exit 0
+	shift
+	[ $# -ne 1 ] && usage 2
+	mutex_on
+	if product_is_started; then
+	    detect_configuration $1
+	    COMMAND=enable  disable_provider $1 Yes
+	    COMMAND=disable enable_provider  $1 Yes
+	fi
+	mutex_off
 	status=0
 	;;
     run)
@@ -387,8 +433,33 @@ case "$COMMAND" in
     savesets)
 	if [ $# -eq 2 ]; then
 	    save_ipsets $2
+	    status=$?
 	else
 	    usage 2
+	fi
+	;;
+    call)
+	#
+	# Way to call functions in the generated script directly
+	#
+	detect_configuration
+
+	shift
+
+	if [ $# -gt 0 ]; then
+	    #
+	    # See what it is
+	    #
+	    if type $1 2> /dev/null | fgrep -q 'is a function'; then
+		#
+		# It's a shell function -- call it
+		#
+		$@
+	    else
+		fatal_error "$1 is not a known shell function"
+	    fi
+	else
+	    usage 1
 	fi
 	;;
     version)

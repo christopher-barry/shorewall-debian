@@ -1,8 +1,8 @@
 ###############################################################################
 #
-# Shorewall version 4.0 - Sample shorewall.conf for one-interface
+# Shorewall - Sample shorewall.conf for one-interface
 #                         configuration.
-# Copyright (C) 2006-2014 by the Shorewall Team
+# Copyright (C) 2006-2015 by the Shorewall Team
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -59,9 +59,9 @@
 # Note
 # 
 # If you want to specify parameters to ULOG or NFLOG (e.g., NFLOG(1,0,1)), then
-# you must either quote the setting or you must escape the parentheses.
+# you must quote the setting.
 # 
-# Examples:
+# Example:
 # 
 STARTUP_ENABLED=No
 #
@@ -95,7 +95,7 @@ VERBOSITY=1
 ###############################################################################
 BLACKLIST_LOG_LEVEL=
 #
-# BLACKLIST_LOG_LEVEL=[log-level]
+# BLACKLIST_LOG_LEVEL=[log-level[:log-tag]]
 # 
 #     Formerly named BLACKLIST_LOGLEVEL. This parameter determines if packets
 #     from blacklisted hosts are logged and it determines the syslog level that
@@ -107,7 +107,7 @@ BLACKLIST_LOG_LEVEL=
 # 
 INVALID_LOG_LEVEL=
 #
-# INVALID_LOG_LEVEL=log-level
+# INVALID_LOG_LEVEL=log-level[:log-tag]
 # 
 #     Added in Shorewall 4.5.13. Packets in the INVALID state that do not match
 #     any rule in the INVALID section of shorewall-rules (5) are logged at this
@@ -174,9 +174,9 @@ LOGALLNEW=
 #     level, this option causes Shorewall to generate a logging rule as the first
 #     rule in each builtin chain.
 # 
-#       ● The table name is used as the chain name in the log prefix.
+#       □ The table name is used as the chain name in the log prefix.
 # 
-#       ● The chain name is used as the target in the log prefix.
+#       □ The chain name is used as the target in the log prefix.
 # 
 #         For example, using the default LOGFORMAT, the log prefix for logging
 #         from the nat table's PREROUTING chain is:
@@ -187,10 +187,10 @@ LOGALLNEW=
 #         Important
 # 
 #         To help insure that all packets in the NEW state are logged, rate
-#         limiting (LOGBURST and LOGRATE) should be disabled when using
-#         LOGALLNEW. Use LOGALLNEW at your own risk; it may cause high CPU and
-#         disk utilization and you may not be able to control your firewall after
-#         you enable this option.
+#         limiting (LOGLIMIT) should be disabled when using LOGALLNEW. Use
+#         LOGALLNEW at your own risk; it may cause high CPU and disk utilization
+#         and you may not be able to control your firewall after you enable this
+#         option.
 # 
 #         Caution
 # 
@@ -262,7 +262,7 @@ LOGTAGONLY=No
 # 
 LOGLIMIT=
 #
-# LOGLIMIT=[[{s|d}:]rate/{sec|min|hour|day}[:burst]]
+# LOGLIMIT=[[{s|d}:]rate/{sec|second|min|minute|hour|day}[:burst]]
 # 
 #     Added in Shorewall 4.4.12. Limits the logging rate, either overall, or by
 #     source or destination IP address.
@@ -273,9 +273,12 @@ LOGLIMIT=
 # 
 #     If burst is not specified, then a value of 5 is assumed.
 # 
+#     The keywords second and minute are accepted beginning with Shorewall
+#     4.6.13.
+# 
 MACLIST_LOG_LEVEL=info
 #
-# MACLIST_LOG_LEVEL=[log-level]
+# MACLIST_LOG_LEVEL=[log-level[:log-tag]]
 # 
 #     Determines the syslog level for logging connection requests that fail MAC
 #     Verification. The value must be a valid syslogd log level. If you don't
@@ -284,7 +287,7 @@ MACLIST_LOG_LEVEL=info
 # 
 RELATED_LOG_LEVEL=
 #
-# RELATED_LOG_LEVEL=log-level
+# RELATED_LOG_LEVEL=log-level[:log-tag]
 # 
 #     Added in Shorewall 4.4.27. Packets in the related state that do not match
 #     any rule in the RELATED section of shorewall-rules (5) are logged at this
@@ -292,14 +295,14 @@ RELATED_LOG_LEVEL=
 # 
 RPFILTER_LOG_LEVEL=info
 #
-# RPFILTER_LOG_LEVEL=log-level
+# RPFILTER_LOG_LEVEL=log-level[:log-tag]
 # 
 #     Added in shorewall 4.5.7. Determines the logging of packets disposed via
 #     the RPFILTER_DISPOSITION. The default value is info.
 # 
 SFILTER_LOG_LEVEL=info
 #
-# SFILTER_LOG_LEVEL=log-level
+# SFILTER_LOG_LEVEL=log-level[:log-tag]
 # 
 #     Added on Shorewall 4.4.20. Determines the logging of packets matching the
 #     sfilter option (see shorewall-interfaces(5)) and of hairpin packets on
@@ -309,7 +312,7 @@ SFILTER_LOG_LEVEL=info
 # 
 SMURF_LOG_LEVEL=info
 #
-# SMURF_LOG_LEVEL=[log-level]
+# SMURF_LOG_LEVEL=[log-level[:log-tag]]
 # 
 #     Specifies the logging level for smurf packets (see the nosmurfs option in
 #     shorewall-interfaces(5)). If set to the empty value ( SMURF_LOG_LEVEL="" )
@@ -320,12 +323,12 @@ STARTUP_LOG=/var/log/shorewall-init.log
 # STARTUP_LOG=[pathname]
 # 
 #     If specified, determines where Shorewall will log the details of each start
-#     , restart and refresh command. Logging verbosity is determined by the
-#     setting of LOG_VERBOSITY above.
+#     , reload, restart and refresh command. Logging verbosity is determined by
+#     the setting of LOG_VERBOSITY above.
 # 
 TCP_FLAGS_LOG_LEVEL=info
 #
-# TCP_FLAGS_LOG_LEVEL=[log-level]
+# TCP_FLAGS_LOG_LEVEL=[log-level[:log-tag]]
 # 
 #     Determines the syslog level for logging packets that fail the checks
 #     enabled by the tcpflags interface option. The value must be a valid syslogd
@@ -334,7 +337,7 @@ TCP_FLAGS_LOG_LEVEL=info
 # 
 UNTRACKED_LOG_LEVEL=
 #
-# UNTRACKED_LOG_LEVEL=log-level
+# UNTRACKED_LOG_LEVEL=log-level[:log-tag]
 # 
 #     Added in Shorewall 4.5.13. Packets in the UNTRACKED state that do not match
 #     any rule in the UNTRACKED section of shorewall-rules (5) are logged at this
@@ -361,13 +364,13 @@ CONFIG_PATH=${CONFDIR}/shorewall:${SHAREDIR}/shorewall
 # 
 #     Specifies where configuration files other than shorewall.conf may be found.
 #     CONFIG_PATH is specifies as a list of directory names separated by colons
-#     (":"). When looking for a configuration file other than shorewall.conf:
+#     (":"). When looking for a configuration file:
 # 
-#       ● If the command is "try" or a "<configuration directory>" was specified
+#       □ If the command is "try" or a "<configuration directory>" was specified
 #         in the command (e.g., shorewall check ./gateway) then the directory
 #         given in the command is searched first.
 # 
-#       ● Next, each directory in the CONFIG_PATH setting is searched in
+#       □ Next, each directory in the CONFIG_PATH setting is searched in
 #         sequence.
 # 
 #     If CONFIG_PATH is not given or if it is set to the empty value then the
@@ -428,10 +431,10 @@ MODULESDIR=
 # 
 #     This parameter specifies the directory/directories where your kernel
 #     netfilter modules may be found. If you leave the variable empty, Shorewall
-#     will supply the value "/lib/modules/`uname -r`/kernel/net/ipv4/netfilter"
-#     in versions of Shorewall prior to 3.2.4 and "/lib/modules/`uname -r`/kernel
-#     /net/ipv4/netfilter:/lib/modules/`uname -r`/kernel/net/ipv4/netfilter" in
-#     later versions.
+#     will supply the value "/lib/modules/$uname/kernel/net/ipv${g_family}/
+#     netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/
+#     kernel/net/sched:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset"
+#     where uname holds the output of 'uname -r' and g_family holds '4'.
 # 
 NFACCT=
 #
@@ -447,7 +450,7 @@ PERL=/usr/bin/perl
 #     Added in Shorewall 4.4.11 RC1. Specifies the path name of the Perl
 #     executable. Default is /usr/bin/perl. If the pathname specified by this
 #     option does not exist or the named file is not executable, then Shorewall
-#     falls back to /usr/bin/perl/
+#     falls back to /usr/bin/perl
 # 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 #
@@ -619,9 +622,9 @@ ADD_IP_ALIASES=No
 # 
 #     Warning
 # 
-#     Addresses added by ADD_IP_ALIASES=Yes are deleted and re-added during
-#     shorewall restart. As a consequence, connections using those addresses may
-#     be severed.
+#     Addresses added by ADD_IP_ALIASES=Yes are deleted and re-added during 
+#     shorewall reload and shorewall restart. As a consequence, connections using
+#     those addresses may be severed.
 # 
 ADD_SNAT_ALIASES=No
 #
@@ -638,9 +641,9 @@ ADD_SNAT_ALIASES=No
 # 
 #     Warning
 # 
-#     Addresses added by ADD_SNAT_ALIASES=Yes are deleted and re-added during
-#     shorewall restart. As a consequence, connections using those addresses may
-#     be severed.
+#     Addresses added by ADD_SNAT_ALIASES=Yes are deleted and re-added during 
+#     shorewall reload and shorewall restart. As a consequence, connections using
+#     those addresses may be severed.
 # 
 ADMINISABSENTMINDED=Yes
 #
@@ -713,10 +716,6 @@ AUTOCOMMENT=Yes
 #     was "COMMENT <macro name>". The AUTO_COMMENT option has a default value of
 #     'Yes'.
 # 
-#     The setting of the AUTOMAKE option is ignored if the start or restart
-#     command includes a directory name (e.g., shorewall restart /etc/
-#     shorewall.new).
-# 
 AUTOHELPERS=Yes
 #
 # AUTOHELPERS=[Yes|No]
@@ -728,7 +727,10 @@ AUTOHELPERS=Yes
 # 
 #      1. Set AUTOHELPERS=No.
 # 
-#      2. Either:
+#      2. Modify the HELPERS setting (see below) to list the helpers that you
+#         need.
+# 
+#      3. Either:
 # 
 #          a. Modify shorewall-conntrack (5) to only apply helpers where they are
 #             required; or
@@ -745,11 +747,15 @@ AUTOMAKE=No
 #
 # AUTOMAKE=[Yes|No]
 # 
-#     If set, the behavior of the start and restart commands are changed; if no
-#     files in /etc/shorewall have been changed since the last successful start
-#     or restart command, then the compilation step is skipped and the compiled
-#     script that executed the last start or restart command is used. The default
-#     is AUTOMAKE=No.
+#     If set, the behavior of the start, reload and restart commands are changed;
+#     if no files in CONFIG_PATH (see below) have been changed since the last
+#     successful start, reload or restart command, then the compilation step is
+#     skipped and the compiled script that executed the last start, reload or 
+#     restart command is used. The default is AUTOMAKE=No.
+# 
+#     The setting of the AUTOMAKE option is ignored if the start, reload or 
+#     restart command includes a directory name (e.g., shorewall restart /etc/
+#     shorewall.new).
 # 
 BLACKLIST="NEW,INVALID,UNTRACKED"
 #
@@ -757,11 +763,10 @@ BLACKLIST="NEW,INVALID,UNTRACKED"
 # 
 #     where state is one of NEW, ESTABLISHED, RELATED, INVALID,or UNTRACKED.
 # 
-#     Added in Shorewall 4.5.13 to replace the BLACKLISTNEWONLY option below.
-#     Specifies the connection tracking states that are to be subject to
-#     blacklist screening. If neither BLACKLIST nor BLACKLISTNEWONLY are
-#     specified then the states subject to blacklisting are
-#     NEW,ESTABLISHED,INVALID,UNTRACKED.
+#     Added in Shorewall 4.5.13 to replace the BLACKLISTNEWONLY option. Specifies
+#     the connection tracking states that are to be subject to blacklist
+#     screening. If BLACKLIST is not specified then the states subject to
+#     blacklisting are NEW,ESTABLISHED,INVALID,UNTRACKED.
 # 
 #     ALL sends all packets through the blacklist chains.
 # 
@@ -820,11 +825,11 @@ COMPLETE=No
 #     which the source or destination IP address is outside of any of your zones.
 #     Default is No. It is recommended that this option only be set to Yes if:
 # 
-#       ● You have defined an interface whose effective physical setting is '+'.
+#       □ You have defined an interface whose effective physical setting is '+'.
 # 
-#       ● That interface is assigned to a zone.
+#       □ That interface is assigned to a zone.
 # 
-#       ● You have no CONTINUE policies or rules.
+#       □ You have no CONTINUE policies or rules.
 # 
 DEFER_DNS_RESOLUTION=Yes
 #
@@ -836,8 +841,8 @@ DEFER_DNS_RESOLUTION=Yes
 #     AUTOMAKE=Yes and the IP address associated with the DNS name is subject to
 #     change. When DEFER_DNS_RESOLUTION=No, DNS names are converted into IP
 #     addresses by the compiler. This has the advantage that when AUTOMAKE=Yes,
-#     the start and restart commands will succeed even if no DNS server is
-#     reachable (assuming that the configuration hasn't changed since the
+#     the start, reload and restart commands will succeed even if no DNS server
+#     is reachable (assuming that the configuration hasn't changed since the
 #     compiled script was last generated).
 # 
 DISABLE_IPV6=No
@@ -853,11 +858,11 @@ DISABLE_IPV6=No
 #     does not enable IPV6. The recommended approach for enabling IPv6 on your
 #     system is:
 # 
-#       ● Install, configure and start Shorewall6.
+#       □ Install, configure and start Shorewall6.
 # 
-#       ● Change DISABLE_IPV6=Yes to DISABLE_IPV6=No
+#       □ Change DISABLE_IPV6=Yes to DISABLE_IPV6=No
 # 
-#       ● Restart Shorewall
+#       □ Reload Shorewall
 # 
 DELETE_THEN_ADD=Yes
 #
@@ -941,10 +946,6 @@ FASTACCEPT=No
 #     then you may not include rules in the ESTABLISHED or RELATED sections of
 #     shorewall-rules(5).
 # 
-#     Note
-# 
-#     FASTACCEPT=Yes is incompatible with BLACKLISTNEWONLY=No.
-# 
 FORWARD_CLEAR_MARK=
 #
 # FORWARD_CLEAR_MARK={Yes|No}
@@ -959,37 +960,37 @@ HELPERS=
 #
 # HELPERS=[helper[,helper...]]
 # 
-#     Added in Shorewall 4.5.7. This option lists the Netfilter application
-#     helpers that are to be enabled. If not specified, the default is to enable
-#     all helpers.
+#     Added in Shorewall 4.5.7. This option specifies a comma-separated list
+#     naming the Netfilter application helpers that are to be enabled. If not
+#     specified, the default is to enable all helpers.
 # 
 #     Possible values for helper are:
 # 
-#       ● amanda
+#       □ amanda
 # 
-#       ● ftp
+#       □ ftp
 # 
-#       ● h323
+#       □ h323
 # 
-#       ● irc
+#       □ irc
 # 
-#       ● netbios-ns
+#       □ netbios-ns
 # 
-#       ● none - This special value was added in Shorewall 4.5.16 and indicates
+#       □ none - This special value was added in Shorewall 4.5.16 and indicates
 #         that no helpers are to be enabled. It also prevents the compiler for
 #         probing for helper support; such probing generates messages on the
 #         system log of the form "xt_CT: No such helper XXX" where XXX is the
 #         helper name. When used, none must be the only helper specified.
 # 
-#       ● pptp
+#       □ pptp
 # 
-#       ● sane
+#       □ sane
 # 
-#       ● sip
+#       □ sip
 # 
-#       ● snmp
+#       □ snmp
 # 
-#       ● tftp
+#       □ tftp
 # 
 #     When HELPERS is specified on a system running Kernel 3.5.0 or later,
 #     automatic association of helpers to connections is disabled.
@@ -1021,8 +1022,17 @@ INLINE_MATCHES=Yes
 #     separates column-oriented specifications on the left from alternative
 #     specificaitons on the right.. When INLINE_MATCHES=Yes is specified, the
 #     specifications on the right are interpreted as if INLINE had been specified
-#     in the ACTION column. If not specified or if specified as the empty value,
-#     the value 'No' is assumed for backward compatibility.
+#     in the ACTION column. This also applies to shorewall-masq(5) and
+#     shorewall-mangle(5) which also support INLINE. If not specified or if
+#     specified as the empty value, the value 'No' is assumed for backward
+#     compatibility.
+# 
+#     Beginning with Shorewall 5.0.0, it is no longer necessary to set
+#     INLINE_MATCHES=Yes in order to be able to specify your own iptables text in
+#     a rule. You may simply preface that text with a pair of semicolons (";;").
+#     If alternate input is also specified in the rule, it should appear before
+#     the semicolons and may be seperated from normal column input by a single
+#     semicolon.
 # 
 IPSET_WARNINGS=Yes
 #
@@ -1031,11 +1041,11 @@ IPSET_WARNINGS=Yes
 #     Added in Shorewall 4.5.2. Default is Yes. When set, causes the rules
 #     compiler to issue a warning when:
 # 
-#       ● The compiler is being run by root and an ipset specified in the
+#       □ The compiler is being run by root and an ipset specified in the
 #         configuration does not exists. Only one warning is issued for each
 #         missing ipset.
 # 
-#       ● When [src] is specified in a destination column and when [dst] is
+#       □ When [src] is specified in a destination column and when [dst] is
 #         specified in a source column.
 # 
 IP_FORWARDING=Off
@@ -1068,8 +1078,8 @@ KEEP_RT_TABLES=No
 #     etc/iproute2/rt_tables database when there are entries in /etc/shorewall/
 #     providers. If you set this option to Yes while Shorewall (Shorewall-lite)
 #     is running, you should remove the file /var/lib/shorewall/rt_tables (/var/
-#     lib/shorewall-lite/rt_tables) before your next stop, refresh, restore on 
-#     restart command.
+#     lib/shorewall-lite/rt_tables) before your next stop, refresh, restore, 
+#     reload or restart command.
 # 
 #     The default is KEEP_RT_TABLES=No.
 # 
@@ -1081,16 +1091,6 @@ LOAD_HELPERS_ONLY=Yes
 #     loaded by shorewall to those listed in /var/lib/shorewall/helpers and those
 #     that are actually used. When not set, or set to the empty value,
 #     LOAD_HELPERS_ONLY=No is assumed.
-# 
-LEGACY_FASTSTART=No
-#
-# LEGACY_FASTSTART={Yes|No}
-# 
-#     Added in Shorewall 4.4.20. If not specified, the default is Yes which
-#     preserves the legacy behavior of start -f (the modification times of the
-#     files in /etc/shorewall are compared with that of /var/lib/shorewall/
-#     restore). If set to No, then the times are compared with that of /var/lib/
-#     shorewall/firewall, which is consistent with the way that restart -f works.
 # 
 MACLIST_TABLE=filter
 #
@@ -1154,17 +1154,17 @@ MARK_IN_FORWARD_CHAIN=No
 #     file to occur in that chain rather than in the PREROUTING chain. This
 #     permits you to mark inbound traffic based on its destination address when
 #     DNAT is in use. To determine if your kernel has a FORWARD chain in the
-#     mangle table, use the /sbin/shorewall show mangle command; if a FORWARD
-#     chain is displayed then your kernel will support this option. If this
-#     option is not specified or if it is given the empty value (e.g.,
-#     MARK_IN_FORWARD_CHAIN="") then MARK_IN_FORWARD_CHAIN=No is assumed.
+#     mangle table, use the shorewall show mangle command; if a FORWARD chain is
+#     displayed then your kernel will support this option. If this option is not
+#     specified or if it is given the empty value (e.g., MARK_IN_FORWARD_CHAIN=
+#     "") then MARK_IN_FORWARD_CHAIN=No is assumed.
 # 
-MODULE_SUFFIX=ko
+MODULE_SUFFIX="ko ko.xz"
 #
 # MODULE_SUFFIX=["extension ..."]
 # 
 #     The value of this option determines the possible file extensions of kernel
-#     modules. The default value is "ko ko.gz o o.gz gz".
+#     modules. The default value is "ko ko.gz ko.xz o o.gz o.xz gz xz".
 # 
 MULTICAST=No
 #
@@ -1226,7 +1226,7 @@ OPTIMIZE=All
 #     optimization categories, and you may also specify OPTIMIZE=None to disable
 #     optimization.
 # 
-#       ● Optimization category 1 - Traditionally, Shorewall has created rules
+#       □ Optimization category 1 - Traditionally, Shorewall has created rules
 #         for the complete matrix of host groups defined by the zones, interfaces
 #         and hosts files. Any traffic that didn't correspond to an element of
 #         that matrix was rejected in one of the built-in chains. When the matrix
@@ -1245,39 +1245,39 @@ OPTIMIZE=All
 #         selected, since level 4 performs similar optimizations in a more robust
 #         way.
 # 
-#       ● Optimization category 2 - Added in Shorewall 4.4.7. When set,
+#       □ Optimization category 2 - Added in Shorewall 4.4.7. When set,
 #         suppresses superfluous ACCEPT rules in a policy chain that implements
 #         an ACCEPT policy. Any ACCEPT rules that immediately precede the final
 #         blanket ACCEPT rule in the chain are now omitted.
 # 
-#       ● Optimization category 4 - Added in Shorewall 4.4.7. When set, causes
+#       □ Optimization category 4 - Added in Shorewall 4.4.7. When set, causes
 #         short chains (those with less than 2 rules) to be optimized away. The
 #         following chains are excluded from optimization:
 # 
-#           ○ accounting chains (unless OPTIMIZE_ACCOUNTING=Yes)
+#           ☆ accounting chains (unless OPTIMIZE_ACCOUNTING=Yes)
 # 
-#           ○ action chains (user-defined)
+#           ☆ action chains (user-defined)
 # 
-#           ○ 'blacklst' chain
+#           ☆ 'blacklst' chain
 # 
-#           ○ dynamic
+#           ☆ dynamic
 # 
-#           ○ forwardUPnP
+#           ☆ forwardUPnP
 # 
-#           ○ UPnP (nat table)
+#           ☆ UPnP (nat table)
 # 
 #         Additionally:
 # 
-#           ○ If a built-in chain has a single rule that branches to a second
+#           ☆ If a built-in chain has a single rule that branches to a second
 #             chain, then the rules from the second chain are moved to the
 #             built-in chain and the target chain is omitted.
 # 
-#           ○ Chains with no references are deleted.
+#           ☆ Chains with no references are deleted.
 # 
-#           ○ Accounting chains are subject to optimization if the
+#           ☆ Accounting chains are subject to optimization if the
 #             OPTIMIZE_ACCOUNTING option is set to 'Yes'.
 # 
-#           ○ If a chain ends with an unconditional branch to a second chain
+#           ☆ If a chain ends with an unconditional branch to a second chain
 #             (other than to 'reject'), then the branch is deleted from the first
 #             chain and the rules from the second chain are appended to it.
 # 
@@ -1296,10 +1296,10 @@ OPTIMIZE=All
 #         chain is totally optimized away and jumps to the chain are replace with
 #         jumps to ACCEPT.
 # 
-#       ● Optimization category 8 - Added in Shorewall 4.4.9. When set, causes
+#       □ Optimization category 8 - Added in Shorewall 4.4.9. When set, causes
 #         chains with identical rules to be collapsed into a single chain.
 # 
-#       ● Optimization category 16 - Added in Shorewall 4.4.26. When set, causes
+#       □ Optimization category 16 - Added in Shorewall 4.4.26. When set, causes
 #         sequences of compatible rules to be combined into a single rule. Rules
 #         are considered compatible if they differ only in their destination
 #         ports and comments.
@@ -1309,10 +1309,10 @@ OPTIMIZE=All
 # 
 #         The ability to combine adjacent rules is limited by two factors:
 # 
-#           ○ Destination port lists may only be combined up to a maximum of 15
+#           ☆ Destination port lists may only be combined up to a maximum of 15
 #             ports, where a port-pair counts as two ports.
 # 
-#           ○ Rules may only be combined until the length of their concatenated
+#           ☆ Rules may only be combined until the length of their concatenated
 #             comment reaches 255 characters.
 # 
 #         When either of these limits would be exceeded, the current combined
@@ -1354,20 +1354,20 @@ REJECT_ACTION=
 #     Added in Shorewall 4.5.21. When a REJECT target is specified, Shorewall
 #     normally handles the response as follows:
 # 
-#       ● If the destination address of the packet is a broadcast or multicast
+#       □ If the destination address of the packet is a broadcast or multicast
 #         address, the packet is dropped.
 # 
-#       ● if the protocol is ICMP (2) then the packet is dropped.
+#       □ if the protocol is ICMP (2) then the packet is dropped.
 # 
-#       ● if the protocol is TCP (6) then the packet is rejected with an RST.
+#       □ if the protocol is TCP (6) then the packet is rejected with an RST.
 # 
-#       ● if the protocol is UDP (17) then the packet is rejected with an
+#       □ if the protocol is UDP (17) then the packet is rejected with an
 #         'port-unreachable' ICMP (ICMP6).
 # 
-#       ● if the protocol is ICMP (1) then the packet is rejected with a
+#       □ if the protocol is ICMP (1) then the packet is rejected with a
 #         'host-unreachable' ICMP.
 # 
-#       ● otherwise, the packet is rejected with a 'host-prohibited' ICMP.
+#       □ otherwise, the packet is rejected with a 'host-prohibited' ICMP.
 # 
 #     You can modify this behavior by implementing your own action that handles
 #     REJECT and specifying it's name in this option. The nolog and inline
@@ -1400,6 +1400,18 @@ REQUIRE_INTERFACE=No
 #     Added in Shorewall 4.4.10. The default is No. If set to Yes, at least one
 #     optional interface must be up in order for the firewall to be in the
 #     started state. Intended to be used with the Shorewall Init Package.
+# 
+RESTART=restart
+#
+# RESTART=[restart|reload]
+# 
+#     Added in Shorewall 5.0.1 to replace LEGACY_RESTART which was added in
+#     Shorewall 5.0.0. In that release, the reload command was redefined to do
+#     what restart had done in earlier releases and restart became a true restart
+#     (equivalent to stop followed by start). When RESTART=reload, the restart
+#     command performs the same operation as the reload command making it
+#     compatible with earlier releases. If not specified, RESTART=reload is
+#     assumed.
 # 
 RESTORE_DEFAULT_ROUTE=Yes
 #
@@ -1440,7 +1452,7 @@ RETAIN_ALIASES=No
 #     to be quietly deleted. When RETAIN_ALIASES is set to Yes, existing
 #     addresses will not be deleted. Regardless of the setting of RETAIN_ALIASES,
 #     addresses added during shorewall start are still deleted at a subsequent 
-#     shorewall stop or shorewall restart.
+#     shorewall stop, shorewall reload or shorewall restart.
 # 
 ROUTE_FILTER=No
 #
@@ -1653,9 +1665,25 @@ WARNOLDCAPVERSION=Yes
 #     of the capabilities supported by the compiler. When WARNOLDCAPVERSION is
 #     set to No, no warning is issued.
 # 
+WORKAROUNDS=No
+#
+# WORKAROUNDS=[Yes|No]
+# 
+#     Added in Shorewall 4.6.11. Over time, there have been a number of changes
+#     in Shorewall that work around defects in other products such as iptables
+#     and ipset. When WORKAROUNDS=Yes, these workarounds are enabled; when
+#     WORKAROUNDS=No, they are disabled. If not specified or if specified as
+#     empty, WORKAROUNDS=Yes is assumed.
+# 
+#     Warning
+# 
+#     Do not set WORKAROUNDS=Yes if you need to be able to use
+#     Shorewall-generated scripts (such as created by the save command) built by
+#     Shorewall 4.4.7 or older.
+# 
 ZONE2ZONE=-
 #
-# ZONE2ZONE={2|-}
+# ZONE2ZONE=[2|-]
 # 
 #     Added in Shorewall 4.4.4. This option determines how Shorewall constructs
 #     chain names involving zone names and/or 'all'. Beginning with Shorewall
@@ -1804,9 +1832,9 @@ MASK_BITS=
 # 
 #     Added in Shorewall 4.4.26. Number of bits on the right of the 32-bit packet
 #     mark to be masked when clearing the traffic shaping mark. Must be >=
-#     TC_BITS and <= PROVIDER_OFFSET (if PROVIDER_OFFSET > 0). Default value and
-#     the default values of the other mark layout options is determined as
-#     follows:
+#     TC_BITS and <= PROVIDER_OFFSET (if PROVIDER_OFFSET > 0). Prior to Shorewall
+#     5.0.0, default value and the default values of the other mark layout
+#     options is determined as follows:
 # 
 #     Table 1. Default Packet Mark Layout
 # 
@@ -1820,6 +1848,9 @@ MASK_BITS=
 #     HIGH_ROUTE_MARKS=Yes          16, MASK_BITS=16
 # 
 # 
+#     From 5.0.0 onward, the default value of MASK_BITS is 8, the default value
+#     of PROVIDER_BITS, TC_BITS, MASK_BITS and PROVIDER_OFFSET is 8.
+# 
 ZONE_BITS=0
 #
 # ZONE_BITS=[number]
@@ -1827,19 +1858,5 @@ ZONE_BITS=0
 #     Added in Shorewall 4.4.26. When non-zero, enables automatic packet marking
 #     by source zone and determines the number of bits in the 32-bit packet mark
 #     to be used for the zone mark. Default value is 0.
-# 
-################################################################################
-#                            L E G A C Y  O P T I O N
-#                      D O  N O T  D E L E T E  O R  A L T E R
-################################################################################
-IPSECFILE=zones
-#
-# IPSECFILE=zones
-# 
-#     This option indicates that zone-related ipsec information is found in the
-#     zones file (shorewall-zones(5)). The option indicates to the compiler that
-#     this is not a legacy configuration where the ipsec information was
-#     contained in a separate file. The value of this option must not be changed
-#     and the option must not be deleted.
 # 
 #LAST LINE -- DO NOT REMOVE
