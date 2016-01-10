@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - IPMI Macro
+# Shorewall - IPMI Macro
 #
 # /usr/share/shorewall/macro.IPMI
 #
@@ -8,8 +8,6 @@
 #	Use this macro to open access to your IPMI interface from management
 #	workstations.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

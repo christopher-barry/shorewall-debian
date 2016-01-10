@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Drop Macro
+# Shorewall - Drop Macro
 #
 # /usr/share/shorewall/macro.Drop
 #
@@ -10,8 +10,6 @@
 #
 #		Drop	net	all
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

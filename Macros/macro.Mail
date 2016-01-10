@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Mail Macro
+# Shorewall - Mail Macro
 #
 # /usr/share/shorewall/macro.Mail
 #
@@ -11,8 +11,6 @@
 #	reading of email via POP3 or IMAP. For those you need to use
 #	the POP3 or IMAP macros.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

@@ -45,7 +45,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '4.6_4';
+our $VERSION = '5.0.0';
 
 our $export;
 
@@ -217,7 +217,7 @@ sub generate_script_2() {
 
     my @dont_load = split_list $config{DONT_LOAD}, 'module';
 
-    emit ( '[ -n "${COMMAND:=restart}" ]',
+    emit ( '[ -n "${COMMAND:=reload}" ]',
 	   '[ -n "${VERBOSITY:=0}" ]',
 	   qq([ -n "\${RESTOREFILE:=$config{RESTOREFILE}}" ]) );
 
@@ -274,9 +274,20 @@ sub generate_script_2() {
 	  'detect_configuration()',
 	  '{' );
 
-    my $global_variables = have_global_variables;
+    my $global_variables    = have_global_variables;
+    my $optional_interfaces = find_interfaces_by_option( 'optional' );
 
     push_indent;
+
+    if ( have_address_variables || @$optional_interfaces ) {
+	emit( 'local interface',
+	      '',
+	      'interface="$1"',
+	      ''
+	    );
+    }
+
+    map_provider_to_interface if have_providers;
 
     if ( $global_variables ) {
 
@@ -292,7 +303,7 @@ sub generate_script_2() {
 
 	    if ( $global_variables == ( ALL_COMMANDS | NOT_RESTORE ) ) {
 
-		set_global_variables(0);
+		set_global_variables(0, 0);
 
 		handle_optional_interfaces(0);
 	    }
@@ -306,10 +317,10 @@ sub generate_script_2() {
 	    push_indent;
 	}
 
-	set_global_variables(1);
+	set_global_variables(1,1);
 
 	if ( $global_variables & NOT_RESTORE ) {
-	    handle_optional_interfaces(0);
+	    handle_optional_interfaces(1);
 	    emit ';;';
 	    pop_indent;
 	    pop_indent;
@@ -350,9 +361,10 @@ sub generate_script_3($) {
     create_chainlist_reload( $_[0] );
     create_save_ipsets;
 
-    emit "#\n# Start/Restart the Firewall\n#";
+    emit "#\n# Start/Reload the Firewall\n#";
 
-    emit 'define_firewall() {';
+    emit( 'define_firewall() {',
+	  '    local options' );
 
     push_indent;
 
@@ -470,10 +482,12 @@ sub generate_script_3($) {
     emit( '',
 	  'if [ $COMMAND = restore ]; then',
 	  '    iptables_save_file=${VARDIR}/$(basename $0)-iptables',
-	  '    if [ -f $iptables_save_file ]; then' );
+	  '    if [ -f $iptables_save_file ]; then',
+	  '        [ -n "$g_counters" ] && options=--counters'
+	);
 
     if ( $family == F_IPV4 ) {
-	emit( '        cat $iptables_save_file | $IPTABLES_RESTORE # Use this nonsensical form to appease SELinux' );
+	emit( '        cat $iptables_save_file | $IPTABLES_RESTORE $options # Use this nonsensical form to appease SELinux' );
 
 	emit( '',
 	      '        arptables_save_file=${VARDIR}/$(basename $0)-arptables',
@@ -483,7 +497,7 @@ sub generate_script_3($) {
 	    if $config{SAVE_ARPTABLES};
 
     } else {
-	emit '        cat $iptables_save_file | $IP6TABLES_RESTORE # Use this nonsensical form to appease SELinux'
+	emit '        cat $iptables_save_file | $IP6TABLES_RESTORE $options # Use this nonsensical form to appease SELinux'
     }
 
     emit( '    else',
@@ -512,45 +526,39 @@ EOF
     #
     # Use a parameter list rather than 'here documents' to avoid an extra blank line
     #
-    emit(
-'    run_refreshed_exit',
-'    do_iptables -N shorewall' );
+    emit( '    run_refreshed_exit',
+	  '    do_iptables -N shorewall' );
 
-    emit ( '    do_iptables -A shorewall -m recent --set --name %CURRENTTIME' ) if have_capability 'RECENT_MATCH';
+    emit( '    do_iptables -A shorewall -m recent --set --name %CURRENTTIME' ) if have_capability 'RECENT_MATCH';
 
-    emit(
-"    set_state Started $config_dir",
-'    [ $0 = ${VARDIR}/firewall ] || cp -f $(my_pathname) ${VARDIR}/firewall',
-'else',
-'    setup_netfilter'
-	);
+    emit( "    set_state Started $config_dir",
+	  '    [ $0 = ${VARDIR}/firewall ] || cp -f $(my_pathname) ${VARDIR}/firewall',
+	  'else',
+	  '    setup_netfilter'	);
+
     push_indent;
     emit 'setup_arptables' if $have_arptables;
     setup_load_distribution;
     pop_indent;
 
-    emit<<'EOF';
-    conditionally_flush_conntrack
-EOF
+    emit( "    conditionally_flush_conntrack\n" );
+
     push_indent;
     initialize_switches;
     setup_forwarding( $family , 0 );
     pop_indent;
 
-    emit<<"EOF";
-    run_start_exit
-    do_iptables -N shorewall
-EOF
+    emit( '    run_start_exit', 
+	  '    do_iptables -N shorewall',
+	  '' );
 
-    emit ( '    do_iptables -A shorewall -m recent --set --name %CURRENTTIME' ) if have_capability 'RECENT_MATCH';
+    emit( '    do_iptables -A shorewall -m recent --set --name %CURRENTTIME' ) if have_capability 'RECENT_MATCH';
 
-    emit<<"EOF";
-    set_state Started $config_dir
-    my_pathname=\$(my_pathname)
-    [ \$my_pathname = \${VARDIR}/firewall ] || cp -f \$my_pathname \${VARDIR}/firewall
-    run_started_exit
-fi
-EOF
+    emit( "    set_state Started $config_dir",
+	  '    my_pathname=$(my_pathname)',
+	  '    [ $my_pathname = ${VARDIR}/firewall ] || cp -f $my_pathname ${VARDIR}/firewall',
+	  '    run_started_exit',
+	  "fi\n" );
 
     emit<<'EOF';
 date > ${VARDIR}/restarted
@@ -559,8 +567,8 @@ case $COMMAND in
     start)
         logger -p kern.info "$g_product started"
         ;;
-    restart)
-        logger -p kern.info "$g_product restarted"
+    reloaded)
+        logger -p kern.info "$g_product reloaded"
         ;;
     refresh)
         logger -p kern.info "$g_product refreshed"
@@ -584,8 +592,8 @@ EOF
 #
 sub compiler {
 
-    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate , $convert, $config_path, $shorewallrc                      , $shorewallrc1 , $directives, $inline, $tcrules ) =
-       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        , 0       , ''          , '/usr/share/shorewall/shorewallrc', ''            , 0 ,          0 ,      0 );
+    my ( $scriptfilename, $directory, $verbosity, $timestamp , $debug, $chains , $log , $log_verbosity, $preview, $confess , $update , $annotate , $config_path, $shorewallrc                      , $shorewallrc1 , $inline ) =
+       ( '',              '',         -1,          '',          0,      '',       '',   -1,             0,        0,         0,        0,        , ''          , '/usr/share/shorewall/shorewallrc', ''            , 0 );
 
     $export         = 0;
     $test           = 0;
@@ -594,12 +602,12 @@ sub compiler {
     sub validate_boolean( $ ) {
 	 my $val = numeric_value( shift );
 	 defined($val) && ($val >= 0) && ($val < 2);
-     }
+    }
 
     sub validate_verbosity( $ ) {
 	 my $val = numeric_value( shift );
 	 defined($val) && ($val >= MIN_VERBOSITY) && ($val <= MAX_VERBOSITY);
-     }
+    }
 
     sub validate_family( $ ) {
 	my $val = numeric_value( shift );
@@ -621,11 +629,8 @@ sub compiler {
 		  preview       => { store => \$preview,       validate=> \&validate_boolean    } ,
 		  confess       => { store => \$confess,       validate=> \&validate_boolean    } ,
 		  update        => { store => \$update,        validate=> \&validate_boolean    } ,
-		  convert       => { store => \$convert,       validate=> \&validate_boolean    } ,
 		  annotate      => { store => \$annotate,      validate=> \&validate_boolean    } ,
 		  inline        => { store => \$inline,        validate=> \&validate_boolean    } ,
-		  directives    => { store => \$directives,    validate=> \&validate_boolean    } ,
-		  tcrules       => { store => \$tcrules,       validate=> \&validate_boolean    } ,
 		  config_path   => { store => \$config_path } ,
 		  shorewallrc   => { store => \$shorewallrc } ,
 		  shorewallrc1  => { store => \$shorewallrc1 } ,
@@ -650,10 +655,7 @@ sub compiler {
 
     set_config_path( $config_path ) if $config_path;
 
-    if ( $directory ne '' ) {
-	fatal_error "$directory is not an existing directory" unless -d $directory;
-	set_shorewall_dir( $directory );
-    }
+    set_shorewall_dir( $directory ) if $directory ne '';
 
     $verbosity = 1 if $debug && $verbosity < 1;
 
@@ -664,16 +666,7 @@ sub compiler {
     #
     #                      S H O R E W A L L . C O N F  A N D  C A P A B I L I T I E S
     #
-    get_configuration( $export , $update , $annotate , $directives , $inline );
-    #
-    # Create a temp file to hold the script
-    #
-    if ( $scriptfilename ) {
-	set_command( 'compile', 'Compiling', 'Compiled' );
-	create_temp_script( $scriptfilename , $export );
-    } else {
-	set_command( 'check', 'Checking', 'Checked' );
-    }
+    get_configuration( $export , $update , $annotate , $inline );
     #
     # Chain table initialization depends on shorewall.conf and capabilities. So it must be deferred until
     # now when shorewall.conf has been processed and the capabilities have been determined.
@@ -683,6 +676,15 @@ sub compiler {
     # Allow user to load Perl modules
     #
     run_user_exit1 'compile';
+    #
+    # Create a temp file to hold the script
+    #
+    if ( $scriptfilename ) {
+	set_command( 'compile', 'Compiling', 'Compiled' );
+	create_temp_script( $scriptfilename , $export );
+    } else {
+	set_command( 'check', 'Checking', 'Checked' );
+    }
     #
     #                                     Z O N E   D E F I N I T I O N
     #                              (Produces no output to the compiled script)
@@ -732,7 +734,7 @@ sub compiler {
     #
     # Do all of the zone-independent stuff (mostly /proc)
     #
-    add_common_rules( $convert, $tcrules );
+    add_common_rules( $update );
     #
     # More /proc
     #
@@ -797,7 +799,7 @@ sub compiler {
     #
     # TCRules and Traffic Shaping
     #
-    setup_tc( $tcrules );
+    setup_tc( $update );
 
     if ( $scriptfilename || $debug ) {
 	pop_indent;
@@ -835,17 +837,17 @@ sub compiler {
     #
     # Process the rules file.
     #
-    process_rules( $convert );
+    process_rules();
     #
     # Process the conntrack file
     #
-    setup_conntrack;
+    setup_conntrack( $update );
     #
     # Add Tunnel rules.
     #
     setup_tunnels;
     #
-    # Clear the current filename
+    # Clear the current filename so that the last one processed doesn't appear in error and warning messages
     #
     clear_currentfilename;
     #
@@ -855,7 +857,7 @@ sub compiler {
     #
     # Apply Policies
     #
-    apply_policy_rules;
+    complete_policy_chains;
     #
     # Reject Action
     #
@@ -906,7 +908,7 @@ sub compiler {
 	#                           S T O P _ F I R E W A L L
 	#         (Writes the stop_firewall() function to the compiled script)
 	#
-	compile_stop_firewall( $test, $export , $have_arptables );
+	compile_stop_firewall( $test, $export , $have_arptables, $update );
 	#
 	#                               U P D O W N
 	#               (Writes the updown() function to the compiled script)
@@ -971,14 +973,15 @@ sub compiler {
 	initialize_chain_table(0);
 
 	if ( $debug ) {
-	    compile_stop_firewall( $test, $export, $have_arptables );
+	    compile_stop_firewall( $test, $export, $have_arptables, $update );
 	    disable_script;
 	} else {
 	    #
-	    # compile_stop_firewall() also validates the routestopped file. Since we don't
-	    # call that function during normal 'check', we must validate routestopped here.
+	    # compile_stop_firewall() also validates the stoppedrules file. Since we don't
+	    # call that function during normal 'check', we must validate stoppedrules here.
 	    #
-	    process_routestopped unless process_stoppedrules;
+	    convert_routestopped if $update;
+	    process_stoppedrules;
 	}
 	#
 	# Report used/required capabilities

@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 PRODUCT=shorewall
 
 usage() # $1 = exit status
@@ -38,6 +38,12 @@ usage() # $1 = exit status
     echo "  -v"
     echo "  -n"
     exit $1
+}
+
+fatal_error()
+{
+    echo "   ERROR: $@" >&2
+    exit 1
 }
 
 qt()
@@ -162,8 +168,8 @@ fi
 
 rm -f ${SBINDIR}/shorewall
 
-if [ -L ${SHAREDIR}/shorewall6/init ]; then
-    FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall6/init)
+if [ -L ${SHAREDIR}/shorewall/init ]; then
+    FIREWALL=$(readlink -m -q ${SHAREDIR}/shorewall/init)
 elif [ -n "$INITFILE" ]; then
     FIREWALL=${INITDIR}/${INITFILE}
 fi
@@ -182,22 +188,24 @@ if [ -f "$FIREWALL" ]; then
     remove_file $FIREWALL
 fi
 
-if [ -n "$SYSTEMD" ]; then
+if [ -z "${SERVICEDIR}" ]; then
+    SERVICEDIR="$SYSTEMD"
+fi
+if [ -n "$SERVICEDIR" ]; then
     [ $configure -eq 1 ] && systemctl disable ${PRODUCT}
-    rm -f $SYSTEMD/shorewall.service
+    rm -f $SERVICEDIR/shorewall.service
 fi
 
 rm -rf ${SHAREDIR}/shorewall/version
 rm -rf ${CONFDIR}/shorewall
 
 if [ -n "$SYSCONFDIR" ]; then
-    [ -n "$SYSCONFFILE" ] || SYSCONFFILE=${PRODUCT};
-    rm -f ${SYSCONFDIR}/${SYSCONFFILE}
+    [ -n "$SYSCONFFILE" ] && rm -f ${SYSCONFDIR}/${PRODUCT}
 fi
 
 rm -rf ${VARDIR}/shorewall
 rm -rf ${PERLLIBDIR}/Shorewall/*
-rm -rf ${LIBEXECDIR}/shorewall
+[ ${LIBEXECDIR} = ${SHAREDIR} ] || rm -rf ${LIBEXECDIR}/shorewall
 rm -rf ${SHAREDIR}/shorewall/configfiles/
 rm -rf ${SHAREDIR}/shorewall/Samples/
 rm -rf ${SHAREDIR}/shorewall/Shorewall/

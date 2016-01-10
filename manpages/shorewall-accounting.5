@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-accounting
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-ACCOUNTIN" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-ACCOUNTIN" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -111,12 +111,7 @@ and
 .PP
 Section headers have the form:
 .PP
-\fB[?]SECTION\fR
-\fIsection\-name\fR
-.PP
-The optional "?" was added in Shorewalll 4\&.6\&.0 and is preferred\&. Existing configurations may be converted to use this form using the
-\fBshorewall update\fR
-command\&.
+\fB?SECTION\fR\fIsection\-name\fR
 .PP
 When sections are enabled:
 .sp
@@ -444,24 +439,9 @@ will be incremented only if all of the matches in the rule succeed\&.
 Causes each matching packet to be sent via the currently loaded logging back\-end (usually nfnetlink_log) where it is available to accounting daemons through a netlink socket\&.
 .RE
 .PP
-\fB[?]COMMENT\fR
+\fB?COMMENT\fR
 .RS 4
-The remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word COMMENT\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
-.sp .5v
-.RE
+The remainder of the line is treated as a comment which is attached to subsequent rules until another COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line with only the word ?COMMENT\&.
 .RE
 .RE
 .PP
@@ -493,8 +473,10 @@ name followed by ":" and a host or net
 \fIaddress\fR\&.
 .RE
 .PP
-\fBDESTINATION\fR (dest) \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fIaddress\fR|\fIaddress\fR}
+\fBDEST\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIinterface\fR|\fIinterface\fR\fB:\fR\fIaddress\fR|\fIaddress\fR}
 .RS 4
+This column was formerly named DESTINATION\&.
+.sp
 Packet Destination\&.
 .sp
 Format same as
@@ -502,8 +484,10 @@ Format same as
 column\&.
 .RE
 .PP
-\fBPROTOCOL (proto)\fR \- {\fB\-\fR|\fB{any\fR|\fBall\fR|\fIprotocol\-name\fR|\fIprotocol\-number\fR|\fBipp2p\fR[\fB:\fR{\fBudp\fR|\fBall\fR}]}[,\&.\&.\&.]}
+\fBPROTO\fR \- {\fB\-\fR|\fB{any\fR|\fBall\fR|\fIprotocol\-name\fR|\fIprotocol\-number\fR|\fBipp2p\fR[\fB:\fR{\fBudp\fR|\fBall\fR}]}[,\&.\&.\&.]}
 .RS 4
+This column was formerly named PROTOCOL
+.sp
 A
 \fIprotocol\-name\fR
 (from protocols(5)), a
@@ -516,7 +500,7 @@ or
 Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated list of protocols\&.
 .RE
 .PP
-\fBDEST PORT(S)\fR (dport) \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIipp2p\-option\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+\fBDPORT\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIipp2p\-option\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 Destination Port number\&. Service name from services(5) or
 \fIport number\fR\&. May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&.
@@ -530,21 +514,25 @@ then this column must contain an
 ("iptables \-m ipp2p \-\-help") without the leading "\-\-"\&. If no option is given in this column,
 \fBipp2p\fR
 is assumed\&.
+.sp
+This column was formerly named DEST PORT(S)\&.
 .RE
 .PP
-\fBSOURCE PORT(S)\fR (sport)\- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
+\fBSPORT\fR \- {\fB\-\fR|\fBany\fR|\fBall\fR|\fIport\-name\-or\-number\fR[,\fIport\-name\-or\-number\fR]\&.\&.\&.}
 .RS 4
 Service name from services(5) or
 \fIport number\fR\&. May only be specified if the protocol is TCP (6), UDP (17), DCCP (33), SCTP (132) or UDPLITE (136)\&.
 .sp
 You may place a comma\-separated list of port numbers in this column if your kernel and iptables include multi\-port match support\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DPORT\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
 .RE
 .PP
-\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
+\fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][\fB+\fR\fIprogram\-name\fR]
 .RS 4
-This column may only be non\-empty if the
+This column was formerly named USER/GROUP and may only be non\-empty if the
 \fBCHAIN\fR
 is
 \fBOUTPUT\fR\&.

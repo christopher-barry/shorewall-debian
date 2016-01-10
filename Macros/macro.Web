@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Web Macro
+# Shorewall - Web Macro
 #
 # /usr/share/shorewall/macro.Web
 #
@@ -7,8 +7,6 @@
 #	macro is deprecated - use of macro.HTTP and macro.HTTPS instead
 #	is recommended.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

@@ -1,13 +1,11 @@
 #
-# Shorewall version 4 - L2TP Macro
+# Shorewall - L2TP Macro
 #
 # /usr/share/shorewall/macro.L2TP
 #
 #	This macro (bidirectional) handles Layer 2 Tunneling Protocol traffic
 #	(RFC 2661)
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Perform an Action based on a Event
+# Shorewall version 5 - Perform an Action based on a Event
 #
 # /etc/shorewall/action.IfEvent
 #
@@ -26,7 +26,6 @@
 #
 #######################################################################################################
 #                                         DO NOT REMOVE THE FOLLOWING LINE
-?format 2
 #################################################################################################################################################################################################
 #ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME         HEADERS         SWITCH        HELPER
 #							PORT	PORT(S)		DEST		LIMIT		GROUP

@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Tcclasses File
+# Shorewall -- /etc/shorewall/tcclasses
 #
 # For information about entries in this file, type "man shorewall-tcclasses"
 #
@@ -9,10 +9,10 @@
 # 
 # A note on the rate/bandwidth definitions used in this file:
 # 
-#   ● don't use a space between the integer value and the unit: 30kbit is valid
+#   • don't use a space between the integer value and the unit: 30kbit is valid
 #     while 30 kbit is NOT.
 # 
-#   ● you can use one of the following units:
+#   • you can use one of the following units:
 # 
 #     kpbs
 # 
@@ -34,7 +34,7 @@
 # 
 #         Bytes per second.
 # 
-#   ● if you want the values to be calculated for you depending on the output
+#   • if you want the values to be calculated for you depending on the output
 #     bandwidth setting defined for an interface in tcdevices, you can use
 #     expressions like the following:
 # 
@@ -145,9 +145,9 @@
 #     following Shorewall-generated classification filters that refer to the
 #     class:
 # 
-#       ● Packet MARK
+#       □ Packet MARK
 # 
-#       ● tcp-ack and the tos options (see below)
+#       □ tcp-ack and the tos options (see below)
 # 
 #     The rules for classes with lower numeric priorities will appear before
 #     those with higher numeric priorities.
@@ -226,13 +226,13 @@
 # 
 #         When 'occurs' is used:
 # 
-#           ● The associated device may not have the 'classify' option.
+#           ☆ The associated device may not have the 'classify' option.
 # 
-#           ● The class may not be the default class.
+#           ☆ The class may not be the default class.
 # 
-#           ● The class may not have any 'tos=' options (including 'tcp-ack').
+#           ☆ The class may not have any 'tos=' options (including 'tcp-ack').
 # 
-#           ● The class should not specify a MARK value. If one is specified, it
+#           ☆ The class should not specify a MARK value. If one is specified, it
 #             will be ignored with a warning message.
 # 
 #         The 'RATE' and 'CEIL' parameters apply to each instance of the class.
@@ -437,5 +437,4 @@
 #             ppp0        4     full/8  full*8/10 4
 # 
 ###############################################################################
-#INTERFACE:CLASS	MARK	RATE:		CEIL	PRIORITY	OPTIONS
-#				DMAX:UMAX
+#INTERFACE	MARK	RATE		CEIL		PRIO	OPTIONS

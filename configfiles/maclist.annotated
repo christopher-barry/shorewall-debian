@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Maclist file
+# Shorewall -- /etc/shorewall/maclist
 #
 # For information about entries in this file, type "man shorewall-maclist"
 #
@@ -41,4 +41,4 @@
 #     ipset support than set names (prefixed by "+") are also allowed.
 # 
 ###############################################################################
-#DISPOSITION	INTERFACE		MAC			IP ADDRESSES (Optional)
+#DISPOSITION	INTERFACE		MAC			ADDRESSES

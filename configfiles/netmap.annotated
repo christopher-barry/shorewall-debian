@@ -1,12 +1,12 @@
 #
-# Shorewall version 4	 - Netmap File
+# Shorewall -- /etc/shorewall/netmap
 #
 # For information about entries in this file, type "man shorewall-netmap"
 #
 # See http://shorewall.net/netmap.html for an example and usage
 # information.
 #
-##############################################################################################
+#############################################################################################
 # 
 # This file is used to map addresses in one network to corresponding addresses in
 # a second network.
@@ -73,7 +73,7 @@
 #     Optional -- added in Shorewall 4.4.23.2. Only packets specifying this
 #     protocol will have their IP header modified.
 # 
-# DEST PORT(S) (dport) - port-number-or-name-list
+# DPORT - port-number-or-name-list
 # 
 #     Optional - added in Shorewall 4.4.23.2. Destination Ports. A
 #     comma-separated list of Port names (from services(5)), port numbers or port
@@ -90,7 +90,9 @@
 #     (6), udp (17), sctp (132) or udplite (136). Use '-' if any of the following
 #     field is supplied.
 # 
-# SOURCE PORT(S) (sport) - port-number-or-name-list
+#     This column was formerly labelled DEST PORT(S).
+# 
+# SPORT - port-number-or-name-list
 # 
 #     Optional -- added in Shorewall 4.4.23.2. Source port(s). If omitted, any
 #     source port is acceptable. Specified as a comma-separated list of port
@@ -100,6 +102,7 @@
 #     (17), sctp (132) or udplite (136). Use '-' if any of the following fields
 #     is supplied.
 # 
-##############################################################################################
-#TYPE	NET1		INTERFACE	NET2		NET3		PROTO	DEST	SOURCE
-#										PORT(S)	PORT(S)
+#     This column was formerly labelled SOURCE PORT(S).
+# 
+#############################################################################################
+#TYPE	NET1		INTERFACE	NET2		NET3		PROTO	DPORT	SPORT

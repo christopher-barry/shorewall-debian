@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Time Macro
+# Shorewall - Time Macro
 #
 # /usr/share/shorewall/macro.Time
 #
@@ -7,8 +7,6 @@
 #	Unless you are supporting extremely old hardware or software,
 #	you shouldn't be using this.  NTP is a superior alternative.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

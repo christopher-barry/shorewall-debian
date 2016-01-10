@@ -37,7 +37,7 @@ our @EXPORT = qw(
 		  );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.6_3';
+our $VERSION = '4.6_12';
 
 our @proxyarp;
 
@@ -154,7 +154,7 @@ sub setup_proxy_arp() {
 
 	emit '';
 
-	for my $interface ( keys %reset ) {
+	for my $interface ( sort keys %reset ) {
 	    unless ( $set{interface} ) {
 		my $physical = get_physical $interface;
 		emit  ( "if [ -f /proc/sys/net/ipv$family/conf/$physical/$proc_file ]; then" ,
@@ -163,7 +163,7 @@ sub setup_proxy_arp() {
 	    }
 	}
 
-	for my $interface ( keys %set ) {
+	for my $interface ( sort keys %set ) {
 	    my $physical = get_physical $interface;
 	    emit  ( "if [ -f /proc/sys/net/ipv$family/conf/$physical/$proc_file ]; then" ,
 		    "    echo 1 > /proc/sys/net/ipv$family/conf/$physical/$proc_file" );

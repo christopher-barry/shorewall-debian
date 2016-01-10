@@ -1,13 +1,11 @@
 #
-# Shorewall version 4 - Macro Template
+# Shorewall - Macro Template
 #
 # /usr/share/shorewall/macro.Rfc1918
 #
 #	This macro handles pkts with a SOURCE or ORIGINAL DEST address
 #	reserved by RFC 1918
 #
-#############################################################################################
-?FORMAT 2
 #############################################################################################
 #ACTION		SOURCE		DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #						PORT(S)	PORT(S)	DEST	LIMIT	GROUP

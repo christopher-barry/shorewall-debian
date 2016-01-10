@@ -30,7 +30,7 @@ package Shorewall::Chains;
 require Exporter;
 
 use Scalar::Util 'reftype';
-use Digest::SHA qw(sha1);
+use Digest::SHA qw(sha1_hex);
 use File::Basename;
 use Shorewall::Config qw(:DEFAULT :internal);
 use Shorewall::Zones;
@@ -110,6 +110,7 @@ our @EXPORT = ( qw(
 		    INLINERULE
 		    OPTIONS
                     IPTABLES
+		    TARPIT
                     FILTER_TABLE
                     NAT_TABLE
                     MANGLE_TABLE
@@ -259,6 +260,7 @@ our %EXPORT_TAGS = (
 				       get_interface_gateway
 				       get_interface_mac
 				       have_global_variables
+                                       have_address_variables
 				       set_global_variables
 				       save_dynamic_chains
 				       load_ipsets
@@ -278,7 +280,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '4.5_18';
+our $VERSION = '5.0.3';
 
 #
 # Chain Table
@@ -316,7 +318,7 @@ our $VERSION = '4.5_18';
 #                                               restriction  => Restrictions on further rules in this chain.
 #                                               audit        => Audit the result.
 #                                               filtered     => Number of filter rules at the front of an interface forward chain
-#                                               digest       => string representation of the chain's rules for use in optimization
+#                                               digest       => SHA1 digest of the string representation of the chain's rules for use in optimization
 #                                                               level 8.
 #                                               complete     => The last rule in the chain is a -g or a simple -j to a terminating target
 #                                                               Suppresses adding additional rules to the chain end of the chain
@@ -426,6 +428,7 @@ use constant { STANDARD     =>      0x1,       #defined by Netfilter
 	       INLINERULE   =>  0x40000,       #INLINE
 	       OPTIONS      =>  0x80000,       #Target Accepts Options
 	       IPTABLES     => 0x100000,       #IPTABLES or IP6TABLES
+	       TARPIT       => 0x200000,       #TARPIT
 
 	       FILTER_TABLE =>  0x1000000,
 	       MANGLE_TABLE =>  0x2000000,
@@ -647,6 +650,7 @@ our %opttype = ( rule          => CONTROL,
 		 simple        => CONTROL,
 		 matches       => CONTROL,
 		 complex       => CONTROL,
+		 t             => CONTROL,
 
 		 i             => UNIQUE,
 		 s             => UNIQUE,
@@ -761,7 +765,6 @@ sub initialize( $$$ ) {
 		     RETURN       => 1,
 		     QUEUE        => 1,
 		     CLASSIFY     => 1,
-		     CT           => 1,
 		     DNAT         => 1,
 		     MASQUERADE   => 1,
 		     NETMAP       => 1,
@@ -889,6 +892,8 @@ sub set_rule_option( $$$ ) {
 	    }
 	} elsif ( $opttype == EXCLUSIVE ) {
 	    $ruleref->{$option} .= ",$value";
+	} elsif ( $opttype  == CONTROL ) {
+	    $ruleref->{$option} = $value;
 	} elsif ( $opttype == UNIQUE ) {
 	    #
 	    # Shorewall::Rules::perl_action_tcp_helper() can produce rules that have two -p specifications.
@@ -923,7 +928,7 @@ sub transform_rule( $;\$ ) {
 	my $option;
 	my $invert = '';
 
-	if ( $input =~ s/^(!\s+)?-([psdjgiom])\s+// ) {
+	if ( $input =~ s/^(!\s+)?-([psdjgiomt])\s+// ) {
 	    #
 	    # Normal case of single-character
 	    $invert = '!' if $1;
@@ -953,7 +958,7 @@ sub transform_rule( $;\$ ) {
 
       PARAM:
 	{
-	    while ( $input ne '' && $input !~ /^(?:!|-[psdjgiom])\s/ ) {
+	    while ( $input ne '' && $input !~ /^(?:!|-[psdjgiomt])\s/ ) {
 		last PARAM if $input =~ /^--([^\s]+)/ && $aliases{$1 || '' };
 		$input =~ s/^([^\s]+)\s*//;
 		my $token = $1;
@@ -1157,7 +1162,7 @@ sub merge_rules( $$$ ) {
 	}
     }
 
-    for my $option ( grep ! $opttype{$_} || $_ eq 'nfacct' || $_ eq 'recent', keys %$fromref ) {
+    for my $option ( grep ! $opttype{$_} || $_ eq 'nfacct' || $_ eq 'recent', sort { $b cmp $a } keys %$fromref ) {
 	set_rule_option( $toref, $option, $fromref->{$option} );
     }
 
@@ -1173,7 +1178,7 @@ sub merge_rules( $$$ ) {
 
     set_rule_option( $toref, 'policy', $fromref->{policy} ) if exists $fromref->{policy};
 
-    for my $option ( grep( get_opttype( $_, 0 ) == EXPENSIVE, keys %$fromref ) ) {
+    for my $option ( grep( get_opttype( $_, 0 ) == EXPENSIVE, sort keys %$fromref ) ) {
 	set_rule_option( $toref, $option, $fromref->{$option} );
     }
 
@@ -1984,6 +1989,10 @@ sub zone_forward_chain($) {
 #
 sub use_forward_chain($$) {
     my ( $interface, $chainref ) = @_;
+    my @loopback_zones = loopback_zones;
+
+    return 0 if $interface eq loopback_interface && ! @loopback_zones;
+
     my $interfaceref = find_interface($interface);
     my $nets = $interfaceref->{nets};
 
@@ -2720,8 +2729,8 @@ sub ensure_manual_chain($) {
 
 sub log_irule_limit( $$$$$$$@ );
 
-sub ensure_blacklog_chain( $$$$ ) {
-    my ( $target, $disposition, $level, $audit ) = @_;
+sub ensure_blacklog_chain( $$$$$ ) {
+    my ( $target, $disposition, $level, $tag, $audit ) = @_;
 
     unless ( $filter_table->{blacklog} ) {
 	my $logchainref = new_manual_chain 'blacklog';
@@ -2729,7 +2738,7 @@ sub ensure_blacklog_chain( $$$$ ) {
 	$target =~ s/A_//;
 	$target = 'reject' if $target eq 'REJECT';
 
-	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , '', 'add' );
+	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , $tag, 'add' );
 
 	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target ) if $audit;
 	add_ijump( $logchainref, g => $target );
@@ -2858,6 +2867,7 @@ sub initialize_chain_table($) {
 		    'HELPER'          => STANDARD + HELPER + NATONLY, #Actually RAWONLY
 		    'INLINE'          => INLINERULE,
 		    'IPTABLES'        => IPTABLES,
+		    'TARPIT'          => STANDARD + TARPIT + OPTIONS,
 		   );
 
 	for my $chain ( qw(OUTPUT PREROUTING) ) {
@@ -2923,6 +2933,7 @@ sub initialize_chain_table($) {
 		    'HELPER'          => STANDARD + HELPER + NATONLY, #Actually RAWONLY
 		    'INLINE'          => INLINERULE,
 		    'IP6TABLES'       => IPTABLES,
+		    'TARPIT'          => STANDARD + TARPIT + OPTIONS,
 		   );
 
 	for my $chain ( qw(OUTPUT PREROUTING) ) {
@@ -3054,7 +3065,7 @@ sub calculate_digest( $ ) {
 	}
     }
 
-    $chainref->{digest} = sha1 $digest;
+    $chainref->{digest} = sha1_hex $digest;
 }
 
 #
@@ -3245,7 +3256,7 @@ sub optimize_level4( $$ ) {
 	$progress = 0;
 	$passes++;
 
-	my @chains  = grep $_->{referenced}, values %$tableref;
+	my @chains  = grep $_->{referenced}, sort { $a->{name} cmp $b->{name} } values %$tableref;
 	my $chains  = @chains;
 
 	progress_message "\n Table $table pass $passes, $chains referenced chains, level 4a...";
@@ -3566,7 +3577,7 @@ sub optimize_level8( $$$ ) {
 	}
 
 	if ( $progress ) {
-	    my @rename = keys %rename;
+	    my @rename = sort keys %rename;
 	    #
 	    # First create aliases for each renamed chain and change the {name} member.
 	    #
@@ -4437,6 +4448,7 @@ sub do_proto( $$$;$ )
 
 			if ( $ports =~ /^\+/ ) {
 			    $output .= $invert;
+			    $output .= '-m set ';
 			    $output .= get_set_flags( $ports, 'dst' );
 			} else {
 			    $sports = '', require_capability( 'MULTIPORT', "'=' in the SOURCE PORT(S) column", 's' ) if ( $srcndst = $sports eq '=' );
@@ -4476,7 +4488,8 @@ sub do_proto( $$$;$ )
 
 			if ( $ports =~ /^\+/ ) {
 			    $output .= $invert;
-			    $output .= get_set_flags( $ports, 'dst' );
+			    $output .= '-m set ';
+			    $output .= get_set_flags( $ports, 'src' );
 			} elsif ( $multiport ) {
 			    if ( port_count( $sports ) > 15 ) {
 				if ( $restricted ) {
@@ -4641,30 +4654,35 @@ sub do_iproto( $$$ )
 
 		    if ( $ports ne '' ) {
 			$invert  = $ports =~ s/^!// ? '! ' : '';
-			$sports = '', require_capability( 'MULTIPORT', "'=' in the SOURCE PORT(S) column", 's' ) if ( $srcndst = $sports eq '=' );
 
-			if ( $multiport || $ports =~ tr/,/,/ > 0 || $sports =~ tr/,/,/ > 0 ) {
-			    fatal_error "Port lists require Multiport support in your kernel/iptables" unless have_capability( 'MULTIPORT' , 1 );
+			if ( $ports =~ /^\+/ ) {
+			    push @output , set => ${invert} . get_set_flags( $ports, 'dst' );
+			} else {
+			    $sports = '', require_capability( 'MULTIPORT', "'=' in the SOURCE PORT(S) column", 's' ) if ( $srcndst = $sports eq '=' );
 
-			    if ( port_count ( $ports ) > 15 ) {
-				if ( $restricted ) {
-				    fatal_error "A port list in this file may only have up to 15 ports";
-				} elsif ( $invert ) {
-				    fatal_error "An inverted port list may only have up to 15 ports";
+			    if ( $multiport || $ports =~ tr/,/,/ > 0 || $sports =~ tr/,/,/ > 0 ) {
+				fatal_error "Port lists require Multiport support in your kernel/iptables" unless have_capability( 'MULTIPORT' , 1 );
+
+				if ( port_count ( $ports ) > 15 ) {
+				    if ( $restricted ) {
+					fatal_error "A port list in this file may only have up to 15 ports";
+				    } elsif ( $invert ) {
+					fatal_error "An inverted port list may only have up to 15 ports";
+				    }
 				}
-			    }
 
-			    $ports = validate_port_list $pname , $ports;
-			    push @output, multiport => ( $srcndst ? "${invert}--ports ${ports} " : "${invert}--dports ${ports} " );
-			    $multiport = 1;
-			}  else {
-			    fatal_error "Missing DEST PORT" unless supplied $ports;
-			    $ports   = validate_portpair $pname , $ports;
+				$ports = validate_port_list $pname , $ports;
+				push @output, multiport => ( $srcndst ? "${invert}--ports ${ports} " : "${invert}--dports ${ports} " );
+				$multiport = 1;
+			    }  else {
+				fatal_error "Missing DEST PORT" unless supplied $ports;
+				$ports   = validate_portpair $pname , $ports;
 
-			    if ( $srcndst ) {
-				push @output, multiport => "${invert}--ports ${ports}";
-			    } else {
-				push @output, dport => "${invert}${ports}";
+				if ( $srcndst ) {
+				    push @output, multiport => "${invert}--ports ${ports}";
+				} else {
+				    push @output, dport => "${invert}${ports}";
+				}
 			    }
 			}
 		    } else {
@@ -4674,8 +4692,10 @@ sub do_iproto( $$$ )
 		    if ( $sports ne '' ) {
 			fatal_error "'=' in the SOURCE PORT(S) column requires one or more ports in the DEST PORT(S) column" if $sports eq '=';
 			$invert = $sports =~ s/^!// ? '! ' : '';
-			if ( $multiport ) {
 
+			if ( $ports =~ /^\+/ ) {
+			    push @output, set => ${invert} . get_set_flags( $ports, 'src' );
+			} elsif ( $multiport ) {
 			    if ( port_count( $sports ) > 15 ) {
 				if ( $restricted ) {
 				    fatal_error "A port list in this file may only have up to 15 ports";
@@ -4835,7 +4855,7 @@ sub validate_mark( $ ) {
 
 sub verify_small_mark( $ ) {
     my $val = validate_mark ( (my $mark) = $_[0] );
-    fatal_error "Mark value ($mark) too large" if numeric_value( $mark ) > $globals{TC_MAX};
+    fatal_error "Mark value ($mark) too large" if numeric_value( $mark ) > $globals{SMALL_MAX};
     $val;
 }
 
@@ -4876,62 +4896,79 @@ my %norate = ( DROP => 1, REJECT => 1 );
 # Create a "-m limit" match for the passed LIMIT/BURST
 #
 sub do_ratelimit( $$ ) {
-    my ( $rate, $action ) = @_;
+    my ( $rates, $action ) = @_;
 
-    return '' unless $rate and $rate ne '-';
+    return '' unless $rates and $rates ne '-';
 
     fatal_error "Rate Limiting not available with $action" if $norate{$action};
-    #
-    # "-m hashlimit" match for the passed LIMIT/BURST
-    #
-    if ( $rate =~ /^[sd]:{1,2}/ ) {
-	require_capability 'HASHLIMIT_MATCH', 'Per-ip rate limiting' , 's';
 
-	my $limit = "-m hashlimit ";
-	my $match = have_capability( 'OLD_HL_MATCH' ) ? 'hashlimit' : 'hashlimit-upto';
-	my $units;
+    my @rates = split_list $rates, 'rate';
 
-	if ( $rate =~ /^[sd]:((\w*):)?((\d+)(\/(sec|min|hour|day))?):(\d+)$/ ) {
-	    fatal_error "Invalid Rate ($3)" unless $4;
-	    fatal_error "Invalid Burst ($7)" unless $7;
-	    $limit .= "--$match $3 --hashlimit-burst $7 --hashlimit-name ";
-	    $limit .= $2 ? $2 : 'shorewall' . $hashlimitset++;
-	    $limit .= ' --hashlimit-mode ';
-	    $units = $6;
-	} elsif ( $rate =~ /^[sd]:((\w*):)?((\d+)(\/(sec|min|hour|day))?)$/ ) {
-	    fatal_error "Invalid Rate ($3)" unless $4;
-	    $limit .= "--$match $3 --hashlimit-name ";
-	    $limit .= $2 ? $2 :  'shorewall' . $hashlimitset++;
-	    $limit .= ' --hashlimit-mode ';
-	    $units = $6;
-	} else {
-	    fatal_error "Invalid rate ($rate)";
-	}
+    if ( @rates == 2 ) {
+	$rates[0] = 's:' . $rates[0];
+	$rates[1] = 'd:' . $rates[1];
+    } elsif ( @rates > 2 ) {
+	fatal error "Only two rates may be specified";
+    }
 
-	$limit .= $rate =~ /^s:/ ? 'srcip ' : 'dstip ';
+    my $limit = '';
 
-	if ( $units && $units ne 'sec' ) {
-	    my $expire = 60000; # 1 minute in milliseconds
+    for my $rate ( @rates ) {
+	#
+	# "-m hashlimit" match for the passed LIMIT/BURST
+	#
+	if ( $rate =~ /^([sd]):{1,2}/ ) {
+	    require_capability 'HASHLIMIT_MATCH', 'Per-ip rate limiting' , 's';
 
-	    if ( $units ne 'min' ) {
-		$expire *= 60; #At least an hour
-		$expire *= 24 if $units eq 'day';
+	    my $match = have_capability( 'OLD_HL_MATCH' ) ? 'hashlimit' : 'hashlimit-upto';
+	    my $units;
+
+	    $limit .= "-m hashlimit ";
+	    
+	    if ( $rate =~ /^[sd]:((\w*):)?((\d+)(\/(sec|min|hour|day))?):(\d+)$/ ) {
+		fatal_error "Invalid Rate ($3)" unless $4;
+		fatal_error "Invalid Burst ($7)" unless $7;
+		$limit .= "--$match $3 --hashlimit-burst $7 --hashlimit-name ";
+		$limit .= $2 ? $2 : 'shorewall' . $hashlimitset++;
+		$limit .= ' --hashlimit-mode ';
+		$units = $6;
+	    } elsif ( $rate =~ /^[sd]:((\w*):)?((\d+)(\/(sec|min|hour|day))?)$/ ) {
+		fatal_error "Invalid Rate ($3)" unless $4;
+		$limit .= "--$match $3 --hashlimit-name ";
+		$limit .= $2 ? $2 :  'shorewall' . $hashlimitset++;
+		$limit .= ' --hashlimit-mode ';
+		$units = $6;
+	    } else {
+		fatal_error "Invalid rate ($rate)";
 	    }
 
-	    $limit .= "--hashlimit-htable-expire $expire ";
-	}
+	    $limit .= $rate =~ /^s:/ ? 'srcip ' : 'dstip ';
 
-	$limit;
-    } elsif ( $rate =~ /^((\d+)(\/(sec|min|hour|day))?):(\d+)$/ ) {
-	fatal_error "Invalid Rate ($1)" unless $2;
-	fatal_error "Invalid Burst ($5)" unless $5;
-	"-m limit --limit $1 --limit-burst $5 ";
-    } elsif ( $rate =~ /^(\d+)(\/(sec|min|hour|day))?$/ )  {
-	fatal_error "Invalid Rate (${1}${2})" unless $1;
-	"-m limit --limit $rate ";
-    } else {
-	fatal_error "Invalid rate ($rate)";
+	    if ( $units && $units ne 'sec' ) {
+		my $expire = 60000; # 1 minute in milliseconds
+
+		if ( $units ne 'min' ) {
+		    $expire *= 60; #At least an hour
+		    $expire *= 24 if $units eq 'day';
+		}
+
+		$limit .= "--hashlimit-htable-expire $expire ";
+	    }
+	} else {
+	    if ( $rate =~ /^((\d+)(\/(sec|min|hour|day))?):(\d+)$/ ) {
+		fatal_error "Invalid Rate ($1)" unless $2;
+		fatal_error "Invalid Burst ($5)" unless $5;
+		$limit = "-m limit --limit $1 --limit-burst $5 ";
+	    } elsif ( $rate =~ /^(\d+)(\/(sec|min|hour|day))?$/ )  {
+		fatal_error "Invalid Rate (${1}${2})" unless $1;
+		$limit = "-m limit --limit $rate ";
+	    } else {
+		fatal_error "Invalid rate ($rate)";
+	    }
+	}
     }
+
+    $limit;
 }
 
 #
@@ -4944,13 +4981,15 @@ sub do_connlimit( $ ) {
 
     require_capability 'CONNLIMIT_MATCH', 'A non-empty CONNLIMIT', 's';
 
+    my $destination = $limit =~ s/^d:// ? '--connlimit-daddr ' : '';
+
     my $invert =  $limit =~ s/^!// ? '' : '! '; # Note Carefully -- we actually do 'connlimit-at-or-below'
 
     if ( $limit =~ /^(\d+):(\d+)$/ ) {
 	fatal_error "Invalid Mask ($2)" unless $2 > 0 || $2 < 31;
-	"-m connlimit ${invert}--connlimit-above $1 --connlimit-mask $2 ";
+	"-m connlimit ${invert}--connlimit-above $1 --connlimit-mask $2 $destination";
     } elsif ( $limit =~ /^(\d+)$/ )  {
-	"-m connlimit ${invert}--connlimit-above $limit ";
+	"-m connlimit ${invert}--connlimit-above $limit $destination";
     } else {
 	fatal_error "Invalid connlimit ($limit)";
     }
@@ -5476,7 +5515,7 @@ sub get_set_flags( $$ ) {
 
     my $rest = '';
 
-    if ( $setname =~ /^(.*)\[([1-6])(?:,(.*))\]$/ ) {
+    if ( $setname =~ /^(.*)\[([1-6])(?:,(.+))?\]$/ ) {
 	$setname  = $1;
 	my $count = $2;
 	$rest     = $3;
@@ -5501,7 +5540,7 @@ sub get_set_flags( $$ ) {
 	}
     }
 
-    if ( $rest ) {
+    if ( supplied $rest ) {
 	my @extensions = split_list($rest, 'ipset option');
 
 	for ( @extensions ) {
@@ -5566,6 +5605,8 @@ sub have_ipset_rules() {
 }
 
 sub get_interface_address( $ );
+
+sub get_interface_gateway ( $;$ );
 
 sub record_runtime_address( $$;$ ) {
     my ( $addrtype, $interface, $protect ) = @_;
@@ -6201,7 +6242,7 @@ sub log_rule_limit( $$$$$$$$ ) {
 		if ( $tag =~ /^,/ ) {
 		    ( $disposition = $tag ) =~ s/,//;
 		} elsif ( $tag =~ /,/ ) {
-		    ( $chain, $disposition ) = split ',', $tag;
+		    ( $chain, $disposition ) = split ',', $tag, 2;
 		} else { 
 		    $chain = $tag;
 		}
@@ -6295,7 +6336,7 @@ sub log_irule_limit( $$$$$$$@ ) {
 		if ( $tag =~ /^,/ ) {
 		    ( $disposition = $tag ) =~ s/,//;
 		} elsif ( $tag =~ /,/ ) {
-		    ( $chain, $disposition ) = split ',', $tag;
+		    ( $chain, $disposition ) = split ',', $tag, 2;
 		} else { 
 		    $chain = $tag;
 		}
@@ -6504,7 +6545,6 @@ sub set_chain_variables() {
 
 	emit( 'IPTABLES_RESTORE=${IPTABLES}-restore',
 	      '[ -x "$IPTABLES_RESTORE" ] || startup_error "$IPTABLES_RESTORE does not exist or is not executable"' );
-
 	emit( 'g_tool=$IPTABLES' );
     } else {
 	if ( $config{IP6TABLES} ) {
@@ -6519,7 +6559,6 @@ sub set_chain_variables() {
 
 	emit( 'IP6TABLES_RESTORE=${IP6TABLES}-restore',
 	      '[ -x "$IP6TABLES_RESTORE" ] || startup_error "$IP6TABLES_RESTORE does not exist or is not executable"' );
-
 	emit( 'g_tool=$IP6TABLES' );
     }
 
@@ -6658,11 +6697,10 @@ sub get_interface_gateway ( $;$ ) {
     $global_variables |= ALL_COMMANDS;
 
     if ( interface_is_optional $logical ) {
-	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface)\n);
+	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface));
     } else {
 	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface)
-[ -n "\$$variable" ] || startup_error "Unable to detect the gateway through interface $interface"
-);
+[ -n "\$$variable" ] || startup_error "Unable to detect the gateway through interface $interface");
     }
 
     $protect ? "\${$variable:-" . NILIP . '}' : "\$$variable";
@@ -6768,36 +6806,67 @@ sub have_global_variables() {
     have_capability( 'ADDRTYPE' ) ? $global_variables : $global_variables | NOT_RESTORE;
 }
 
+sub have_address_variables() {
+    ( keys %interfaceaddr || keys %interfacemacs || keys %interfacegateways );
+}
+
 #
 # Generate setting of run-time global shell variables
 #
-sub set_global_variables( $ ) {
+sub set_global_variables( $$ ) {
 
-    my $setall = shift;
+    my ( $setall, $conditional ) = @_;
 
-    emit $_ for values %interfaceaddr;
-    emit $_ for values %interfacegateways;
-    emit $_ for values %interfacemacs;
+    if ( $conditional ) {
+	my ( $interface, @interfaces );
+
+	@interfaces = sort keys %interfaceaddr;
+
+	for $interface ( @interfaces ) {
+	    emit( qq([ -z "\$interface" -o "\$interface" = "$interface" ] && $interfaceaddr{$interface}) );
+	}
+
+	@interfaces = sort keys %interfacegateways;
+
+	for $interface ( @interfaces ) {
+	    emit( qq(if [ -z "\$interface" -o "\$interface" = "$interface" ]; then) );
+	    push_indent;
+	    emit( $interfacegateways{$interface} );
+	    pop_indent;
+	    emit( qq(fi\n) );
+	}
+
+	@interfaces = sort keys %interfacemacs;
+
+	for $interface ( @interfaces ) {
+	    emit( qq([ -z "\$interface" -o "\$interface" = "$interface" ] && $interfacemacs{$interface}) );
+	}
+    } else {
+	emit $_     for sort values %interfaceaddr;
+	emit "$_\n" for sort values %interfacegateways;
+	emit $_     for sort values %interfacemacs;
+    }
 
     if ( $setall ) {
-	emit $_ for values %interfaceaddrs;
-	emit $_ for values %interfacenets;
+	emit $_ for sort values %interfaceaddrs;
+	emit $_ for sort values %interfacenets;
 
 	unless ( have_capability( 'ADDRTYPE' ) ) {
 
 	    if ( $family == F_IPV4 ) {
 		emit 'ALL_BCASTS="$(get_all_bcasts) 255.255.255.255"';
-		emit $_ for values %interfacebcasts;
+		emit $_ for sort values %interfacebcasts;
 	    } else {
 		emit 'ALL_ACASTS="$(get_all_acasts)"';
-		emit $_ for values %interfaceacasts;
+		emit $_ for sort values %interfaceacasts;
 	    }
 	}
     }
 }
 
 sub verify_address_variables() {
-    while ( my ( $variable, $type ) = ( each %address_variables ) ) {
+    for my $variable ( sort keys %address_variables ) {
+	my $type = $address_variables{$variable};
 	my $address = "\$$variable";
 
 	if ( $type eq '&' ) {
@@ -6962,7 +7031,7 @@ sub isolate_source_interface( $ ) {
 	    $inets  = $2;
 	} elsif ( $source =~ /^(.+?):\[(.+)\]\s*$/ ||
 		  $source =~ /^(.+?):(!?\+.+)$/    ||
-		  $source =~ /^(.+?):(!?[&%].+)$/  ||
+		  $source =~ /^(.+?):(!?[&%~].+)$/ ||
 		  $source =~ /^(.+?):(\[.+\]\/(?:\d+))\s*$/
 		) {
 	    $iiface = $1;
@@ -7003,9 +7072,9 @@ sub verify_source_interface( $$$$ ) {
 	fatal_error "A wildcard interface ( $iiface) is not allowed in this context" if $iiface =~ /\+$/;
 
 	if ( $table eq 'nat' ) {
-	    warning_message qq(Using an interface as the masq SOURCE requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount++;
+	    warning_message qq(Using an interface as the masq SOURCE requires the interface to be up and configured when $Product starts/restarts/reloads) unless $idiotcount++;
 	} else {
-	    warning_message qq(Using an interface as the SOURCE in a T: rule requires the interface to be up and configured when $Product starts/restarts) unless $idiotcount1++;
+	    warning_message qq(Using an interface as the SOURCE in a T: rule requires the interface to be up and configured when $Product starts/restarts/reloads) unless $idiotcount1++;
 	}
 
 	push_command $chainref, join( '', 'for source in ', get_interface_nets( $iiface) , '; do' ), 'done';
@@ -7637,7 +7706,7 @@ sub add_interface_options( $ ) {
 	#
 	# Generate a digest for each chain
 	#
-	for my $chainref ( values %input_chains, values %forward_chains ) {
+	for my $chainref ( sort { $a->{name} cmp $b->{name} } values %input_chains, values %forward_chains ) {
 	    my $digest = '';
 
 	    assert( $chainref );
@@ -7650,13 +7719,13 @@ sub add_interface_options( $ ) {
 		}
 	    }
 
-	    $chainref->{digest} = sha1 $digest;
+	    $chainref->{digest} = sha1_hex $digest;
 	}
 	#
 	# Insert jumps to the interface chains into the rules chains
 	#
 	for my $zone1 ( off_firewall_zones ) {
-	    my @input_interfaces   = keys %{zone_interfaces( $zone1 )};
+	    my @input_interfaces   = sort keys %{zone_interfaces( $zone1 )};
 	    my @forward_interfaces = @input_interfaces;
 
 	    if ( @input_interfaces > 1 ) {
@@ -7738,7 +7807,7 @@ sub add_interface_options( $ ) {
 	for my $zone1 ( firewall_zone, vserver_zones ) {
 	    for my $zone2 ( off_firewall_zones ) {
 		my $chainref = $filter_table->{rules_chain( $zone1, $zone2 )};
-		my @interfaces = keys %{zone_interfaces( $zone2 )};
+		my @interfaces = sort keys %{zone_interfaces( $zone2 )};
 		my $chain1ref;
 
 		for my $interface ( @interfaces ) {
@@ -7892,14 +7961,18 @@ sub emitr1( $$ ) {
 
 sub save_dynamic_chains() {
 
-    my $tool;
+    my $tool    = $family == F_IPV4 ? '${IPTABLES}'      : '${IP6TABLES}';
+    my $utility = $family == F_IPV4 ? 'iptables-restore' : 'ip6tables-restore';
 
-    emit ( 'if [ "$COMMAND" = restart -o "$COMMAND" = refresh ]; then' );
+    emit ( 'if [ "$COMMAND" = reload -o "$COMMAND" = refresh ]; then' );
     push_indent;
 
-    if ( have_capability 'IPTABLES_S' ) {
-	$tool = $family == F_IPV4 ? '${IPTABLES}' : '${IP6TABLES}';
+    emit( 'if [ -n "$g_counters" ]; then' ,
+	  "    ${tool}-save --counters | grep -vE '[ :]shorewall ' > \${VARDIR}/.${utility}-input",
+	  "fi\n"
+	);
 
+    if ( have_capability 'IPTABLES_S' ) {
 	emit <<"EOF";
 if chain_exists 'UPnP -t nat'; then
     $tool -t nat -S UPnP | tail -n +2 > \${VARDIR}/.UPnP
@@ -7914,11 +7987,12 @@ else
 fi
 
 if chain_exists dynamic; then
-    $tool -S dynamic | tail -n +2 > \${VARDIR}/.dynamic
+    $tool -S dynamic | tail -n +2 | fgrep -v -- '-j ACCEPT' > \${VARDIR}/.dynamic
 else
     rm -f \${VARDIR}/.dynamic
 fi
 EOF
+
     } else {
 	$tool = $family == F_IPV4 ? '${IPTABLES}-save' : '${IP6TABLES}-save';
 
@@ -8008,7 +8082,7 @@ sub create_save_ipsets() {
     if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
 	emit( '    local file' ,
 	      '',
-	      '    file=$1'
+	      '    file=${1:-${VARDIR}/save.ipsets}'
 	    );
 
 	if ( @ipsets ) {
@@ -8034,24 +8108,20 @@ sub create_save_ipsets() {
 		emit( '',
 		      "    for set in \$(\$IPSET save | grep '$select' | cut -d' ' -f2); do" ,
 		      "        \$IPSET save \$set >> \$file" ,
-		      "    done" );
+		      "    done" ,
+		      '',
+		    );
 	    } else {
-		emit ( '' ,
-		       '    if [ -f /etc/debian_version ] && [ $(cat /etc/debian_version) = 5.0.3 ]; then' ,
-		       '        #',
-		       '        # The \'grep -v\' is a hack for a bug in ipset\'s nethash implementation when xtables-addons is applied to Lenny' ,
-		       '        #',
-		       '        hack=\'| grep -v /31\'' ,
-		       '    else' ,
-		       '        hack=' ,
-		       '    fi' ,
+		emit ( 
 		       '',
-		       '    if eval $IPSET -S $hack > ${VARDIR}/ipsets.tmp; then' ,
+		       '    if eval $IPSET -S > ${VARDIR}/ipsets.tmp; then' ,
 		       "        grep -qE -- \"^(-N|create )\" \${VARDIR}/ipsets.tmp && mv -f \${VARDIR}/ipsets.tmp \$file" ,
 		       '    fi' );
- 	    }
+	    }
 
-	    emit("}\n" );
+	    emit( "    return 0",
+		  '',
+		  "}\n" );
 	} elsif ( @ipsets || $globals{SAVED_IPSETS} ) {
 	    emit( '' ,
 		  '    rm -f ${VARDIR}/ipsets.tmp' ,
@@ -8073,10 +8143,13 @@ sub create_save_ipsets() {
 	    emit( '' ,
 		  "    grep -qE -- \"(-N|^create )\" \${VARDIR}/ipsets.tmp && cat \${VARDIR}/ipsets.tmp >> \$file\n" ,
 		  '' ,
+		  '    return 0',
+		  '' ,
 		  "}\n" );
 	}
     } elsif ( $config{SAVE_IPSETS} ) {
 	emit( '    error_message "WARNING: No ipsets were saved"',
+	      '    return 1',
 	      "}\n" );
     } else {
 	emit( '    true',
@@ -8089,9 +8162,8 @@ sub load_ipsets() {
     my @ipsets = all_ipsets;
 
     if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
+	emit ( '', );
 	emit ( '',
-	       'local hack',
-	       '',
 	       'case $IPSET in',
 	       '    */*)',
 	       '        [ -x "$IPSET" ] || startup_error "IPSET=$IPSET does not exist or is not executable"',
@@ -8166,7 +8238,7 @@ sub load_ipsets() {
 	}
 
 	if ( @ipsets ) {
-	    emit ( 'elif [ "$COMMAND" = restart ]; then' );
+	    emit ( 'elif [ "$COMMAND" = reload ]; then' );
 	    ensure_ipset( $_ ) for @ipsets;
 	}
 
@@ -8189,7 +8261,7 @@ sub load_ipsets() {
 #
 sub create_nfobjects() {
     
-    my @objects = ( keys %nfobjects );
+    my @objects = ( sort keys %nfobjects );
 
     if ( @objects ) {
 	if ( $config{NFACCT} ) {
@@ -8204,7 +8276,7 @@ sub create_nfobjects() {
 	}
     }
 
-    for ( keys %nfobjects ) {
+    for ( sort keys %nfobjects ) {
 	emit( qq(if ! qt \$NFACCT get $_; then),
 	      qq(    \$NFACCT add $_),
 	      qq(fi\n) );
@@ -8223,17 +8295,29 @@ sub create_netfilter_load( $ ) {
 	   '# Create the input to iptables-restore/ip6tables-restore and pass that input to the utility',
 	   '#',
 	   'setup_netfilter()',
-	   '{'
-	   );
+	   '{',
+	   '    local option',
+	);
 
     push_indent;
 
     my $utility = $family == F_IPV4 ? 'iptables-restore' : 'ip6tables-restore';
     my $UTILITY = $family == F_IPV4 ? 'IPTABLES_RESTORE' : 'IP6TABLES_RESTORE';
 
-    save_progress_message "Preparing $utility input...";
+    emit( '',
+	  'if [ "$COMMAND" = reload -a -n "$g_counters" ] && chain_exists $g_sha1sum1 && chain_exists $g_sha1sum2 ; then',
+	  '    option="--counters"',
+	  '',
+	  '    progress_message "Reusing existing ruleset..."',
+	  '',
+	  'else'
+	);
 
-    emit '';
+    push_indent;
+
+    emit 'option=';
+
+    save_progress_message "Preparing $utility input...";
 
     emit "exec 3>\${VARDIR}/.${utility}-input";
 
@@ -8274,6 +8358,14 @@ sub create_netfilter_load( $ ) {
 	    }
 	}
 	#
+	# SHA1SUM chains for handling 'reload -s'
+	#
+	if ( $table eq 'filter' ) {
+	    emit_unindented ':$g_sha1sum1 - [0:0]';
+	    emit_unindented ':$g_sha1sum2 - [0:0]';
+	}
+
+	#
 	# Then emit the rules
 	#
 	for my $chainref ( @chains ) {
@@ -8287,20 +8379,24 @@ sub create_netfilter_load( $ ) {
     }
 
     enter_cmd_mode;
+
+    pop_indent, emit "fi\n";
     #
     # Now generate the actual ip[6]tables-restore command
     #
     emit(  'exec 3>&-',
-	   '',
-	   '[ -n "$g_debug_iptables" ] && command=debug_restore_input || command=$' . $UTILITY,
-	   '',
-	   'progress_message2 "Running $command..."',
-	   '',
-	   "cat \${VARDIR}/.${utility}-input | \$command # Use this nonsensical form to appease SELinux",
-	   'if [ $? != 0 ]; then',
-	   qq(    fatal_error "iptables-restore Failed. Input is in \${VARDIR}/.${utility}-input"),
-	   "fi\n"
-	   );
+	   '' );
+
+    emit( '[ -n "$g_debug_iptables" ] && command=debug_restore_input || command="$' . $UTILITY . ' $option"' );
+
+    emit( '',
+	  'progress_message2 "Running $command..."',
+	  '',
+	  "cat \${VARDIR}/.${utility}-input | \$command # Use this nonsensical form to appease SELinux",
+	  'if [ $? != 0 ]; then',
+	  qq(    fatal_error "iptables-restore Failed. Input is in \${VARDIR}/.${utility}-input"),
+	  "fi\n"
+	);
 
     pop_indent;
 
@@ -8598,7 +8694,8 @@ sub initialize_switches() {
     if ( keys %switches ) {
 	emit( 'if [ $COMMAND = start ]; then' );
 	push_indent;
-	while ( my ( $switch, $setting ) = each %switches ) {
+	for my $switch ( sort keys %switches ) {
+	    my $setting = $switches{$switch};
 	    my $file = "/proc/net/nf_condition/$switch";
 	    emit "[ -f $file ] && echo $setting->{setting} > $file";
 	}
@@ -8639,7 +8736,7 @@ sub get_inline_matches( $ ) {
 # Split the passed target into the basic target and parameter
 #
 sub get_target_param( $ ) {
-    my ( $target, $param ) = split '/', $_[0];
+    my ( $target, $param ) = split '/', $_[0], 2;
 
     unless ( defined $param ) {
 	( $target, $param ) = ( $1, $2 ) if $target =~ /^(.*?)[(](.*)[)]$/;

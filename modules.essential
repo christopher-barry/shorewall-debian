@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Essential Modules File
+# Shorewall version 5 - Essential Modules File
 #
 # /usr/share/shorewall/modules.essential
 #
@@ -28,4 +28,3 @@ loadmodule iptable_nat
 loadmodule iptable_raw
 loadmodule xt_state
 loadmodule xt_tcpudp
-loadmodule ipt_LOG

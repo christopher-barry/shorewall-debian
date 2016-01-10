@@ -27,7 +27,7 @@
 #	You should have received a copy of the GNU General Public License
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
-#   This module deals with Traffic Shaping and the tcrules file.
+#   This module deals with Traffic Shaping and the mangle file.
 #
 package Shorewall::Tc;
 require Exporter;
@@ -42,7 +42,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '4.6_3';
+our $VERSION = '5.0.0';
 
 use constant { NOMARK    => 0 ,
 	       SMALLMARK => 1 ,
@@ -135,7 +135,7 @@ our %restrictions = ( tcpre      => PREROUTE_RESTRICT ,
 
 our $family;
 
-our $tcrules;
+our $convert;
 
 our $mangle;
 
@@ -172,10 +172,10 @@ sub initialize( $ ) {
 }
 
 #
-# Process a rule from the tcrules or mangle file
+# Process a rule from the mangle file
 #
-sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
-    our ( $file, $action, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time ) = @_;
+sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
+    our ( $action, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time ) = @_;
 
     use constant {
 	PREROUTING     => 1,        #Actually tcpre
@@ -225,6 +225,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
     my  $device         = '';
     our $cmd;
     our $designator;
+    our $ttl            = 0;
     my $fw              = firewall_zone;
 
     sub handle_mark_param( $$ ) {
@@ -259,6 +260,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 
 	    $chain ||= $designator;
 	    $chain ||= $default_chain;
+
+	    $option ||= ( $and_or eq '|' ? '--or-mark' : $and_or ? '--and-mark' : '--set-mark' );
 
 	    my $chainref = ensure_chain( 'mangle', $chain = $chainnames{$chain} );
 
@@ -331,7 +334,31 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	}
     }
 
+    sub ipset_command() {
+	my %xlate = ( ADD => 'add-set' , DEL => 'del-set' );
+
+	require_capability( 'IPSET_MATCH', "$cmd rules", '' );
+	fatal_error "$cmd rules require a set name parameter" unless $params;
+
+	my ( $setname, $flags, $rest ) = split ':', $params, 3;
+	fatal_error "Invalid ADD/DEL parameter ($params)" if $rest;
+	$setname =~ s/^\+//;
+	fatal_error "Expected ipset name ($setname)" unless $setname =~ /^(6_)?[a-zA-Z][-\w]*$/;
+	fatal_error "Invalid flags ($flags)" unless defined $flags && $flags =~ /^(dst|src)(,(dst|src)){0,5}$/;
+	$target = join( ' ', 'SET --' . $xlate{$cmd} , $setname , $flags );
+    }
+
     my %commands = (
+	ADD       => {
+	    defaultchain   => PREROUTING,
+	    allowedchains  => ALLCHAINS,
+	    minparams      => 1,
+	    maxparams      => 1,
+	    function       => sub() {
+		ipset_command();
+	    }
+	},
+
 	CHECKSUM   => {
 	    defaultchain   => 0,
 	    allowedchains  => ALLCHAINS,
@@ -394,6 +421,16 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	    },
 	},
 
+	DEL       => {
+	    defaultchain   => PREROUTING,
+	    allowedchains  => ALLCHAINS,
+	    minparams      => 1,
+	    maxparams      => 1,
+	    function       => sub() {
+		ipset_command();
+	    }
+	},
+
 	DIVERT     => {
 	    defaultchain   => REALPREROUTING,
 	    allowedchains  => PREROUTING | REALPREROUTING,
@@ -413,6 +450,16 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 
 		$matches = '! --tcp-flags FIN,SYN,RST,ACK SYN  -m socket --transparent ';
 	    },
+	},
+
+	DROP       => {
+	    defaultchain   => 0,
+	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
+	    minparams      => 0,
+	    maxparams      => 0,
+	    function       => sub() {
+		$target = 'DROP';
+	    }
 	},
 
 	DSCP       => {
@@ -562,7 +609,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 
 	RESTORE    => {
 	    defaultchain   => 0,
-	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
+	    allowedchains  => PREROUTING | INPUT | FORWARD | OUTPUT | POSTROUTING,
 	    minparams      => 0,
 	    maxparams      => 1,
 	    function       => sub () {
@@ -585,13 +632,20 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 		$target = ( $chain == OUTPUT ? 'sticko' : 'sticky' );
 		$restriction = DESTIFACE_DISALLOW;
 		ensure_mangle_chain( $target );
+		if (supplied $params) {
+		    $ttl = numeric_value( $params );
+		    fatal_error "The SAME timeout must be positive" unless $ttl;
+		} else {
+		    $ttl = 300;
+		}
+
 		$sticky++;
 	    },
 	},
 
 	SAVE       => {
 	    defaultchain   => 0,
-	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
+	    allowedchains  => PREROUTING | INPUT | FORWARD | OUTPUT | POSTROUTING,
 	    minparams      => 0,
 	    maxparams      => 1,
 	    function       => sub () {
@@ -599,7 +653,6 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 		if ( supplied $params ) {
 		    handle_mark_param( '--save-mark --mask ' ,
 				       $config{TC_EXPERT} ? HIGHMARK : SMALLMARK );
-
 		} else {
 		    $target .= '--save-mark --mask ' . in_hex( $globals{TC_MASK} );
 		}
@@ -706,7 +759,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 
     if ( $cmd eq 'INLINE' ) {
 	( $target, $cmd, $params, $junk, $raw_matches ) = handle_inline( MANGLE_TABLE, 'mangle', $action, $cmd, $params, '' );
-    } elsif ( $config{INLINE_MATCHES} ) {
+    } else {
 	$raw_matches = get_inline_matches(0);
     }
 
@@ -754,7 +807,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	if ( $commandref->{maxparams} == 1 ) {
 	    fatal_error "The $cmd requires a parameter";
 	} else {
-	    fatal_error "The $cmd ACTION only requires at least $commandref->{maxparams} parmeters";
+	    fatal_error "The $cmd ACTION requires at least $commandref->{maxparams} parmeters";
 	}
     }
     if ( $state ne '-' ) {
@@ -763,7 +816,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 
 	for ( @state ) {
 	    fatal_error "Invalid STATE ($_)"   unless exists $state{$_};
-	    fatal_error "Duplicate STATE ($_)" if $state{$_};
+	    fatal_error "Duplicate STATE ($_)" if $state{$_}++;
 	}
     } else {
 	$state = 'ALL';
@@ -799,6 +852,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 					 do_dscp( $dscp ) .
 					 state_match( $state ) .
 					 do_time( $time ) .
+					 ( $ttl ? "-t $ttl " : '' ) .
 					 $raw_matches ,
 					 $source ,
 					 $dest ,
@@ -815,7 +869,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	}
     }
 
-    progress_message "  $file Rule \"$currentline\" $done";
+    progress_message "  Mangle Rule \"$currentline\" $done";
 }
 
 #
@@ -850,13 +904,17 @@ sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
     our  %tccmd;
 
     unless ( %tccmd ) {
-	%tccmd = ( SAVE =>     { match     => sub ( $ ) { $_[0] eq 'SAVE' } ,
+	%tccmd = ( ADD =>      { match     => sub ( $ ) { $_[0] =~ /^ADD/ } 
+		               },
+		   DEL =>      { match     => sub ( $ ) { $_[0] =~ /^DEL/ }
+		               },
+	           SAVE =>     { match     => sub ( $ ) { $_[0] eq 'SAVE' } ,
 			       } ,
 		   RESTORE =>  { match     => sub ( $ ) { $_[0] eq 'RESTORE' },
 			       } ,
 		   CONTINUE => { match     => sub ( $ ) { $_[0] eq 'CONTINUE' },
 			       } ,
-		   SAME =>     { match     => sub ( $ ) { $_[0] eq 'SAME' },
+		   SAME =>     { match     => sub ( $ ) { $_[0] =~ /^SAME(?:\(d+\))?$/ },
 			       } ,
 		   IPMARK =>   { match     => sub ( $ ) { $_[0] =~ /^IPMARK/ },
 			       } ,
@@ -950,48 +1008,26 @@ sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
 	}
     }
 	
-    if ( $tcrules ) {
-	$command = ( $command ? "$command($mark)" : $mark ) . $designator;
-	my $line = ( $family == F_IPV6 ?
-		     "$command\t$source\t$dest\t$proto\t$ports\t$sports\t$user\t$testval\t$length\t$tos\t$connbytes\t$helper\t$headers\t$probability\t$dscp\t$state" :
-		     "$command\t$source\t$dest\t$proto\t$ports\t$sports\t$user\t$testval\t$length\t$tos\t$connbytes\t$helper\t$probability\t$dscp\t$state" );
-	#
-	# Supress superfluous trailing dashes
-	#
-	$line =~ s/(?:\t-)+$//;
+    $command = ( $command ? "$command($mark)" : $mark ) . $designator;
+    my $line = ( $family == F_IPV6 ?
+		 "$command\t$source\t$dest\t$proto\t$ports\t$sports\t$user\t$testval\t$length\t$tos\t$connbytes\t$helper\t$headers\t$probability\t$dscp\t$state" :
+		 "$command\t$source\t$dest\t$proto\t$ports\t$sports\t$user\t$testval\t$length\t$tos\t$connbytes\t$helper\t$probability\t$dscp\t$state" );
+    #
+    # Supress superfluous trailing dashes
+    #
+    $line =~ s/(?:\t-)+$//;
 
-	my $raw_matches = fetch_inline_matches;
+    my $raw_matches = fetch_inline_matches;
 
-	if ( $raw_matches ne ' ' ) {
-	    if ( $command =~ /^INLINE/ || $config{INLINE_MATCHES} ) {
-		$line .= join( '', ' ;', $raw_matches );
-	    } else {
-		$line .= join( '', ' {', $raw_matches , ' }' );
-	    }
+    if ( $raw_matches ne ' ' ) {
+	if ( $command =~ /^INLINE/ || $config{INLINE_MATCHES} ) {
+	    $line .= join( '', ' ;', $raw_matches );
+	} else {
+	    $line .= join( '', ' {', $raw_matches , ' }' );
 	}
-
-	print $mangle "$line\n";
-    } else {
-	process_mangle_rule1( 'TC',
-			      ( $command ? "$command($mark)" : $mark ) . $designator ,
-			      $source,
-			      $dest,
-			      $proto,
-			      $ports,
-			      $sports,
-			      $user,
-			      $testval,
-			      $length,
-			      $tos,
-			      $connbytes,
-			      $helper,
-			      $headers,
-			      $probability,
-			      $dscp,
-			      $state,
-			      '-',
-	    );
     }
+
+    print $mangle "$line\n";
 }
 
 sub process_tc_rule( ) {
@@ -1053,7 +1089,7 @@ sub process_mangle_rule( ) {
     my ( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time );
     if ( $family == F_IPV4 ) {
 	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp, $state, $time ) =
-	    split_line2( 'tcrules file',
+	    split_line2( 'mangle file',
 			 { mark => 0,
 			   action => 0,
 			   source => 1,
@@ -1078,7 +1114,7 @@ sub process_mangle_rule( ) {
 	$headers = '-';
     } else {
 	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp, $state, $time ) =
-	    split_line2( 'tcrules file',
+	    split_line2( 'mangle file',
 			 { mark => 0,
 			   action => 0,
 			   source => 1,
@@ -1104,7 +1140,7 @@ sub process_mangle_rule( ) {
     }
 
     for my $proto (split_list( $protos, 'Protocol' ) ) {
-	process_mangle_rule1( 'Mangle', $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time );
+	process_mangle_rule1( $originalmark, $source, $dest, $proto, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state, $time );
     }
 }
  
@@ -3113,11 +3149,125 @@ sub process_secmark_rule() {
     }
 }
 
+sub convert_tos($$) {
+    my ( $mangle, $fn1 ) = @_;
+
+    my $have_tos = 0;
+
+    sub unlink_tos( $ ) {
+	my $fn = shift;
+
+	if ( unlink $fn ) {
+	    warning_message "Empty tos file ($fn) removed";
+	} else {
+	    warning_message "Unable to remove empty tos file $fn: $!";
+	}
+    }
+
+    if ( my $fn = open_file 'tos' ) {
+	first_entry(
+		    sub {
+			my $date = localtime;
+			progress_message2 "Converting $fn...";
+			print( $mangle
+			       "#\n" ,
+			       "# Rules generated from tos file $fn by Shorewall $globals{VERSION} - $date\n" ,
+			       "#\n" );
+		    }
+		   );
+
+	while ( read_a_line( NORMAL_READ ) ) {
+
+	    $have_tos = 1;
+
+	    my ($src, $dst, $proto, $ports, $sports , $tos, $mark ) =
+		split_line( 'tos file entry',
+			    { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, tos => 5, mark => 6 } );
+
+	    my $chain_designator = 'P';
+
+	    decode_tos($tos, 1);
+
+	    my ( $srczone , $source , $remainder );
+
+	    if ( $family == F_IPV4 ) {
+		( $srczone , $source , $remainder ) = split( /:/, $src, 3 );
+		fatal_error 'Invalid SOURCE' if defined $remainder;
+	    } elsif ( $src =~ /^(.+?):<(.*)>\s*$/ || $src =~ /^(.+?):\[(.*)\]\s*$/ ) {
+		$srczone = $1;
+		$source  = $2;
+	    } else {
+		$srczone = $src;
+	    }
+
+	    if ( $srczone eq firewall_zone ) {
+		$chain_designator = 'O';
+		$src         = $source || '-';
+	    } else {
+		$src =~ s/^all:?//;
+	    }
+
+	    $dst =~ s/^all:?//;
+
+	    $src    = '-' unless supplied $src;
+	    $dst    = '-' unless supplied $dst;
+	    $proto  = '-' unless supplied $proto;
+	    $ports  = '-' unless supplied $ports;
+	    $sports = '-' unless supplied $sports;
+	    $mark   = '-' unless supplied $mark;
+
+	    print $mangle "TOS($tos):$chain_designator\t$src\t$dst\t$proto\t$ports\t$sports\t-\t$mark\n"
+
+	}
+
+	if ( $have_tos ) {
+	    progress_message2 "Converted $fn to $fn1";
+	    if ( rename $fn, "$fn.bak" ) {
+		progress_message2 "$fn renamed $fn.bak";
+	    } else {
+		fatal_error "Cannot Rename $fn to $fn.bak: $!";
+	    }
+	} else {
+	    unlink_tos( $fn );
+	}
+    } elsif ( -f ( $fn = find_file( 'tos' ) ) ) {
+	unlink_tos( $fn );
+    }
+}
+
+sub open_mangle_for_output() {
+    my ( $mangle, $fn1 );
+
+    if ( -f ( $fn1 = find_writable_file( 'mangle' ) ) ) {
+	open( $mangle , '>>', $fn1 ) || fatal_error "Unable to open $fn1:$!";
+    } else {
+	open( $mangle , '>', $fn1 ) || fatal_error "Unable to open $fn1:$!";
+	print $mangle <<'EOF';
 #
-# Process the tcrules file and setup traffic shaping
+# Shorewall version 4 - Mangle File
+#
+# For information about entries in this file, type "man shorewall-mangle"
+#
+# See http://shorewall.net/traffic_shaping.htm for additional information.
+# For usage in selecting among multiple ISPs, see
+# http://shorewall.net/MultiISP.html
+#
+# See http://shorewall.net/PacketMarking.html for a detailed description of
+# the Netfilter/Shorewall packet marking mechanism.
+####################################################################################################################################################
+#ACTION         SOURCE          DEST            PROTO   DEST    SOURCE  USER    TEST    LENGTH  TOS     CONNBYTES       HELPER  PROBABILITY     DSCP
+#                                                       PORT(S) PORT(S)
+EOF
+    }
+
+    return ( $mangle, $fn1 );
+}
+
+#
+# Process the mangle file and setup traffic shaping
 #
 sub setup_tc( $ ) {
-    $tcrules = $_[0];
+    $convert = $_[0];
 
     if ( $config{MANGLE_ENABLED} ) {
 	ensure_mangle_chain 'tcpre';
@@ -3166,28 +3316,35 @@ sub setup_tc( $ ) {
     }
 
     if ( $config{MANGLE_ENABLED} ) {
-	my $have_tcrules;
 
-	my $fn;
+	if ( $convert ) {
+	    my $have_tcrules;
 
-	if ( $fn = open_file( 'tcrules' , 2, 1 ) ) {
-	    my $fn1;
+	    my $fn;
 
-	    if ( $tcrules ) {
+	    if ( $fn = open_file( 'tcrules' , 2, 1 ) ) {
+		my $fn1;
 		#
 		# We are going to convert this tcrules file to the equivalent mangle file
 		#
-		open( $mangle , '>>', $fn1 = find_file('mangle') ) || fatal_error "Unable to open $fn1:$!";
+		( $mangle, $fn1 ) = open_mangle_for_output;
 
 		directive_callback( sub () { print $mangle "$_[1]\n" unless $_[0] eq 'FORMAT'; 0; } );
-	    }
 
-	    first_entry "$doing $fn...";
+		first_entry(
+			    sub {
+				my $date = localtime;
+				progress_message2 "Converting $fn...";
+				print( $mangle
+				       "#\n" ,
+				       "# Rules generated from tcrules file $fn by Shorewall $globals{VERSION} - $date\n" ,
+				       "#\n" );
+			    }
+			   );
 
-	    process_tc_rule, $have_tcrules++ while read_a_line( NORMAL_READ );
+		process_tc_rule, $have_tcrules++ while read_a_line( NORMAL_READ );
 
-	    if ( $have_tcrules ) {
-		if ( $mangle ) {
+		if ( $have_tcrules ) {
 		    progress_message2 "Converted $fn to $fn1";
 		    if ( rename $fn, "$fn.bak" ) {
 			progress_message2 "$fn renamed $fn.bak";
@@ -3195,11 +3352,38 @@ sub setup_tc( $ ) {
 			fatal_error "Cannot Rename $fn to $fn.bak: $!";
 		    }
 		} else {
-		    warning_message "Non-empty tcrules file ($fn); consider running '$product update -t'";
+		    if ( unlink $fn ) {
+			warning_message "Empty tcrules file ($fn) removed";
+		    } else {
+			warning_message "Unable to remove empty tcrules file $fn: $!";
+		    }
+		}
+
+		convert_tos( $mangle, $fn1 );
+
+		close $mangle, directive_callback( 0 );
+
+	    } elsif ( $convert ) {
+		if ( -f ( my $fn = find_file( 'tcrules' ) ) ) {
+		    if ( unlink $fn ) {
+			warning_message "Empty tcrules file ($fn) removed";
+		    } else {
+			warning_message "Unable to remove empty tcrules file $fn: $!";
+		    }
+		}
+
+		if ( -f ( my $fn = find_file( 'tos' ) ) ) {
+		    my $fn1;
+		    #
+		    # We are going to convert this tosfile to the equivalent mangle file
+		    #
+		    ( $mangle, $fn1 ) = open_mangle_for_output;
+		    convert_tos( $mangle, $fn1 );
+		    close $mangle;
 		}
 	    }
-
-	    close $mangle, directive_callback( 0 ) if $tcrules;
+	} elsif ( -f ( my $fn = find_file( 'tcrules' ) ) ) {
+	    warning_message "The tcrules file is no longer supported -- use '$product update' to convert $fn to an equivalent 'mangle' file";
 	}
 
 	if ( my $fn = open_file( 'mangle', 1, 1 ) ) {

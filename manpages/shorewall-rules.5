@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-RULES" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-RULES" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -55,11 +55,7 @@ use a DNAT rule instead\&.
 .sp .5v
 .RE
 .PP
-The rules file is divided into sections\&. Each section is introduced by a "Section Header" which is a line beginning with [?]SECTION and followed by the section name\&.
-.PP
-The optional "?" was added in Shorewalll 4\&.6\&.0 and is preferred\&. Existing configurations may be converted to use this form using the
-\fBshorewall update\fR
-command\&.
+The rules file is divided into sections\&. Each section is introduced by a "Section Header" which is a line beginning with ?SECTION and followed by the section name\&.
 .PP
 Sections are as follows and must appear in the order listed:
 .PP
@@ -106,7 +102,7 @@ There is an implicit rule added at the end of this section that invokes the UNTR
 .PP
 \fBNEW\fR
 .RS 4
-Packets in the NEW, INVALID and UNTRACKED states are processed by rules in this section\&.
+Packets in the NEW state are processed by rules in this section\&. If the INVALID and/or UNTRACKED sections are empty or not included, then the packets in the corresponding state(s) are also processed in this section\&.
 .RE
 .if n \{\
 .sp
@@ -125,7 +121,7 @@ If you are not familiar with Netfilter to the point where you are comfortable wi
 \fBESTABLISHED\fR
 and
 \fBRELATED\fR
-sections and place all of your non\-blacklisting rules in the NEW section (That\*(Aqs after the line that reads SECTION NEW\*(Aq)\&.
+sections and place all of your non\-blacklisting rules in the NEW section (That\*(Aqs after the line that reads ?SECTION NEW\*(Aq)\&.
 .sp .5v
 .RE
 .if n \{\
@@ -175,7 +171,7 @@ The DEST column specifies the final destination for the packet after rewriting a
 .sp -1
 .IP \(bu 2.3
 .\}
-The remaining columns specify characteristics of the packet before rewriting\&. In particular, the ORIGINAL DEST column gives the original destination IP address of the packet and the DEST PORT(S) column give the original destination port(s)\&.
+The remaining columns specify characteristics of the packet before rewriting\&. In particular, the ORIGDEST column gives the original destination IP address of the packet and the DPORT column give the original destination port(s)\&.
 .RE
 .PP
 The columns in the file are as follows (where the column name is followed by a different name in parentheses, the different name is used in the alternate specification syntax)\&.
@@ -212,61 +208,49 @@ declared in
 \m[blue]\fBshorewall\-actions\fR\m[]\&\s-2\u[3]\d\s+2(5) or in /usr/share/shorewall/actions\&.std\&.
 .RE
 .PP
-\fBADD(\fR\fB\fIipset\fR\fR\fB:\fR\fB\fIflags\fR\fR\fB)\fR
+\fBADD(\fR\fB\fIipset\fR\fR\fB:\fR\fB\fIflags\fR\fR\fB[:\fR\fB\fItimeout\fR\fR\fB])\fR
 .RS 4
 Added in Shorewall 4\&.4\&.12\&. Causes addresses and/or port numbers to be added to the named
 \fIipset\fR\&. The
 \fIflags\fR
 specify the address or tuple to be added to the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be added using
-\fIflags\fR
-\fBsrc\fR
+\fIflags\fR\fBsrc\fR
 or
 \fBdst\fR
 respectively (see the \-A command in ipset (8))\&.
 .sp
+Beginning with Shorewall 5\&.0\&.3, an optional
+\fItimeout\fR
+can be specified\&. This is the number of seconds that the new entry in the ipset is to remain valid and overrides any timeout specified when the ipset was created\&.
+.sp
 ADD is non\-terminating\&. Even if a packet matches the rule, it is passed on to the next rule\&.
 .RE
 .PP
-AUDIT[(accept|drop|reject)]
+\fBAUDIT\fR[(accept|drop|reject)]
 .RS 4
 Added in Shorewall 4\&.5\&.10\&. Audits the packet with the specified type; if the type is omitted, then
 \fBdrop\fR
 is assumed\&. Require AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
-A_ACCEPT, A_ACCEPT+ and A_ACCEPT!
+\fBA_ACCEPT\fR, \fBA_ACCEPT\fR\fB+\fR and \fBA_ACCEPT\fR\fB!\fR
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. Audited versions of ACCEPT, ACCEPT+ and ACCEPT! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
-A_DROP and A_DROP!
+\fBA_DROP\fR and\fB A_DROP!\fR
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. Audited versions of DROP and DROP! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
-A_REJECT AND A_REJECT!
+\fBA_REJECT\fR AND \fBA_REJECT!\fR
 .RS 4
 Added in Shorewall 4\&.4\&.20\&. Audited versions of REJECT and REJECT! respectively\&. Require AUDIT_TARGET support in the kernel and iptables\&.
 .RE
 .PP
-\fB[?]COMMENT\fR
+\fB?COMMENT\fR
 .RS 4
-the rest of the line will be attached as a comment to the Netfilter rule(s) generated by the following entries\&. The comment will appear delimited by "/* \&.\&.\&. */" in the output of "shorewall show <chain>"\&. To stop the comment from being attached to further rules, simply include COMMENT on a line by itself\&.
-.if n \{\
-.sp
-.\}
-.RS 4
-.it 1 an-trap
-.nr an-no-space-flag 1
-.nr an-break-flag 1
-.br
-.ps +1
-\fBNote\fR
-.ps -1
-.br
-Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is preferred\&.
-.sp .5v
-.RE
+the rest of the line will be attached as a comment to the Netfilter rule(s) generated by the following entries\&. The comment will appear delimited by "/* \&.\&.\&. */" in the output of "shorewall show <chain>"\&. To stop the comment from being attached to further rules, simply include ?COMMENT on a line by itself\&.
 .RE
 .PP
 \fBCONTINUE\fR
@@ -295,8 +279,7 @@ Added in Shorewall 4\&.4\&.12\&. Causes an entry to be deleted from the named
 \fIipset\fR\&. The
 \fIflags\fR
 specify the address or tuple to be deleted from the set and must match the type of ipset involved\&. For example, for an iphash ipset, either the SOURCE or DESTINATION address can be deleted using
-\fIflags\fR
-\fBsrc\fR
+\fIflags\fR\fBsrc\fR
 or
 \fBdst\fR
 respectively (see the \-D command in ipset (8))\&.
@@ -333,7 +316,7 @@ like DROP but exempts the rule from being suppressed by OPTIMIZE=1 in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-HELPER
+\fBHELPER\fR
 .RS 4
 Added in Shorewall 4\&.5\&.7\&. This action requires that the HELPER column contains the name of the Netfilter helper to be associated with connections matching this connection\&. May only be specified in the NEW section and is useful for being able to specify a helper when the applicable policy is ACCEPT\&. No destination zone should be specified in HELPER rules\&.
 .RE
@@ -376,7 +359,7 @@ When multiple matches are specified, the compiler will keep them in the order in
 .RE
 .RE
 .PP
-IPTABLES({\fIiptables\-target\fR [\fIoption\fR \&.\&.\&.])
+\fBIPTABLES\fR({\fIiptables\-target\fR [\fIoption\fR \&.\&.\&.])
 .RS 4
 This action allows you to specify an iptables target with options (e\&.g\&., \*(AqIPTABLES(MARK \-\-set\-xmark 0x01/0xff)\*(Aq\&. If the
 \fIiptables\-target\fR
@@ -444,17 +427,18 @@ Added in Shorewall 4\&.5\&.9\&.3\&. Queues matching packets to a back end loggin
 Similar to\fB LOG:NFLOG\fR[(\fInflog\-parameters\fR)], except that the log level is not changed when this ACTION is used in an action or macro body and the invocation of that action or macro specifies a log level\&.
 .RE
 .PP
-\fBNFQUEUE\fR[(\fIqueuenumber\fR)]
+\fBNFQUEUE\fR[([\fIqueuenumber\fR1[:\fIqueuenumber2\fR][,bypass]]|bypass)]
 .RS 4
 Queues the packet to a user\-space application using the nfnetlink_queue mechanism\&. If a
-\fIqueuenumber\fR
-is not specified, queue zero (0) is assumed\&.
+\fIqueuenumber\fR1 is not specified, queue zero (0) is assumed\&. Beginning with Shorewall 4\&.6\&.10, the keyword
+\fBbypass\fR
+can be given\&. By default, if no userspace program is listening on an NFQUEUE, then all packets that are to be queued are dropped\&. When this option is used, the NFQUEUE rule is silently bypassed instead\&. The packet will move on to the next rule\&. Also beginning in Shorewall 4\&.6\&.10, a second queue number (\fIqueuenumber2\fR) may be specified\&. This specifies a range of queues to use\&. Packets are then balanced across the given queues\&. This is useful for multicore systems: start multiple instances of the userspace program on queues x, x+1, \&.\&. x+n and use "x:x+n"\&. Packets belonging to the same connection are put into the same nfqueue\&.
 .RE
 .PP
-\fBNFQUEUE![(\fR\fB\fIqueuenumber\fR\fR\fB)]\fR
+\fB\fBNFQUEUE\fR\fR\fB[([\fR\fB\fIqueuenumber1\fR\fR\fB[,\fR\fB\fIqueuenumber2\fR\fR\fB][,bypass]]|bypass)]\fR
 .RS 4
 like NFQUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
 .RE
 .PP
 \fBNONAT\fR
@@ -502,6 +486,34 @@ but only generates the
 iptables rule and not the companion
 \fBACCEPT\fR
 rule\&.
+.RE
+.PP
+\fBTARPIT\fR [(\fBtarpit\fR | \fBhoneypot\fR | \fBreset\fR)]
+.RS 4
+Added in Shorewall 4\&.6\&.6\&.
+.sp
+TARPIT captures and holds incoming TCP connections using no local per\-connection resources\&.
+.sp
+TARPIT only works with the PROTO column set to tcp (6), and is totally application agnostic\&. This module will answer a TCP request and play along like a listening server, but aside from sending an ACK or RST, no data is sent\&. Incoming packets are ignored and dropped\&. The attacker will terminate the session eventually\&. This module allows the initial packets of an attack to be captured by other software for inspection\&. In most cases this is sufficient to determine the nature of the attack\&.
+.sp
+This offers similar functionality to LaBrea <http://www\&.hackbusters\&.net/LaBrea/> but does not require dedicated hardware or IPs\&. Any TCP port that you would normally DROP or REJECT can instead become a tarpit\&.
+.sp
+The target accepts a single optional parameter:
+.PP
+tarpit
+.RS 4
+This mode is the default and completes a connection with the attacker but limits the window size to 0, thus keeping the attacker waiting long periods of time\&. While he is maintaining state of the connection and trying to continue every 60\-240 seconds, we keep none, so it is very lightweight\&. Attempts to close the connection are ignored, forcing the remote side to time out the connection in 12\-24 minutes\&.
+.RE
+.PP
+honeypot
+.RS 4
+This mode completes a connection with the attacker, but signals a normal window size, so that the remote side will attempt to send data, often with some very nasty exploit attempts\&. We can capture these packets for decoding and further analysis\&. The module does not send any data, so if the remote expects an application level response, the game is up\&.
+.RE
+.PP
+reset
+.RS 4
+This mode is handy because we can send an inline RST (reset)\&. It has no other function\&.
+.RE
 .RE
 .PP
 \fBULOG\fR[(\fIulog\-parameters\fR)]
@@ -613,7 +625,7 @@ or
 \fBDEST\fR
 column intra\-zone traffic is not affected\&. When
 \fBall+\fR[\fB\-\fR] is "used, intra\-zone traffic is affected\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported \-\- see see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
 .sp
 Except when
 \fBall\fR[\fB+\fR][\fB\-\fR] or
@@ -630,19 +642,22 @@ when there are no nested zones\&. When there are nested zones,
 \fBany\fR
 only refers to top\-level zones (those with no parent zones)\&. Note that
 \fBany\fR
-excludes all vserver zones, since those zones are nested within the firewall zone\&.
+excludes all vserver zones, since those zones are nested within the firewall zone\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported with
+\fBany\fR
+\-\- see see
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
 .sp
 Hosts may also be specified as an IP address range using the syntax
 \fIlowaddress\fR\-\fIhighaddress\fR\&. This requires that your kernel and iptables contain iprange match support\&. If your kernel and iptables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of source bindings to be matched\&.
 .sp
 Beginning with Shorewall 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an ampersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&.
 .sp
 Beginning with Shorewall 4\&.5\&.4, A
 \fIcountrycode\-list\fR
 may be specified\&. A countrycode\-list is a comma\-separated list of up to 15 two\-character ISO\-3661 country codes enclosed in square brackets (\*(Aq[\&.\&.\&.]\*(Aq) and preceded by a caret (\*(Aq^\*(Aq)\&. When a single country code is given, the square brackets may be omitted\&. A list of country codes supported by Shorewall may be found at
-\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&\s-2\u[9]\d\s+2\&. Specifying a
+\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&\s-2\u[10]\d\s+2\&. Specifying a
 \fIcountrycode\-list\fR
 requires
 GeoIP Match
@@ -651,7 +666,7 @@ support in your iptables and Kernel\&.
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5))\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5))\&.
 .sp
 Examples:
 .PP
@@ -694,9 +709,22 @@ $FW:&eth0
 .RS 4
 The primary IP address of eth0 in the firewall zone (Shorewall 4\&.4\&.17 and later)\&.
 .RE
+.PP
+loc,dmz
+.RS 4
+Both the
+\fBloc\fR
+and
+\fBdmz\fR
+zones\&.
 .RE
 .PP
+all!dmz
 .RS 4
+All but the
+\fBdmz\fR
+zone\&.
+.RE
 .RE
 .PP
 \fBDEST\fR \- {\fIzone\fR|\fIzone\-list\fR[+]|{\fBall\fR|\fBany\fR}[\fB+\fR][\fB\-\fR]}\fB[:{\fR\fIinterface\fR|\fIaddress\-or\-range\fR[,\fIaddress\-or\-range\fR]\&.\&.\&.[\fIexclusion\fR]|\fIexclusion\fR|\fB+\fR\fIipset\fR|\fI^countrycode\-list\fR}][\fB:\fR\fIport\fR[:\fBrandom\fR]]
@@ -719,7 +747,7 @@ may be optionally followed by "+" to indicate that the rule is to apply to intra
 Beginning with Shorewall 4\&.5\&.4, A
 \fIcountrycode\-list\fR
 may be specified\&. A countrycode\-list is a comma\-separated list of up to 15 two\-character ISO\-3661 country codes enclosed in square brackets (\*(Aq[\&.\&.\&.]\*(Aq) and preceded by a caret (\*(Aq^\*(Aq)\&. When a single country code is given, the square brackets may be omitted\&. A list of country codes supported by Shorewall may be found at
-\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&\s-2\u[9]\d\s+2\&. Specifying a
+\m[blue]\fBhttp://www\&.shorewall\&.net/ISO\-3661\&.html\fR\m[]\&\s-2\u[10]\d\s+2\&. Specifying a
 \fIcountrycode\-list\fR
 requires
 GeoIP Match
@@ -733,6 +761,31 @@ or
 \fBDEST\fR
 column, the rule is ignored\&.
 .sp
+\fBall\fR
+means "All Zones", including the firewall itself\&.
+\fBall\-\fR
+means "All Zones, except the firewall itself"\&. When
+\fBall\fR[\fB\-\fR] is used either in the
+\fBSOURCE\fR
+or
+\fBDEST\fR
+column intra\-zone traffic is not affected\&. When
+\fBall+\fR[\fB\-\fR] is "used, intra\-zone traffic is affected\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported \-\- see see
+\m[blue]\fBshorewall6\-exclusion\fR\m[]\&\s-2\u[11]\d\s+2(5)\&.
+.sp
+\fBany\fR
+is equivalent to
+\fBall\fR
+when there are no nested zones\&. When there are nested zones,
+\fBany\fR
+only refers to top\-level zones (those with no parent zones)\&. Note that
+\fBany\fR
+excludes all vserver zones, since those zones are nested within the firewall zone\&.
+.sp
+Except when
+\fBall\fR[\fB+\fR][\fB\-\fR] or
+\fBany\fR[\fB+\fR][\fB\-\fR] is specified, clients may be further restricted to a list of networks and/or hosts by appending ":" and a comma\-separated list of network and/or host addresses\&. Hosts may be specified by IP or MAC address; mac addresses must begin with "~" and must use "\-" as a separator\&.
+.sp
 When
 \fBall\fR
 is used either in the
@@ -742,14 +795,7 @@ or
 column intra\-zone traffic is not affected\&. When
 \fBall+\fR
 is used, intra\-zone traffic is affected\&. Beginning with Shorewall 4\&.4\&.13, exclusion is supported \-\- see see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
-.sp
-\fBany\fR
-is equivalent to
-\fBall\fR
-when there are no nested zones\&. When there are nested zones,
-\fBany\fR
-only refers to top\-level zones (those with no parent zones)\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
 .sp
 The
 \fIzone\fR
@@ -798,14 +844,14 @@ must be an ipv4 zone that is associated with only the same bridge\&.
 .RE
 .sp
 Except when
-\fBall\fR[\fB+]|[\-\fR] is specified, the server may be further restricted to a particular network, host or interface by appending ":" and the network, host or interface\&. See
+\fB{all|any}\fR[\fB+]|[\-\fR] is specified, the server may be further restricted to a particular network, host or interface by appending ":" and the network, host or interface\&. See
 \fBSOURCE\fR
 above\&.
 .sp
 You may exclude certain hosts from the set already defined through use of an
 \fIexclusion\fR
 (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5))\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5))\&.
 .sp
 Restriction: MAC addresses are not allowed (this is a Netfilter restriction)\&.
 .sp
@@ -819,14 +865,14 @@ is
 or
 \fBDNAT\-\fR, the connections will be assigned to addresses in the range in a round\-robin fashion\&.
 .sp
-If you kernel and iptables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of destination bindings to be matched\&. Only one of the
+If your kernel and iptables have ipset match support then you may give the name of an ipset prefaced by "+"\&. The ipset name may be optionally followed by a number from 1 to 6 enclosed in square brackets ([]) to indicate the number of levels of destination bindings to be matched\&. Only one of the
 \fBSOURCE\fR
 and
 \fBDEST\fR
 columns may specify an ipset name\&.
 .sp
 Beginning with Shorewall 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an ampersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&.
 .sp
 The
@@ -877,11 +923,11 @@ plus the SYN flag must be set and the RST,ACK and FIN flags must be reset\&.
 Beginning with Shorewall 4\&.4\&.19, this column can contain a comma\-separated list of protocol\-numbers and/or protocol names\&.
 .RE
 .PP
-\fBDEST PORT(S) (dport)\fR \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.|+\fIipset\fR}
+\fBDPORT\fR \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.|+\fIipset\fR}
 .RS 4
 Optional destination Ports\&. A comma\-separated list of Port names (from services(5)), port numbers or port ranges; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&. ICMP types may be specified as a numeric type, a numeric type and code separated by a slash (e\&.g\&., 3/4), or a typename\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&\s-2\u[10]\d\s+2\&. Note that prior to Shorewall 4\&.4\&.19, only a single ICMP type may be listed\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#ICMP\fR\m[]\&\s-2\u[12]\d\s+2\&. Note that prior to Shorewall 4\&.4\&.19, only a single ICMP type may be listed\&.
 .sp
 If the protocol is
 \fBipp2p\fR, this column is interpreted as an ipp2p option without the leading "\-\-" (example
@@ -900,7 +946,7 @@ This column is ignored if
 but must be entered if any of the following columns are supplied\&. In that case, it is suggested that this field contain a dash (\fB\-\fR)\&.
 .sp
 If your kernel contains multi\-port match support, then only a single Netfilter rule will be generated if in this list and the
-\fBCLIENT PORT(S)\fR
+\fBSPORT\fR
 list below:
 .sp
 1\&. There are 15 or less ports listed\&.
@@ -912,13 +958,15 @@ Beginning with Shorewall 4\&.6\&.0, an
 name can be specified in this column\&. This is intended to be used with
 bitmap:port
 ipsets\&.
+.sp
+This column was formerly labelled DEST PORT(S)\&.
 .RE
 .PP
-\fBSOURCE PORT(S)\fR (sport) \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.|+\fIipset\fR}
+\fBSPORT\fR \- {\fB\-\fR|\fIport\-name\-number\-or\-range\fR[\fB,\fR\fIport\-name\-number\-or\-range\fR]\&.\&.\&.|+\fIipset\fR}
 .RS 4
 Optional port(s) used by the client\&. If omitted, any source port is acceptable\&. Specified as a comma\- separated list of port names, port numbers or port ranges\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DPORT column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
 .if n \{\
 .sp
 .\}
@@ -935,11 +983,11 @@ Unless you really understand IP, you should leave this column empty or place a d
 .sp .5v
 .RE
 If you don\*(Aqt want to restrict client ports but need to specify an
-\fBORIGINAL DEST\fR
+\fBORIGDEST\fR
 in the next column, then place "\-" in this column\&.
 .sp
 If your kernel contains multi\-port match support, then only a single Netfilter rule will be generated if in this list and the
-\fBDEST PORT(S)\fR
+\fBDPORT\fR
 list above:
 .sp
 1\&. There are 15 or less ports listed\&.
@@ -951,9 +999,11 @@ Beginning with Shorewall 4\&.6\&.0, an
 name can be specified in this column\&. This is intended to be used with
 bitmap:port
 ipsets\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
 .RE
 .PP
-\fBORIGINAL DEST\fR (origdest) \- [\fB\-\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.[\fIexclusion\fR]|\fIexclusion\fR]
+\fBORIGDEST\fR \- [\fB\-\fR|\fIaddress\fR[,\fIaddress\fR]\&.\&.\&.[\fIexclusion\fR]|\fIexclusion\fR]
 .RS 4
 Optional\&. If ACTION is
 \fBDNAT\fR[\fB\-\fR] or
@@ -968,7 +1018,7 @@ A comma\-separated list of addresses may also be used\&. This is most useful wit
 target where you want to redirect traffic destined for particular set of hosts\&. Finally, if the list of addresses begins with "!" (\fIexclusion\fR) then the rule will be followed only if the original destination address in the connection request does not match any of the addresses listed\&.
 .sp
 Beginning with Shorewall 4\&.4\&.17, the primary IP address of a firewall interface can be specified by an ampersand (\*(Aq&\*(Aq) followed by the logical name of the interface as found in the INTERFACE column of
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2
 (5)\&.
 .sp
 For other actions, this column may be included and may contain one or more addresses (host or network) separated by commas\&. Address ranges are not allowed\&. When this column is supplied, rules are generated that require that the original destination address matches one of the listed addresses\&. This feature is most useful when you want to generate a filter rule that corresponds to a
@@ -980,23 +1030,33 @@ rule\&. In this usage, the list of addresses should not begin with "!"\&.
 It is also possible to specify a set of addresses then exclude part of those addresses\&. For example,
 \fB192\&.168\&.1\&.0/24!192\&.168\&.1\&.16/28\fR
 specifies the addresses 192\&.168\&.1\&.0\-182\&.168\&.1\&.15 and 192\&.168\&.1\&.32\-192\&.168\&.1\&.255\&. See
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
 .sp
 See
-\m[blue]\fBhttp://www\&.shorewall\&.net/PortKnocking\&.html\fR\m[]\&\s-2\u[11]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/PortKnocking\&.html\fR\m[]\&\s-2\u[13]\d\s+2
 for an example of using an entry in this column with a user\-defined action rule\&.
+.sp
+This column was formerly labelled ORIGINAL DEST\&.
 .RE
 .PP
-\fBRATE LIMIT\fR (rate) \- [\fB\-\fR|[{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
+\fBRATE\fR \- \fIlimit\fR
 .RS 4
+where
+\fIlimit\fR
+is one of:
+.RS 4
+[\fB\-\fR|[{\fBs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
+.RE
+.RS 4
+[\fIname\fR1]:\fIrate1\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst1\fR],[\fIname\fR2]:\fIrate2\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst2\fR]
+.RE
 You may optionally rate\-limit the rule by placing a value in this column:
 .sp
-\fIrate\fR
+\fIrate*\fR
 is the number of connections per interval (\fBsec\fR
 or
 \fBmin\fR) and
-\fIburst\fR
-is the largest burst permitted\&. If no
+\fIburst\fR* is the largest burst permitted\&. If no
 \fIburst\fR
 is given, a value of 5 is assumed\&. There may be no no white\-space embedded in the specification\&.
 .sp
@@ -1008,16 +1068,22 @@ When
 or
 \fBd:\fR
 is specified, the rate applies per source IP address or per destination IP address respectively\&. The
-\fIname\fR
-may be chosen by the user and specifies a hash table to be used to count matching connections\&. If not given, the name
+\fIname\fRs may be chosen by the user and specifiy a hash table to be used to count matching connections\&. If not given, the name
 \fBshorewallN\fR
-(where N is a unique integer) is assumed\&. Where more than one rule specifies the same name, the connections counts for the rules are aggregated and the individual rates apply to the aggregated count\&.
+(where N is a unique integer) is assumed\&. Where more than one rule or POLICY specifies the same name, the connections counts for the rules are aggregated and the individual rates apply to the aggregated count\&.
+.sp
+Beginning with Shorewall 4\&.6\&.5, two\fI limit\fRs may be specified, separated by a comma\&. In this case, the first limit (\fIname1\fR,
+\fIrate1\fR, burst1) specifies the per\-source IP limit and the second limit specifies the per\-destination IP limit\&.
 .sp
 Example:
-\fBs:ssh:3/min:5\fR
+\fBclient:10/sec:20,:60/sec:100\fR
+.sp
+In this example, the \*(Aqclient\*(Aq hash table will be used to enforce the per\-source limit and the compiler will pick a unique name for the hash table that tracks the per\-destination limit\&.
+.sp
+This column was formerly labelled RATE LIMIT\&.
 .RE
 .PP
-\fBUSER/GROUP\fR (user) \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][,\&.\&.\&.]
+\fBUSER\fR \- [\fB!\fR][\fIuser\-name\-or\-number\fR][\fB:\fR\fIgroup\-name\-or\-number\fR][,\&.\&.\&.]
 .RS 4
 This optional column may only be non\-empty if the SOURCE is the firewall itself\&.
 .sp
@@ -1050,6 +1116,8 @@ program must not be run by a member of the \*(Aqkids\*(Aq group
 .RS 4
 UIDs 2001 through 2099 (Shorewall 4\&.5\&.6 and later)
 .RE
+.sp
+This column was formerly labelled USER/GROUP\&.
 .RE
 .PP
 \fBMARK\fR \- [\fB!\fR]\fIvalue\fR[/\fImask\fR][\fB:C\fR]
@@ -1079,11 +1147,14 @@ Designates a connection mark\&. If omitted, the packet mark\*(Aqs value is teste
 .RE
 .RE
 .PP
-\fBCONNLIMIT\fR \- [\fB!\fR]\fIlimit\fR[:\fImask\fR]
+\fBCONNLIMIT\fR \- [d:][\fB!\fR]\fIlimit\fR[:\fImask\fR]
 .RS 4
-May be used to limit the number of simultaneous connections from each individual host to
+May be used to limit the number of simultaneous connections to/from each individual host or network to
 \fIlimit\fR
-connections\&. Requires connlimit match in your kernel and iptables\&. While the limit is only checked on rules specifying CONNLIMIT, the number of current connections is calculated over all current connections from the SOURCE host\&. By default, the limit is applied to each host but can be made to apply to networks of hosts by specifying a
+connections\&. Requires connlimit match in your kernel and iptables\&. While the limit is only checked on rules specifying CONNLIMIT, the number of current connections is calculated over all current connections from the SOURCE or DESTINATION host\&. By default, limiting is done by SOURCE host or net, but if the specification begins with
+\fBd:\fR, then limiting will be donw by destination host or net\&.
+.sp
+By default, the limit is applied to each host but can be made to apply to networks of hosts by specifying a
 \fImask\fR\&. The
 \fImask\fR
 specifies the width of a VLSM mask to be applied to the source address; the number of current connections is then taken over all hosts in the subnet
@@ -1145,6 +1216,7 @@ monthdays=dd[,dd],\&.\&.\&.
 where
 \fIdd\fR
 is an ordinal day of the month
+.sp
 .RE
 .PP
 datestart=\fIyyyy\fR[\-\fImm\fR[\-\fIdd\fR[\fBT\fR\fIhh\fR[:\fImm\fR[:\fIss\fR]]]]]
@@ -1265,9 +1337,8 @@ Accept SMTP requests from the DMZ to the internet
 .RS 4
 .\}
 .nf
-         #ACTION SOURCE  DEST PROTO      DEST    SOURCE  ORIGINAL
-         #                               PORT    PORT(S) DEST
-         ACCEPT  dmz     net       tcp   smtp
+         #ACTION SOURCE  DEST      PROTO      DPORT   SPORT   ORIGDEST
+         ACCEPT  dmz     net       tcp        smtp
 .fi
 .if n \{\
 .RE
@@ -1282,8 +1353,7 @@ Forward all ssh and http connection requests from the internet to local system 1
 .RS 4
 .\}
 .nf
-        #ACTION SOURCE  DEST            PROTO   DEST    SOURCE  ORIGINAL
-        #                                       PORT    PORT(S) DEST
+        #ACTION SOURCE  DEST            PROTO   DPORT   SPORT   ORIGDEST
         DNAT    net     loc:192\&.168\&.1\&.3 tcp     ssh,http
 .fi
 .if n \{\
@@ -1299,9 +1369,8 @@ Forward all http connection requests from the internet to local system 192\&.168
 .RS 4
 .\}
 .nf
-        #ACTION SOURCE DEST            PROTO  DEST  SOURCE  ORIGINAL RATE
-        #                                     PORT  PORT(S) DEST     LIMIT
-        DNAT    net    loc:192\&.168\&.1\&.3 tcp    http  \-       \-        3/sec:10
+        #ACTION SOURCE DEST             PROTO  DPORT SPORT   ORIGDEST RATE
+        DNAT    net    loc:192\&.168\&.1\&.3  tcp    http  \-       \-        3/sec:10
 .fi
 .if n \{\
 .RE
@@ -1316,8 +1385,7 @@ Redirect all locally\-originating www connection requests to port 3128 on the fi
 .RS 4
 .\}
 .nf
-        #ACTION  SOURCE DEST      PROTO DEST    SOURCE  ORIGINAL
-        #                               PORT    PORT(S) DEST
+        #ACTION  SOURCE DEST      PROTO DPORT   SPORT   ORIGDEST
         REDIRECT loc    3128      tcp   www      \-      !192\&.168\&.2\&.2
 .fi
 .if n \{\
@@ -1333,8 +1401,7 @@ All http requests from the internet to address 130\&.252\&.100\&.69 are to be fo
 .RS 4
 .\}
 .nf
-        #ACTION  SOURCE DEST            PROTO   DEST    SOURCE  ORIGINAL
-        #                                       PORT    PORT(S) DEST
+        #ACTION  SOURCE DEST            PROTO   DPORT   SPORT   ORIGDEST
         DNAT      net   loc:192\&.168\&.1\&.3 tcp     80      \-       130\&.252\&.100\&.69
 .fi
 .if n \{\
@@ -1350,10 +1417,9 @@ You want to accept SSH connections to your firewall only from internet IP addres
 .RS 4
 .\}
 .nf
-        #ACTION  SOURCE DEST            PROTO   DEST    SOURCE  ORIGINAL
-        #                                       PORT    PORT(S) DEST
-        ACCEPT   net:130\&.252\&.100\&.69,130\&.252\&.100\&.70 $FW \e
-                                        tcp     22
+        #ACTION  SOURCE DEST            PROTO   DPORT   SPORT   ORIGDEST
+        ACCEPT   net:130\&.252\&.100\&.69,130\&.252\&.100\&.70 \e
+                        $FW             tcp     22
 .fi
 .if n \{\
 .RE
@@ -1368,8 +1434,7 @@ You wish to accept connections from the internet to your firewall on port 2222 a
 .RS 4
 .\}
 .nf
-        #ACTION  SOURCE DEST                PROTO   DEST    SOURCE  ORIGINAL
-        #                                           PORT    PORT(S) DEST
+        #ACTION  SOURCE DEST                PROTO   DPORT   SPORT   ORIGDEST
         DNAT     net    loc:192\&.168\&.1\&.3:22  tcp     2222
 .fi
 .if n \{\
@@ -1385,8 +1450,7 @@ You want to redirect connection requests to port 80 randomly to the port range 8
 .RS 4
 .\}
 .nf
-        #ACTION  SOURCE DEST                PROTO DEST    SOURCE  ORIGINAL
-        #                                         PORT    PORT(S) DEST
+        #ACTION  SOURCE DEST                PROTO DPORT   SPORT   ORIGDEST
         REDIRECT net    $FW::81\-90:random   tcp   www
 .fi
 .if n \{\
@@ -1414,7 +1478,7 @@ Shorewall does not impose as much structure on the Netfilter rules in the \*(Aqn
 .RE
 .\}
 .sp
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2(5):
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[9]\d\s+2(5):
 .sp
 .if n \{\
 .RS 4
@@ -1430,7 +1494,7 @@ Shorewall does not impose as much structure on the Netfilter rules in the \*(Aqn
 .RE
 .\}
 .sp
-\m[blue]\fBshorewall\-host\fR\m[]\&\s-2\u[12]\d\s+2(5):
+\m[blue]\fBshorewall\-host\fR\m[]\&\s-2\u[14]\d\s+2(5):
 .sp
 .if n \{\
 .RS 4
@@ -1449,8 +1513,7 @@ rules:
 .RS 4
 .\}
 .nf
-        #ACTION     SOURCE          DEST       PROTO       DEST
-        #                                                  PORT(S)
+        #ACTION     SOURCE          DEST       PROTO       DPORT
         REDIRECT    loc             3128       tcp         80                                                   
 .fi
 .if n \{\
@@ -1485,8 +1548,7 @@ Add the tuple (source IP, dest port, dest IP) of an incoming SSH connection to t
 .RS 4
 .\}
 .nf
-        #ACTION                       SOURCE           DEST           PROTO       DEST
-        #                                                                         PORT(S)
+        #ACTION                       SOURCE           DEST           PROTO       DPORT
         ADD(+S:dst,src,dst)           net              fw             tcp         22
 .fi
 .if n \{\
@@ -1502,8 +1564,7 @@ You wish to limit SSH connections from remote systems to 1/min with a burst of t
 .RS 4
 .\}
 .nf
-        #ACTION     SOURCE          DEST       PROTO       DEST         SOURCE    ORIGINAL         RATE
-        #                                                  PORT(S)      PORT(S)   DEST             LIMIT
+        #ACTION     SOURCE          DEST       PROTO       DPORT        SPORT     ORIGDEST         RATE
         SSH(ACCEPT) net             all        \-           \-            \-         \-                s:1/min:3
 .fi
 .if n \{\
@@ -1519,8 +1580,7 @@ Forward port 80 to dmz host $BACKUP if switch \*(Aqprimary_down\*(Aq is on\&.
 .RS 4
 .\}
 .nf
-        #ACTION     SOURCE          DEST        PROTO       DEST         SOURCE    ORIGINAL   RATE      USER/     MARK    CONNLIMIT     TIME     HEADERS    SWITCH
-        #                                                   PORT(S)      PORT(S)   DEST       LIMIT     GROUP
+        #ACTION     SOURCE          DEST        PROTO       DPORT        SPORT     ORIGDEST   RATE      USER      MARK    CONNLIMIT     TIME     HEADERS    SWITCH
         DNAT        net             dmz:$BACKUP tcp         80           \-         \-          \-         \-         \-       \-             \-        \-          primary_down
 .fi
 .if n \{\
@@ -1540,8 +1600,7 @@ address ranges:
 .RS 4
 .\}
 .nf
-        #ACTION                       SOURCE           DEST           PROTO       DEST
-        #                                                                         PORT(S)
+        #ACTION                       SOURCE           DEST           PROTO       DPORT
         DROP                          net:^A1,A2       fw             tcp         25
 .fi
 .if n \{\
@@ -1557,8 +1616,7 @@ You want to generate your own rule involving iptables targets and matches not su
 .RS 4
 .\}
 .nf
-        #ACTION                       SOURCE           DEST           PROTO       DEST
-        #                                                                         PORT(S)
+        #ACTION                       SOURCE           DEST           PROTO       DPORT
         INLINE                        $FW              net ; \-p 6 \-m mickey\-mouse \-\-name test \-m set \-\-match\-set set1 src \-m mickey\-mouse \-\-name test2 \-j SECCTX \-\-name test3
 .fi
 .if n \{\
@@ -1596,11 +1654,11 @@ Note that SECCTX must be defined as a builtin action in
 /etc/shorewall/rules
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/ipsets\&.html\fR\m[]\&\s-2\u[13]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/ipsets\&.html\fR\m[]\&\s-2\u[15]\d\s+2
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[14]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[16]\d\s+2
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[15]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[17]\d\s+2
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-blrules(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-masq(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-rtrules(5), shorewall\-routestopped(5), shorewall\&.conf(5), shorewall\-secmarks(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-mangle(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
@@ -1635,46 +1693,56 @@ http://www.shorewall.net/shorewall_logging.html
 \%http://www.shorewall.net/shorewall.logging.html
 .RE
 .IP " 7." 4
+shorewall6.conf
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6.conf.html
+.RE
+.IP " 8." 4
 shorewall-exclusion
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-exclusion.html
 .RE
-.IP " 8." 4
+.IP " 9." 4
 shorewall-interfaces
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-interfaces.html
 .RE
-.IP " 9." 4
+.IP "10." 4
 http://www.shorewall.net/ISO-3661.html
 .RS 4
 \%http://www.shorewall.net/ISO-3661.html
 .RE
-.IP "10." 4
+.IP "11." 4
+shorewall6-exclusion
+.RS 4
+\%http://www.shorewall.net/manpages6/shorewall6-exclusion.html
+.RE
+.IP "12." 4
 http://www.shorewall.net/configuration_file_basics.htm#ICMP
 .RS 4
 \%http://www.shorewall.net/configuration_file_basics.htm#ICMP
 .RE
-.IP "11." 4
+.IP "13." 4
 http://www.shorewall.net/PortKnocking.html
 .RS 4
 \%http://www.shorewall.net/PortKnocking.html
 .RE
-.IP "12." 4
+.IP "14." 4
 shorewall-host
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-hosts.html
 .RE
-.IP "13." 4
+.IP "15." 4
 http://www.shorewall.net/ipsets.html
 .RS 4
 \%http://www.shorewall.net/ipsets.html
 .RE
-.IP "14." 4
+.IP "16." 4
 http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RS 4
 \%http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RE
-.IP "15." 4
+.IP "17." 4
 http://www.shorewall.net/shorewall_logging.html
 .RS 4
 \%http://www.shorewall.net/shorewall_logging.html

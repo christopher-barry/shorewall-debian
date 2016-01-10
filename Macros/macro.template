@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - Macro Template
+# Shorewall - Macro Template
 #
 # /usr/share/shorewall/macro.template
 #
@@ -83,7 +83,6 @@
 #
 #######################################################################################################
 #                                         DO NOT REMOVE THE FOLLOWING LINE
-?FORMAT 2
 #################################################################################################################################################################################################
 #ACTION		SOURCE		DEST		PROTO	DEST	SOURCE		ORIGINAL	RATE		USER/	MARK	CONNLIMIT	TIME         HEADERS         SWITCH        HELPER
 #							PORT	PORT(S)		DEST		LIMIT		GROUP

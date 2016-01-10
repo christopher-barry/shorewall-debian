@@ -1,5 +1,5 @@
 #
-# Shorewall version 4 - ILO Macro
+# Shorewall - ILO Macro
 #
 # /usr/share/shorewall/macro.ILO
 #
@@ -7,8 +7,6 @@
 #	Use this macro to open access to your ILO interface from management
 #	workstations.
 #
-###############################################################################
-?FORMAT 2
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DEST	SOURCE	ORIGIN	RATE	USER/
 #				PORT(S)	PORT(S)	DEST	LIMIT	GROUP

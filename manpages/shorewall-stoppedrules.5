@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall-stoppedrules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-STOPPEDRU" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-STOPPEDRU" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -50,6 +50,7 @@ This file is used to define the hosts that are accessible when the firewall is s
 .PP
 Changes to this file do not take effect until after the next
 \fBshorewall start\fR,
+\fBshorewall reload\fR,
 \fBshorewall restart\fR, or
 \fBshorewall compile\fR
 command\&.
@@ -106,29 +107,33 @@ or interface are specified, the list must be preceded by a colon (":")\&.
 If left empty or supplied as "\-", 0\&.0\&.0\&.0/0 is assumed\&.
 .RE
 .PP
-PROTO (Optional) \(en \fIprotocol\-name\-or\-number\fR[,\&.\&.\&.]
+\fBPROTO (Optional)\fR \(en \fIprotocol\-name\-or\-number\fR[,\&.\&.\&.]
 .RS 4
 Protocol\&.
 .sp
 Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated list of protocols\&.
 .RE
 .PP
-DEST PORT(S) (dport) \(en \fIservice\-name/port\-number\-list\fR
-.RS 4
-Optional\&. A comma\-separated list of port numbers and/or service names from
-/etc/services\&. May also include port ranges of the form
-\fIlow\-port\fR:\fIhigh\-port\fR
-if your kernel and iptables include port range support\&.
-.RE
-.PP
-SOURCE PORT(S) (sport) \(en \fIservice\-name/port\-number\-list\fR
+\fBDPORT\fR \(en \fIservice\-name/port\-number\-list\fR
 .RS 4
 Optional\&. A comma\-separated list of port numbers and/or service names from
 /etc/services\&. May also include port ranges of the form
 \fIlow\-port\fR:\fIhigh\-port\fR
 if your kernel and iptables include port range support\&.
 .sp
-Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DEST PORT(S) column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+This column was formerly labelled DEST PORT(S)\&.
+.RE
+.PP
+\fBSPORT\fR \(en \fIservice\-name/port\-number\-list\fR
+.RS 4
+Optional\&. A comma\-separated list of port numbers and/or service names from
+/etc/services\&. May also include port ranges of the form
+\fIlow\-port\fR:\fIhigh\-port\fR
+if your kernel and iptables include port range support\&.
+.sp
+Beginning with Shorewall 4\&.5\&.15, you may place \*(Aq=\*(Aq in this column, provided that the DPORT column is non\-empty\&. This causes the rule to match when either the source port or the destination port in a packet matches one of the ports specified in DEST PORTS(S)\&. Use of \*(Aq=\*(Aq requires multi\-port match in your iptables and kernel\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
 .RE
 .SH "FILES"
 .PP

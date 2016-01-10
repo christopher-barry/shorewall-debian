@@ -42,13 +42,13 @@ our @EXPORT = qw( process_tos
 		  setup_ecn
 		  add_common_rules
 		  setup_mac_lists
-		  process_routestopped
+		  convert_routestopped
 		  process_stoppedrules
 		  compile_stop_firewall
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '4.6_4';
+our $VERSION = '5.0.0';
 
 our $family;
 
@@ -67,8 +67,6 @@ sub initialize( $ ) {
 }
 
 sub process_tos() {
-    my $chain    = have_capability( 'MANGLE_FORWARD' ) ? 'fortos'  : 'pretos';
-    my $stdchain = have_capability( 'MANGLE_FORWARD' ) ? 'FORWARD' : 'PREROUTING';
 
    if ( my $fn = open_file 'tos' ) {
 	my $first_entry = 1;
@@ -76,67 +74,11 @@ sub process_tos() {
 	my ( $pretosref, $outtosref );
 
 	first_entry( sub { progress_message2 "$doing $fn...";
-			   warning_message "Use of the tos file is deprecated in favor of the TOS target in tcrules";
-			   $pretosref = ensure_chain 'mangle' , $chain;
-			   $outtosref = ensure_chain 'mangle' , 'outtos';
+			   warning_message "Use of the tos file is no longer supported -- use the TOS target in the mangle file instead";
 		       }
 		   );
 
-	while ( read_a_line( NORMAL_READ ) ) {
-
-	    my ($src, $dst, $proto, $ports, $sports , $tos, $mark ) =
-		split_line( 'tos file entry',
-			    { source => 0, dest => 1, proto => 2, dport => 3, sport => 4, tos => 5, mark => 6 } );
-
-	    $first_entry = 0;
-
-	    $tos = decode_tos( $tos , 1 );
-
-	    my $chainref;
-
-	    my $restriction = NO_RESTRICT;
-
-	    my ( $srczone , $source , $remainder );
-
-	    if ( $family == F_IPV4 ) {
-		( $srczone , $source , $remainder ) = split( /:/, $src, 3 );
-		fatal_error 'Invalid SOURCE' if defined $remainder;
-	    } elsif ( $src =~ /^(.+?):<(.*)>\s*$/ || $src =~ /^(.+?):\[(.*)\]\s*$/ ) {
-		$srczone = $1;
-		$source  = $2;
-	    } else {
-		$srczone = $src;
-	    }
-
-	    if ( $srczone eq firewall_zone ) {
-		$chainref    = $outtosref;
-		$src         = $source || '-';
-		$restriction = OUTPUT_RESTRICT;
-	    } else {
-		$chainref = $pretosref;
-		$src =~ s/^all:?//;
-	    }
-
-	    $dst =~ s/^all:?//;
-
-	    expand_rule
-		$chainref ,
-		$restriction ,
-		'',
-		do_proto( $proto, $ports, $sports ) . do_test( $mark , $globals{TC_MASK} ) ,
-		$src ,
-		$dst ,
-		'' ,
-		'TOS' . $tos ,
-		'' ,
-		'TOS' ,
-		'';
-	}
-
-	unless ( $first_entry ) {
-	    add_ijump( $mangle_table->{$stdchain}, j => $chain )   if $pretosref->{referenced};
-	    add_ijump( $mangle_table->{OUTPUT},    j => 'outtos' ) if $outtosref->{referenced};
-	}
+	while ( read_a_line( NORMAL_READ )) { 1; }
     }
 }
 
@@ -176,7 +118,7 @@ sub setup_ecn()
 	}
 
 	if ( @hosts ) {
-	    my @interfaces = ( keys %interfaces );
+	    my @interfaces = ( sort { interface_number($a) <=> interface_number($b) } keys %interfaces );
 
 	    progress_message "$doing ECN control on @interfaces...";
 
@@ -194,151 +136,18 @@ sub setup_ecn()
     }
 }
 
-sub add_rule_pair( $$$$ ) {
-    my ($chainref , $predicate , $target , $level ) = @_;
+sub add_rule_pair( $$$$$ ) {
+    my ($chainref , $predicate , $target , $level, $tag ) = @_;
 
-    log_rule( $level, $chainref, "\U$target", $predicate )  if supplied $level;
+    log_rule_limit( $level,
+		    $chainref,
+		    $chainref->{name},
+		    "\U$target",
+		    $globals{LOGLIMIT},
+		    $tag,
+		    'add',
+		    $predicate )  if supplied $level;
     add_jump( $chainref , $target, 0, $predicate );
-}
-
-sub setup_blacklist() {
-
-    my $zones  = find_zones_by_option 'blacklist', 'in';
-    my $zones1 = find_zones_by_option 'blacklist', 'out';
-    my $chainref;
-    my $chainref1;
-    my ( $level, $disposition ) = @config{'BLACKLIST_LOG_LEVEL', 'BLACKLIST_DISPOSITION' };
-    my $audit       = $disposition =~ /^A_/;
-    my $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
-    my $orig_target = $target;
-
-  BLACKLIST:
-    {
-	if ( my $fn = open_file 'blacklist' ) {
-	    #
-	    # We go ahead and generate the blacklist chains and jump to them, even if they turn out to be empty. That is necessary
-	    # for 'refresh' to work properly.
-	    #
-	    if ( @$zones || @$zones1 ) {
-		$chainref  = set_optflags( new_standard_chain( 'blacklst' ), DONT_OPTIMIZE | DONT_DELETE ) if @$zones;
-		$chainref1 = set_optflags( new_standard_chain( 'blackout' ), DONT_OPTIMIZE | DONT_DELETE ) if @$zones1;
-
-		if ( supplied $level ) {
-		    $target = ensure_blacklog_chain ( $target, $disposition, $level, $audit );
-		} elsif ( $audit ) {
-		    require_capability 'AUDIT_TARGET', "BLACKLIST_DISPOSITION=$disposition", 's';
-		    $target = verify_audit( $disposition );
-		}
-	    }
-
-	    my $first_entry = 1;
-
-	    first_entry "$doing $fn...";
-
-	    while ( read_a_line ( NORMAL_READ ) ) {
-
-		if ( $first_entry ) {
-		    unless  ( @$zones || @$zones1 ) {
-			warning_message qq(The entries in $fn have been ignored because there are no 'blacklist' zones);
-			close_file;
-			last BLACKLIST;
-		    }
-
-		    $first_entry = 0;
-		}
-
-		my ( $networks, $protocol, $ports, $options ) = split_line( 'blacklist file',
-									    { networks => 0, proto => 1, port => 2, options => 3 } );
-
-		if ( $options eq '-' ) {
-		    $options = 'src';
-		} elsif ( $options eq 'audit' ) {
-		    $options = 'audit,src';
-		}
-
-		my ( $to, $from, $whitelist, $auditone ) = ( 0, 0, 0, 0 );
-
-		my @options = split_list $options, 'option';
-
-		for ( @options ) {
-		    $whitelist++ if $_ eq 'whitelist';
-		    $auditone++  if $_ eq 'audit';
-		}
-
-		warning_message "Duplicate 'whitelist' option ignored" if $whitelist > 1;
-
-		my $tgt = $whitelist ? 'RETURN' : $target;
-
-		if ( $auditone ) {
-		    fatal_error "'audit' not allowed in whitelist entries" if $whitelist;
-
-		    if ( $audit ) {
-			warning_message "Superfluous 'audit' option ignored";
-		    } else {
-			warning_message "Duplicate 'audit' option ignored" if $auditone > 1;
-
-
-
-			$tgt = verify_audit( 'A_' . $target, $orig_target, $target );
-		    }
-		}
-
-		for ( @options ) {
-		    if ( $_ =~ /^(?:src|from)$/ ) {
-			if ( $from++ ) {
-			    warning_message "Duplicate 'src' ignored";
-			} else {
-			    if ( @$zones ) {
-				expand_rule(
-					    $chainref ,
-					    NO_RESTRICT ,
-					    '' ,
-					    do_proto( $protocol , $ports, '' ) ,
-					    $networks,
-					    '',
-					    '' ,
-					    $tgt ,
-					    '' ,
-					    $tgt ,
-					    '' );
-			    } else {
-				warning_message '"src" entry ignored because there are no "blacklist in" zones';
-			    }
-			}
-		    } elsif ( $_ =~ /^(?:dst|to)$/ ) {
-			if ( $to++ ) {
-			    warning_message "Duplicate 'dst' ignored";
-			} else {
-			    if ( @$zones1 ) {
-				expand_rule(
-					    $chainref1 ,
-					    NO_RESTRICT ,
-					    '' ,
-					    do_proto( $protocol , $ports, '' ) ,
-					    '',
-					    $networks,
-					    '' ,
-					    $tgt ,
-					    '' ,
-					    $tgt ,
-					    '' );
-			    } else {
-				warning_message '"dst" entry ignored because there are no "blacklist out" zones';
-			    }
-			}
-		    } else {
-			fatal_error "Invalid blacklist option($_)" unless $_ eq 'whitelist' || $_ eq 'audit';
-		    }
-		}
-
-		progress_message "  \"$currentline\" added to blacklist";
-	    }
-
-	    warning_message q(There are interfaces or zones with the 'blacklist' option but the 'blacklist' file is empty) if $first_entry && @$zones;
-	} elsif ( @$zones || @$zones1 ) {
-	    warning_message q(There are interfaces or zones with the 'blacklist' option, but the 'blacklist' file is either missing or has zero size);
-	}
-    }
 }
 
 #
@@ -360,14 +169,16 @@ sub remove_blacklist( $ ) {
     while ( read_a_line( EMBEDDED_ENABLED | EXPAND_VARIABLES ) ) {
 	my ( $rule, $comment ) = split '#', $currentline, 2;
 
-	if ( $rule =~ /blacklist/ ) {
+	if ( $rule && $rule =~ /blacklist/ ) {
 	    $changed = 1;
 
 	    if ( $comment ) {
-		$comment =~ s/^/          / while $rule =~ s/blacklist,//;
+		$comment =~ s/^/          / while $rule =~ s/blacklist,// || $rule =~ s/,blacklist//;
 		$rule =~ s/blacklist/         /g;
 		$currentline = join( '#', $rule, $comment );
 	    } else {
+		$currentline =~ s/blacklist,//g;
+		$currentline =~ s/,blacklist//g;
 		$currentline =~ s/blacklist/         /g;
 	    }
 	}
@@ -385,25 +196,36 @@ sub remove_blacklist( $ ) {
 }
 
 #
-# Convert a pre-4.4.25 blacklist to a 4.4.25 blacklist
+# Convert a pre-4.4.25 blacklist to a 4.4.25 blrules file
 #
 sub convert_blacklist() {
     my $zones  = find_zones_by_option 'blacklist', 'in';
     my $zones1 = find_zones_by_option 'blacklist', 'out';
     my ( $level, $disposition ) = @config{'BLACKLIST_LOG_LEVEL', 'BLACKLIST_DISPOSITION' };
+    my $tag         = $globals{MACLIST_LOG_TAG};
     my $audit       = $disposition =~ /^A_/;
-    my $target      = $disposition eq 'REJECT' ? 'reject' : $disposition;
+    my $target      = $disposition;
     my $orig_target = $target;
     my @rules;
 
     if ( @$zones || @$zones1 ) {
 	if ( supplied $level ) {
-	    $target = 'blacklog';
-	} elsif ( $audit ) {
-	    $target = verify_audit( $disposition );
+	    $target = supplied $tag ? "$target:$level:$tag":"$target:$level";
 	}
 
-	my $fn = open_file 'blacklist';
+	my $fn = open_file( 'blacklist' );
+
+	unless ( $fn ) {
+	    if ( -f ( $fn = find_file( 'blacklist' ) ) ) {
+		if ( unlink( $fn ) ) {
+		    warning_message "Empty blacklist file ($fn) removed";
+		} else {
+		    warning_message "Unable to remove empty blacklist file $fn: $!";
+		}
+	    }
+
+	    return 0;
+	}
 
 	first_entry "Converting $fn...";
 
@@ -439,8 +261,6 @@ sub convert_blacklist() {
 		} else {
 		    warning_message "Duplicate 'audit' option ignored" if $auditone > 1;
 		}
-
-		$tgt = verify_audit( 'A_' . $target, $orig_target, $target );
 	    }
 
 	    for ( @options ) {
@@ -471,7 +291,7 @@ sub convert_blacklist() {
 	}
 
 	if ( @rules ) {
-	    my $fn1 = find_file( 'blrules' );
+	    my $fn1 = find_writable_file( 'blrules' );
 	    my $blrules;
 	    my $date = localtime;
 
@@ -481,7 +301,7 @@ sub convert_blacklist() {
 		open $blrules, '>',  $fn1 or fatal_error "Unable to open $fn1: $!";
 		print $blrules <<'EOF';
 #
-# Shorewall version 4.5 - Blacklist Rules File
+# Shorewall version 5.0 - Blacklist Rules File
 #
 # For information about entries in this file, type "man shorewall-blrules"
 #
@@ -558,14 +378,48 @@ EOF
     }
 }
 
-sub process_routestopped() {
+sub convert_routestopped() {
 
     if ( my $fn = open_file 'routestopped' ) {
 	my ( @allhosts, %source, %dest , %notrack, @rule );
 
-	my $seq = 0;
+	my $seq  = 0;
+	my $date = localtime;
 
-	first_entry "$doing $fn...";
+	my ( $stoppedrules, $fn1 );
+
+	if ( -f ( $fn1 = find_writable_file( 'stoppedrules' ) ) ) {
+	    open $stoppedrules, '>>', $fn1 or fatal_error "Unable to open $fn1: $!";
+	} else {
+	    open $stoppedrules, '>',  $fn1 or fatal_error "Unable to open $fn1: $!";
+	    print $stoppedrules <<'EOF';
+#
+# Shorewall version 5 - Stopped Rules File
+#
+# For information about entries in this file, type "man shorewall-stoppedrules"
+#
+# The manpage is also online at
+# http://www.shorewall.net/manpages/shorewall-stoppedrules.html
+#
+# See http://shorewall.net/starting_and_stopping_shorewall.htm for additional
+# information.
+#
+###############################################################################
+#ACTION		SOURCE			DEST		PROTO	DEST	SOURCE
+#								PORT(S)	PORT(S)
+EOF
+	}
+
+	first_entry(
+		    sub {
+			my $date = localtime;
+			progress_message2 "$doing $fn...";
+			print( $stoppedrules
+			       "#\n" ,
+			       "# Rules generated from routestopped file $fn by Shorewall $globals{VERSION} - $date\n" ,
+			       "#\n" );
+		    }
+		   );
 
 	while ( read_a_line ( NORMAL_READ ) ) {
 
@@ -585,7 +439,9 @@ sub process_routestopped() {
 
 	    $seq++;
 
-	    my $rule = do_proto( $proto, $ports, $sports, 0 );
+	    my $rule = "$proto\t$ports\t$sports";
+
+	    $hosts = ALLIP if $hosts eq '-';
 
 	    for my $host ( split /,/, $hosts ) {
 		fatal_error "Ipsets not allowed with SAVE_IPSETS=Yes" if $host =~ /^!?\+/ && $config{SAVE_IPSETS};
@@ -626,13 +482,7 @@ sub process_routestopped() {
 		my $chainref = $filter_table->{FORWARD};
 
 		for my $host ( split /,/, $hosts ) {
-		    add_ijump( $chainref ,
-			       j => 'ACCEPT',
-			       imatch_source_dev( $interface ) ,
-			       imatch_dest_dev( $interface ) ,
-			       imatch_source_net( $host ) ,
-			       imatch_dest_net( $host ) );
-		    clearrule;
+		    print $stoppedrules "ACCEPT\t$interface:$host\t$interface:$host\n";
 		}
 	    }
 
@@ -641,43 +491,46 @@ sub process_routestopped() {
 
 	for my $host ( @allhosts ) {
 	    my ( $interface, $h, $seq ) = split /\|/, $host;
-	    my $source  = match_source_net $h;
-	    my $dest    = match_dest_net $h;
-	    my $sourcei = match_source_dev $interface;
-	    my $desti   = match_dest_dev $interface;
-	    my $rule    = shift @rule;
+	    my $rule = shift @rule;
 
-	    add_rule $filter_table->{INPUT},  "$sourcei $source $rule -j ACCEPT", 1;
-	    add_rule $filter_table->{OUTPUT}, "$desti $dest $rule -j ACCEPT", 1 unless $config{ADMINISABSENTMINDED};
+	    print $stoppedrules "ACCEPT\t$interface:$h\t\$FW\t$rule\n";
+	    print $stoppedrules "ACCEPT\t\$FW\t$interface:$h\t$rule\n" unless $config{ADMINISABSENTMINDED};
 
 	    my $matched = 0;
 
 	    if ( $source{$host} ) {
-		add_rule $filter_table->{FORWARD}, "$sourcei $source $rule -j ACCEPT", 1;
+		print $stoppedrules "ACCEPT\t$interface:$h\t-\t$rule\n";
 		$matched = 1;
 	    }
 
 	    if ( $dest{$host} ) {
-		add_rule $filter_table->{FORWARD}, "$desti $dest $rule -j ACCEPT", 1;
+		print $stoppedrules "ACCEPT\t-\t$interface:$h\t$rule\n";
 		$matched = 1;
 	    }
 
 	    if ( $notrack{$host} ) {
-		add_rule $raw_table->{PREROUTING}, "$sourcei $source $rule -j NOTRACK", 1;
-		add_rule $raw_table->{OUTPUT},     "$desti $dest $rule -j NOTRACK", 1;
+		print $stoppedrules "NOTRACK\t$interface:$h\t-\t$rule\n";
+		print $stoppedrules "NOTRACK\t\$FW\t$interface:$h\t$rule\n";
 	    }
 
 	    unless ( $matched ) {
 		for my $host1 ( @allhosts ) {
 		    unless ( $host eq $host1 ) {
 			my ( $interface1, $h1 , $seq1 ) = split /\|/, $host1;
-			my $dest1 = match_dest_net $h1;
-			my $desti1 = match_dest_dev $interface1;
-			add_rule $filter_table->{FORWARD}, "$sourcei $desti1 $source $dest1 $rule -j ACCEPT", 1;
-			clearrule;
+			print $stoppedrules "ACCEPT\t$interface:$h\t$interface1:$h1\t$rule\n";
 		    }
 		}
 	    }
+	}
+
+	rename $fn, "$fn.bak";
+	progress_message2 "Routestopped file $fn saved in $fn.bak";
+	close $stoppedrules;
+    } elsif ( -f ( my $fn1 = find_file( 'routestopped' ) ) ) {
+	if ( unlink( $fn1 ) ) {
+	    warning_message "Empty routestopped file ($fn1) removed";
+	} else {
+	    warning_message "Unable to remove empty routestopped file $fn1: $!";
 	}
     }
 }
@@ -774,8 +627,8 @@ sub process_stoppedrules() {
 
 sub setup_mss();
 
-sub add_common_rules ( $$ ) {
-    my ( $upgrade_blacklist, $upgrade_tcrules ) = @_;
+sub add_common_rules ( $ ) {
+    my ( $upgrade ) = @_;
     my $interface;
     my $chainref;
     my $target;
@@ -788,11 +641,12 @@ sub add_common_rules ( $$ ) {
     my @state     = state_imatch( $globals{BLACKLIST_STATES} );
     my $faststate = $config{RELATED_DISPOSITION} eq 'ACCEPT' && $config{RELATED_LOG_LEVEL} eq '' ? 'ESTABLISHED,RELATED' : 'ESTABLISHED';
     my $level     = $config{BLACKLIST_LOG_LEVEL};
+    my $tag       = $globals{BLACKLIST_LOG_TAG};
     my $rejectref = $filter_table->{reject};
 
     if ( $config{DYNAMIC_BLACKLIST} ) {
-	add_rule_pair( set_optflags( new_standard_chain( 'logdrop' )  , DONT_OPTIMIZE | DONT_DELETE ), '' , 'DROP'   , $level );
-	add_rule_pair( set_optflags( new_standard_chain( 'logreject' ), DONT_OPTIMIZE | DONT_DELETE ), '' , 'reject' , $level );
+	add_rule_pair( set_optflags( new_standard_chain( 'logdrop' )  , DONT_OPTIMIZE | DONT_DELETE ), '' , 'DROP'   , $level , $tag);
+	add_rule_pair( set_optflags( new_standard_chain( 'logreject' ), DONT_OPTIMIZE | DONT_DELETE ), '' , 'reject' , $level , $tag);
 	$dynamicref =  set_optflags( new_standard_chain( 'dynamic' ) ,  DONT_OPTIMIZE );
 	add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
     }
@@ -805,6 +659,7 @@ sub add_common_rules ( $$ ) {
 
     my $policy   = $config{SFILTER_DISPOSITION};
     $level       = $config{SFILTER_LOG_LEVEL};
+    $tag         = $config{SFILTER_LOG_TAG};
     my $audit    = $policy =~ s/^A_//;
     my @ipsec    = have_ipsec ? ( policy => '--pol none --dir in' ) : ();
 
@@ -814,7 +669,14 @@ sub add_common_rules ( $$ ) {
 	#
 	$chainref = new_standard_chain 'sfilter';
 
-	log_rule $level , $chainref , $policy , '' if $level ne '';
+	log_rule_limit( $level,
+			$chainref,
+			$chainref->{name},
+			$policy,
+			$globals{LOGLIMIT},
+			$tag,
+			'add',
+			'' ) if $level ne '';
 
 	add_ijump( $chainref, j => 'AUDIT', targetopts => '--type ' . lc $policy ) if $audit;
 
@@ -854,7 +716,7 @@ sub add_common_rules ( $$ ) {
 
 	my $interfaceref = find_interface $interface;
 
-	unless ( $interfaceref->{physical} eq 'lo' ) {
+	unless ( $interfaceref->{physical} eq loopback_interface ) {
 	    unless ( $interfaceref->{options}{ignore} & NO_SFILTER || $interfaceref->{options}{rpfilter} ) {
 
 		my @filters = @{$interfaceref->{filter}};
@@ -899,6 +761,7 @@ sub add_common_rules ( $$ ) {
     if ( @$list ) {
 	$policy   = $config{RPFILTER_DISPOSITION};
 	$level    = $config{RPFILTER_LOG_LEVEL};
+	$tag      = $globals{RPFILTER_LOG_TAG};
 	$audit    = $policy =~ s/^A_//;
 	
 	if ( $level || $audit ) {
@@ -907,7 +770,14 @@ sub add_common_rules ( $$ ) {
 	    #
 	    $chainref = ensure_mangle_chain 'rplog';
 
-	    log_rule $level , $chainref , $policy , '' if $level ne '';
+	    log_rule_limit( $level,
+			    $chainref,
+			    $chainref->{name},
+			    $policy,
+			    $globals{LOGLIMIT},
+			    $tag,
+			    'add',
+			    '' ) if $level ne '';
 
 	    add_ijump( $chainref, j => 'AUDIT', targetopts => '--type ' . lc $policy ) if $audit;
 
@@ -918,20 +788,37 @@ sub add_common_rules ( $$ ) {
 	    $target = $policy eq 'REJECT' ? 'reject' : $policy;
 	}
 
-	add_ijump( ensure_mangle_chain( 'rpfilter' ),
+	my $rpfilterref = ensure_mangle_chain( 'rpfilter' );
+
+	if ( $family == F_IPV4 ) {
+	    for $interface ( @$list ) {
+		if ( get_interface_option( $interface, 'dhcp' ) ) {
+		    add_ijump( $rpfilterref,
+			       j        => 'RETURN',
+			       s        => NILIPv4,
+			       p        => UDP,
+			       dport    => 67,
+			       sport    => 68
+			);
+		    last;
+		}
+	    }
+	}
+
+	add_ijump( $rpfilterref,
 		   j        => $target,
 		   rpfilter => '--validmark --invert',
 		   state_imatch 'NEW,RELATED,INVALID',
 		   @ipsec
-		 );
+	    );
     }
 	    
     run_user_exit1 'initdone';
 
-    if ( $upgrade_blacklist ) {
-	exit 0 unless convert_blacklist || $upgrade_tcrules;
-    } else {
-	setup_blacklist;
+    if ( $upgrade ) {
+	convert_blacklist;
+    } elsif ( -f ( my $fn = find_file 'blacklist' ) ) {
+	warning_message "The blacklist file is no longer supported -- use '$product update' to convert $fn to the equivalent blrules file";
     }
 
     $list = find_hosts_by_option 'nosmurfs';
@@ -951,7 +838,7 @@ sub add_common_rules ( $$ ) {
 			     'smurfs' ,
 			     'DROP',
 			     $globals{LOGILIMIT},
-			     '',
+			     $globals{SMURF_LOG_TAG},
 			     'add' );
 	    add_ijump( $smurfref, j => 'AUDIT', targetopts => '--type drop' ) if $smurfdest eq 'A_DROP';
 	    add_ijump( $smurfref, j => 'DROP' );
@@ -1073,6 +960,7 @@ sub add_common_rules ( $$ ) {
 
     if ( @$list ) {
 	my $level = $config{TCP_FLAGS_LOG_LEVEL};
+	my $tag   = $globals{TCP_FLAGS_LOG_TAG};
 	my $disposition = $config{TCP_FLAGS_DISPOSITION};
 	my $audit = $disposition =~ /^A_/;
 
@@ -1087,7 +975,15 @@ sub add_common_rules ( $$ ) {
 
 	    $globals{LOGPARMS} = "$globals{LOGPARMS}--log-ip-options ";
 
-	    log_rule $level , $logflagsref , $config{TCP_FLAGS_DISPOSITION}, '';
+	    log_rule_limit( $level,
+			    $logflagsref,
+			    'logflags',
+			    $disposition,
+			    $globals{LOGLIMIT},
+			    $tag,
+			    'add',
+			    ''
+			  );
 
 	    $globals{LOGPARMS} = $savelogparms;
 
@@ -1111,7 +1007,9 @@ sub add_common_rules ( $$ ) {
 	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ALL FIN,URG,PSH';
 	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ALL NONE';
 	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags SYN,RST SYN,RST';
+	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags FIN,RST FIN,RST';
 	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags SYN,FIN SYN,FIN';
+	add_ijump $chainref , g => $disposition, p => 'tcp --tcp-flags ACK,PSH,FIN PSH,FIN';
 	add_ijump $chainref , g => $disposition, p => 'tcp --syn --sport 0';
 
 	for my $hostref  ( @$list ) {
@@ -1190,6 +1088,7 @@ sub setup_mac_lists( $ ) {
 
     my $target      = $globals{MACLIST_TARGET};
     my $level       = $config{MACLIST_LOG_LEVEL};
+    my $tag         = $globals{MACLIST_LOG_TAG};
     my $disposition = $config{MACLIST_DISPOSITION};
     my $audit       = ( $disposition =~ s/^A_// );
     my $ttl         = $config{MACLIST_TTL};
@@ -1358,7 +1257,7 @@ sub setup_mac_lists( $ ) {
 
 	    run_user_exit2( 'maclog', $chainref );
 
-	    log_irule_limit $level, $chainref , $chain , $disposition, [], '', 'add' if $level ne '';
+	    log_irule_limit $level, $chainref , $chain , $disposition, [], $tag, 'add' if $level ne '';
 	    add_ijump $chainref, j => $target;
 	}
     }
@@ -1452,7 +1351,7 @@ sub handle_loopback_traffic() {
     my $rawout   = $raw_table->{OUTPUT};
     my $rulenum  = 0;
     my $loopback = loopback_zones;
-    my $loref    = known_interface('lo');
+    my $loref    = known_interface(loopback_interface);
 
     my $unmanaged;
     my $outchainref;
@@ -1463,17 +1362,29 @@ sub handle_loopback_traffic() {
 	# We have a vserver zone -- route output through a separate chain
 	#
 	$outchainref = new_standard_chain 'loopback';
-	add_ijump $filter_table->{OUTPUT}, j => $outchainref, o => 'lo';
+
+	if ( have_capability 'IFACE_MATCH' ) {
+	    add_ijump $filter_table->{OUTPUT}, j => $outchainref, iface => '--dev-out --loopback';
+	} else {
+	    add_ijump $filter_table->{OUTPUT}, j => $outchainref, o => loopback_interface;
+	}
     } else {
 	#
 	# Only the firewall -- just use the OUTPUT chain
 	#
 	if ( $unmanaged = $loref && $loref->{options}{unmanaged} ) {
-	    add_ijump( $filter_table->{INPUT},  j => 'ACCEPT', i => 'lo' );
-	    add_ijump( $filter_table->{OUTPUT}, j => 'ACCEPT', o => 'lo' );
+	    if ( have_capability 'IFACE_MATCH' ) {
+		add_ijump( $filter_table->{OUTPUT}, j => 'ACCEPT', iface => '--dev-out --loopback' );
+	    } else {
+		add_ijump( $filter_table->{OUTPUT}, j => 'ACCEPT', o => loopback_interface );
+	    }
 	} else {
 	    $outchainref = $filter_table->{OUTPUT};
-	    @rule = ( o => 'lo');
+	    if ( have_capability 'IFACE_MATCH' ) {
+		@rule = ( iface => '--dev-out --loopback' );
+	    } else {
+		@rule = ( o => loopback_interface );
+	    }
 	}
     }
 
@@ -1506,7 +1417,7 @@ sub handle_loopback_traffic() {
 	    # Handle conntrack rules
 	    #
 	    if ( $notrackref->{referenced} ) {
-		for my $hostref ( @{defined_zone( $z1 )->{hosts}{ip}{'%vserver%'}} ) {
+		for my $hostref ( sort { $a->{type} cmp $b->{type} } @{defined_zone( $z1 )->{hosts}{ip}{'%vserver%'}} ) {
 		    my $exclusion   = source_exclusion( $hostref->{exclusions}, $notrackref);
 		    my @ipsec_match = match_ipsec_in $z1 , $hostref;
 
@@ -1527,8 +1438,8 @@ sub handle_loopback_traffic() {
 	    #
 	    my $source_hosts_ref = defined_zone( $z1 )->{hosts};
 
-	    for my $typeref ( values %{$source_hosts_ref} ) {
-		for my $hostref ( @{$typeref->{'%vserver%'}} ) {
+	    for my $typeref ( sort { $a->{type} cmp $b->{type} } values %{$source_hosts_ref} ) {
+		for my $hostref ( sort { $a->{type} cmp $b->{type} } @{$typeref->{'%vserver%'}} ) {
 		    my $exclusion   = source_exclusion( $hostref->{exclusions}, $natref);
 
 		    for my $net ( @{$hostref->{hosts}} ) {
@@ -1550,9 +1461,9 @@ sub add_interface_jumps {
     our %input_jump_added;
     our %output_jump_added;
     our %forward_jump_added;
-    my @interfaces = grep $_ ne '%vserver%', @_;
+    my @interfaces = sort grep $_ ne '%vserver%', @_;
     my $dummy;
-    my $lo_jump_added = interface_zone( 'lo' ) && ! get_interface_option( 'lo', 'destonly' );
+    my $lo_jump_added = interface_zone( loopback_interface ) && ! get_interface_option( loopback_interface, 'destonly' );
     #
     # Add Nat jumps
     #
@@ -1582,7 +1493,13 @@ sub add_interface_jumps {
 	my $outputref    = $filter_table->{output_chain $interface};
 	my $interfaceref = find_interface($interface);
 
-	add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => 'lo' if $interfaceref->{physical} eq '+' && ! $lo_jump_added++;
+	if ( $interfaceref->{physical} eq '+' && ! $lo_jump_added++ ) {
+	    if ( have_capability 'IFACE_MATCH' ) {
+		add_ijump $filter_table->{INPUT} , j => 'ACCEPT', iface => '--dev-in --loopback';
+	    } else {
+		add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => loopback_interface;
+	    }
+	}
 
 	if ( $interfaceref->{options}{port} ) {
 	    my $bridge = $interfaceref->{bridge};
@@ -1621,7 +1538,13 @@ sub add_interface_jumps {
 	}
     }
 
-    add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => 'lo' unless $lo_jump_added++;
+    unless ( $lo_jump_added++ ) {
+	if ( have_capability 'IFACE_MATCH' ) {
+	    add_ijump $filter_table->{INPUT} , j => 'ACCEPT', iface => '--dev-in --loopback';
+	} else {
+	    add_ijump $filter_table->{INPUT} , j => 'ACCEPT', i => loopback_interface;
+	}
+    }
 
     handle_loopback_traffic;
 }
@@ -1785,7 +1708,7 @@ sub add_output_jumps( $$$$$$$ ) {
     our @vservers;
     our %output_jump_added;
 
-    my $chain1            = rules_target firewall_zone , $zone;
+    my $chain1            = rules_target( firewall_zone , $zone );
     my $chain1ref         = $filter_table->{$chain1};
     my $nextchain         = dest_exclusion( $exclusions, $chain1 );
     my $outputref;
@@ -2112,11 +2035,9 @@ sub optimize1_zones( $$@ ) {
 #
 sub generate_matrix() {
     my @interfaces = ( managed_interfaces );
-    #
-    # Should this be the real PREROUTING chain?
-    #
-    my @zones     = off_firewall_zones;
-    our @vservers = vserver_zones;
+    my @zones      = off_firewall_zones;
+
+    our @vservers  = vserver_zones;
 
     my $interface_jumps_added = 0;
 
@@ -2161,7 +2082,8 @@ sub generate_matrix() {
 	#
 	# Take care of PREROUTING, INPUT and OUTPUT jumps
 	#
-	for my $typeref ( values %$source_hosts_ref ) {
+	for my $type ( sort keys %$source_hosts_ref ) {
+	    my $typeref = $source_hosts_ref->{$type};
 	    for my $interface ( sort { interface_number( $a ) <=> interface_number( $b ) } keys %$typeref ) {
 		if ( get_physical( $interface ) eq '+' ) {
 		    #
@@ -2234,7 +2156,6 @@ sub generate_matrix() {
 		my $chain = rules_target $zone, $zone1;
 
 		next unless $chain; # CONTINUE policy with no rules
-
 		my $num_ifaces = 0;
 
 		if ( $zone eq $zone1 ) {
@@ -2246,8 +2167,9 @@ sub generate_matrix() {
 		}
 
 		my $chainref = $filter_table->{$chain}; #Will be null if $chain is a Netfilter Built-in target like ACCEPT
-		
-		for my $typeref ( values %{$zone1ref->{hosts}} ) {
+
+		for my $type ( sort keys %{$zone1ref->{hosts}} ) {
+		    my $typeref = $zone1ref->{hosts}{$type};
 		    for my $interface ( sort { interface_number( $a ) <=> interface_number( $b ) } keys %$typeref ) {
 			for my $hostref ( @{$typeref->{$interface}} ) {
 			    next if $hostref->{options}{sourceonly};
@@ -2368,8 +2290,8 @@ sub setup_mss( ) {
 #
 # Compile the stop_firewall() function
 #
-sub compile_stop_firewall( $$$ ) {
-    my ( $test, $export, $have_arptables ) = @_;
+sub compile_stop_firewall( $$$$ ) {
+    my ( $test, $export, $have_arptables, $convert ) = @_;
 
     my $input   = $filter_table->{INPUT};
     my $output  = $filter_table->{OUTPUT};
@@ -2380,9 +2302,7 @@ sub compile_stop_firewall( $$$ ) {
 # Stop/restore the firewall after an error or because of a 'stop' or 'clear' command
 #
 stop_firewall() {
-    local hack
 EOF
-
     $output->{policy} = 'ACCEPT' if $config{ADMINISABSENTMINDED};
 
     if ( $family == F_IPV4 ) {
@@ -2394,7 +2314,7 @@ EOF
     case $COMMAND in
         stop|clear|restore)
             if chain_exists dynamic; then
-                ${IPTABLES}-save -t filter | grep '^-A dynamic' > ${VARDIR}/.dynamic
+                ${IPTABLES}-save -t filter | grep '^-A dynamic' | fgrep -v -- '-j ACCEPT' > ${VARDIR}/.dynamic
             fi
             ;;
         *)
@@ -2409,7 +2329,7 @@ EOF
     case $COMMAND in
         stop|clear|restore)
             if chain_exists dynamic; then
-                ${IP6TABLES}-save -t filter | grep '^-A dynamic' > ${VARDIR}/.dynamic
+                ${IP6TABLES}-save -t filter | grep '^-A dynamic' | fgrep -v -- '-j ACCEPT' > ${VARDIR}/.dynamic
             fi
             ;;
         *)
@@ -2422,8 +2342,8 @@ EOF
 	        start)
 	            logger -p kern.err "ERROR:$g_product start failed"
 	            ;;
-	        restart)
-	            logger -p kern.err "ERROR:$g_product restart failed"
+	        reload)
+	            logger -p kern.err "ERROR:$g_product reload failed"
 	            ;;
 	        refresh)
 	            logger -p kern.err "ERROR:$g_product refresh failed"
@@ -2549,10 +2469,21 @@ EOF
 	}
     }
 
-    process_routestopped unless process_stoppedrules;
+    if ( $convert ) {
+	convert_routestopped;
+    } elsif ( -f ( my $fn = find_file 'routestopped' ) ) {
+	warning_message "The routestopped file is no longer supported - use '$product update' to convert $fn to an equivalent 'stoppedrules' file";
+    }
+    
+    process_stoppedrules;
 
-    add_ijump $input,  j => 'ACCEPT', i => 'lo';
-    add_ijump $output, j => 'ACCEPT', o => 'lo' unless $config{ADMINISABSENTMINDED};
+    if ( have_capability 'IFACE_MATCH' ) {
+	add_ijump $input,  j => 'ACCEPT', iface => '--dev-in --loopback';
+	add_ijump $output, j => 'ACCEPT', iface => '--dev-out --loopback' unless $config{ADMINISABSENTMINDED};
+    } else {
+	add_ijump $input,  j => 'ACCEPT', i => loopback_interface;
+	add_ijump $output, j => 'ACCEPT', o => loopback_interface unless $config{ADMINISABSENTMINDED};
+    }
 
     my $interfaces = find_interfaces_by_option 'dhcp';
 
