@@ -27,7 +27,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 
 usage() # $1 = exit status
 {
@@ -188,6 +188,8 @@ done
 
 PATH=/sbin:/bin:/usr/sbin:/usr/bin:/usr/local/bin:/usr/local/sbin
 
+[ $configure -eq 1 ] && ETC=/etc || ETC="${CONFDIR}"
+
 if [ -z "$BUILD" ]; then
     case $(uname) in
 	cygwin*)
@@ -330,12 +332,16 @@ fi
 #
 # Install the .service file
 #
-if [ -n "$SYSTEMD" ]; then
-    mkdir -p ${DESTDIR}${SYSTEMD}
+if [ -z "${SERVICEDIR}" ]; then
+    SERVICEDIR="$SYSTEMD"
+fi
+
+if [ -n "$SERVICEDIR" ]; then
+    mkdir -p ${DESTDIR}${SERVICEDIR}
     [ -z "$SERVICEFILE" ] && SERVICEFILE=$PRODUCT.service
-    run_install $OWNERSHIP -m 644 $SERVICEFILE ${DESTDIR}${SYSTEMD}/$PRODUCT.service
-    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SYSTEMD}/$PRODUCT.service
-    echo "Service file $SERVICEFILE installed as ${DESTDIR}${SYSTEMD}/$PRODUCT.service"
+    run_install $OWNERSHIP -m 644 $SERVICEFILE ${DESTDIR}${SERVICEDIR}/$PRODUCT.service
+    [ ${SBINDIR} != /sbin ] && eval sed -i \'s\|/sbin/\|${SBINDIR}/\|\' ${DESTDIR}${SERVICEDIR}/$PRODUCT.service
+    echo "Service file $SERVICEFILE installed as ${DESTDIR}${SERVICEDIR}/$PRODUCT.service"
     if [ -n "$DESTDIR" -o $configure -eq 0 ]; then
 	mkdir -p ${DESTDIR}${SBINDIR}
         chmod 755 ${DESTDIR}${SBINDIR}
@@ -375,9 +381,9 @@ fi
 
 if [ $HOST = debian ]; then
     if [ -n "${DESTDIR}" ]; then
-	mkdir -p ${DESTDIR}/etc/network/if-up.d/
-	mkdir -p ${DESTDIR}/etc/network/if-down.d/
-	mkdir -p ${DESTDIR}/etc/network/if-post-down.d/
+	mkdir -p ${DESTDIR}${ETC}/network/if-up.d/
+	mkdir -p ${DESTDIR}${ETC}/network/if-down.d/
+	mkdir -p ${DESTDIR}${ETC}/network/if-post-down.d/
     elif [ $configure -eq 0 ]; then
 	mkdir -p ${DESTDIR}${CONFDIR}/network/if-up.d/
 	mkdir -p ${DESTDIR}${CONFDIR}/network/if-down.d/
@@ -386,15 +392,12 @@ if [ $HOST = debian ]; then
 
     if [ ! -f ${DESTDIR}${CONFDIR}/default/shorewall-init ]; then
 	if [ -n "${DESTDIR}" ]; then
-	    mkdir ${DESTDIR}/etc/default
+	    mkdir ${DESTDIR}${ETC}/default
 	fi
 
-	if [ $configure -eq 1 ]; then
-	    install_file sysconfig ${DESTDIR}/etc/default/shorewall-init 0644
-	else
-	    mkdir -p ${DESTDIR}${CONFDIR}/default
-	    install_file sysconfig ${DESTDIR}${CONFDIR}/default/shorewall-init 0644
-	fi
+	[ $configure -eq 1 ] || mkdir -p ${DESTDIR}${CONFDIR}/default
+	install_file sysconfig ${DESTDIR}${ETC}/default/shorewall-init 0644
+	echo "sysconfig file installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
     fi
 
     IFUPDOWN=ifupdown.debian.sh
@@ -404,13 +407,13 @@ else
 
 	if [ -z "$RPM" ]; then
 	    if [ $HOST = suse ]; then
-		mkdir -p ${DESTDIR}/etc/sysconfig/network/if-up.d
-		mkdir -p ${DESTDIR}/etc/sysconfig/network/if-down.d
+		mkdir -p ${DESTDIR}${ETC}/sysconfig/network/if-up.d
+		mkdir -p ${DESTDIR}${ETC}/sysconfig/network/if-down.d
 	    elif [ $HOST = gentoo ]; then
 		# Gentoo does not support if-{up,down}.d
 		/bin/true
 	    else
-		mkdir -p ${DESTDIR}/etc/NetworkManager/dispatcher.d
+		mkdir -p ${DESTDIR}/${ETC}/NetworkManager/dispatcher.d
 	    fi
 	fi
     fi
@@ -436,12 +439,8 @@ mkdir -p ${DESTDIR}${LIBEXECDIR}/shorewall-init
 install_file ifupdown ${DESTDIR}${LIBEXECDIR}/shorewall-init/ifupdown 0544
 
 if [ -d ${DESTDIR}/etc/NetworkManager ]; then
-    if [ $configure -eq 1 ]; then
-	install_file ifupdown ${DESTDIR}/etc/NetworkManager/dispatcher.d/01-shorewall 0544
-    else
-	mkdir -p ${DESTDIR}${CONFDIR}/NetworkManager/dispatcher.d/
-	install_file ifupdown ${DESTDIR}${CONFDIR}/NetworkManager/dispatcher.d/01-shorewall 0544
-    fi
+    [ $configure -eq 1 ] || mkdir -p ${DESTDIR}${CONFDIR}/NetworkManager/dispatcher.d/
+    install_file ifupdown ${DESTDIR}${ETC}/NetworkManager/dispatcher.d/01-shorewall 0544
 fi
 
 case $HOST in
@@ -492,7 +491,11 @@ esac
 if [ -z "$DESTDIR" ]; then
     if [ $configure -eq 1 -a -n "$first_install" ]; then
 	if [ $HOST = debian ]; then
-	    if mywhich insserv; then
+	    if [ -n "$SERVICEDIR" ]; then
+		if systemctl enable ${PRODUCT}.service; then
+                    echo "Shorewall Init will start automatically at boot"
+		fi
+	    elif mywhich insserv; then
 		if insserv ${INITDIR}/shorewall-init; then
 		    echo "Shorewall Init will start automatically at boot"
 		else
@@ -513,7 +516,7 @@ if [ -z "$DESTDIR" ]; then
 	    # not by the installer
 	    /bin/true
 	else
-	    if [ -n "$SYSTEMD" ]; then
+	    if [ -n "$SERVICEDIR" ]; then
 		if systemctl enable shorewall-init.service; then
 		    echo "Shorewall Init will start automatically at boot"
 		fi
@@ -556,7 +559,7 @@ fi
 
 [ -z "${DESTDIR}" ] && [ ! -f ~/.shorewallrc ] && cp ${SHAREDIR}/shorewall/shorewallrc .
 
-if [ -f ${DESTDIR}/etc/ppp ]; then
+if [ -d ${DESTDIR}/etc/ppp ]; then
     case $HOST in
 	debian|suse)
 	    for directory in ip-up.d ip-down.d ipv6-up.d ipv6-down.d; do
