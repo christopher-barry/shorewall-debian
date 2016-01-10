@@ -1,6 +1,6 @@
 shorewall (5.0.3.1-1) unstable; urgency=medium
 
-  * New Upstream Version
+  * New Upstream Version (Closes: #729256, #773392, #776680, #796695)
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 10 Jan 2016 14:57:16 -0500
 
