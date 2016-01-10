@@ -26,13 +26,19 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
     echo "usage: $ME [ <shorewallrc file> ]"
     exit $1
+}
+
+fatal_error()
+{
+    echo "   ERROR: $@" >&2
+    exit 1
 }
 
 qt()

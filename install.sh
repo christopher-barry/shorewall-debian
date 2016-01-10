@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 
 usage() # $1 = exit status
 {
@@ -66,15 +66,6 @@ mywhich() {
     return 2
 }
 
-run_install()
-{
-    if ! install $*; then
-	echo
-	echo "ERROR: Failed to install $*" >&2
-	exit 1
-    fi
-}
-
 cant_autostart()
 {
     echo
@@ -88,7 +79,20 @@ delete_file() # $1 = file to delete
 
 install_file() # $1 = source $2 = target $3 = mode
 {
-    run_install $T $OWNERSHIP -m $3 $1 ${2}
+    if cp -f $1 $2; then
+	if chmod $3 $2; then
+	    if [ -n "$OWNER" ]; then
+		if chown $OWNER:$GROUP $2; then
+		    return
+		fi
+	    else
+		return 0
+	    fi
+	fi
+    fi
+
+    echo "ERROR: Failed to install $2" >&2
+    exit 1
 }
 
 require()
@@ -181,10 +185,6 @@ done
 
 [ "${INITFILE}" != 'none/' ] && require INITSOURCE && require INITDIR
 
-T="-T"
-
-INSTALLD='-D'
-
 if [ -z "$BUILD" ]; then
     case $(uname) in
 	cygwin*|CYGWIN*)
@@ -226,6 +226,8 @@ if [ -z "$BUILD" ]; then
 		BUILD=suse
 	    elif [ -f /etc/arch-release ] ; then
 		BUILD=archlinux
+	    elif [ -f ${CONFDIR}/openwrt_release ] ; then
+		BUILD=openwrt
 	    else
 		BUILD=linux
 	    fi
@@ -252,16 +254,14 @@ case $BUILD in
 
 	[ -z "$OWNER" ] && OWNER=root
 	[ -z "$GROUP" ] && GROUP=wheel
-	INSTALLD=
-	T=
 	;;
     *)
-	[ -z "$OWNER" ] && OWNER=root
-	[ -z "$GROUP" ] && GROUP=root
+	if [ $(id -u) -eq 0 ]; then
+	    [ -z "$OWNER" ] && OWNER=root
+	    [ -z "$GROUP" ] && GROUP=root
+	fi
 	;;
 esac
-
-OWNERSHIP="-o $OWNER -g $GROUP"
 
 #
 # Determine where to install the firewall script
@@ -276,7 +276,7 @@ case "$HOST" in
     apple)
 	echo "Installing Mac-specific configuration...";
 	;;
-    debian|gentoo|redhat|slackware|archlinux|linux|suse)
+    debian|gentoo|redhat|slackware|archlinux|linux|suse|openwrt)
 	;;
     *)
 	echo "ERROR: Unknown HOST \"$HOST\"" >&2
@@ -305,7 +305,6 @@ if [ -n "$DESTDIR" ]; then
     if [ $BUILD != cygwin ]; then
 	if [ `id -u` != 0 ] ; then
 	    echo "Not setting file owner/group permissions, not running as root."
-	    OWNERSHIP=""
 	fi
     fi
 fi
@@ -329,9 +328,13 @@ if [ -n "${SYSCONFDIR}" ]; then
     chmod 755 ${DESTDIR}${SYSCONFDIR}
 fi
 
-if [ -n "${SYSTEMD}" ]; then
-    mkdir -p ${DESTDIR}${SYSTEMD}
-    chmod 755 ${DESTDIR}${SYSTEMD}
+if [ -z "${SERVICEDIR}" ]; then
+    SERVICEDIR="$SYSTEMD"
+fi
+
+if [ -n "${SERVICEDIR}" ]; then
+    mkdir -p ${DESTDIR}${SERVICEDIR}
+    chmod 755 ${DESTDIR}${SERVICEDIR}
 fi
 
 mkdir -p ${DESTDIR}${SBINDIR}
@@ -403,9 +406,9 @@ fi
 if [ ${SHAREDIR} != /usr/share ]; then
     for f in lib.*; do
 	if [ $BUILD != apple ]; then
-	    eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}/${SHAREDIR}/shorewall/$f
+	    eval sed -i \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${SHAREDIR}/shorewall/$f
 	else
-	    eval sed -i \'\' -e \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}/${SHAREDIR}/shorewall/$f
+	    eval sed -i \'\' -e \'s\|/usr/share/\|${SHAREDIR}/\|\' ${DESTDIR}${SHAREDIR}/shorewall/$f
 	fi
     done
 fi

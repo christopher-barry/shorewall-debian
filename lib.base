@@ -1,7 +1,7 @@
 #
-# Shorewall 4.5 -- /usr/share/shorewall/lib.base
+# Shorewall 5.0 -- /usr/share/shorewall/lib.base
 #
-#     (c) 1999-2014 - Tom Eastep (teastep@shorewall.net)
+#     (c) 1999-2015 - Tom Eastep (teastep@shorewall.net)
 #
 #	Complete documentation is available at http://shorewall.net
 #
@@ -74,6 +74,24 @@ if [ -z "${VARLIB}" ]; then
 elif [ -z "${VARDIR}" ]; then
     VARDIR="${VARLIB}/${PRODUCT}"
 fi
+
+#
+# Fatal Error
+#
+fatal_error() # $@ = Message
+{
+    echo "   ERROR: $@" >&2
+    exit 2
+}
+
+#
+# Not configured Error
+#
+not_configured_error() # $@ = Message
+{
+    echo "   ERROR: $@" >&2
+    exit 6
+}
 
 #
 # Conditionally produce message
