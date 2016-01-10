@@ -1,1 +1,2 @@
 shorewall6-lite: non-standard-dir-perm var/lib/shorewall6-lite/ 0750 != 0755
+shorewall6-lite: manpage-has-errors-from-man
