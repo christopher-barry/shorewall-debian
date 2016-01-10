@@ -1,5 +1,5 @@
 #
-# Shorewall6 version 4 - Maclist file
+# Shorewall6 -- /etc/shorewall6/maclist
 #
 # For information about entries in this file, type "man shorewall6-maclist"
 #
@@ -39,4 +39,4 @@
 #     than set names (prefixed by "+") are also allowed.
 # 
 ###############################################################################
-#DISPOSITION	INTERFACE		MAC			IP ADDRESSES (Optional)
+#DISPOSITION	INTERFACE		MAC			ADDRESSES

@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-tcfilters
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCFILTER" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-TCFILTER" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -94,16 +94,20 @@ Protocol\&.
 Beginning with Shorewall 4\&.5\&.12, this column can accept a comma\-separated list of protocols\&.
 .RE
 .PP
-\fBDEST PORT\fR (dport) \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
+\fBDPORT\fR \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
 .RS 4
 Optional destination Ports\&. A Port name (from services(5)) or a
 \fIport number\fR; if the protocol is
 \fBicmp\fR, this column is interpreted as the destination icmp\-type(s)\&.
+.sp
+This column was formerly labelled DEST PORT(S)\&.
 .RE
 .PP
-\fBSOURCE PORT\fR (sport) \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
+\fBSPORT\fR \- [\fB\-\fR|\fIport\-name\-or\-number\fR]
 .RS 4
 Optional source port\&.
+.sp
+This column was formerly labelled SOURCE PORT(S)\&.
 .RE
 .PP
 \fBTOS\fR \- [\fB\-\fR|\fItos\fR]
@@ -320,8 +324,7 @@ Place all \*(Aqping\*(Aq traffic on interface 1 in class 10\&. Note that ALL can
 .RS 4
 .\}
 .nf
-       #CLASS    SOURCE    DEST         PROTO   DEST
-       #                                        PORT
+       #CLASS    SOURCE    DEST         PROTO   DPORT
 
        IPV4
 
@@ -346,8 +349,7 @@ Add two filters with priority 10 (Shorewall 4\&.5\&.8 or later)\&.
 .RS 4
 .\}
 .nf
-       #CLASS    SOURCE    DEST         PROTO   DEST            PRIORITY
-       #                                        PORT
+       #CLASS    SOURCE    DEST         PROTO   DPORT           PRIORITY
 
        IPV6
 

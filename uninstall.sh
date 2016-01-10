@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=4.6.4.3
+VERSION=5.0.3.1
 PRODUCT=shorewall6
 
 usage() # $1 = exit status
@@ -34,6 +34,12 @@ usage() # $1 = exit status
     ME=$(basename $0)
     echo "usage: $ME [ <shorewallrc file> ]"
     exit $1
+}
+
+fatal_error()
+{
+    echo "   ERROR: $@" >&2
+    exit 1
 }
 
 qt()
@@ -136,8 +142,8 @@ else
     usage 1
 fi
 
-if [ -f ${SHARDIR}/shorewall6/version ]; then
-    INSTALLED_VERSION="$(cat /usr/share/shorewall6/version)"
+if [ -f ${SHAREDIR}/shorewall6/version ]; then
+    INSTALLED_VERSION="$(cat ${SHAREDIR}/shorewall6/version)"
     if [ "$INSTALLED_VERSION" != "$VERSION" ]; then
 	echo "WARNING: Shorewall6 Version $INSTALLED_VERSION is installed"
 	echo "         and this is the $VERSION uninstaller."
@@ -178,9 +184,18 @@ if [ -f "$FIREWALL" ]; then
     remove_file $FIREWALL
 fi
 
-if [ -n "$SYSTEMD" ]; then
+[ -n "$SERVICEDIR" ] || SERVICEDIR=${SYSTEMD}
+
+if [ -n "$SERVICEDIR" ]; then
     [ $configure -eq 1 ] && systemctl disable ${PRODUCT}
-    rm -f $SYSTEMD/shorewall6.service
+    rm -f $SERVICEDIR/shorewall6.service
+fi
+
+rm -rf ${SHAREDIR}/shorewall6/version
+rm -rf ${CONFDIR}/shorewall6
+
+if [ -n "$SYSCONFDIR" ]; then
+    [ -n "$SYSCONFFILE" ] && rm -f ${SYSCONFDIR}/${PRODUCT}
 fi
 
 rm -f ${SBINDIR}/shorewall6

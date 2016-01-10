@@ -1,13 +1,13 @@
 '\" t
 .\"     Title: shorewall6-policy
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
-.\" Generator: DocBook XSL Stylesheets v1.76.1 <http://docbook.sf.net/>
-.\"      Date: 10/19/2014
+.\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
+.\"      Date: 01/02/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-POLICY" "5" "10/19/2014" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-POLICY" "5" "01/02/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -93,7 +93,7 @@ Destination zone\&. Must be the name of a zone defined in
 Support for "all+" was added in Shorewall 4\&.5\&.17\&. "all" does not override the implicit intra\-zone ACCEPT policy while "all+" does\&.
 .RE
 .PP
-\fBPOLICY\fR \- {\fBACCEPT\fR|\fBDROP\fR|\fBREJECT\fR|\fBCONTINUE\fR|\fBQUEUE\fR|\fBNFQUEUE\fR[(\fIqueuenumber\fR)]|\fBNONE\fR}[\fB:\fR{\fIdefault\-action\-or\-macro\fR|\fBNone\fR}]
+\fBPOLICY\fR \- {\fBACCEPT\fR|\fBDROP\fR|\fBREJECT\fR|\fBCONTINUE\fR|\fBQUEUE\fR|\fBNFQUEUE\fR[(\fIqueuenumber1\fR[:\fIqueuenumber2\fR])]|\fBNONE\fR}[\fB:\fR{\fIdefault\-action\-or\-macro\fR[:level]|\fBNone\fR}]
 .RS 4
 Policy if no match from the rules file is found\&.
 .sp
@@ -151,8 +151,8 @@ Queue the request for a user\-space application such as Snort\-inline\&.
 \fBNFQUEUE\fR
 .RS 4
 Queue the request for a user\-space application using the nfnetlink_queue mechanism\&. If a
-\fIqueuenumber\fR
-is not given, queue zero (0) is assumed\&.
+\fIqueuenumber1\fR
+is not given, queue zero (0) is assumed\&. Beginning with Shorewall 4\&.6\&.10, a second queue number (queuenumber2) may be given\&. This specifies a range of queues to use\&. Packets are then balanced across the given queues\&. This is useful for multicore systems: start multiple instances of the userspace program on queues x, x+1, \&.\&. x+n and use "x:x+n"\&. Packets belonging to the same connection are put into the same nfqueue\&.
 .RE
 .PP
 \fBCONTINUE\fR
@@ -181,8 +181,15 @@ For a description of log levels, see
 If you don\*(Aqt want to log but need to specify the following column, place "\-" here\&.
 .RE
 .PP
-\fBBURST:LIMIT\fR (limit) \- [{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsecond\fR|\fBminute\fR}[:\fIburst\fR]
+\fBBURST:LIMIT\fR (limit) \- [\-|\fIlimit\fR]
 .RS 4
+where limit is one of:
+.RS 4
+[\fB\-\fR|[{\fIs\fR|\fBd\fR}:[[\fIname\fR]:]]]\fIrate\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst\fR]
+.RE
+.RS 4
+[\fIname\fR1]:\fIrate1\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst1\fR],[\fIname\fR2]:\fIrate2\fR\fB/\fR{\fBsec\fR|\fBmin\fR|\fBhour\fR|\fBday\fR}[:\fIburst2\fR]
+.RE
 If passed, specifies the maximum TCP connection
 \fIrate\fR
 and the size of an acceptable
@@ -198,7 +205,13 @@ is specified, the rate applies per source IP address or per destination IP addre
 \fIname\fR
 may be chosen by the user and specifies a hash table to be used to count matching connections\&. If not give, the name
 \fBshorewall\fR
-is assumed\&. Where more than one POLICY specifies the same name, the connections counts for the policies are aggregated and the individual rates apply to the aggregated count\&.
+is assumed\&. Where more than one POLICY or rule specifies the same name, the connections counts for the policies are aggregated and the individual rates apply to the aggregated count\&.
+.sp
+Beginning with Shorewall 4\&.6\&.5, two\fI limit\fRs may be specified, separated by a comma\&. In this case, the first limit (\fIname1\fR,
+\fIrate1\fR, burst1) specifies the per\-source IP limit and the second limit specifies the per\-destination IP limit\&.
+.sp
+Example:
+\fBclient:10/sec:20,:60/sec:100\fR
 .RE
 .PP
 \fBCONNLIMIT\fR \- \fIlimit\fR[:\fImask\fR]

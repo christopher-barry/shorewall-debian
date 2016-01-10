@@ -1,10 +1,11 @@
 #
-# Shorewall6 version 4 - routes File
+# Shorewall6 -- /etc/shorewall6/routes
 #
 # For information about entries in this file, type "man shorewall6-routes"
 #
 # For additional information, see http://www.shorewall.net/MultiISP.html
-##############################################################################
+#
+###############################################################################
 # 
 # This file was added in Shorewall 4.4.15 and is used to define routes to be
 # added to provider routing tables.
@@ -38,6 +39,17 @@
 #     column must be omitted if blackhole, prohibit or unreachable is specified
 #     in the GATEWAY column.
 # 
+# OPTIONS (Optional)
+# 
+#     Added in Shorewall 5.0.2.
+# 
+#     Allowed options are:
+# 
+#     persistent
+# 
+#         If specified, the route remains in the provider's routing table even
+#         when the provider is disabled.
+# 
 # Files
 # 
 # /etc/shorewall6/routes
@@ -54,5 +66,5 @@
 # shorewall6-tcclasses(5), shorewall6-tcdevices(5), shorewall6-mangle(5),
 # shorewall6-tos(5), shorewall6-tunnels(5), shorewall6-zones(5)
 # 
-##############################################################################
-#PROVIDER		DEST			GATEWAY		DEVICE
+###############################################################################
+#PROVIDER		DEST			GATEWAY		DEVICE	OPTIONS

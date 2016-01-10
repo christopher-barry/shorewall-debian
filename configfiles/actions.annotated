@@ -1,13 +1,14 @@
 #
-# Shorewall6 version 4 - Actions File
-#
-# /etc/shorewall6/actions
+# Shorewall6 -- /etc/shorewall6/actions
 #
 # For information about entries in this file, type "man shorewall6-actions"
 #
 # Please see http://shorewall.net/Actions.html for additional information.
 #
-########################################################################################
+# Place '# ' below the 'C' in COMMENT followed by a comment describing
+# the action.
+#
+###############################################################################
 # 
 # This file allows you to define new ACTIONS for use in rules (see
 # shorewall6-rules(5)). You define the ip6tables rules to be performed in an
@@ -85,6 +86,5 @@
 #         built-in action is termiating (i.e., if the action is jumped to, the
 #         next rule in the chain is not evaluated).
 # 
-########################################################################################
-#ACTION    OPTIONS              COMMENT (place '# ' below the 'C' in comment followed by
-#                               v        a comment describing the action)
+###############################################################################
+#ACTION		OPTIONS		COMMENT

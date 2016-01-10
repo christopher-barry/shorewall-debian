@@ -26,10 +26,7 @@
 # 
 # The format is specified by a line as follows:
 # 
-#     [?]FORMAT {1|2}
-# 
-# The optional '?' was introduced in Shorewall 4.5.11 and ?FORMAT is the
-# preferred form; the form without the '?' is deprecated.
+#     ?FORMAT {1|2}
 # 
 # The columns in the file are as follows.
 # 
@@ -118,11 +115,11 @@
 # 
 #         Beginning with Shorewall 4.4.13:
 # 
-#           ● If a zone is given in the ZONES column, then the behavior is as if 
+#           ☆ If a zone is given in the ZONES column, then the behavior is as if 
 #             blacklist had been specified in the IN_OPTIONS column of
 #             shorewall6-zones(5).
 # 
-#           ● Otherwise, the option is ignored with a warning:
+#           ☆ Otherwise, the option is ignored with a warning:
 # 
 #                 WARNING: The 'blacklist' option is ignored on multi-zone
 #                 interfaces
@@ -176,6 +173,12 @@
 #         Shorewall-init; hairpin filtering is still applied. In this case, the
 #         above restrictions on the ZONE and OPTIONS columns are lifted.
 # 
+#     loopback
+# 
+#         Added in Shorewall 4.6.6. Designates the interface as the loopback
+#         interface. This option is assumed if the interface's physical name is
+#         'lo'. Only one interface man have the loopback option specified.
+# 
 #     mss=number
 # 
 #         Causes forwarded TCP SYN packets entering or leaving on this interface
@@ -198,10 +201,10 @@
 #         When optional is specified for an interface, shorewall6 will be silent
 #         when:
 # 
-#           ● a /proc/sys/net/ipv6/conf/ entry for the interface cannot be
+#           ☆ a /proc/sys/net/ipv6/conf/ entry for the interface cannot be
 #             modified.
 # 
-#           ● The first global IPv6 address of the interface cannot be obtained.
+#           ☆ The first global IPv6 address of the interface cannot be obtained.
 # 
 #         This option may not be specified together with required.
 # 
@@ -301,9 +304,9 @@
 #         Added in Shorewall 4.5.18. Causes all traffic between the firewall and
 #         hosts on the interface to be accepted. When this option is given:
 # 
-#           ● The ZONE column must contain '-'.
+#           ☆ The ZONE column must contain '-'.
 # 
-#           ● Only the following other options are allowed with unmanaged:
+#           ☆ Only the following other options are allowed with unmanaged:
 # 
 #             accept_ra
 #             forward
@@ -341,7 +344,7 @@
 # 
 #     FORMAT 2
 #     #ZONE   INTERFACE        OPTIONS
-#     -       br0              routeback
+#     -       br0              bridge
 # 
 ###############################################################################
 ?FORMAT 2

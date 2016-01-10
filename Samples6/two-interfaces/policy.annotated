@@ -60,8 +60,8 @@
 #     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
 #     the implicit intra-zone ACCEPT policy while "all+" does.
 # 
-# POLICY - {ACCEPT|DROP|REJECT|CONTINUE|QUEUE|NFQUEUE[(queuenumber)]|NONE}[:{
-#     default-action-or-macro|None}]
+# POLICY - {ACCEPT|DROP|REJECT|CONTINUE|QUEUE|NFQUEUE[(queuenumber1[:queuenumber2
+#     ])]|NONE}[:{default-action-or-macro[:level]|None}]
 # 
 #     Policy if no match from the rules file is found.
 # 
@@ -101,8 +101,13 @@
 #     NFQUEUE
 # 
 #         Queue the request for a user-space application using the
-#         nfnetlink_queue mechanism. If a queuenumber is not given, queue zero
-#         (0) is assumed.
+#         nfnetlink_queue mechanism. If a queuenumber1 is not given, queue zero
+#         (0) is assumed. Beginning with Shorewall 4.6.10, a second queue number
+#         (queuenumber2) may be given. This specifies a range of queues to use.
+#         Packets are then balanced across the given queues. This is useful for
+#         multicore systems: start multiple instances of the userspace program on
+#         queues x, x+1, .. x+n and use "x:x+n". Packets belonging to the same
+#         connection are put into the same nfqueue.
 # 
 #     CONTINUE
 # 
@@ -136,7 +141,13 @@
 #     If you don't want to log but need to specify the following column, place
 #     "-" here.
 # 
-# BURST:LIMIT (limit) - [{s|d}:[[name]:]]]rate/{second|minute}[:burst]
+# BURST:LIMIT (limit) - [-|limit]
+# 
+#     where limit is one of:
+# 
+#     [-|[{s|d}:[[name]:]]]rate/{sec|min|hour|day}[:burst]
+#     [name1]:rate1/{sec|min|hour|day}[:burst1],[name2]:rate2/{sec|min|hour|day}
+#     [:burst2]
 # 
 #     If passed, specifies the maximum TCP connection rate and the size of an
 #     acceptable burst. If not specified, TCP connections are not limited. If the
@@ -145,9 +156,16 @@
 #     When s: or d: is specified, the rate applies per source IP address or per
 #     destination IP address respectively. The name may be chosen by the user and
 #     specifies a hash table to be used to count matching connections. If not
-#     give, the name shorewall is assumed. Where more than one POLICY specifies
-#     the same name, the connections counts for the policies are aggregated and
-#     the individual rates apply to the aggregated count.
+#     give, the name shorewall is assumed. Where more than one POLICY or rule
+#     specifies the same name, the connections counts for the policies are
+#     aggregated and the individual rates apply to the aggregated count.
+# 
+#     Beginning with Shorewall 4.6.5, two limits may be specified, separated by a
+#     comma. In this case, the first limit (name1, rate1, burst1) specifies the
+#     per-source IP limit and the second limit specifies the per-destination IP
+#     limit.
+# 
+#     Example: client:10/sec:20,:60/sec:100
 # 
 # CONNLIMIT - limit[:mask]
 # 

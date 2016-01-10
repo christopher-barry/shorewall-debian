@@ -1,9 +1,9 @@
 #
-# Shorewall6 version 4 - Secmarks File
+# Shorewall6 -- /etc/shorewall6/secmarks
 #
 # For information about entries in this file, type "man shorewall-secmarks"
 #
-############################################################################################################
+####################################################################################################
 # 
 # Important
 # 
@@ -18,7 +18,7 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# SECMARK - {SAVE|RESTORE|context|[?]COMMENT comment}
+# SECMARK - {SAVE|RESTORE|context|?COMMENT}
 # 
 #     SAVE
 # 
@@ -36,19 +36,14 @@
 # 
 #         An SELinux context.
 # 
-#     [?]COMMENT
+#     ?COMMENT
 # 
 #         The remainder of the line is treated as a comment which is attached to
-#         subsequent rules until another COMMENT line is found or until the end
+#         subsequent rules until another ?COMMENT line is found or until the end
 #         of the file is reached. To stop adding comments to rules, use a line
-#         with only the word COMMENT.
+#         with only the word ?COMMENT.
 # 
-#         Note
-# 
-#         Beginning with Shorewall 4.5.11, ?COMMENT is a synonym for COMMENT and
-#         is preferred.
-# 
-# CHAIN:STATE (chain) - {P|I|F|O|T}[:{N|I|U|IU|NI|NU|NIU|NUI:E|ER}]
+# CHAIN - {P|I|F|O|T}[:{N|I|U|IU|NI|NU|NIU|NUI:E|ER}]
 # 
 #     This column determines the CHAIN where the SELinux context is to be
 #     applied:
@@ -75,6 +70,8 @@
 #     :IU - INVALID or UNTRACKED connection
 #     :NU - NEW or UNTRACKED connection
 #     :NIU - NEW, INVALID or UNTRACKED connection.
+# 
+#     This column was formerly labelled CHAIN:STATE.
 # 
 # SOURCE - {-interface|[interface:]address-or-range[,address-or-range]...}[
 #     exclusion]
@@ -121,7 +118,7 @@
 #     Beginning with Shorewall 4.5.12, this column can accept a comma-separated
 #     list of protocols.
 # 
-# PORT(S) (dport) - [-|port-name-number-or-range[,port-name-number-or-range]...]
+# DPORT - [-|port-name-number-or-range[,port-name-number-or-range]...]
 # 
 #     Optional destination Ports. A comma-separated list of Port names (from
 #     services(5)), port numbers or port ranges; if the protocol is icmp, this
@@ -134,22 +131,21 @@
 #     without the leading "--" (example bit for bit-torrent). If no PORT is
 #     given, ipp2p is assumed.
 # 
-#     This column is ignored if PROTOCOL = all but must be entered if any of the
+#     This column is ignored if PROTO = all but must be entered if any of the
 #     following field is supplied. In that case, it is suggested that this field
 #     contain "-"
 # 
-# SOURCE PORT(S) (sport) - [-|port-name-number-or-range[,
-#     port-name-number-or-range]...]
+# SPORT - [-|port-name-number-or-range[,port-name-number-or-range]...]
 # 
 #     Optional source port(s). If omitted, any source port is acceptable.
 #     Specified as a comma-separated list of port names, port numbers or port
 #     ranges.
 # 
 #     Beginning with Shorewall 4.5.15, you may place '=' in this column, provided
-#     that the DEST PORT(S) column is non-empty. This causes the rule to match
-#     when either the source port or the destination port in a packet matches one
-#     of the ports specified in DEST PORTS(S). Use of '=' requires multi-port
-#     match in your iptables and kernel.
+#     that the DPORT column is non-empty. This causes the rule to match when
+#     either the source port or the destination port in a packet matches one of
+#     the ports specified in DPORT. Use of '=' requires multi-port match in your
+#     iptables and kernel.
 # 
 # USER - [!][user-name-or-number][:group-name-or-number]
 # 
@@ -173,6 +169,8 @@
 #     !:kids
 # 
 #         program must not be run by a member of the 'kids' group
+# 
+#     This column was formerly labelled USER/GROUP.
 # 
 # MARK - [!]value[/mask][:C]
 # 
@@ -214,12 +212,10 @@
 # 
 # /etc/shorewall6/secmarks:
 # 
-# #SECMARK                              CHAIN:     SOURCE  DEST       PROTO   DEST       SOURCE      USER/     MARK
-# #                                     STATE                                 PORT(S)    PORT(S)     GROUP
+# #SECMARK                              CHAIN      SOURCE  DEST       PROTO   DPORT      SPORT       USER      MARK
 # system_u:object_r:mysqld_packet_t:s0  I:N        lo      ::1        tcp     3306
 # SAVE                                  I:N
 # RESTORE                               I:ER
 # 
-############################################################################################################
-#SECMARK			CHAIN	SOURCE		DEST		PROTO	DEST	SOURCE		MARK
-#										PORT(S)	PORT(S)
+####################################################################################################
+#SECMARK		CHAIN	SOURCE		DEST		PROTO	DPORT	SPORT	USER	MARK

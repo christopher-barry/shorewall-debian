@@ -1,7 +1,8 @@
 #
-# Shorewall6 version 4 - Stopped Rules File
+# Shorewall6 -- /etc/shorewall6/stoppedrules
 #
-# For information about entries in this file, type "man shorewall6-stoppedrules"
+# For information about entries in this file,
+# type "man shorewall6-stoppedrules"
 #
 # The manpage is also online at
 # http://www.shorewall.net/manpages/shorewall6-stoppedrules.html
@@ -10,5 +11,4 @@
 # information.
 #
 ###############################################################################
-#ACTION		SOURCE			DEST		PROTO	DEST	SOURCE
-#								PORT(S)	PORT(S)
+#ACTION		SOURCE			DEST		PROTO	DPORT	SPORT
