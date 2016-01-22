@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  5 . 0 . 3 . 1
+	               S H O R E W A L L  5 . 0 . 4
                        ----------------------------
-                      J a n u a r y  0 3 ,  2 0 1 6
+                      J a n u a r y  2 2 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,26 +14,47 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-5.0.3.1
+1)  There previously existed a slight possibility that starting both
+    Shorewall and Shorewall6 simultaneously could lead to a failure
+    such as this one:
 
-1)  Previously, the compiler flagged DROP as an error in the mangle
-    file. That action is now handled properly.
+    Dec 18 13:18:35 elmo.example.com shorewall6[1889]: Loading Modules...
+    Dec 18 13:18:38 elmo.example.com shorewall6[1889]: Another app is
+       currently holding the xtables lock. Perhaps you want to use 
+       the -w option?
+    Dec 18 13:18:40 elmo.example.com shorewall6[1889]:
+       ERROR: Cannot Create Mangle chain fooX2349
+    Dec 18 13:18:40 elmo.example.com systemd[1]: shorewall6.service:
+        main process exited, code=exited, status=255/n/a
 
-5.0.3
+    That problem can no longer occur.
 
-1)  This release includes defect repair through Shorewall 5.0.2.1.
+2)  Previously, when a source- or destination-specific RATE was
+    specified on a logging rule (LOG, ULOG or NFLOG), the compiler
+    incorrectly applied both the specified RATE as well as the global
+    LOGLIMIT. That has been corrected so that only the specified RATE
+    is applied.
 
-2)  To avoid interference with other subsystem settings, all released
-    shorewall6.conf files now specify IP_FORWARDING=keep. Previously,
-    the settings were inconsistent among the various sample files.
+3)  Previously, when @caller was used within an action body, the
+    compiler would not create unique ip[6]tables chains for each
+    invocation of the action, even though the invocations had different
+    values of @caller. Now, each invocation of such an action creates a
+    separate ip[6]tables chain for each unique caller.
 
-3)  This release includes more fixes to the configure, install and
-    uninstall scripts (Matt Darfeuille).
+4)  Previously, the 'status -i' command produced error output when
+    there were no optional interfaces. That erroneous output is no
+    longer produced.
 
-4)  Previously, Shorewall6 rejected rules in which the SOURCE contained
-    both an interface name and a MAC address (in Shorewall
-    format). That defect has been corrected so that such rules are now
-    accepted.
+5)  Traffic shaping configurations that use red or codel will now
+    produce consistent compiled scripts. Previously, these
+    configurations could produce equivalent but different scripts on
+    consecutive compilations.
+
+6)  Previously, the Shoreall compiler enforced old rules about where
+    country codes could appear. As those restrictions have now been
+    removed, the compiler no longer issues messages such as these:
+
+      ERROR: A countrycode list may not be used in this context
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -46,56 +67,44 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  The MODULESDIR option in shorewall[6].conf has been extended to
-    allow specification of additional directories to be added to those
-    defaulted by Shorewall. If the specified value begins with "+",
-    then the remainder of the value is assumed to be a colon-separated
-    list of directory names that are relative to /lib/modules/`uname
-    -r`.
+1)  Shorewall Init is now supported on OpenWRT.
 
-    For example, to load the xt_RTPENGINE module, you would create
-    /etc/shorewall/modules as follows:
+2)  The IPTABLES and IP6TABLES actions in the rules and mangle files
+    can now correctly handle logging targets (LOG, ULOG and
+    NFLOG). Previously, an attempt to use these targets would result in
+    an error similar to:
 
-        INCLUDE /usr/share/shorewall/modules
-	loadmodule xt_RTPENGINE
+       ERROR: LOG requires a level
 
-    You would then set MODULESDIR as:
+3)  To further reduce the possibility of failures caused by Shorewall
+    and Shorewall6 starting concurrently, a new WAIT_OPTION capability
+    has been implemented. On systems with that capability, all
+    'iptables' and 'ip6tables' commands will use the --wait option.
 
-    	MODULESDIR="+extra/rtpengine"
+4)  The .214.service files have been removed and the .service files
+    (with the exception of Debian) have been updated to use the
+    network-pre.target (Tuomo Soini).
 
-2)  Previously, some of the column headings in the configuration files
-    required two lines to display. For example, in the rules file:
+5)  Shorewall, Shorewall6, Shorewall-lite and Shorewall6-lite now
+    install /etc/sysconfig/<product> files for specifying
+    start/restart/reload options on those distributions that use
+    /etc/sysconfig.
 
-    #ACTION  SOURCE    DESTINATION PROTOCOL	DEST      SOURCE
-    #                                           PORT(S)   PORT(S)
+6)  The mangle file now supports an DIVERTHA action that provides
+    support for HAProxy.
 
-    To use the alternative input format for such two-word columns, a
-    one-word abbreviation was required. For example, DEST PORTS(S) is
-    abbreviated as 'dport' and SOURCE PORT(S) is abbreviated as
-    'sport'.
+    To setup the HAProxy configuration described at
+    http://www.loadbalancer.org/blog/setting-up-haproxy-with-transparent-mode-on-centos-6-x,
+    place this entry in shorewall-providers(5):
+    
 
-    The two-line column headings are also a nuisance for Emacs users
-    because when the <tab> key is struck, Emacs positions the cursor
-    based on the white space in the preceding line. So if an ACTION is
-    typed and the <tab> key is then depressed, rather than position the
-    cursor in the SOURCE column, Emacs positions it in the DEST PORT(S)
-    column.
+      #NAME	NUMBER   MARK    DUPLICATE  INTERFACE	GATEWAY   OPTIONS
+      TProxy    1        -       -          lo          -         tproxy 
 
-    To eliminate these issues, the multi-word columns have been
-    relabled to use their abbreviated names. Note that this relabelling
-    does not require modification of existing configurations. It simply
-    means that the sample files released with Shorewall and the
-    manpages that describe column-oriented files now use the
-    abbreviated names rather than the previous names (Tuomo Soini and
-    Tom Eastep).
+      and use this DIVERTHA entry:
 
-3)  ADD rules may now include a timeout value which will override
-    any timeout that was specified when the related ipset was created.
-
-
-4)  Commas are now allowed in log tags when LOGTAGONLY=Yes. Previously,
-    characters after the first comma in a log tag were discarded when
-    LOGTAGONLY=Yes.
+      #ACTION         SOURCE          DEST            PROTO  ...
+      DIVERTHA        -               -               tcp
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -105,7 +114,7 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     http://www.shorewall.net/pub/shorewall/4.5/shorewall-4.5.21/releasenotes.txt
 
 2)  It is strongly recommended that you first upgrade your installation
-    to a 4.6 release >= 5.6.12 prior to upgrading to Shorewall 5.0.
+    to a 4.6 release >= 4.6.12 prior to upgrading to Shorewall 5.0.
 
     Once you are on the Shorewall 4.6 release:
 
@@ -243,9 +252,81 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
 ----------------------------------------------------------------------------
-            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 2
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 3
 ----------------------------------------------------------------------------
 
+1)  This release includes defect repair through Shorewall 5.0.2.1.
+
+2)  To avoid interference with other subsystem settings, all released
+    shorewall6.conf files now specify IP_FORWARDING=keep. Previously,
+    the settings were inconsistent among the various sample files.
+
+3)  This release includes more fixes to the configure, install and
+    uninstall scripts (Matt Darfeuille).
+
+4)  Previously, Shorewall6 rejected rules in which the SOURCE contained
+    both an interface name and a MAC address (in Shorewall
+    format). That defect has been corrected so that such rules are now
+    accepted.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 2
+----------------------------------------------------------------------------
+
+1)  The MODULESDIR option in shorewall[6].conf has been extended to
+    allow specification of additional directories to be added to those
+    defaulted by Shorewall. If the specified value begins with "+",
+    then the remainder of the value is assumed to be a colon-separated
+    list of directory names that are relative to /lib/modules/`uname
+    -r`.
+
+    For example, to load the xt_RTPENGINE module, you would create
+    /etc/shorewall/modules as follows:
+
+        INCLUDE /usr/share/shorewall/modules
+	loadmodule xt_RTPENGINE
+
+    You would then set MODULESDIR as:
+
+    	MODULESDIR="+extra/rtpengine"
+
+2)  Previously, some of the column headings in the configuration files
+    required two lines to display. For example, in the rules file:
+
+    #ACTION  SOURCE    DESTINATION PROTOCOL	DEST      SOURCE
+    #                                           PORT(S)   PORT(S)
+
+    To use the alternative input format for such two-word columns, a
+    one-word abbreviation was required. For example, DEST PORTS(S) is
+    abbreviated as 'dport' and SOURCE PORT(S) is abbreviated as
+    'sport'.
+
+    The two-line column headings are also a nuisance for Emacs users
+    because when the <tab> key is struck, Emacs positions the cursor
+    based on the white space in the preceding line. So if an ACTION is
+    typed and the <tab> key is then depressed, rather than position the
+    cursor in the SOURCE column, Emacs positions it in the DEST PORT(S)
+    column.
+
+    To eliminate these issues, the multi-word columns have been
+    relabled to use their abbreviated names. Note that this relabelling
+    does not require modification of existing configurations. It simply
+    means that the sample files released with Shorewall and the
+    manpages that describe column-oriented files now use the
+    abbreviated names rather than the previous names (Tuomo Soini and
+    Tom Eastep).
+
+3)  ADD rules may now include a timeout value which will override
+    any timeout that was specified when the related ipset was created.
+
+
+4)  Commas are now allowed in log tags when LOGTAGONLY=Yes. Previously,
+    characters after the first comma in a log tag were discarded when
+    LOGTAGONLY=Yes.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 2
+----------------------------------------------------------------------------
 5.0.2.1
 
 1)  When processing the 'dump' command, the CLI now uses 'netstat' to

@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '5.0.3.1'
+    VERSION => '5.0.4'
 };
 
 my %params;
