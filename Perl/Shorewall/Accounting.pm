@@ -37,7 +37,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '5.0.0';
+our $VERSION = '5.0_4';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
@@ -291,7 +291,8 @@ sub process_accounting_rule1( $$$$$$$$$$$ ) {
 			    '' ,
 			    $target ,
 			    '' ,
-			    $disposition ,
+		            $disposition ,
+		            '' ,
 			    ''  );
 	    }
 	}
@@ -386,6 +387,7 @@ sub process_accounting_rule1( $$$$$$$$$$$ ) {
 	$target ,
 	'' ,
 	$disposition ,
+	'' ,
 	'' ;
 
     if ( $rule2 || $jump ) {
@@ -414,7 +416,8 @@ sub process_accounting_rule1( $$$$$$$$$$$ ) {
 		    '' ,
 		    '' ,
 		    '' ,
-		    '' ,
+	            '' ,
+	            '' ,
 		    '' );
     }
 

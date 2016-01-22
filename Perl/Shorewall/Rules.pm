@@ -60,7 +60,7 @@ our @EXPORT = qw(
 	       );
 
 our @EXPORT_OK = qw( initialize process_rule );
-our $VERSION = '5.0.3';
+our $VERSION = '5.0_4';
 #
 # Globals are documented in the initialize() function
 #
@@ -78,6 +78,10 @@ use constant { NULL_SECTION          => 0x00,
 	       UNTRACKED_SECTION     => 0x20,
 	       NEW_SECTION           => 0x40,
 	       DEFAULTACTION_SECTION => 0x80 };
+#
+# Number of elements in the action tuple
+#
+use constant { ACTION_TUPLE_ELEMENTS => 5 };
 #
 # Section => name function 
 #
@@ -424,6 +428,7 @@ sub print_policy($$$$) {
 sub use_policy_action( $$ );
 sub normalize_action( $$$ );
 sub normalize_action_name( $ );
+sub normalize_single_action( $ );
 
 sub process_default_action( $$$$ ) {
     my ( $originalpolicy, $policy, $default, $level ) = @_;
@@ -441,7 +446,7 @@ sub process_default_action( $$$$ ) {
 	if ( "\L$default" eq 'none' ) {
 	    if ( supplied $param || ( supplied $level && $level ne 'none' ) ) {
 		if ( $default_option ) {
-		    fatal_error "Invalid setting (originalpolicy) for $policy";
+		    fatal_error "Invalid setting ($originalpolicy) for $policy";
 		} else {
 		    fatal_error "Invalid policy ($originalpolicy)";
 		}
@@ -560,7 +565,7 @@ sub process_a_policy() {
 
     require_capability 'AUDIT_TARGET', ":audit", "s" if $audit;
 
-    my ( $policy, $default, $level, $remainder ) = split( /:/, $originalpolicy, 4 );
+    my ( $policy, $default, $level, undef, $remainder ) = split( /:/, $originalpolicy, ACTION_TUPLE_ELEMENTS );
 
     fatal_error "Invalid or missing POLICY ($originalpolicy)" unless $policy;
 
@@ -944,7 +949,7 @@ sub complete_standard_chain ( $$$$ ) {
 	( $policy, $loglevel, $defaultaction ) = @{$policychainref}{'policy', 'loglevel', 'default' };
 	$stdchainref->{origin} = $policychainref->{origin};
     } elsif ( $defaultaction !~ /:/ ) {
-	$defaultaction = join(":", $defaultaction, 'none', '', '' );
+	$defaultaction = normalize_single_action( $defaultaction );
     }
 
 
@@ -1169,14 +1174,15 @@ sub finish_section ( $ ) {
 #
 # Create a normalized action name from the passed pieces.
 #
-# Internally, action invocations are uniquely identified by a 4-tuple that
-# includes the action name, log level, log tag and params. The pieces of the tuple
-# are separated by ":".
+# Internally, action invocations are uniquely identified by a 5-tuple that
+# includes the action name, log level, log tag, calling chain and params.
+# The pieces of the tuple are separated by ":".
 #
 sub normalize_action( $$$ ) {
     my $action = shift;
     my $level  = shift;
     my $param  = shift;
+    my $caller = '';     #We assume that the function doesn't use @CALLER
 
     ( $level, my $tag ) = split ':', $level;
 
@@ -1185,13 +1191,23 @@ sub normalize_action( $$$ ) {
     $param = ''     unless defined $param;
     $param = ''     if $param eq '-';
 
-    join( ':', $action, $level, $tag, $param );
+    join( ':', $action, $level, $tag, $caller, $param );
+}
+
+#
+# Add the actual caller into an existing normalised name
+#
+sub insert_caller($$) {
+    my ( $normalized, $caller ) = @_;
+
+    my ( $action, $level, $tag, undef, $param ) = split /:/, $normalized;
+
+    join( ':', $action, $level, $tag, $caller, $param );
 }
 
 #
 # Accepts a rule target and returns a normalized tuple
 #
-
 sub normalize_action_name( $ ) {
     my $target = shift;
     my ( $action, $loglevel) = split_action $target;
@@ -1200,10 +1216,17 @@ sub normalize_action_name( $ ) {
 }
 
 #
+# Create an action tuple from a single target name
+#
+sub normalize_single_action( $ ) {
+    join(":", $_[0], 'none', '', '', '' );
+}
+
+#
 # Produce a recognizable target from a normalized action
 #
 sub external_name( $ ) {
-    my ( $target, $level, $tag, $params ) = split /:/, shift, 4;
+    my ( $target, $level, $tag, undef, $params ) = split /:/, shift, ACTION_TUPLE_ELEMENTS;
 
     $target  = join( '', $target, '(', $params , ')' ) if $params;
     $target .= ":$level" if $level && $level ne 'none';
@@ -1333,7 +1356,7 @@ sub createsimpleactionchain( $ ) {
 sub createactionchain( $ ) {
     my $normalized = shift;
 
-    my ( $target, $level, $tag, $param ) = split /:/, $normalized, 4;
+    my ( $target, $level, $tag, $caller, $param ) = split /:/, $normalized, ACTION_TUPLE_ELEMENTS;
 
     assert( defined $param );
 
@@ -1689,11 +1712,15 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ );
 #
 # Populate an action invocation chain. As new action tuples are encountered,
 # the function will be called recursively by process_rule().
+# 
+# Note that the first two parameters are passed by reference and may be
+# modified by this function.
 #
-sub process_action($$) {
-    my ( $chainref, $caller ) = @_;
-    my $wholeaction = $chainref->{action};
-    my ( $action, $level, $tag, $param ) = split /:/, $wholeaction, 4;
+sub process_action(\$\$$) {
+    my ( $wholeactionref, $chainrefref, $caller ) = @_;
+    my $wholeaction = ${$wholeactionref};
+    my $chainref    = ${$chainrefref};
+    my ( $action, $level, $tag, undef, $param ) = split /:/, $wholeaction, ACTION_TUPLE_ELEMENTS;
 
     if ( $targets{$action} & BUILTIN ) {
 	$level = '' if $level =~ /none!?/;
@@ -1771,10 +1798,48 @@ sub process_action($$) {
 
     #
     # Pop the action parameters
-    # Caller should delete record of this chain if the action parameters
-    # were modified (and this function returns true
     #
-    pop_action_params( $oldparms );
+    if ( ( my $result = pop_action_params( $oldparms ) ) & PARMSMODIFIED ) {
+	#
+	# The action modified its parameters -- delete it from %usedactions
+	#
+	delete $usedactions{$wholeaction};
+    } elsif ( $result & USEDCALLER ) {
+	#
+	# The chain uses @CALLER but doesn't modify the action parameters.
+	# We need to see if this caller has already invoked this action
+	#
+	my $renormalized_action = insert_caller( $wholeaction, $caller );
+	my $chain1ref           = $usedactions{$renormalized_action};
+
+	if ( $chain1ref ) {
+	    #
+	    # It has -- use the prior chain
+	    #
+	    ${$chainrefref} = $chain1ref;
+	    #
+	    # We leave the new chain in place but delete it from %usedactions below
+	    # The optimizer will drop it from the final ruleset.
+	    #
+	} else {
+	    #
+	    # This is the first time that the current chain has invoked this action
+	    #
+	    $usedactions{$renormalized_action} = $chainref;
+	    #
+	    # Update the action member
+	    #
+	    $chainref->{action} = $renormalized_action;
+	}
+	#
+	# Delete the usedactions entry with the original normalized key
+	#
+	delete $usedactions{$wholeaction};
+	#
+	# New normalized target
+	#
+	${$wholeactionref} = $renormalized_action;
+    }
 }
 
 #
@@ -1907,11 +1972,14 @@ sub process_actions() {
 # Create a policy action if it doesn't already exist
 #
 sub use_policy_action( $$ ) {
-    my $ref = use_action( $_[0] );
+    my ( $normalized_target, $caller ) = @_;
+
+    my $ref = use_action( $normalized_target );
+
     if ( $ref ) {
-	delete $usedactions{$ref->{action}} if process_action( $ref, $_[1] );
+	process_action( $normalized_target, $ref, $caller );
     } else {
-	$ref = $usedactions{$_[0]};
+	$ref = $usedactions{$normalized_target};
     }
 
     $ref;
@@ -2264,6 +2332,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
     my $matches     = $rule;
     my $raw_matches = '';
     my $exceptionrule = '';
+    my $usergenerated;
 
     if ( $inchain = defined $chainref ) {
 	( $inaction, undef, undef, undef ) = split /:/, $normalized_action = $chainref->{action}, 4 if $chainref->{action};
@@ -2286,6 +2355,8 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
     }
 
     fatal_error "Unknown ACTION ($action)" unless $actiontype;
+
+    $usergenerated = $actiontype & IPTABLES;
 
     if ( $actiontype == MACRO ) {
 	#
@@ -2333,15 +2404,16 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 	$param = $param eq '' ? 'drop' : $param;
 	fatal_error "Invalid AUDIT type ($param) -- must be 'accept', 'drop' or 'reject'" unless $param =~ /^(?:accept|drop|reject)$/;
 	$actiontype = STANDARD;
-    } elsif ( $actiontype & NFLOG ) {
-	validate_level( $action );
-	$loglevel = supplied $loglevel ? join( ':', $action, $loglevel ) : $action;
-	$action   = 'LOG';
-    } elsif ( ! ( $actiontype & (ACTION | INLINE | IPTABLES | TARPIT ) ) ) {
-	fatal_error "'builtin' actions may only be used in INLINE rules" if $actiontype == USERBUILTIN;
-	fatal_error "The $basictarget TARGET does not accept a parameter" unless $param eq '';
+    } elsif ( ! $usergenerated ) {
+	if ( $actiontype & NFLOG ) {
+	    validate_level( $action );
+	    $loglevel = supplied $loglevel ? join( ':', $action, $loglevel ) : $action;
+	    $action   = 'LOG';
+	} elsif ( ! ( $actiontype & (ACTION | INLINE | IPTABLES | TARPIT ) ) ) {
+	    fatal_error "'builtin' actions may only be used in INLINE rules" if $actiontype == USERBUILTIN;
+	    fatal_error "The $basictarget TARGET does not accept a parameter" unless $param eq '';
+	}
     }
-
     #
     # We can now dispense with the postfix character
     #
@@ -2657,7 +2729,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
     #
     # Handle actions
     #
-    my $delete_action;
+    my $actionchain; #Name of the action chain
 
     if ( $actiontype & ACTION ) {
 	#
@@ -2673,18 +2745,29 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 	    #
 	    my $savestatematch = $statematch;
 	    $statematch        = '';
-
-	    $delete_action = process_action( $ref, $chain );
+	    #
+	    # process_action may modify both $normalized_target and $ref!!!
+	    #
+	    process_action( $normalized_target, $ref, $chain );
+	    #
+	    # Capture the name of the action chain
+	    #
+	    $actionchain = $ref->{name};
 	    #
 	    # Processing the action may determine that the action or one of it's dependents does NAT or HELPER, so:
 	    #
 	    #    - Refresh $actiontype
 	    #    - Create the associated nat and/or table chain if appropriate.
 	    #
-	    ensure_chain( 'nat', $ref->{name} ) if ( $actiontype = $targets{$basictarget} ) & NATRULE;
-	    ensure_chain( 'raw', $ref->{name} ) if ( $actiontype & HELPER );
+	    ensure_chain( 'nat', $actionchain ) if ( $actiontype = $targets{$basictarget} ) & NATRULE;
+	    ensure_chain( 'raw', $actionchain ) if ( $actiontype & HELPER );
 
 	    $statematch = $savestatematch;
+	} else {
+	    #
+	    # We've seen this tuple before
+	    #
+	    $actionchain = $usedactions{$normalized_target}->{name};
 	}
 
 	$action = $basictarget; # Remove params, if any, from $action.
@@ -2804,7 +2887,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 			    $ports,
 			    $sports,
 			    $sourceref,
-			    ( $actiontype & ACTION ) ? $usedactions{$normalized_target}->{name} : '',
+			    ( $actiontype & ACTION ) ? $actionchain : '',
 			    $inchain ? $chain : '' ,
 			    $user ,
 			    $rule ,
@@ -2826,7 +2909,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 				     $proto,
 				     $ports,
 				     $origdest,
-				     ( $actiontype & ACTION ) ? $usedactions{$normalized_target}->{name} : '',
+				     ( $actiontype & ACTION ) ? $actionchain : '',
 				     $action,
 				     $sourceref,
 				     $inaction ? $chain : '',
@@ -2883,7 +2966,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
     unless ( $actiontype & NATONLY ) {
 
 	if ( $actiontype & ACTION ) {
-	    $action = $usedactions{$normalized_target}{name};
+	    $action = $actionchain;
 	    $loglevel = '';
 	}
 
@@ -2909,11 +2992,10 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 		     $action ,
 		     $loglevel ,
 		     $log_action ,
-		     $exceptionrule )
+		     $exceptionrule ,
+		     $usergenerated && ! $loglevel )
 	    unless unreachable_warning( $wildcard || $section == DEFAULTACTION_SECTION, $chainref );
     }
-
-    delete $usedactions{$normalized_target} if $delete_action;
 
     return 1;
 }
