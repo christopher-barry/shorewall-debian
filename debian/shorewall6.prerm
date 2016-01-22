@@ -11,9 +11,9 @@ case "$1" in
             else
                 /etc/init.d/shorewall6 stop
             fi
-        elif [ -x "/bin/systemctl" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
+        elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
         then
-            systemctl stop shorewall.service
+            deb-systemd-invoke stop shorewall.service
         fi
         ;;
     upgrade|deconfigure|failed-upgrade)
