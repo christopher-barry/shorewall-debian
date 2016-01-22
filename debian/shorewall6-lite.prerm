@@ -3,11 +3,17 @@
 case "$1" in
     # do not stop the firewall during an upgrade
     remove)
-        if [ -x "/usr/sbin/invoke-rc.d" ]
+        if [ -f "/etc/init.d/shorewall6-lite" ]
         then
-            invoke-rc.d shorewall6-lite stop        
-        else
-            /etc/init.d/shorewall6-lite stop
+            if [ -x "/usr/sbin/invoke-rc.d" ]
+            then
+                invoke-rc.d shorewall6-lite stop
+            else
+                /etc/init.d/shorewall6-lite stop
+            fi
+        elif [ -x "/bin/systemctl" ] && [ -f "/lib/systemd/system/shorewall6-lite.service" ]
+        then
+            systemctl stop shorewall6-lite.service
         fi
         ;;
     upgrade|deconfigure|failed-upgrade)
