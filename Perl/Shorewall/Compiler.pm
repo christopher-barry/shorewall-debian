@@ -45,7 +45,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '5.0.0';
+our $VERSION = '5.0_0';
 
 our $export;
 

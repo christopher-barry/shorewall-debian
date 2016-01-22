@@ -42,7 +42,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '5.0.0';
+our $VERSION = '5.0_4';
 
 use constant { NOMARK    => 0 ,
 	       SMALLMARK => 1 ,
@@ -227,6 +227,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
     our $designator;
     our $ttl            = 0;
     my $fw              = firewall_zone;
+    my $usergenerated;
 
     sub handle_mark_param( $$ ) {
 	my ( $option, $marktype ) = @_;
@@ -290,7 +291,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 			     "$target $option " . join( '/', in_hex( $markval ) , $mask ) ,
 			     '',
 			     $target ,
-			     $exceptionrule );
+			     $exceptionrule ,
+			     ''  );
 	    }
 
 	    $done = 1;
@@ -452,6 +454,27 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 	    },
 	},
 
+	DIVERTHA   => {
+	    defaultchain   => REALPREROUTING,
+	    allowedchains  => PREROUTING | REALPREROUTING,
+	    minparams      => 0,
+	    maxparams      => 0,
+	    function       => sub () {
+		fatal_error 'DIVERTHA is only allowed in the PREROUTING chain' if $designator && $designator != PREROUTING;
+		my $mark = in_hex( $globals{TPROXY_MARK} ) . '/' . in_hex( $globals{TPROXY_MARK} );
+
+		unless ( $divertref ) {
+		    $divertref = new_chain( 'mangle', 'divert' );
+		    add_ijump( $divertref , j => 'MARK', targetopts => "--set-mark $mark"  );
+		    add_ijump( $divertref , j => 'ACCEPT' );
+		}
+
+		$target = 'divert';
+
+		$matches = '-m socket ';
+	    },
+	},
+
 	DROP       => {
 	    defaultchain   => 0,
 	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
@@ -534,7 +557,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 		my $target_type = $builtin_target{$tgt};
 		fatal_error "Unknown target ($tgt)" unless $target_type;
 		fatal_error "The $tgt TARGET is not allowed in the mangle table" unless $target_type & MANGLE_TABLE;
-		$target = $params;
+		$target        = $params;
+		$usergenerated = 1;
 	    },
 	},
 
@@ -549,7 +573,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 		my $target_type = $builtin_target{$tgt};
 		fatal_error "Unknown target ($tgt)" unless $target_type;
 		fatal_error "The $tgt TARGET is not allowed in the mangle table" unless $target_type & MANGLE_TABLE;
-		$target = $params;
+		$target        = $params;
+		$usergenerated = 1;
 	    },
 	},
 
@@ -860,7 +885,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$ ) {
 					 $target,
 					 '' ,
 					 $target ,
-					 $exceptionrule ) )
+					 $exceptionrule ,
+					 $usergenerated ) )
 	     && $device ) {
 	    #
 	    # expand_rule() returns destination device if any
@@ -2928,7 +2954,9 @@ sub process_traffic_shaping() {
 
 			my ( $options, $redopts ) = ( '', $tcref->{redopts} );
 
-			while ( my ( $option, $type ) = each %validredoptions ) {
+			for my $option ( sort keys %validredoptions ) {
+			    my $type = $validredoptions{$option};
+
 			    if ( my $value = $redopts->{$option} ) {
 				if ( $type == RED_NONE ) {
 				    $options = join( ' ', $options, $option ) if $value;
@@ -2945,7 +2973,9 @@ sub process_traffic_shaping() {
 
 			my ( $options, $codelopts ) = ( '', $tcref->{codelopts} );
 
-			while ( my ( $option, $type ) = each %validcodeloptions ) {
+			for my $option ( sort keys %validcodeloptions ) {
+			    my $type = $validcodeloptions{$option};
+
 			    if ( my $value = $codelopts->{$option} ) {
 				if ( $type == CODEL_NONE ) {
 				    $options = join( ' ', $options, $option );
@@ -3128,6 +3158,7 @@ sub process_secmark_rule1( $$$$$$$$$ ) {
 		 $target ,
 		 '' ,
 		 $disposition,
+		 '' ,
 		 '' );
 
     progress_message "Secmarks rule \"$currentline\" $done";

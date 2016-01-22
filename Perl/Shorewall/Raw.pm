@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_conntrack );
 our @EXPORT_OK = qw( handle_helper_rule );
-our $VERSION = '4.6_10';
+our $VERSION = '5.0_4';
 
 our %valid_ctevent = ( new        => 1,
 		       related    => 1,
@@ -97,6 +97,8 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
     if ( $action =~ /^(?:NFLOG|ULOG)/ ) {
 	$action = join( ":" , 'LOG', $action );
     }
+
+    my $usergenerated;
 
     if ( $action eq 'NOTRACK' ) {
 	#
@@ -204,7 +206,8 @@ sub process_conntrack_rule( $$$$$$$$$$ ) {
 		 $action ,
 		 $level || '' ,
 		 $disposition ,
-		 $exception_rule );
+		 $exception_rule ,
+		 $usergenerated && ! $level );
 
     progress_message "  Conntrack rule \"$currentline\" $done";
 }
@@ -247,6 +250,7 @@ sub handle_helper_rule( $$$$$$$$$$$ ) {
 			 $action_target ,
 			 '',
 			 'CT' ,
+			 '' ,
 			 '' );
 	} else {
 	    expand_rule( ensure_raw_chain( notrack_chain( $sourceref->{name} ) ) ,
@@ -261,6 +265,7 @@ sub handle_helper_rule( $$$$$$$$$$$ ) {
 			 $action_target ,
 			 '' ,
 			 'CT' ,
+			 '' ,
 			 '' );
 	}
     }

@@ -280,7 +280,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0.3';
+our $VERSION = '5.0_4';
 
 #
 # Chain Table
@@ -5753,8 +5753,6 @@ sub match_source_net( $;$\$ ) {
     }
 
     if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
-	fatal_error "A countrycode list may not be used in this context" if $restriction & ( OUTPUT_RESTRICT | POSTROUTE_RESTRICT );
-
 	require_capability 'GEOIP_MATCH', 'A country-code', '';
 
 	load_isocodes unless %isocodes;
@@ -5842,8 +5840,6 @@ sub imatch_source_net( $;$\$ ) {
     }
 
     if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
-	fatal_error "A countrycode list may not be used in this context" if $restriction & ( OUTPUT_RESTRICT | POSTROUTE_RESTRICT );
-
 	require_capability 'GEOIP_MATCH', 'A country-code', '';
 
 	load_isocodes unless %isocodes;
@@ -5928,8 +5924,6 @@ sub match_dest_net( $;$ ) {
     }
 
     if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
-	fatal_error "A countrycode list may not be used in this context" if $restriction & (PREROUTE_RESTRICT | INPUT_RESTRICT );
-
 	require_capability 'GEOIP_MATCH', 'A country-code', '';
 
 	load_isocodes unless %isocodes;
@@ -6011,8 +6005,6 @@ sub imatch_dest_net( $;$ ) {
     }
 
     if ( $net =~ /^(!?)\^([A-Z\d]{2})$/ || $net =~ /^(!?)\^\[([A-Z,\d]+)\]$/) {
-	fatal_error "A countrycode list may not be used in this context" if $restriction & (PREROUTE_RESTRICT | INPUT_RESTRICT );
-
 	require_capability 'GEOIP_MATCH', 'A country-code', '';
 
 	load_isocodes unless %isocodes;
@@ -6215,7 +6207,7 @@ sub log_rule_limit( $$$$$$$$ ) {
 
     $matches .= ' ' if $matches && substr( $matches, -1, 1 ) ne ' ';
 
-    unless ( $matches =~ /-m limit / ) {
+    unless ( $matches =~ /-m (?:limit|hashlimit) / ) {
 	$limit = $globals{LOGLIMIT} unless $limit && $limit ne '-';
 	$matches .= $limit if $limit;
     }
@@ -6561,6 +6553,8 @@ sub set_chain_variables() {
 	      '[ -x "$IP6TABLES_RESTORE" ] || startup_error "$IP6TABLES_RESTORE does not exist or is not executable"' );
 	emit( 'g_tool=$IP6TABLES' );
     }
+
+    emit 'g_tool="$g_tool --wait"' if have_capability 'WAIT_OPTION';
 
     if ( $config{IP} ) {
 	emit( qq(IP="$config{IP}") ,
@@ -7428,7 +7422,7 @@ sub handle_exclusion( $$$$$$$$$$$$$$$$$$$$$ ) {
 #
 # Returns the destination interface specified in the rule, if any.
 #
-sub expand_rule( $$$$$$$$$$$;$ )
+sub expand_rule( $$$$$$$$$$$$;$ )
 {
     my ($chainref ,    # Chain
 	$restriction,  # Determines what to do with interface names in the SOURCE or DEST
@@ -7441,6 +7435,7 @@ sub expand_rule( $$$$$$$$$$$;$ )
 	$loglevel ,    # Log level (and tag)
 	$disposition,  # Primtive part of the target (RETURN, ACCEPT, ...)
 	$exceptionrule,# Caller's matches used in exclusion case
+	$usergenerated,# Rule came from the IP[6]TABLES target
 	$logname,      # Name of chain to name in log messages
        ) = @_;
 
@@ -7490,7 +7485,7 @@ sub expand_rule( $$$$$$$$$$$;$ )
 	    $loglevel = validate_level( $loglevel );
 	    $logtag   = '' unless defined $logtag;
 	}
-    } elsif ( $disposition eq 'LOG' ) {
+    } elsif ( $disposition eq 'LOG' && ! $usergenerated ) {
 	fatal_error "LOG requires a level";
     }
     #
@@ -7605,9 +7600,9 @@ sub expand_rule( $$$$$$$$$$$;$ )
 
 		    my $cond3 = conditional_rule( $chainref, $dnet );
 
-		    if ( $loglevel eq '' ) {
+		    if ( $loglevel eq '' || $usergenerated ) {
 			#
-			# No logging -- add the target rule with matches to the rule chain
+			# No logging or user-specified logging -- add the target rule with matches to the rule chain
 			#
 			if ( $targetref ) {
 			    add_expanded_jump( $chainref, $targetref , 0, $matches );

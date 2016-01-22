@@ -185,6 +185,9 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       %helpers_aliases
 
 				       %actparms
+
+                                       PARMSMODIFIED
+                                       USEDCALLER
 				       
 		                       F_IPV4
 		                       F_IPV6
@@ -231,7 +234,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0.3';
+our $VERSION = '5.0_4';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -396,6 +399,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
 		 TARPIT_TARGET   => 'TARPIT Target',
 		 IFACE_MATCH     => 'Iface Match',
                  TCPMSS_TARGET   => 'TCPMSS Target',
+                 WAIT_OPTION     => 'iptables --wait option',
 
 		 AMANDA_HELPER   => 'Amanda Helper',
 		 FTP_HELPER      => 'FTP Helper',
@@ -545,6 +549,7 @@ our %compiler_params;
 #
 our %actparms;
 our $parmsmodified;
+our $usedcaller;
 our $inline_matches;
 
 our $currentline;            # Current config file line image
@@ -594,6 +599,9 @@ use constant { MIN_VERBOSITY => -1,
 	       F_IPV4 => 4,
 	       F_IPV6 => 6,
 	     };
+
+use constant { PARMSMODIFIED => 1,
+               USEDCALLER    => 2 };
 
 our %validlevels;            # Valid log levels.
 
@@ -713,8 +721,8 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.3.1",
-		    CAPVERSION              => 40609 ,
+		    VERSION                 => "5.0.4",
+		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
 		    MACLIST_LOG_TAG         => '',
@@ -989,6 +997,7 @@ sub initialize( $;$$) {
 	       TARPIT_TARGET => undef,
 	       IFACE_MATCH => undef,
 	       TCPMSS_TARGET => undef,
+	       WAIT_OPTION => undef,
 
 	       AMANDA_HELPER => undef,
 	       FTP_HELPER => undef,
@@ -1043,6 +1052,7 @@ sub initialize( $;$$) {
 
     %actparms = ( 0 => 0, loglevel => '', logtag => '', chain => '', disposition => '', caller => ''  );
     $parmsmodified = 0;
+    $usedcaller    = 0;
 
     %helpers_enabled = (
 			amanda       => 1,
@@ -2212,7 +2222,10 @@ sub split_line2( $$;$$$ ) {
 	$pairs = '';
     }
 
-    fatal_error "Shorewall Configuration file entries may not contain double quotes, single back quotes or backslashes" if $columns =~ /["`\\]/;
+    unless ( $currline =~ /^\s*IP6?TABLES\(.*\)/ ) {
+	fatal_error "Shorewall Configuration file entries may not contain double quotes, single back quotes or backslashes" if $columns =~ /["`\\]/;
+    }
+
     fatal_error "Non-ASCII gunk in file" if $columns =~ /[^\s[:print:]]/;
 
     my @line = split_columns( $columns );
@@ -2497,7 +2510,7 @@ sub evaluate_expression( $$$ ) {
 	    my ( $first, $var, $rest ) = ( $1, $3, $4);
 	    $var = numeric_value( $var ) if $var =~ /^\d/;
 	    $val = $var ? $actparms{$var} : $chain;
-	    $parmsmodified ||= $var eq 'caller';
+	    $usedcaller = USEDCALLER if $var eq 'caller';
 	    $expression = join_parts( $first, $val, $rest );
 	    directive_error( "Variable Expansion Loop" , $filename, $linenumber ) if ++$count > 100;
 	}
@@ -2634,7 +2647,7 @@ sub process_compiler_directive( $$$$ ) {
 		      my $val = $actparms{$var} = evaluate_expression ( $expression,
 									$filename,
 									$linenumber );
-		      $parmsmodified = 1;
+		      $parmsmodified = PARMSMODIFIED;
 		  } else {
 		      $variables{$2} = evaluate_expression( $expression,
 							    $filename,
@@ -3169,11 +3182,13 @@ sub push_action_params( $$$$$$ ) {
     my ( $action, $chainref, $parms, $loglevel, $logtag, $caller ) = @_;
     my @parms = ( undef , split_list3( $parms , 'parameter' ) );
 
-    $actparms{modified} = $parmsmodified;
+    $actparms{modified}   = $parmsmodified;
+    $actparms{usedcaller} = $usedcaller;
 
     my %oldparms = %actparms;
 
     $parmsmodified = 0;
+    $usedcaller    = 0;
 
     %actparms = ();
 
@@ -3199,13 +3214,16 @@ sub push_action_params( $$$$$$ ) {
 
 #
 # Pop the action parameters using the passed hash reference
-# Return true of the popped parameters were modified
+# Return:
+#   1 if the popped parameters were modified
+#   2 if the action used @CALLER
 #
 sub pop_action_params( $ ) {
     my $oldparms       = shift;
     %actparms          = %$oldparms;
-    my $return         = $parmsmodified;
-    ( $parmsmodified ) = delete $actparms{modified};
+    my $return         = $parmsmodified | $usedcaller;
+    ( $parmsmodified ) = delete $actparms{modified}   || 0;
+    ( $usedcaller )    = delete $actparms{usedcaller} || 0;
     $return;
 }
 
@@ -3300,6 +3318,7 @@ sub expand_variables( \$ ) {
 	    $val = $variables{$var};
 	} elsif ( exists $actparms{$var} ) { 
 	    $val = $actparms{$var};
+	    $usedcaller = USEDCALLER if $var eq 'caller';
 	} else {
 	    fatal_error "Undefined shell variable (\$$var)" unless $config{IGNOREUNKNOWNVARIABLES} || exists $config{$var};
 	}
@@ -3318,6 +3337,7 @@ sub expand_variables( \$ ) {
 	while ( $$lineref =~ m( ^(.*?) \@({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
 	    my ( $first, $var, $rest ) = ( $1, $3, $4);
 	    my $val = $var ? $actparms{$var} : $actparms{chain};
+	    $usedcaller = USEDCALLER if $var eq 'caller';
 	    $val = '' unless defined $val;
 	    $$lineref = join( '', $first , $val , $rest );
 	    fatal_error "Variable Expansion Loop" if ++$count > 100;
@@ -3963,7 +3983,7 @@ sub Udpliteredirect() {
 
 sub Mangle_Enabled() {
     if ( qt1( "$iptables $iptablesw -t mangle -L -n" ) ) {
-	system( "$iptables -t mangle -N $sillyname" ) == 0 || fatal_error "Cannot Create Mangle chain $sillyname";
+	system( "$iptables $iptablesw -t mangle -N $sillyname" ) == 0 || fatal_error "Cannot Create Mangle chain $sillyname";
     }
 }
 
@@ -4605,7 +4625,8 @@ sub determine_capabilities() {
 
     my $pid     = $$;
 
-    $capabilities{CAPVERSION} = $globals{CAPVERSION};
+    $capabilities{CAPVERSION}  = $globals{CAPVERSION};
+    $capabilities{WAIT_OPTION} = $iptablesw;
 
     determine_kernelversion;
 
@@ -5082,6 +5103,8 @@ sub read_capabilities() {
     }
 
     $globals{KLUDGEFREE} = $capabilities{KLUDGEFREE};
+
+    $iptablesw = '-w' if $capabilities{WAIT_OPTION};
 
 }
 

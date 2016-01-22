@@ -48,7 +48,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '5.0.0';
+our $VERSION = '5.0_4';
 
 our $family;
 
@@ -614,7 +614,8 @@ sub process_stoppedrules() {
 				 $target,
 				 '',
 				 $disposition,
-				 do_proto( $proto, '-', '-' ) );
+				 do_proto( $proto, '-', '-' ),
+				 '');
 		}
 	    } else {
 		warning_message "Redundant OUTPUT rule ignored because ADMINISABSENTMINDED=Yes";
