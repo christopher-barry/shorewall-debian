@@ -1,3 +1,12 @@
+shorewall6 (5.0.3.1-2) UNRELEASED; urgency=medium
+
+  * Fix postinst and prerm to check for the presence of the SysV init
+    script prior to calling it or using invoke-rc.d.  Also add a check
+    for the systemd .service file and use systemctl if it is present.
+    (Closes: #810804)
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Thu, 21 Jan 2016 20:46:42 -0500
+
 shorewall6 (5.0.3.1-1) unstable; urgency=low
 
   * New Upstream Version (Closes: #796703)
