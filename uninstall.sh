@@ -26,8 +26,9 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=5.0.3.1
+VERSION=5.0.4
 PRODUCT=shorewall6
+Product=Shorewall6
 
 usage() # $1 = exit status
 {
@@ -75,6 +76,11 @@ remove_file() # $1 = file to restore
 	echo "$1 Removed"
     fi
 }
+
+#
+# Change to the directory containing this script
+#
+cd "$(dirname $0)"
 
 finished=0
 configure=1
@@ -200,7 +206,7 @@ fi
 
 rm -f ${SBINDIR}/shorewall6
 rm -rf ${CONFDIR}/shorewall6
-rm -rf ${VARDIR}/shorewall6
+rm -rf ${VARDIR}
 rm -rf ${LIBEXECDIR}/shorewall6
 rm -rf ${SHAREDIR}/shorewall6
 
