@@ -42,9 +42,9 @@ case "$1" in
                     else
                         /etc/init.d/shorewall restart
                     fi
-                elif [ -x "/bin/systemctl" ] && [ -f "/lib/systemd/system/shorewall.service" ]
+                elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall.service" ]
                 then
-                    systemctl restart shorewall.service
+                    deb-systemd-invoke restart shorewall.service
                 fi
             else
                 db_input critical shorewall/invalid_config || true
