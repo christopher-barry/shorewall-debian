@@ -163,6 +163,21 @@
 #         TPROXY. DIVERT marks the packet with a unique mark and exempts it from
 #         any rules that follow.
 # 
+#     DIVERTHA
+# 
+#         Added in Shorewall 5.0.4. To setup the HAProxy configuration described
+#         at http://www.loadbalancer.org/blog/
+#         setting-up-haproxy-with-transparent-mode-on-centos-6-x, place this
+#         entry in shorewall6-providers(5):
+# 
+#         #NAME    NUMBER   MARK    DUPLICATE  INTERFACE GATEWAY         OPTIONS               COPY
+#         TProxy   1        -       -          lo        -               tproxy
+# 
+#         and use this DIVERTHA entry:
+# 
+#         #ACTION         SOURCE          DEST            PROTO   DPORT   SPORT   USER    TEST    LENGTH  TOS   CONNBYTES         HELPER    PROBABILITY DSCP
+#         DIVERTHA        -               -               tcp
+# 
 #     DROP
 # 
 #         Causes matching packets to be discarded.
