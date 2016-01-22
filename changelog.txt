@@ -1,8 +1,53 @@
-Changes in 5.0.3.1
+Changes in 5.0.4 Final
 
 1)  Update release documents.
 
-2)  Support the DROP action in the mangle file.
+Changes in 5.0.4 RC 2
+
+1)  Update release documents.
+
+2)  Handle @CALLER in policy actions
+
+3)  Sort red and codel options for reproducability.
+
+4)  Remove chain restrictions from -m geoip
+
+5)  Clean up sysconfig files.
+
+Changes in 5.0.4 RC 1
+
+1)  Update release documents.
+
+2)  Create unique chains when @caller is used.
+
+3)  Correct hashlimit in logging rules
+
+4)  Avoid errors when 'status -i' finds no .status files.
+
+5)  Improve the maintainability of action-tuple code
+
+Changes in 5.0.4 Beta 2
+
+1)  Update release documents.
+
+2)  Added HAProxy support.
+
+Changes in 5.0.4 Beta 1
+
+1)  Update release documents.
+
+2)  Shorewall-init installer support for OpenWRT.
+
+3)  sysconfig files included for additional distributions.
+
+4)  Make IP[6]TABLES transparent.
+
+5)  Specify the '--wait' option when creating the mangle table
+    capability test chain.
+
+6)  Implement the WAIT_OPTION capability.
+
+7)  Assume 2.14 or later systemd (Tuomo Soini).
 
 Changes in 5.0.3 Final
 

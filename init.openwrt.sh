@@ -39,18 +39,18 @@
 
 # description: Packet filtering firewall
 
-# openwrt stuph
-# start and stop runlevel variable
-#START=21
-#STOP=91
-# variable to display what the status command do when /etc/init.d/shorewall6-lite is invoke without argument
+# Openwrt related
+# Start and stop runlevel variable
+START=50
+STOP=89
+# Displays the status command
 EXTRA_COMMANDS="status"
-EXTRA_HELP="Displays shorewall status"
+EXTRA_HELP=" status Displays firewall status"
 
 ################################################################################
 # Get startup options (override default)
 ################################################################################
-OPTIONS="-vvv"
+OPTIONS=
 
 #
 # The installer may alter this
@@ -61,38 +61,35 @@ if [ -f ${SYSCONFDIR}/shorewall6-lite ]; then
     . ${SYSCONFDIR}/shorewall6-lite
 fi
 
-START=${START:-21}
-STOP=${STOP:-91}
-
 SHOREWALL_INIT_SCRIPT=1
 
 ################################################################################
 # E X E C U T I O N    B E G I N S   H E R E				       #
 ################################################################################
-# arg1 of init script is arg2 when rc.common is sourced; set to action variable
+# Arg1 of init script is arg2 when rc.common is sourced; set to action variable
 command="$action"
 
 start() {
-	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command ${STARTOPTIONS:-$@}
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command $STARTOPTIONS
 }
 
 boot() {
-local command="start"
-start
+	local command="start"
+	start
 }
 
 restart() {
-	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command ${RESTARTOPTIONS:-$@}
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command $RESTARTOPTIONS
 }
 
 reload() {
-	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command ${RELOADOPTION:-$@}
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command $RELOADOPTION
 }
 
 stop() {
-	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command ${STOPOPTIONS:-$@}
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command $STOPOPTIONS
 }
 
 status() {
-	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command ${STATUSOPTIONS:-$@}
+	exec ${SBINDIR}/shorewall6-lite $OPTIONS $command $@
 }
