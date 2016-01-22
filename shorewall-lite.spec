@@ -1,6 +1,6 @@
 %define name shorewall-lite
-%define version 5.0.3
-%define release 1
+%define version 5.0.4
+%define release 0base
 %define initdir /etc/init.d
 
 Summary: Shoreline Firewall Lite is an iptables-based firewall for Linux systems.
@@ -86,6 +86,9 @@ fi
 %attr(0755,root,root) %dir /usr/share/shorewall-lite
 %attr(0700,root,root) %dir /var/lib/shorewall-lite
 
+%attr(0755,root,root) %dir /etc/sysconfig/
+%attr(0600,root,root) %config(noreplace) /etc/sysconfig/shorewall-lite
+
 %attr(0644,root,root) /etc/logrotate.d/shorewall-lite
 
 %attr(0755,root,root) %{_sbindir}/shorewall-lite
@@ -106,8 +109,16 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Wed Jan 20 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.4-0base
+* Tue Jan 19 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.4-0RC2
+* Mon Jan 11 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.4-0RC1
+* Tue Jan 05 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.4-0Beta2
 * Sat Jan 02 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.3-1
+- Updated to 5.0.4-0Beta1
 * Sun Dec 27 2015 Tom Eastep tom@shorewall.net
 - Updated to 5.0.3-0base
 * Thu Dec 24 2015 Tom Eastep tom@shorewall.net
