@@ -26,8 +26,10 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=5.0.3.1
-
+VERSION=5.0.4
+PRODUCT="shorewall-core"
+Product="Shorewall Core"
+ 
 usage() # $1 = exit status
 {
     ME=$(basename $0)
@@ -65,6 +67,11 @@ remove_file() # $1 = file to restore
 	echo "$1 Removed"
     fi
 }
+
+#
+# Change to the directory containing this script
+#
+cd "$(dirname $0)"
 
 #
 # Read the RC file
