@@ -3,11 +3,17 @@
 case "$1" in
     # do not stop the firewall during an upgrade
     remove)
-        if [ -x "/usr/sbin/invoke-rc.d" ]
+        if [ -f "/etc/init.d/shorewall" ]
         then
-            invoke-rc.d shorewall stop        
-        else
-            /etc/init.d/shorewall stop
+            if [ -x "/usr/sbin/invoke-rc.d" ]
+            then
+                invoke-rc.d shorewall stop
+            else
+                /etc/init.d/shorewall stop
+            fi
+        elif [ -x "/bin/systemctl" ] && [ -f "/lib/systemd/system/shorewall.service" ]
+        then
+            systemctl stop shorewall.service
         fi
         ;;
     upgrade|deconfigure|failed-upgrade)

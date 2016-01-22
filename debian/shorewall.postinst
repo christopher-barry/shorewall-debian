@@ -34,11 +34,17 @@ case "$1" in
         then 
             if /sbin/shorewall check
             then
-                if [ -x "/usr/sbin/invoke-rc.d" ]
+                if [ -f "/etc/init.d/shorewall" ]
                 then
-                    invoke-rc.d shorewall restart
-                else
-                    /etc/init.d/shorewall restart
+                    if [ -x "/usr/sbin/invoke-rc.d" ]
+                    then
+                        invoke-rc.d shorewall restart
+                    else
+                        /etc/init.d/shorewall restart
+                    fi
+                elif [ -x "/bin/systemctl" ] && [ -f "/lib/systemd/system/shorewall.service" ]
+                then
+                    systemctl restart shorewall.service
                 fi
             else
                 db_input critical shorewall/invalid_config || true
