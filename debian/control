@@ -4,8 +4,8 @@ Priority: optional
 Maintainer: Roberto C. Sanchez <roberto@connexer.com>
 Homepage: http://www.shorewall.net
 Build-Depends: debhelper (>= 9)
-Standards-Version: 3.9.6
-Vcs-Browser: http://sourceforge.net/p/shorewall/debian/ci/shorewall-lite/master/~/tree/
+Standards-Version: 3.9.7
+Vcs-Browser: https://sourceforge.net/p/shorewall/debian/ci/shorewall-lite/master/~/tree/
 Vcs-Git: git://git.code.sf.net/p/shorewall/debian
 
 Package: shorewall-lite

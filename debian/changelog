@@ -1,6 +1,8 @@
-shorewall-lite (5.0.7-1) unstable; urgency=medium
+shorewall-lite (5.0.7-1) unstable; urgency=low
 
   * New Upstream Version
+  * Update to Standards-Version 3.9.7 (no changes)
+  * Change Vcs-Browser link to use https
 
  -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 26 Mar 2016 21:31:40 -0400
 
