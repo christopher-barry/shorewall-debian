@@ -26,6 +26,8 @@
 
       <year>2005</year>
 
+      <year>2016</year>
+
       <holder>Thomas M. Eastep</holder>
     </copyright>
 
@@ -41,7 +43,7 @@
   </articleinfo>
 
   <warning>
-    <para>2006-01-17. The ECN Netfilter target in recent 2.6 Linux Kernels is
+    <para>2006-01-17. The ECN Netfilter target in some 2.6 Linux Kernels is
     broken. Symptoms are that you will be unable to establish a TCP connection
     to hosts defined in the /etc/shorewall/ecn file.</para>
   </warning>
@@ -116,7 +118,11 @@
           </tgroup>
         </table></para>
     </example>
+
+    <para>Beginning with Shorewall 5.0.6, you may also specify clearing of the
+    ECN flags through use of the ECN action in <ulink
+    url="manpages/shorewall-ecn.html">shorewall-mangle(8)</ulink>.</para>
   </section>
 
-  <lot></lot>
+  <lot/>
 </article>

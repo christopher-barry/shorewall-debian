@@ -53,7 +53,19 @@
 
           <variablelist>
             <varlistentry>
-              <term>builtin</term>
+              <term><option>audit</option></term>
+
+              <listitem>
+                <para>Added in Shorewall 5.0.7. When this option is specified,
+                the action is expected to have at least two parameters; the
+                first is a target and the second is either 'audit' or omitted.
+                If the second is 'audit', then the first must be an auditable
+                target (ACCEPT, DROP or REJECT).</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><option>builtin</option></term>
 
               <listitem>
                 <para>Added in Shorewall 4.5.16. Defines the action as a rule
@@ -86,7 +98,7 @@
             </varlistentry>
 
             <varlistentry>
-              <term>inline</term>
+              <term><option>inline</option></term>
 
               <listitem>
                 <para>Causes the action body (defined in
@@ -102,9 +114,9 @@
                   way:</para>
 
                   <simplelist>
-                    <member>Broadcast</member>
-
                     <member>DropSmurfs</member>
+
+                    <member>IfEvent</member>
 
                     <member>Invalid (Prior to Shorewall 4.5.13)</member>
 
@@ -119,7 +131,19 @@
             </varlistentry>
 
             <varlistentry>
-              <term>noinline</term>
+              <term><option>mangle</option></term>
+
+              <listitem>
+                <para>Added in Shorewall 5.0.7. Specifies that this action is
+                to be used in <ulink
+                url="shorewall-mangle.html">shorewall-mangle(5)</ulink> rather
+                than <ulink
+                url="shorewall-rules.html">shorewall-rules(5)</ulink>.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><option>noinline</option></term>
 
               <listitem>
                 <para>Causes any later <option>inline</option> option for the
@@ -128,7 +152,7 @@
             </varlistentry>
 
             <varlistentry>
-              <term>nolog</term>
+              <term><option>nolog</option></term>
 
               <listitem>
                 <para>Added in Shorewall 4.5.11. When this option is
@@ -142,7 +166,16 @@
             </varlistentry>
 
             <varlistentry>
-              <term>terminating</term>
+              <term><option>state</option>={<option>UNTRACKED</option>|<option>NEW</option>|<option>ESTABLISHED</option>|<option>RELATED</option>|<option>INVALID</option>}</term>
+
+              <listitem>
+                <para>Added in Shorewall 5.0.7. Reserved for use by Shorewall
+                in <filename>actions.std</filename>.</para>
+              </listitem>
+            </varlistentry>
+
+            <varlistentry>
+              <term><option>terminating</option></term>
 
               <listitem>
                 <para>Added in Shorewall 4.6.4. When used with
