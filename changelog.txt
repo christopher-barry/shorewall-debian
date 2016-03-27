@@ -1,3 +1,179 @@
+Changes in 5.0.7 RC 1
+
+1)  Update release documents.
+
+2)  Add stab to ingress qdiscs.
+
+3)  Fix action in policing filters.
+
+4)  Correct handling of second visit to the same mangle action.
+
+5)  Correct action handling in ingress filters.
+
+6)  Tighten up editing of .conf options.
+
+Changes in 5.0.7 Beta 4
+
+1)  Update release documents.
+
+2)  Action and Inline options are now a bit map.
+
+3)  Implement 'audit' action option.
+
+4)  Make RST and NotSyn 'audit' actions.
+
+5)  Rename %actparms to %actparams.
+
+6)  Implement state action option
+
+7)  Update state actions to use the option.
+
+8)  Implement passed() in the compiler.
+
+9)  Update actions to use passed().
+
+10) Update release notes for 5.0.6.2.
+
+11) Another fix for 'check -r' - this time regarding Docker=Yes
+
+12) Make '&' and '|' work with CONNMARK
+
+13) Allow MARK and CONNMARK in the rules file.
+
+Changes in 5.0.7 Beta 3
+
+1)  Update release documents.
+
+2)  Restore NotSyn parameter in action.Reject.
+
+3)  Add jump to DOCKER from OUTPUT.
+
+4)  More 'prerule' fixes in expand_rule()
+
+Changes in 5.0.7 Beta 2
+
+1)  Update release documents.
+
+2)  Move convert_tos() back to the Tc module.
+
+3)  Allow inline mangle actions.
+
+4)  Always look in the main routing table for default gateway.
+
+5)  'check -r' and 'trace' compiler commands use the pager.
+
+6)  Add ?ERROR directive.
+
+7)  Eliminate ?begin perl .... ?end perl in many actions.
+
+8)  Implement '+' in inline matches to force those matches before
+    column matches.
+
+9)  Use '+' to remove embedded Perl from the TCP-specific actions.
+
+10) Fix nested inline action and macro invocations.
+
+Changes in 5.0.7 Beta 1
+
+1)  Update release documents.
+
+2)  Implement mangle actions.
+
+Changes in 5.0.6 Final
+
+1)  Update release documents.
+
+2)  Avoid duplicate routing rules with persistent providers.
+
+Changes in 5.0.6 RC 1
+
+1)  Update release documents.
+
+Changes in 5.0.6 Beta 5
+
+1)  Update release documents.
+
+2)  Generate docker0 rules when it is known to Shorewall
+
+3)  Avoid duplicated code out of save_dynamic_chains()
+
+4)  Remove dead code from define_firewall()
+
+5)  Save/Restore the DOCKER jump in the nat table OUTPUT chain.
+
+6)  Avoid a duplicated rule after restart when DOCKER=Yes
+
+Changes in 5.0.6 Beta 4
+
+1)  Update release documents.
+
+2)  Add the PAGER option
+
+Changes in 5.0.6 Beta 3
+
+1)  Update release documents.
+
+2)  Add sample ulogd.conf file to the logging article.
+
+3)  Added ECN action in shorewall-mangle(8).
+
+4)  Add DOCKER network support.
+
+5)  Save/restore docker0 FORWARD rules if that interface is not defined
+    to Shorewall.
+
+Changes in 5.0.6 Beta 2
+
+1)  Update release documents.
+
+2)  Create SNMPtrap macro to supersede SNMPTrap
+
+3)  Fix two issues reported by Steven Springl.
+
+4)  Generate more compact conditional code when DOCKER=Yes
+
+5)  Correct stop/start handling when DOCKER=Yes
+
+Changes in 5.0.6 Beta 1
+
+1)  Update release documents.
+
+2)  Allow providers with no gateway
+
+3)  Add Docker support.
+
+Changes in 5.0.5 Final
+
+1)  Update release documents.
+
+Changes in 5.0.5 RC 2
+
+1)  Update release documents.
+
+2)  Update to Macros - Tuomo Soini
+
+3)  Update to Documenttion for new column names - Tuomo Soini
+
+Changes in 5.0.5 RC 1
+
+1)  Update release documents.
+
+2)  Correct indentation in the output of 'show macros'.
+
+Changes in 5.0.5 Beta 2
+
+1)  Update release documents.
+
+2)  Enhance rule tracking.
+
+Changes in 5.0.5 Beta 1
+
+1)  Update release documents.
+
+2)  Add origin comments to the .ip[6]tables-restore-input file
+
+3)  Correct test for interface assigned to two providers.
+
 Changes in 5.0.4 Final
 
 1)  Update release documents.
