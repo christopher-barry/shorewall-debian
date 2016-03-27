@@ -2,12 +2,12 @@
 .\"     Title: shorewall-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 01/21/2016
+.\"      Date: 03/26/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-PROVIDERS" "5" "01/21/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-PROVIDERS" "5" "03/26/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -122,11 +122,16 @@ must be followed by a colon and the IP
 of the interface that is supplied by the associated provider\&.
 .RE
 .PP
-\fBGATEWAY\fR \- {\fB\-\fR|\fIaddress\fR[,\fImac\fR]|\fBdetect\fR}
+\fBGATEWAY\fR \- {\fB\-\fR|\fIaddress\fR[,\fImac\fR]|\fBdetect|none\fR}
 .RS 4
 The IP address of the provider\*(Aqs gateway router\&. Beginning with Shorewall 4\&.6\&.2, you may also specify the MAC address of the gateway when there are multiple providers serviced through the same interface\&. When the MAC is not specified, Shorewall will detect the MAC during firewall start or restart\&.
 .sp
-You can enter "detect" here and Shorewall will attempt to detect the gateway automatically\&.
+You can enter
+\fBdetect\fR
+here and Shorewall will attempt to detect the gateway automatically\&.
+.sp
+Beginning with Shorewall 5\&.0\&.6, you may also enter
+\fBnone\fR\&. This causes creation of a routing table with no default route in it\&.
 .sp
 For PPP devices, you may omit this column\&.
 .RE

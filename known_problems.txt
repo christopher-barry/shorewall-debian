@@ -1,2 +1,5 @@
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
+
+2)  The 'enable', 'reenable' and 'disable' commands do not work
+    correctly in configurations with USE_DEFAULT_RT=No.

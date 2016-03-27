@@ -1,9 +1,9 @@
 #
-# Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Config.pm
+# Shorewall 5.0 -- /usr/share/shorewall/Shorewall/Config.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007-2016 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -139,6 +139,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       push_action_params
 				       pop_action_params
 				       default_action_params
+                                       setup_audit_action
 				       read_a_line
 				       which
 				       qt
@@ -174,6 +175,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $comment
 
 				       %config
+				       %origin
 				       %globals
 				       %config_files
 				       %shorewallrc
@@ -184,7 +186,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       %helpers_enabled
 				       %helpers_aliases
 
-				       %actparms
+				       %actparams
 
                                        PARMSMODIFIED
                                        USEDCALLER
@@ -234,7 +236,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_4';
+our $VERSION = '5.0_7';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -296,6 +298,10 @@ our %globals;
 # From shorewall.conf file - exported to other modules.
 #
 our %config;
+#
+# Linenumber in shorewall[6].conf where each option was specified
+#
+our %origin;
 #
 # Entries in shorewall.conf that have been renamed
 #
@@ -547,7 +553,7 @@ our %compiler_params;
 #
 # Action parameters
 #
-our %actparms;
+our %actparams;
 our $parmsmodified;
 our $usedcaller;
 our $inline_matches;
@@ -665,6 +671,13 @@ our %variables; # Symbol table for expanding shell variables
 
 our $section_function; #Function Reference for handling ?section
 
+our $evals = 0; # Number of times eval() called out of evaluate_expression() or embedded_perl().
+
+#
+# Files located via find_file()
+#
+our %filecache;
+
 sub process_shorewallrc($$);
 sub add_variables( \% );
 #
@@ -721,7 +734,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.4",
+		    VERSION                 => "5.0.7",
 		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
@@ -731,6 +744,7 @@ sub initialize( $;$$) {
 		    RPFILTER_LOG_TAG        => '',
 		    INVALID_LOG_TAG         => '',
 		    UNTRACKED_LOG_TAG       => '',
+		    POSTROUTING             => 'POSTROUTING',
 		  );
     #
     # From shorewall.conf file
@@ -869,6 +883,8 @@ sub initialize( $;$$) {
 	  WORKAROUNDS => undef ,
 	  LEGACY_RESTART => undef ,
 	  RESTART => undef ,
+	  DOCKER => undef ,
+	  PAGER => undef ,
 	  #
 	  # Packet Disposition
 	  #
@@ -891,7 +907,10 @@ sub initialize( $;$$) {
 	  ZONE_BITS => undef,
 	);
 
-
+    #
+    # Line numbers in shorewall6.conf where options are specified
+    #
+    %origin = ();
     #
     # Valid log levels
     #
@@ -1050,7 +1069,7 @@ sub initialize( $;$$) {
 
     %compiler_params = ();
 
-    %actparms = ( 0 => 0, loglevel => '', logtag => '', chain => '', disposition => '', caller => ''  );
+    %actparams = ( 0 => 0, loglevel => '', logtag => '', chain => '', disposition => '', caller => ''  );
     $parmsmodified = 0;
     $usedcaller    = 0;
 
@@ -1192,19 +1211,33 @@ sub currentlineinfo() {
     }
 }
 
+sub shortlineinfo2() {
+    if ( $currentfile ) {
+	join( ':', $currentfilename, $currentlinenumber );
+    } else {
+	''
+    }
+}
+
 sub shortlineinfo( $ ) {
-    if ( $config{TRACK_RULES} ) {
+    if ( my $track = $config{TRACK_RULES} ) {
 	if ( $currentfile ) {
-	    my $comment = '@@@ '. join( ':', $currentfilename, $currentlinenumber ) . ' @@@';
-	    $comment = '@@@ ' . join( ':' , basename($currentfilename), $currentlinenumber) . ' @@@' if length $comment > 255;
-	    $comment = '@@@ Filename Too Long @@@' if length $comment > 255;
-	    $comment;
+	    if ( $track eq 'Yes' ) {
+		my $comment = '@@@ '. join( ':', $currentfilename, $currentlinenumber ) . ' @@@';
+		$comment = '@@@ ' . join( ':' , basename($currentfilename), $currentlinenumber) . ' @@@' if length $comment > 255;
+		$comment = '@@@ Filename Too Long @@@' if length $comment > 255;
+		$comment;
+	    } else {
+		join( ':', $currentfilename, $currentlinenumber );
+	    }
 	} else {
 	    #
 	    # Alternate lineinfo may have been passed
 	    #
 	    $_[0] || ''
 	}
+    } else {
+	'';
     }
 }
 
@@ -1444,9 +1477,9 @@ sub hex_value( $ ) {
 # Strip off superfluous leading zeros from a hex number
 #
 sub normalize_hex( $ ) {
-    my $val = lc shift;
+    my $val = lc $_[0];
 
-    $val =~ s/^0// while $val =~ /^0/ && length $val > 1;
+    $val =~ s/^0+/0/;
     $val;
 }
 
@@ -1875,6 +1908,10 @@ sub find_file($)
 
     return $filename if $filename =~ '/';
 
+    my $file = $filecache{$filename};
+
+    return $file if $file;
+
     for my $directory ( @config_path ) {
 	my $file = "$directory$filename";
 	return $file if -f $file;
@@ -2123,6 +2160,12 @@ sub supplied( $ ) {
     my $val = shift;
 
     defined $val && $val ne '';
+}
+
+sub passed( $ ) {
+    my $val = shift;
+
+    defined $val && $val ne '' && $val ne '-';
 }
 
 #
@@ -2481,20 +2524,49 @@ sub join_parts( $$$ ) {
 }
 
 #
-# Evaluate an expression in an ?IF, ?ELSIF or ?SET directive
+# Declare passed() in Shorewall::User
 #
-sub evaluate_expression( $$$ ) {
-    my ( $expression , $filename , $linenumber ) = @_;
+sub declare_passed() {
+    my $result = ( eval q(package Shorewall::User;
+                          use strict;
+                          sub passed( $ ) {
+                              my $val = shift;
+                              defined $val && $val ne '' && $val ne '-';
+                          }
+
+                          1;) );
+    assert( $result, $@ );
+}
+
+#
+# Evaluate an expression in an ?IF, ?ELSIF, ?SET or ?ERROR directive
+#
+sub evaluate_expression( $$$$ ) {
+    my ( $expression , $filename , $linenumber, $just_expand ) = @_;
     my $val;
     my $count = 0;
-    my $chain = $actparms{chain};
+    my $chain = $actparams{chain};
+
+    #                     $1                   $2
+    if ( $expression =~ /^(!)?\s*passed\([\$@](\d+)\)$/ ) {
+	my $val = passed($actparams{$2});
+
+	return $1 ? ! $val : $val unless $debug;
+
+	$val = $1 ? ! $val : $val;
+
+	print "EXPR=> '$val'\n" if $debug;
+
+	return $val;
+    }
+
     #                         $1      $2   $3                     -     $4
     while ( $expression =~ m( ^(.*?) \$({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
 	my ( $first, $var, $rest ) = ( $1, $3, $4);
 
 	if ( $var =~ /^\d+$/ ) {
 	    fatal_error "Action parameters (\$$var) may only be referenced within the body of an action" unless $chain;
-	    $val = $var ? $actparms{$var} : $actparms{0}->{name};
+	    $val = $var ? $actparams{$var} : $actparams{0}->{name};
 	} else {
 	    $val = ( exists $variables{$var} ? $variables{$var} :
 		     exists $capdesc{$var}   ? have_capability( $var ) : '' );
@@ -2509,7 +2581,7 @@ sub evaluate_expression( $$$ ) {
 	while ( $expression =~ m( ^(.*?) \@({)? (\d+|[a-zA-Z]\w*) (?(2)}) (.*)$ )x ) {
 	    my ( $first, $var, $rest ) = ( $1, $3, $4);
 	    $var = numeric_value( $var ) if $var =~ /^\d/;
-	    $val = $var ? $actparms{$var} : $chain;
+	    $val = $var ? $actparams{$var} : $chain;
 	    $usedcaller = USEDCALLER if $var eq 'caller';
 	    $expression = join_parts( $first, $val, $rest );
 	    directive_error( "Variable Expansion Loop" , $filename, $linenumber ) if ++$count > 100;
@@ -2540,13 +2612,19 @@ sub evaluate_expression( $$$ ) {
 
     print "EXPR=> $expression\n" if $debug;
 
-    if ( $expression =~ /^\d+$/ ) {
+    if ( $just_expand || $expression =~ /^\d+$/ ) {
 	$val = $expression
     } else {
 	#
 	# Not a simple one-term expression -- compile it
 	#
-	$val = eval qq(package Shorewall::User;\nuse strict;\n# line $linenumber "$filename"\n$expression);
+
+	declare_passed unless $evals++;
+
+	$val = eval qq(package Shorewall::User;
+                       use strict;
+                       # line $linenumber "$filename"
+                       $expression);
 
 	unless ( $val ) {
 	    directive_error( "Couldn't parse expression ($expression): $@" , $filename, $linenumber ) if $@;
@@ -2577,7 +2655,7 @@ sub process_compiler_directive( $$$$ ) {
 
     print "CD===> $line\n" if $debug;
 
-    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*)(.*)$/i;
+    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*|ERROR\s+)(.*)$/i;
 
     my ($keyword, $expression) = ( uc $1, $2 );
 
@@ -2595,7 +2673,7 @@ sub process_compiler_directive( $$$$ ) {
     my %directives =
 	( IF => sub() {
 	    directive_error( "Missing IF expression" , $filename, $linenumber ) unless supplied $expression;
-	    my $nextomitting = $omitting || ! evaluate_expression( $expression , $filename, $linenumber );
+	    my $nextomitting = $omitting || ! evaluate_expression( $expression , $filename, $linenumber , 0 );
 	    push @ifstack, [ 'IF', $omitting, ! $nextomitting, $linenumber ];
 	    $omitting = $nextomitting;
 	  } ,
@@ -2607,7 +2685,7 @@ sub process_compiler_directive( $$$$ ) {
 		  #
 		  # We can only change to including if we were previously omitting
 		  #
-		  $omitting = $prioromit || ! evaluate_expression( $expression , $filename, $linenumber );
+		  $omitting = $prioromit || ! evaluate_expression( $expression , $filename, $linenumber, 0 );
 		  $included = ! $omitting;
 	      } else {
 		  #
@@ -2643,15 +2721,17 @@ sub process_compiler_directive( $$$$ ) {
 		      $var = $2;
 		      $var = numeric_value( $var ) if $var =~ /^\d/;
 		      $var = $2 || 'chain';
-		      directive_error( "Shorewall variables may only be SET in the body of an action", $filename, $linenumber ) unless $actparms{0};
-		      my $val = $actparms{$var} = evaluate_expression ( $expression,
+		      directive_error( "Shorewall variables may only be SET in the body of an action", $filename, $linenumber ) unless $actparams{0};
+		      my $val = $actparams{$var} = evaluate_expression ( $expression,
 									$filename,
-									$linenumber );
+									$linenumber,
+									0  );
 		      $parmsmodified = PARMSMODIFIED;
 		  } else {
 		      $variables{$2} = evaluate_expression( $expression,
 							    $filename,
-							    $linenumber );
+							    $linenumber,
+							    0 );
 		  }
 	      }
 	  } ,
@@ -2675,12 +2755,12 @@ sub process_compiler_directive( $$$$ ) {
 		  if ( ( $1 || '' ) eq '@' ) {
 		      $var = numeric_value( $var ) if $var =~ /^\d/;
 		      $var = $2 || 'chain';
-		      directive_error( "Shorewall variables may only be RESET in the body of an action", $filename, $linenumber ) unless $actparms{0};
-		      if ( exists $actparms{$var} ) {
+		      directive_error( "Shorewall variables may only be RESET in the body of an action", $filename, $linenumber ) unless $actparams{0};
+		      if ( exists $actparams{$var} ) {
 			  if ( $var =~ /^loglevel|logtag|chain|disposition|caller$/ ) {
-			      $actparms{$var} = '';
+			      $actparams{$var} = '';
 			  } else {
-			      delete $actparms{$var}
+			      delete $actparams{$var}
 			  }
 		      } else {
 			  directive_warning( "Shorewall variable $2 does not exist", $filename, $linenumber );
@@ -2711,8 +2791,16 @@ sub process_compiler_directive( $$$$ ) {
 		      directive_error ( "?COMMENT is not allowed in this file", $filename, $linenumber );
 		  }
 	      }
-	  }
+	  } ,
 
+	  ERROR => sub() {
+	      directive_error( evaluate_expression( $expression ,
+						    $filename ,
+						    $linenumber ,
+						    1 ) ,
+			       $filename ,
+			       $linenumber ) unless $omitting;
+	  }
 	);
 
     if ( my $function = $directives{$keyword} ) {
@@ -2768,6 +2856,11 @@ sub copy( $ ) {
 		print $script $_;
 		print $script "\n";
 		$lastlineblank = 0;
+
+		if ( $debug ) {
+		    s/\n/\nGS-----> /g;
+		    print "GS-----> $_\n";
+		}
 	    }
 	}
 
@@ -3095,7 +3188,7 @@ sub embedded_shell( $ ) {
 sub embedded_perl( $ ) {
     my $multiline = shift;
 
-    my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\nuse Shorewall::Config (qw/shorewall/);\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
+    my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
 
     $directive_callback->( 'PERL', $currentline ) if $directive_callback;
 
@@ -3121,6 +3214,8 @@ sub embedded_perl( $ ) {
     }
 
     $embedded++;
+
+    declare_passed unless $evals++;
 
     unless (my $return = eval $command ) {
 	#
@@ -3182,32 +3277,32 @@ sub push_action_params( $$$$$$ ) {
     my ( $action, $chainref, $parms, $loglevel, $logtag, $caller ) = @_;
     my @parms = ( undef , split_list3( $parms , 'parameter' ) );
 
-    $actparms{modified}   = $parmsmodified;
-    $actparms{usedcaller} = $usedcaller;
+    $actparams{modified}   = $parmsmodified;
+    $actparams{usedcaller} = $usedcaller;
 
-    my %oldparms = %actparms;
+    my %oldparms = %actparams;
 
     $parmsmodified = 0;
     $usedcaller    = 0;
 
-    %actparms = ();
+    %actparams = ();
 
     for ( my $i = 1; $i < @parms; $i++ ) {
 	my $val = $parms[$i];
 
-	$actparms{$i} = $val eq '-' ? '' : $val eq '--' ? '-' : $val;
+	$actparams{$i} = $val eq '-' ? '' : $val eq '--' ? '-' : $val;
     }
 
-    $actparms{0}           = $chainref;
-    $actparms{action}      = $action;
-    $actparms{loglevel}    = $loglevel;
-    $actparms{logtag}      = $logtag;
-    $actparms{caller}      = $caller;
-    $actparms{disposition} = '' if $chainref->{action};
+    $actparams{0}           = $chainref;
+    $actparams{action}      = $action;
+    $actparams{loglevel}    = $loglevel;
+    $actparams{logtag}      = $logtag;
+    $actparams{caller}      = $caller;
+    $actparams{disposition} = '' if $chainref->{action};
     #
     # The Shorewall variable '@chain' has the non-word charaters removed
     #
-    ( $actparms{chain} = $chainref->{name} ) =~ s/[^\w]//g;
+    ( $actparams{chain} = $chainref->{name} ) =~ s/[^\w]//g;
 
     \%oldparms;
 }
@@ -3220,10 +3315,10 @@ sub push_action_params( $$$$$$ ) {
 #
 sub pop_action_params( $ ) {
     my $oldparms       = shift;
-    %actparms          = %$oldparms;
+    %actparams          = %$oldparms;
     my $return         = $parmsmodified | $usedcaller;
-    ( $parmsmodified ) = delete $actparms{modified}   || 0;
-    ( $usedcaller )    = delete $actparms{usedcaller} || 0;
+    ( $parmsmodified ) = delete $actparams{modified}   || 0;
+    ( $usedcaller )    = delete $actparams{usedcaller} || 0;
     $return;
 }
 
@@ -3233,11 +3328,11 @@ sub default_action_params {
 
     for ( $i = 1; 1; $i++ ) {
 	last unless defined ( $val = shift );
-	my $curval = $actparms{$i};
-	$actparms{$i} = $val unless supplied( $curval );
+	my $curval = $actparams{$i};
+	$actparams{$i} = $val unless supplied( $curval );
     }
 
-    fatal_error "Too Many arguments to action $action" if defined $actparms{$i};
+    fatal_error "Too Many arguments to action $action" if defined $actparams{$i};
 }
 
 sub get_action_params( $ ) {
@@ -3248,53 +3343,65 @@ sub get_action_params( $ ) {
     my @return;
 
     for ( my $i = 1; $i <= $num; $i++ ) {
-	my $val = $actparms{$i};
+	my $val = $actparams{$i};
 	push @return, defined $val ? $val eq '-' ? '' : $val eq '--' ? '-' : $val : $val;
     }
 
     @return;
 }
 
+sub setup_audit_action( $ ) {
+    my ( $action ) = @_;
+
+    my ( $target, $audit ) = get_action_params( 2 );
+
+    if ( supplied $audit ) {
+	fatal_error "Invalid parameter ($audit) to action $action" if $audit ne 'audit';
+	fatal_error "Only ACCEPT, DROP and REJECT may be audited" unless $target =~ /^(?:A_)?(?:ACCEPT|DROP|REJECT)\b/;
+	$actparams{1} = "A_$target" unless $target =~ /^A_/;
+    }
+}
+
 #
 # Returns the Level and Tag for the current action chain
 #
 sub get_action_logging() {
-    @actparms{ 'loglevel', 'logtag' };
+    @actparams{ 'loglevel', 'logtag' };
 }
 
 sub get_action_chain() {
-    $actparms{0};
+    $actparams{0};
 }
 
 sub get_action_chain_name() {
-    $actparms{chain};
+    $actparams{chain};
 }
 
 sub set_action_name_to_caller() {
-    $actparms{chain} = $actparms{caller};
+    $actparams{chain} = $actparams{caller};
 }
 
 sub get_action_disposition() {
-    $actparms{disposition};
+    $actparams{disposition};
 }
 
 sub set_action_disposition($) {
-    $actparms{disposition} = $_[0];
+    $actparams{disposition} = $_[0];
 }
 
 sub set_action_param( $$ ) {
     my $i = shift;
 
     fatal_error "Parameter numbers must be numeric" unless $i =~ /^\d+$/ && $i > 0;
-    $actparms{$i} = shift;
+    $actparams{$i} = shift;
 }
 
 #
-# Expand Shell Variables in the passed buffer using %actparms, %params, %shorewallrc1 and %config, 
+# Expand Shell Variables in the passed buffer using %actparams, %params, %shorewallrc1 and %config, 
 #
 sub expand_variables( \$ ) {
     my ( $lineref, $count ) = ( $_[0], 0 );
-    my $chain = $actparms{chain};
+    my $chain = $actparams{chain};
     #                         $1      $2   $3                   -     $4
     while ( $$lineref =~ m( ^(.*?) \$({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
 
@@ -3308,16 +3415,16 @@ sub expand_variables( \$ ) {
 	    if ( $config{IGNOREUNKNOWNVARIABLES} ) {
 		fatal_error "Invalid action parameter (\$$var)" if ( length( $var ) > 1 && $var =~ /^0/ );
 	    } else {
-		fatal_error "Undefined parameter (\$$var)" unless ( defined $actparms{$var} &&
+		fatal_error "Undefined parameter (\$$var)" unless ( defined $actparams{$var} &&
 								    ( length( $var ) == 1 ||
 								      $var !~ /^0/ ) );
 	    }
 
-	    $val = $var ? $actparms{$var} : $actparms{0}->{name};
+	    $val = $var ? $actparams{$var} : $actparams{0}->{name};
 	} elsif ( exists $variables{$var} ) {
 	    $val = $variables{$var};
-	} elsif ( exists $actparms{$var} ) { 
-	    $val = $actparms{$var};
+	} elsif ( exists $actparams{$var} ) { 
+	    $val = $actparams{$var};
 	    $usedcaller = USEDCALLER if $var eq 'caller';
 	} else {
 	    fatal_error "Undefined shell variable (\$$var)" unless $config{IGNOREUNKNOWNVARIABLES} || exists $config{$var};
@@ -3336,7 +3443,7 @@ sub expand_variables( \$ ) {
 	#                         $1      $2   $3                     -     $4
 	while ( $$lineref =~ m( ^(.*?) \@({)? (\d+|[a-zA-Z_]\w*) (?(2)}) (.*)$ )x ) {
 	    my ( $first, $var, $rest ) = ( $1, $3, $4);
-	    my $val = $var ? $actparms{$var} : $actparms{chain};
+	    my $val = $var ? $actparams{$var} : $actparams{chain};
 	    $usedcaller = USEDCALLER if $var eq 'caller';
 	    $val = '' unless defined $val;
 	    $$lineref = join( '', $first , $val , $rest );
@@ -3396,17 +3503,17 @@ sub handle_first_entry() {
 sub read_a_line($) {
     my $options = $_[0];
 
+  LINE:
     while ( $currentfile ) {
-
 	$currentline = '';
 	$currentlinenumber = 0;
 
 	while ( <$currentfile> ) {
 	    chomp;
 	    #
-	    # Handle conditionals
+	    # Handle directives
 	    #
-	    if ( /^\s*\?(?:IF|ELSE|ELSIF|ENDIF|SET|RESET|FORMAT|COMMENT)/i ) {
+	    if ( /^\s*\?(?:IF|ELSE|ELSIF|ENDIF|SET|RESET|FORMAT|COMMENT|ERROR)/i ) {
 		$omitting = process_compiler_directive( $omitting, $_, $currentfilename, $. );
 		next;
 	    }
@@ -3420,7 +3527,7 @@ sub read_a_line($) {
 	    #
 	    # Suppress leading whitespace in certain continuation lines
 	    #
-	    s/^\s*// if $currentline =~ /[,:]$/ && $options & CONFIG_CONTINUATION;
+	    s/^\s*// if $currentline && $options & CONFIG_CONTINUATION && $currentline =~ /[,:]$/;
 	    #
 	    # If this is a continued line with a trailing comment, remove comment. Note that
 	    # the result will now end in '\'.
@@ -3431,19 +3538,20 @@ sub read_a_line($) {
 	    #
 	    chop $currentline, next if ($currentline .= $_) =~ /\\$/;
 	    #
+	    # We now have a (possibly concatenated) line
 	    # Must check for shell/perl before doing variable expansion
 	    # 
 	    if ( $options & EMBEDDED_ENABLED ) {
-		if ( $currentline =~ s/^\s*\??(BEGIN\s+)SHELL\s*;?//i || $currentline =~ s/^\s*\?SHELL\s*//i || $currentline =~ s/^\s*SHELL\s+// ) {
-		    handle_first_entry if $first_entry;
-		    embedded_shell( $1 );
-		    next;
-		}
-
 		if ( $currentline =~ s/^\s*\??(BEGIN\s+)PERL\s*;?//i || $currentline =~ s/^\s*\??PERL\s*//i ) {
 		    handle_first_entry if $first_entry;
 		    embedded_perl( $1 );
-		    next;
+		    next LINE;
+		}
+
+		if ( $currentline =~ s/^\s*\??(BEGIN\s+)SHELL\s*;?//i || $currentline =~ s/^\s*\?SHELL\s*//i || $currentline =~ s/^\s*SHELL\s+// ) {
+		    handle_first_entry if $first_entry;
+		    embedded_shell( $1 );
+		    next LINE;
 		}
 	    }
 	    #
@@ -3455,7 +3563,7 @@ sub read_a_line($) {
 		#
 		# Ignore (concatinated) blank lines
 		#
-		$currentline = '', $currentlinenumber = 0, next if $currentline =~ /^\s*$/;
+		next LINE if $currentline =~ /^\s*$/;
 		#
 		# Eliminate trailing whitespace
 		#
@@ -3466,7 +3574,7 @@ sub read_a_line($) {
 	    #
 	    handle_first_entry if $first_entry;
 	    #
-	    # Expand Shell Variables using %params and %actparms
+	    # Expand Shell Variables using %params and %actparams
 	    #
 	    expand_variables( $currentline ) if $options & EXPAND_VARIABLES;
 
@@ -3486,18 +3594,16 @@ sub read_a_line($) {
 		    push_include;
 		    $currentfile = undef;
 		    do_open_file $filename;
-		} else {
-		    $currentlinenumber = 0;
 		}
 
-		$currentline = '';
-            } elsif ( ( $options & DO_SECTION ) && $currentline =~ /^\s*\?SECTION\s+(.*)/i ) {
-                my $sectionname = $1;
-                fatal_error "Invalid SECTION name ($sectionname)" unless $sectionname =~ /^[-_\da-zA-Z]+$/;
-                fatal_error "This file does not allow ?SECTION" unless $section_function;
-                $section_function->($sectionname);
-                $directive_callback->( 'SECTION', $currentline ) if $directive_callback;
-                $currentline = '';
+		next LINE;
+	    } elsif ( ( $options & DO_SECTION ) && $currentline =~ /^\s*\?SECTION\s+(.*)/i ) {
+		my $sectionname = $1;
+		fatal_error "Invalid SECTION name ($sectionname)" unless $sectionname =~ /^[-_\da-zA-Z]+$/;
+		fatal_error "This file does not allow ?SECTION" unless $section_function;
+		$section_function->($sectionname);
+		$directive_callback->( 'SECTION', $currentline ) if $directive_callback;
+		next LINE;
 	    } else {
 		fatal_error "Non-ASCII gunk in file" if ( $options && CHECK_GUNK ) && $currentline =~ /[^\s[:print:]]/;
 		print "IN===> $currentline\n" if $debug;
@@ -4888,6 +4994,7 @@ sub update_config_file( $ ) {
     update_default( 'USE_DEFAULT_RT', 'No' );
     update_default( 'EXPORTMODULES',  'No' );
     update_default( 'RESTART',        'reload' );
+    update_default( 'PAGER',          '' );
 
     my $fn;
 
@@ -5037,6 +5144,8 @@ sub process_shorewall_conf( $$ ) {
 
 		    warning_message "Option $var=$val is deprecated"
 			if $deprecated{$var} && supplied $val && lc $config{$var} ne $deprecated{$var};
+
+		    $origin{$var} = shortlineinfo2;
 		} else {
 		    fatal_error "Unrecognized $product.conf entry";
 		}
@@ -5811,10 +5920,35 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'MULTICAST'                  , '';
     default_yes_no 'MARK_IN_FORWARD_CHAIN'      , '';
     default_yes_no 'CHAIN_SCRIPTS'              , 'Yes';
-    default_yes_no 'TRACK_RULES'                , '';
+
+    if ( supplied ( $val = $config{TRACK_RULES} ) ) {
+	if ( lc( $val ) eq 'file' ) {
+	    $config{TRACK_RULES}  = 'File';
+	} else {
+	    default_yes_no 'TRACK_RULES'        , '';
+	}
+    } else {
+	$config{TRACK_RULES} = '';
+    }
+
+    %origin = () unless $config{TRACK_RULES} eq 'File';
+    #
+    # Ensure that all members of %origin have defined values
+    #
+    for ( keys %config ) {
+	$origin{$_} ||= '';
+    }
+	    
     default_yes_no 'INLINE_MATCHES'             , '';
     default_yes_no 'BASIC_FILTERS'              , '';
     default_yes_no 'WORKAROUNDS'                , 'Yes';
+    default_yes_no 'DOCKER'                      , '';
+
+    if ( $config{DOCKER} ) {
+	fatal_error "DOCKER=Yes is not allowed in Shorewall6" if $family == F_IPV6;
+	require_capability( 'IPTABLES_S', 'DOCKER=Yes', 's' );
+	require_capability( 'ADDRTYPE', '  DOCKER=Yes', 's' );
+    }
 
     if ( supplied( $val = $config{RESTART} ) ) {
 	fatal_error "Invalid value for RESTART ($val)" unless $val =~ /^(restart|reload)$/;
@@ -5972,7 +6106,7 @@ sub get_configuration( $$$$ ) {
 
     default_log_level 'SFILTER_LOG_LEVEL', 'info';
 
-    if ( $val = $config{SFILTER_DISPOSITION} ) {
+    if ( supplied( $val = $config{SFILTER_DISPOSITION} ) ) {
 	fatal_error "Invalid SFILTER_DISPOSITION setting ($val)" unless $val =~ /^(A_)?(DROP|REJECT)$/;
 	require_capability 'AUDIT_TARGET' , "SFILTER_DISPOSITION=$val", 's' if $1;
     } else {
@@ -5981,14 +6115,14 @@ sub get_configuration( $$$$ ) {
 
     default_log_level 'RPFILTER_LOG_LEVEL', 'info';
 
-    if ( $val = $config{RPFILTER_DISPOSITION} ) {
+    if ( supplied ( $val = $config{RPFILTER_DISPOSITION} ) ) {
 	fatal_error "Invalid RPFILTER_DISPOSITION setting ($val)" unless $val =~ /^(A_)?(DROP|REJECT)$/;
 	require_capability 'AUDIT_TARGET' , "RPFILTER_DISPOSITION=$val", 's' if $1;
     } else {
 	$config{RPFILTER_DISPOSITION} = 'DROP';
     }
 
-    if ( $val = $config{MACLIST_DISPOSITION} ) {
+    if ( supplied( $val = $config{MACLIST_DISPOSITION} ) ) {
 	if ( $val =~ /^(?:A_)?DROP$/ ) {
 	    $globals{MACLIST_TARGET} = $val;
 	} elsif ( $val eq 'REJECT' ) {
@@ -6007,7 +6141,7 @@ sub get_configuration( $$$$ ) {
 	$globals{MACLIST_TARGET}      = 'reject';
     }
 
-    if ( $val = $config{RELATED_DISPOSITION} ) {
+    if ( supplied( $val = $config{RELATED_DISPOSITION} ) ) {
 	if ( $val =~ /^(?:A_)?(?:DROP|ACCEPT)$/ ) {
 	    $globals{RELATED_TARGET} = $val;
 	} elsif ( $val eq 'REJECT' ) {
@@ -6026,7 +6160,7 @@ sub get_configuration( $$$$ ) {
 	$globals{RELATED_TARGET}      = 'ACCEPT';
     }
 
-    if ( $val = $config{INVALID_DISPOSITION} ) {
+    if ( supplied( $val = $config{INVALID_DISPOSITION} ) ) {
 	if ( $val =~ /^(?:A_)?DROP$/ ) {
 	    $globals{INVALID_TARGET} = $val;
 	} elsif ( $val eq 'REJECT' ) {
@@ -6045,7 +6179,7 @@ sub get_configuration( $$$$ ) {
 	$globals{INVALID_TARGET}      = '';
     }
 
-    if ( $val = $config{UNTRACKED_DISPOSITION} ) {
+    if ( supplied( $val = $config{UNTRACKED_DISPOSITION} ) ) {
 	if ( $val =~ /^(?:A_)?(?:DROP|ACCEPT)$/ ) {
 	    $globals{UNTRACKED_TARGET} = $val;
 	} elsif ( $val eq 'REJECT' ) {
@@ -6064,7 +6198,7 @@ sub get_configuration( $$$$ ) {
 	$globals{UNTRACKED_TARGET}        = '';
     }
 
-    if ( $val = $config{MACLIST_TABLE} ) {
+    if ( supplied( $val = $config{MACLIST_TABLE} ) ) {
 	if ( $val eq 'mangle' ) {
 	    fatal_error 'MACLIST_DISPOSITION=$1 is not allowed with MACLIST_TABLE=mangle' if $config{MACLIST_DISPOSITION} =~ /^((?:A)?REJECT)$/;
 	} else {
@@ -6074,7 +6208,7 @@ sub get_configuration( $$$$ ) {
 	default 'MACLIST_TABLE' , 'filter';
     }
 
-    if ( $val = $config{TCP_FLAGS_DISPOSITION} ) {
+    if ( supplied( $val = $config{TCP_FLAGS_DISPOSITION} ) ) {
 	fatal_error "Invalid value ($config{TCP_FLAGS_DISPOSITION}) for TCP_FLAGS_DISPOSITION" unless $val =~ /^(?:(A_)?(?:REJECT|DROP))|ACCEPT$/;
 	require_capability 'AUDIT_TARGET' , "TCP_FLAGS_DISPOSITION=$val", 's' if $1;
     } else {
@@ -6105,7 +6239,7 @@ sub get_configuration( $$$$ ) {
 	require_capability 'MANGLE_ENABLED', "TC_ENABLED=$config{TC_ENABLED}", 's';
     }
 
-    if ( $val = $config{TC_PRIOMAP} ) {
+    if ( supplied( $val = $config{TC_PRIOMAP} ) ) {
 	my @priomap = split ' ',$val;
 	fatal_error "Invalid TC_PRIOMAP ($val)" unless @priomap == 16;
 	for ( @priomap ) {
@@ -6124,11 +6258,12 @@ sub get_configuration( $$$$ ) {
     default 'QUEUE_DEFAULT'         , 'none';
     default 'NFQUEUE_DEFAULT'       , 'none';
     default 'ACCEPT_DEFAULT'        , 'none';
-    default 'OPTIMIZE'              , 0;
 
     for my $default ( qw/DROP_DEFAULT REJECT_DEFAULT QUEUE_DEFAULT NFQUEUE_DEFAULT ACCEPT_DEFAULT/ ) {
 	$config{$default} = 'none' if "\L$config{$default}" eq 'none';
     }
+
+    default 'OPTIMIZE' , 0;
 
     if ( ( $val = $config{OPTIMIZE} ) =~ /^all$/i ) {
 	$config{OPTIMIZE} = $val = OPTIMIZE_ALL;
@@ -6387,7 +6522,7 @@ sub generate_aux_config() {
 
     if ( -f $fn ) {
 	emit( '',
-	      'dump_filter() {' );
+	      'dump_filter1() {' );
 	push_indent;
 	append_file( $fn,1 ) or emit 'cat -';
 	pop_indent;
@@ -6464,6 +6599,7 @@ sub report_used_capabilities() {
 }
 
 END {
+    print "eval() called $evals times\n" if $debug;
     cleanup;
 }
 

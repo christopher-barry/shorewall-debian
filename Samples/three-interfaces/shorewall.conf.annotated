@@ -89,6 +89,18 @@ VERBOSITY=1
 #     If not specified, then 2 is assumed.
 # 
 ###############################################################################
+#			        P A G E R
+###############################################################################
+PAGER=
+#
+# PAGER=pathname
+# 
+#     Added in Shorewall 5.0.6. Specifies a path name of a pager program like 
+#     less or more. When PAGER is given, the output of verbose status commands
+#     and the dump command are piped through the named program when the output
+#     file is a terminal.
+# 
+###############################################################################
 #		                L O G G I N G
 ###############################################################################
 BLACKLIST_LOG_LEVEL=
@@ -862,6 +874,17 @@ DISABLE_IPV6=No
 # 
 #       □ Reload Shorewall
 # 
+DOCKER=No
+#
+# DOCKER=[Yes|No]
+# 
+#     Added in Shorewall 5.0.6. When set to Yes, the generated script will save
+#     Docker-generated rules before and restore them after executing the start, 
+#     stop, reload and restart commands. If set to No (the default), the
+#     generated script will delete any Docker-generated rules when executing
+#     those commands. See http://www.shorewall.net/Docker.html for additional
+#     information.
+# 
 DELETE_THEN_ADD=Yes
 #
 # DELETE_THEN_ADD={Yes|No}
@@ -900,7 +923,7 @@ EXPAND_POLICIES=Yes
 # EXPAND_POLICIES={Yes|No}
 # 
 #     Normally, when the SOURCE or DEST columns in shorewall-policy(5) contains
-#     'all', a single policy chain is created and the policy is enforced in that
+#     'all', a single policy chain is created and thes policy is enforced in that
 #     chain. For example, if the policy entry is
 # 
 #     #SOURCE DEST POLICY LOG
@@ -1567,7 +1590,7 @@ TRACK_PROVIDERS=Yes
 # 
 TRACK_RULES=No
 #
-# TRACK_RULES={Yes|No}
+# TRACK_RULES={Yes|No|File}
 # 
 #     Added in Shorewall 4.5.20. If set to Yes, causes the compiler to add a
 #     comment to iptables rules to indicate the file name and line number of the
@@ -1576,6 +1599,10 @@ TRACK_RULES=No
 # 
 #     Setting this option to Yes requires the Comments capability in iptables and
 #     kernel.
+# 
+#     Beginning with Shorewall 5.0.5, the option may also be set to File. That
+#     setting causes similar comments to be added to the .iptables-restore-input
+#     file, which is normally created in /var/lib/shorewall.
 # 
 USE_DEFAULT_RT=Yes
 #
@@ -1620,6 +1647,11 @@ USE_DEFAULT_RT=Yes
 #     the empty string then USE_DEFAULT_RT=No was assumed. Beginning with
 #     Shorewall 4.6.0, the default is USE_DEFAULT_RT=Yes and use of
 #     USE_DEFAULT_RT=No is deprecated.
+# 
+#     Warning
+# 
+#     The enable, disable and reenable commands do not work correctly when
+#     USE_DEFAULT_RT=No.
 # 
 USE_PHYSICAL_NAMES=No
 #
