@@ -316,6 +316,23 @@ get_config() {
 
     g_loopback=$(find_loopback_interfaces)
 
+    if [ -n "$PAGER" -a -t 1 ]; then
+	case $PAGER in
+	    /*)
+		g_pager="$PAGER"
+		[ -f "$g_pager" ] || fatal_error "PAGER $PAGER does not exist"
+		;;
+	    *)
+		g_pager=$(mywhich pager 2> /dev/null)
+		[ -n "$g_pager" ] || fatal_error "PAGER $PAGER not found"
+		;;
+	esac
+
+	[ -x "$g_pager" ] || fatal_error "PAGER $g_pager is not executable"
+
+	g_pager="| $g_pager"
+    fi
+
     lib=$(find_file lib.cli-user)
 
     [ -f $lib ] && . $lib
@@ -453,11 +470,15 @@ compiler() {
 	    [ -n "$g_doing" ] && progress_message3 "$g_doing using $g_product $SHOREWALL_VERSION..."
 	    ;;
     esac
+    #
+    # Only use the pager if 'trace' or -r was specified and -d was not
+    #
+    [ "$g_debugging" != trace -a -z "$g_preview" ] || [ -n "$g_debug" ] && g_pager=
 
     if [ ${PERLLIBDIR} = ${LIBEXECDIR}/shorewall ]; then
-	$PERL $debugflags $pc $options $@
+	eval $PERL $debugflags $pc $options $@ $g_pager
     else
-	PERL5LIB=${PERLLIBDIR} $PERL $debugflags $pc $options $@
+	eval PERL5LIB=${PERLLIBDIR} $PERL $debugflags $pc $options $@ $g_pager
     fi
 
     status=$?

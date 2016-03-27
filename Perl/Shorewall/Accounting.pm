@@ -1,9 +1,9 @@
 #
-# Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Accounting.pm
+# Shorewall 5.0 -- /usr/share/shorewall/Shorewall/Accounting.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007-2016 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -37,7 +37,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_accounting );
 our @EXPORT_OK = qw( );
-our $VERSION = '5.0_4';
+our $VERSION = '5.0_7';
 
 #
 # Per-IP accounting tables. Each entry contains the associated network.
@@ -59,21 +59,21 @@ our $acctable;
 #
 
 use constant {
-	      LEGACY      => 0,
-	      PREROUTING  => 1,
-	      INPUT       => 2,
-	      OUTPUT      => 3,
-	      FORWARD     => 4,
-	      POSTROUTING => 5
+	      LEGACY_SECTION      => 0,
+	      PREROUTING_SECTION  => 1,
+	      INPUT_SECTION       => 2,
+	      OUTPUT_SECTION      => 3,
+	      FORWARD_SECTION     => 4,
+	      POSTROUTING_SECTION => 5
 	  };
 #
 # Map names to values
 #
-our %asections = ( PREROUTING  => PREROUTING,
-		   INPUT       => INPUT,
-		   FORWARD     => FORWARD,
-		   OUTPUT      => OUTPUT,
-		   POSTROUTING => POSTROUTING
+our %asections = ( PREROUTING  => PREROUTING_SECTION,
+		   INPUT       => INPUT_SECTION,
+		   FORWARD     => FORWARD_SECTION,
+		   OUTPUT      => OUTPUT_SECTION,
+		   POSTROUTING => POSTROUTING_SECTION
 		 );
 
 #
@@ -157,7 +157,7 @@ sub process_accounting_rule1( $$$$$$$$$$$ ) {
 
     $jumpchainref = 0;
 
-    $asection = LEGACY if $asection < 0;
+    $asection = LEGACY_SECTION if $asection < 0;
 
     our $disposition = '';
 

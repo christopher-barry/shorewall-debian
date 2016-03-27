@@ -1,9 +1,9 @@
 #
-# Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Providers.pm
+# Shorewall 5.0 -- /usr/share/shorewall/Shorewall/Providers.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010.2011,2012 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007-2016 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -47,7 +47,7 @@ our @EXPORT = qw( process_providers
                   map_provider_to_interface
 	       );
 our @EXPORT_OK = qw( initialize provider_realm );
-our $VERSION = '5.0_2';
+our $VERSION = '5.0_6';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -144,20 +144,21 @@ sub setup_route_marking() {
 	    my $interface = $providerref->{interface};
 	    my $physical  = $providerref->{physical};
 	    my $mark      = $providerref->{mark};
+	    my $origin    = $providerref->{origin};
 
 	    unless ( $marked_interfaces{$interface} ) {
-		add_ijump $mangle_table->{PREROUTING} , j => $chainref,  i => $physical,     mark => "--mark 0/$mask";
-		add_ijump $mangle_table->{PREROUTING} , j => $chainref1, i => "! $physical", mark => "--mark  $mark/$mask";
-		add_ijump $mangle_table->{OUTPUT}     , j => $chainref2,                     mark => "--mark  $mark/$mask";
+		add_ijump_extended $mangle_table->{PREROUTING} , j => $chainref,  $origin, i => $physical,     mark => "--mark 0/$mask";
+		add_ijump_extended $mangle_table->{PREROUTING} , j => $chainref1, $origin, i => "! $physical", mark => "--mark  $mark/$mask";
+		add_ijump_extended $mangle_table->{OUTPUT}     , j => $chainref2, $origin,                     mark => "--mark  $mark/$mask";
 		$marked_interfaces{$interface} = 1;
 	    }
 
 	    if ( $providerref->{shared} ) {
 		add_commands( $chainref, qq(if [ -n "$providerref->{mac}" ]; then) ), incr_cmd_level( $chainref ) if $providerref->{optional};
-		add_ijump $chainref, j => 'MARK', targetopts => "--set-mark $providerref->{mark}${exmask}", imatch_source_dev( $interface ), mac => "--mac-source $providerref->{mac}";
+		add_ijump_extended $chainref, j => 'MARK', $origin, targetopts => "--set-mark $providerref->{mark}${exmask}", imatch_source_dev( $interface ), mac => "--mac-source $providerref->{mac}";
 		decr_cmd_level( $chainref ), add_commands( $chainref, "fi\n" ) if $providerref->{optional};
 	    } else {
-		add_ijump $chainref, j => 'MARK', targetopts => "--set-mark $providerref->{mark}${exmask}", imatch_source_dev( $interface );
+		add_ijump_extended $chainref, j => 'MARK', $origin, targetopts => "--set-mark $providerref->{mark}${exmask}", imatch_source_dev( $interface );
 	    }
 	}
 
@@ -480,17 +481,22 @@ sub process_a_provider( $ ) {
 	$interface = $interfaceref->{name} unless $interfaceref->{wildcard};
     } 
 
-    my $gatewaycase = '';
-
     if ( $physical =~ /\+$/ ) {
 	return 0 if $pseudo;
 	fatal_error "Wildcard interfaces ($physical) may not be used as provider interfaces";
     }
 
-    if ( $gateway eq 'detect' ) {
+    my $gatewaycase = '';
+    my $gw;
+
+    if ( ( $gw = lc $gateway ) eq 'detect' ) {
 	fatal_error "Configuring multiple providers through one interface requires an explicit gateway" if $shared;
 	$gateway = get_interface_gateway $interface;
 	$gatewaycase = 'detect';
+    } elsif ( $gw eq 'none' ) {
+	fatal_error "Configuring multiple providers through one interface requires a gateway" if $shared;
+	$gatewaycase = 'none';
+	$gateway = '';
     } elsif ( $gateway && $gateway ne '-' ) {
 	( $gateway, $mac ) = split_host_list( $gateway, 0 );
 	validate_address $gateway, 0;
@@ -505,7 +511,7 @@ sub process_a_provider( $ ) {
 
 	$gatewaycase = 'specified';
     } else {
-	$gatewaycase = 'none';
+	$gatewaycase = 'omitted';
 	fatal_error "Configuring multiple providers through one interface requires a gateway" if $shared;
 	$gateway = '';
     }
@@ -528,10 +534,12 @@ sub process_a_provider( $ ) {
 	    } elsif ( $option eq 'notrack' ) {
 		$track = 0;
 	    } elsif ( $option =~ /^balance=(\d+)$/ ) {
+		fatal_error q('balance' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
 		fatal_error q('balance=<weight>' is not available in IPv6) if $family == F_IPV6;
 		fatal_error 'The balance setting must be non-zero' unless $1;
 		$balance = $1;
 	    } elsif ( $option eq 'balance' || $option eq 'primary') {
+		fatal_error qq('$option' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
 		$balance = 1;
 	    } elsif ( $option eq 'loose' ) {
 		$loose   = 1;
@@ -549,11 +557,13 @@ sub process_a_provider( $ ) {
 	    } elsif ( $option =~ /^mtu=(\d+)$/ ) {
 		$mtu = "mtu $1 ";
 	    } elsif ( $option =~ /^fallback=(\d+)$/ ) {
+		fatal_error q('fallback' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
 		fatal_error q('fallback=<weight>' is not available in IPv6) if $family == F_IPV6;
 		$default = $1;
 		$default_balance = 0;
 		fatal_error 'fallback must be non-zero' unless $default;
 	    } elsif ( $option eq 'fallback' ) {
+		fatal_error q('fallback' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
 		$default = -1;
 		$default_balance = 0;
 	    } elsif ( $option eq 'local' ) {
@@ -566,6 +576,7 @@ sub process_a_provider( $ ) {
 		$track  = 0           if $config{TRACK_PROVIDERS};
 		$default_balance = 0  if $config{USE_DEFAULT_RT};
 	    } elsif ( $option =~ /^load=(0?\.\d{1,8})/ ) {
+		fatal_error q('fallback' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
 		$load = sprintf "%1.8f", $1;
 		require_capability 'STATISTIC_MATCH', "load=$1", 's';
 	    } elsif ( $option eq 'autosrc' ) {
@@ -595,13 +606,13 @@ sub process_a_provider( $ ) {
     fatal_error "A provider interface must have at least one associated zone" unless $tproxy || %{interface_zones($interface)};
 
     if ( $local ) {
-	fatal_error "GATEWAY not valid with 'local' provider"  unless $gatewaycase eq 'none';
+	fatal_error "GATEWAY not valid with 'local' provider"  unless $gatewaycase eq 'omitted';
 	fatal_error "'track' not valid with 'local'"           if $track;
 	fatal_error "DUPLICATE not valid with 'local'"         if $duplicate ne '-';
 	fatal_error "'persistent' is not valid with 'local"    if $persistent;
     } elsif ( $tproxy ) {
 	fatal_error "Only one 'tproxy' provider is allowed"    if $tproxies++;
-	fatal_error "GATEWAY not valid with 'tproxy' provider" unless $gatewaycase eq 'none';
+	fatal_error "GATEWAY not valid with 'tproxy' provider" unless $gatewaycase eq 'omitted';
 	fatal_error "'track' not valid with 'tproxy'"          if $track;
 	fatal_error "DUPLICATE not valid with 'tproxy'"        if $duplicate ne '-';
 	fatal_error "MARK not allowed with 'tproxy'"           if $mark ne '-';
@@ -648,9 +659,9 @@ sub process_a_provider( $ ) {
 	warning_message q(The 'proxyndp' option is dangerous when specified on a Provider interface) if get_interface_option( $interface, 'proxyndp' );
     }
 
-    $balance = $default_balance unless $balance;
+    $balance = $default_balance unless $balance || $gatewaycase eq 'none';
 
-    fatal_error "Interface $interface is already associated with non-shared provider $provider_interfaces{$interface}" if $provider_interfaces{$table};
+    fatal_error "Interface $interface is already associated with non-shared provider $provider_interfaces{$interface}" if $provider_interfaces{$interface};
 
     if ( $duplicate ne '-' ) {
 	fatal_error "The DUPLICATE column must be empty when USE_DEFAULT_RT=Yes" if $config{USE_DEFAULT_RT};
@@ -699,6 +710,7 @@ sub process_a_provider( $ ) {
 			   persistent_routes => [],
 			   routedests        => {} ,
 			   persistent        => $persistent,
+			   origin            => shortlineinfo( '' ),
 			 };
 
     $provider_interfaces{$interface} = $table unless $shared;
@@ -787,7 +799,7 @@ sub add_a_provider( $$ ) {
 
 	push_indent;
 
-	if ( $gatewaycase eq 'none' ) {
+	if ( $gatewaycase eq 'omitted' ) {
 	    if ( $tproxy ) {
 		emit 'run_ip route add local ' . ALLIP . " dev $physical table $id";
 	    } else {
@@ -816,12 +828,12 @@ sub add_a_provider( $$ ) {
 
 	if ( ! $noautosrc ) {
 	    if ( $shared ) {
-		emit  "qt \$IP -$family rule del from $address" if $config{DELETE_THEN_ADD};
+		emit  "qt \$IP -$family rule del from $address";
 		emit( "run_ip rule add from $address pref 20000 table $id" ,
 		      "echo \"\$IP -$family rule del from $address pref 20000> /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing" );
 	    } else {
 		emit  ( "find_interface_addresses $physical | while read address; do" );
-		emit  ( "    qt \$IP -$family rule del from \$address" ) if $config{DELETE_THEN_ADD};
+		emit  ( "    qt \$IP -$family rule del from \$address" );
 		emit  ( "    run_ip rule add from \$address pref 20000 table $id",
 			"    echo \"\$IP -$family rule del from \$address pref 20000 > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing",
 			'    rulenum=$(($rulenum + 1))',
@@ -865,7 +877,7 @@ sub add_a_provider( $$ ) {
 	}
 	$provider_interfaces{$interface} = $table;
 
-	if ( $gatewaycase eq 'none' ) {
+	if ( $gatewaycase eq 'omitted' ) {
 	    if ( $tproxy ) {
 		emit 'run_ip route add local ' . ALLIP . " dev $physical table $id";
 	    } else {
@@ -905,7 +917,7 @@ CEOF
 
 	emit ( "run_ip rule add fwmark ${hexmark}${mask} pref $pref table $id",
 	       "echo \"\$IP -$family rule del fwmark ${hexmark}${mask} > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing"
-	     );
+	    );
     }
 
     if ( $duplicate ne '-' ) {
@@ -981,12 +993,19 @@ CEOF
 	    }
 	} elsif ( ! $noautosrc ) {
 	    if ( $shared ) {
-		emit  "qt \$IP -$family rule del from $address" if $config{DELETE_THEN_ADD};
-		emit( "run_ip rule add from $address pref 20000 table $id" ,
-		      "echo \"\$IP -$family rule del from $address pref 20000> /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing" );
+		if ( $persistent ) {
+		    emit( qq(if ! egrep -q "^2000:[[:space:]]+from $address lookup $id"; then),
+			  qq(    run_ip rule add from $address pref 20000 table $id),
+			  qq(    echo "\$IP -$family rule del from $address pref 20000> /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing ),
+			  qq(fi) );
+		} else {
+		    emit  "qt \$IP -$family rule del from $address" if $config{DELETE_THEN_ADD};
+		    emit( "run_ip rule add from $address pref 20000 table $id" ,
+			  "echo \"\$IP -$family rule del from $address pref 20000> /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing" );
+		}
 	    } elsif ( ! $pseudo ) {
 		emit  ( "find_interface_addresses $physical | while read address; do" );
-		emit  ( "    qt \$IP -$family rule del from \$address" ) if $config{DELETE_THEN_ADD};
+		emit  ( "    qt \$IP -$family rule del from \$address" ) if $persistent || $config{DELETE_THEN_ADD};
 		emit  ( "    run_ip rule add from \$address pref 20000 table $id",
 			"    echo \"\$IP -$family rule del from \$address pref 20000 > /dev/null 2>&1\" >> \${VARDIR}/undo_${table}_routing",
 			'    rulenum=$(($rulenum + 1))',
@@ -1271,7 +1290,7 @@ sub add_an_rtrule1( $$$$$ ) {
     push @{$providerref->{rules}}, "run_ip rule add $source ${dest}${mark} $priority table $id";
 
     if ( $persistent ) {
-	push @{$providerref->{persistent_rules}}, "qt \$IP -$family rule del $source ${dest}${mark} $priority" if $config{DELETE_THEN_ADD};
+	push @{$providerref->{persistent_rules}}, "qt \$IP -$family rule del $source ${dest}${mark} $priority";
 	push @{$providerref->{persistent_rules}}, "run_ip rule add $source ${dest}${mark} $priority table $id";
     }
 

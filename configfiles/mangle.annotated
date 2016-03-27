@@ -40,8 +40,8 @@
 # 
 # ACTION - command[(parameters)][:chain-designator]
 # 
-#     The chain-specifier indicates the Netfilter chain that the entry applies to
-#     and may be one of the following:
+#     The chain-designator indicates the Netfilter chain that the entry applies
+#     to and may be one of the following:
 # 
 #     P
 # 
@@ -66,12 +66,20 @@
 #     A chain-designator may not be specified if the SOURCE or DEST columns begin
 #     with '$FW'. When the SOURCE is $FW, the generated rule is always placed in
 #     the OUTPUT chain. If DEST is '$FW', then the rule is placed in the INPUT
-#     chain.
+#     chain. Additionally, a chain-designator may not be specified in an action
+#     body unless the action is declared as inline in shorewall-actions(5).
 # 
 #     Where a command takes parameters, those parameters are enclosed in
 #     parentheses ("(....)") and separated by commas.
 # 
 #     The command may be one of the following.
+# 
+#     action[([param[,...])]
+# 
+#         Added in Shorewall 5.0.7. action must be an action declared with the
+#         mangle option in shorewall-actions(5). If the action accepts
+#         paramaters, they are specified as a comma-separated list within
+#         parentheses following the action name.
 # 
 #     ADD(ipset:flags)
 # 
@@ -214,6 +222,13 @@
 # 
 #         To indicate more than one class, add their hex values together and
 #         specify the result.
+# 
+#     ECN
+# 
+#         Added in Shorewall 5.0.6 as an alternative to entries in shorewall-ecn
+#         (5). If a PROTO is specified, it must be 'tcp' (6). If no PROTO is
+#         supplied, TCP is assumed. This action causes all ECN bits in the TCP
+#         header to be cleared.
 # 
 #     IMQ(number)
 # 
@@ -441,21 +456,6 @@
 #             which the request arrives.
 # 
 #     TTL([-|+]number)
-# 
-#         If + is included, packets matching the rule will have their TTL
-#         incremented by number. Similarly, if - is included, matching packets
-#         have their TTL decremented by number. If neither + nor - is given, the
-#         TTL of matching packets is set to number. The valid range of values for
-#         number is 1-255.
-# 
-#      1. TTL([-|+]number)
-# 
-#         Added in Shorewall 4.4.24.
-# 
-#         Prior to Shorewall 4.5.7.2, may be optionally followed by :F but the
-#         resulting rule is always added to the FORWARD chain. Beginning with
-#         Shorewall 4.5.7.s, it may be optionally followed by :P, in which case
-#         the rule is added to the PREROUTING chain.
 # 
 #         If + is included, packets matching the rule will have their TTL
 #         incremented by number. Similarly, if - is included, matching packets

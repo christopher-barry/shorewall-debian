@@ -1,9 +1,9 @@
 #
-# Shorewall 4.4 -- /usr/share/shorewall/Shorewall/Nat.pm
+# Shorewall 5.0 -- /usr/share/shorewall/Shorewall/Nat.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007-2016 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -42,7 +42,7 @@ our @EXPORT_OK = ();
 
 Exporter::export_ok_tags('rules');
 
-our $VERSION = '5.0_4';
+our $VERSION = '5.0_7';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -69,7 +69,7 @@ sub process_one_masq1( $$$$$$$$$$$ )
     my $destnets = '';
     my $baserule = '';
     my $inlinematches = '';
-
+    my $prerule       = '';
     #
     # Leading '+'
     #
@@ -83,6 +83,13 @@ sub process_one_masq1( $$$$$$$$$$$ )
     } else {
 	$inlinematches = get_inline_matches(0);
     }	
+    #
+    # Handle early matches
+    #
+    if ( $inlinematches =~ s/s*\+// ) {
+	$prerule = $inlinematches;
+	$inlinematches = '';
+    }
     #
     # Parse the remaining part of the INTERFACE column
     #
@@ -337,7 +344,7 @@ sub process_one_masq1( $$$$$$$$$$$ )
 	#
 	expand_rule( $chainref ,
 		     POSTROUTE_RESTRICT ,
-		     '' ,
+		     $prerule ,
 		     $baserule . $inlinematches . $rule ,
 		     $networks ,
 		     $destnets ,

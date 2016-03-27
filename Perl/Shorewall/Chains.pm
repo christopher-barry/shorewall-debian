@@ -1,9 +1,9 @@
 #
-# Shorewall 4.5 -- /usr/share/shorewall/Shorewall/Chains.pm
+# Shorewall 5.0 -- /usr/share/shorewall/Shorewall/Chains.pm
 #
 #     This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-#     (c) 2007,2008,2009,2010,2011,2012,2013 - Tom Eastep (teastep@shorewall.net)
+#     (c) 2007-2016 - Tom Eastep (teastep@shorewall.net)
 #
 #       Complete documentation is available at http://shorewall.net
 #
@@ -47,6 +47,7 @@ our @EXPORT = ( qw(
 		    add_irule
 		    add_jump
 		    add_ijump
+		    add_ijump_extended
 		    insert_rule
 		    insert_irule
 		    clone_irule
@@ -137,6 +138,17 @@ our %EXPORT_TAGS = (
 				       ALL_COMMANDS
 				       NOT_RESTORE
 
+				       PREROUTING
+				       INPUT
+				       FORWARD
+				       OUTPUT
+				       POSTROUTING
+				       ALLCHAINS
+				       STICKY
+				       STICKO
+				       REALPREROUTING
+				       ACTIONCHAIN
+
 				       unreachable_warning
 				       state_match
 				       state_imatch
@@ -187,6 +199,7 @@ our %EXPORT_TAGS = (
 				       ensure_raw_chain
 				       ensure_rawpost_chain
 				       new_standard_chain
+				       new_action_chain
 				       new_builtin_chain
 				       new_nat_chain
 				       optimize_chain
@@ -263,6 +276,7 @@ our %EXPORT_TAGS = (
                                        have_address_variables
 				       set_global_variables
 				       save_dynamic_chains
+				       save_docker_rules
 				       load_ipsets
 				       create_save_ipsets
 				       validate_nfobject
@@ -280,7 +294,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_4';
+our $VERSION = '5.0_7';
 
 #
 # Chain Table
@@ -323,6 +337,10 @@ our $VERSION = '5.0_4';
 #                                               complete     => The last rule in the chain is a -g or a simple -j to a terminating target
 #                                                               Suppresses adding additional rules to the chain end of the chain
 #                                               sections     => { <section> = 1, ... } - Records sections that have been completed.
+#                                               chainnumber  => Numeric enumeration of the builtin chains (mangle table only).
+#                                               allowedchains
+#                                                            => Mangle action chains only -- specifies the set of builtin chains where
+#                                                               this action may be used.
 #                                             } ,
 #                                <chain2> => ...
 #                              }
@@ -454,6 +472,22 @@ use constant { NO_RESTRICT         => 0,   # FORWARD chain rule     - Both -i an
 	       ALL_RESTRICT        => 12,  # fw->fw rule            - neither -i nor -o allowed
 	       DESTIFACE_DISALLOW  => 32,  # Don't allow dest interface. Similar to INPUT_RESTRICT but generates a more relevant error message
 	       };
+#
+# Mangle Table allowed chains enumeration
+#
+use constant {
+    PREROUTING     => 1,        #Actually tcpre
+    INPUT          => 2,        #Actually tcin
+    FORWARD        => 4,        #Actually tcfor
+    OUTPUT         => 8,        #Actually tcout
+    POSTROUTING    => 16,       #Actually tcpost
+    ALLCHAINS      => 31,
+    STICKY         => 32,
+    STICKO         => 64,
+    REALPREROUTING => 128,
+    ACTIONCHAIN    => 256,
+};
+
 #
 # Possible IPSET options
 #
@@ -613,7 +647,7 @@ our %ipset_exists;
 #                    => CMD_MODE if the rule contains a shell command or if it
 #                                part of a loop or conditional block. If it is a
 #                                shell command, the text of the command is in
-#                                the cmd
+#                                the cmd member
 #         cmd        => Shell command, if mode == CMD_MODE and cmdlevel == 0
 #         cmdlevel   => nesting level within loops and conditional blocks.
 #                       determines indentation
@@ -622,9 +656,12 @@ our %ipset_exists;
 #                       Omitted, if target is ''.
 #         target     => Rule target, if jump is 'j' or 'g'.
 #         targetopts => Target options. Only included if non-empty
+#         matches    => List of matches in the rule
 #         <option>   => iptables/ip6tables -A options (e.g., i => eth0)
 #         <match>    => iptables match. Value may be a scalar or array.
 #                       if an array, multiple "-m <match>"s will be generated
+#         <origin>   => configuration file and line number that generated the rule
+#                       May be empty.
 #    }
 #
 # The following constants and hash are used to classify keys in a rule hash
@@ -642,6 +679,7 @@ use constant { UNIQUE      => 1,
 
 our %opttype = ( rule          => CONTROL,
 		 cmd           => CONTROL,
+		 origin        => CONTROL,
 
 		 dhcp          => CONTROL,
 
@@ -898,7 +936,7 @@ sub set_rule_option( $$$ ) {
 	    #
 	    # Shorewall::Rules::perl_action_tcp_helper() can produce rules that have two -p specifications.
 	    # The first will have a modifier like '! --syn' while the second will not.  We want to retain
-	    # the first while 
+	    # the first one.
 	    if ( $option eq 'p' ) {
 		my ( $proto ) = split( ' ', $ruleref->{p} );
 		return if $proto eq $value;
@@ -917,7 +955,7 @@ sub set_rule_option( $$$ ) {
 
 sub transform_rule( $;\$ ) {
     my ( $input, $completeref ) = @_;
-    my $ruleref  = { mode => CAT_MODE, matches => [], target => '' };
+    my $ruleref  = { mode => CAT_MODE, matches => [], target => '' , origin => shortlineinfo( '' ) };
     my $simple   = 1;
     my $target   = '';
     my $jump     = '';
@@ -1186,6 +1224,8 @@ sub merge_rules( $$$ ) {
 	$toref->{comment} = $fromref->{comment} if exists $fromref->{comment};
     }
 
+    $toref->{origin} = $fromref->{origin} if $fromref->{origin};
+
     $toref->{target} = $target;
 
     if ( my $targetref = $tableref->{$target} ) {
@@ -1242,6 +1282,23 @@ sub add_commands ( $$;@ ) {
 }
 
 #
+# Set the comment member of an irule
+#
+sub set_irule_comment( $$ ) {
+    my ( $chainref, $ruleref ) = @_;
+
+    our $rule_comments;
+
+    $ruleref->{origin} ||= $chainref->{origin};
+
+    if ( $rule_comments ) {
+	$ruleref->{comment} = $ruleref->{origin} || $comment;
+    } else {
+	$ruleref->{comment} = $comment;
+    }
+}
+
+#
 # Transform the passed rule and add it to the end of the passed chain's rule list.
 #
 sub push_rule( $$ ) {
@@ -1252,7 +1309,8 @@ sub push_rule( $$ ) {
     my $complete = 0;
     my $ruleref  = transform_rule( $_[1], $complete );
 
-    $ruleref->{comment} = shortlineinfo($chainref->{origin}) || $comment;
+    set_irule_comment( $chainref, $ruleref );
+
     $ruleref->{mode}    = CMD_MODE if $ruleref->{cmdlevel} = $chainref->{cmdlevel};
 
     push @{$chainref->{rules}}, $ruleref;
@@ -1473,7 +1531,7 @@ sub create_irule( $$$;@ ) {
 
     ( $target, my $targetopts ) = split ' ', $target, 2;
 
-    my $ruleref       = { matches => [] };
+    my $ruleref = { matches => [] , origin => shortlineinfo( $chainref->{origin} ) };
 
     $ruleref->{mode} = ( $ruleref->{cmdlevel} = $chainref->{cmdlevel} ) ? CMD_MODE : CAT_MODE;
 
@@ -1486,7 +1544,7 @@ sub create_irule( $$$;@ ) {
 	$ruleref->{target} = '';
     }
 
-    $ruleref->{comment} = shortlineinfo($chainref->{origin}) || $ruleref->{comment} || $comment;
+    set_irule_comment( $chainref, $ruleref );
 
     $iprangematch = 0;
 
@@ -1500,8 +1558,7 @@ sub create_irule( $$$;@ ) {
 }
 
 #
-# Clone an existing rule. Only the rule hash itself is cloned; reference values are shared between the new rule
-# reference and the old.
+# Clone an existing rule.
 #
 sub clone_irule( $ ) {
     my $oldruleref = $_[0];
@@ -1642,7 +1699,7 @@ sub insert_rule1($$$)
 
     my $ruleref = transform_rule( $rule );
 
-    $ruleref->{comment} = shortlineinfo($chainref->{origin}) || $comment;
+    set_irule_comment( $chainref, $ruleref );
 
     assert( ! ( $ruleref->{cmdlevel} = $chainref->{cmdlevel}) , $chainref->{name} );
     $ruleref->{mode} = CAT_MODE;
@@ -1668,7 +1725,7 @@ sub insert_irule( $$$$;@ ) {
     my ( $chainref, $jump, $target, $number, @matches ) = @_;
 
     my $rulesref = $chainref->{rules};
-    my $ruleref  = {};
+    my $ruleref  = { origin => shortlineinfo( $chainref->{origin} ) };
 
     $ruleref->{mode} = ( $ruleref->{cmdlevel} = $chainref->{cmdlevel} ) ? CMD_MODE : CAT_MODE;
 
@@ -1684,8 +1741,7 @@ sub insert_irule( $$$$;@ ) {
 	$chainref->{optflags} |= push_matches( $ruleref, @matches );
     }
 
-    
-    $ruleref->{comment} = shortlineinfo( $chainref->{origin} ) || $ruleref->{comment} || $comment;
+    set_irule_comment( $chainref, $ruleref );
 
     if ( $number >= @$rulesref ) {
 	#
@@ -2300,6 +2356,8 @@ sub new_chain($$)
 		     references     => {},
 		     filtered       => 0,
 		     optflags       => 0,
+		     origin         => shortlineinfo( '' ),
+		     restriction    => NO_RESTRICT,
 		   };
 
     trace( $chainref, 'N', undef, '' ) if $debug;
@@ -2388,12 +2446,12 @@ sub add_expanded_jump( $$$$ ) {
     add_reference( $chainref, $toref ) while --$splitcount > 0;
 }
 
-sub add_ijump_internal( $$$$;@ ) {
-    my ( $fromref, $jump, $to, $expandports, @matches ) = @_;
+sub add_ijump_internal( $$$$$;@ ) {
+    my ( $fromref, $jump, $to, $expandports, $origin, @matches ) = @_;
 
     return $dummyrule if $fromref->{complete};
 
-    our $splitcount;
+    our ( $splitcount, $file_comments, $rule_comments );
 
     my $toref;
     my $ruleref;
@@ -2410,6 +2468,7 @@ sub add_ijump_internal( $$$$;@ ) {
 	my ( $target ) = split ' ', $to;
 	$toref = $chain_table{$fromref->{table}}{$target};
 	fatal_error "Unknown rule target ($to)" unless $toref || $builtin_target{$target};
+	$origin ||= $fromref->{origin} if $file_comments || $rule_comments;
     }
 
     #
@@ -2419,6 +2478,7 @@ sub add_ijump_internal( $$$$;@ ) {
 	$toref->{referenced} = 1;
 	add_reference $fromref, $toref;
 	$jump = 'j' unless have_capability 'GOTO_TARGET';
+	$origin ||= $toref->{origin} if $file_comments || $rule_comments;
 	$ruleref = create_irule ($fromref, $jump => $to, @matches );
     } else {
 	$ruleref = create_irule( $fromref, 'j' => $to, @matches );
@@ -2428,12 +2488,19 @@ sub add_ijump_internal( $$$$;@ ) {
 	$fromref->{complete} = 1 if $jump eq 'g' || $terminating{$to};
     }
 
+    $ruleref->{origin} = $origin if $origin;
+
     $expandports ? handle_port_ilist( $fromref, $ruleref, 1 ) : push_irule( $fromref, $ruleref );
 }
 
 sub add_ijump( $$$;@ ) {
     my ( $fromref, $jump, $to, @matches ) = @_;
-    add_ijump_internal( $fromref, $jump, $to, 0, @matches );
+    add_ijump_internal( $fromref, $jump, $to, 0, '', @matches );
+}
+
+sub add_ijump_extended( $$$$;@ ) {
+    my ( $fromref, $jump, $to, $origin, @matches ) = @_;
+    add_ijump_internal( $fromref, $jump, $to, 0, $origin, @matches );
 }
 
 sub insert_ijump( $$$$;@ ) {
@@ -2704,6 +2771,13 @@ sub new_standard_chain($) {
     $chainref;
 }
 
+sub new_action_chain($$) {
+    my $chainref = &new_chain( @_ );
+    $chainref->{referenced} = 1;
+    $chainref->{allowedchains} = ALLCHAINS | REALPREROUTING | ACTIONCHAIN;
+    $chainref;
+}
+
 sub new_nat_chain($) {
     my $chainref = new_chain 'nat' ,$_[0];
     $chainref->{referenced} = 1;
@@ -2727,7 +2801,7 @@ sub ensure_manual_chain($) {
     $chainref;
 }
 
-sub log_irule_limit( $$$$$$$@ );
+sub log_irule_limit( $$$$$$$$@ );
 
 sub ensure_blacklog_chain( $$$$$ ) {
     my ( $target, $disposition, $level, $tag, $audit ) = @_;
@@ -2738,7 +2812,7 @@ sub ensure_blacklog_chain( $$$$$ ) {
 	$target =~ s/A_//;
 	$target = 'reject' if $target eq 'REJECT';
 
-	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , $tag, 'add' );
+	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , $tag, 'add', '' );
 
 	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target ) if $audit;
 	add_ijump( $logchainref, g => $target );
@@ -2753,7 +2827,7 @@ sub ensure_audit_blacklog_chain( $$$ ) {
     unless ( $filter_table->{A_blacklog} ) {
 	my $logchainref = new_manual_chain 'A_blacklog';
 
-	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , '', 'add' );
+	log_irule_limit( $level , $logchainref , 'blacklst' , $disposition , $globals{LOGILIMIT} , '', 'add' , '' );
 
 	add_ijump( $logchainref, j => 'AUDIT', targetopts => '--type ' . lc $target );
 
@@ -2834,40 +2908,42 @@ sub initialize_chain_table($) {
 	%targets = ('ACCEPT'          => STANDARD,
 		    'ACCEPT+'         => STANDARD  + NONAT,
 		    'ACCEPT!'         => STANDARD,
+		    'ADD'             => STANDARD + SET,
+		    'AUDIT'           => STANDARD  + AUDIT + OPTIONS,
 		    'A_ACCEPT'        => STANDARD  + AUDIT,
 		    'A_ACCEPT+'       => STANDARD  + NONAT + AUDIT,
 		    'A_ACCEPT!'       => STANDARD  + AUDIT,
-		    'NONAT'           => STANDARD  + NONAT + NATONLY,
-		    'AUDIT'           => STANDARD  + AUDIT + OPTIONS,
-		    'DROP'            => STANDARD,
-		    'DROP!'           => STANDARD,
 		    'A_DROP'          => STANDARD + AUDIT,
 		    'A_DROP!'         => STANDARD + AUDIT,
-		    'REJECT'          => STANDARD + OPTIONS,
-		    'REJECT!'         => STANDARD + OPTIONS,
 		    'A_REJECT'        => STANDARD + AUDIT,
 		    'A_REJECT!'       => STANDARD + AUDIT,
-		    'DNAT'            => NATRULE  + OPTIONS,
-		    'DNAT-'           => NATRULE  + NATONLY,
-		    'REDIRECT'        => NATRULE  + REDIRECT + OPTIONS,
-		    'REDIRECT-'       => NATRULE  + REDIRECT + NATONLY,
-		    'LOG'             => STANDARD + LOGRULE  + OPTIONS,
+		    'NONAT'           => STANDARD + NONAT  + NATONLY,
+		    'CONNMARK'        => STANDARD + OPTIONS,
 		    'CONTINUE'        => STANDARD,
 		    'CONTINUE!'       => STANDARD,
 		    'COUNT'           => STANDARD,
-		    'QUEUE'           => STANDARD + OPTIONS,
-		    'QUEUE!'          => STANDARD,
-		    'NFLOG'           => STANDARD + LOGRULE + NFLOG + OPTIONS,
-		    'NFQUEUE'         => STANDARD + NFQ + OPTIONS,
-		    'NFQUEUE!'        => STANDARD + NFQ,
-		    'ULOG'            => STANDARD + LOGRULE + NFLOG + OPTIONS,
-		    'ADD'             => STANDARD + SET,
 		    'DEL'             => STANDARD + SET,
-		    'WHITELIST'       => STANDARD,
+		    'DNAT'            => NATRULE  + OPTIONS,
+		    'DNAT-'           => NATRULE  + NATONLY,
+		    'DROP'            => STANDARD,
+		    'DROP!'           => STANDARD,
 		    'HELPER'          => STANDARD + HELPER + NATONLY, #Actually RAWONLY
 		    'INLINE'          => INLINERULE,
 		    'IPTABLES'        => IPTABLES,
+		    'LOG'             => STANDARD + LOGRULE  + OPTIONS,
+		    'MARK'            => STANDARD + OPTIONS,
+		    'NFLOG'           => STANDARD + LOGRULE + NFLOG + OPTIONS,
+		    'NFQUEUE'         => STANDARD + NFQ + OPTIONS,
+		    'NFQUEUE!'        => STANDARD + NFQ,
+		    'QUEUE'           => STANDARD + OPTIONS,
+		    'QUEUE!'          => STANDARD,
+		    'REJECT'          => STANDARD + OPTIONS,
+		    'REJECT!'         => STANDARD + OPTIONS,
+		    'REDIRECT'        => NATRULE  + REDIRECT + OPTIONS,
+		    'REDIRECT-'       => NATRULE  + REDIRECT + NATONLY,
 		    'TARPIT'          => STANDARD + TARPIT + OPTIONS,
+		    'ULOG'            => STANDARD + LOGRULE + NFLOG + OPTIONS,
+		    'WHITELIST'       => STANDARD,
 		   );
 
 	for my $chain ( qw(OUTPUT PREROUTING) ) {
@@ -2955,11 +3031,38 @@ sub initialize_chain_table($) {
 	}
     }
 
+    my $chainref;
+
     if ( $full ) {
 	#
 	# Create this chain early in case it is needed by Policy actions
 	#
 	new_standard_chain 'reject';
+
+	if ( $config{DOCKER} ) {
+	    $chainref = new_nat_chain( $globals{POSTROUTING} = 'SHOREWALL' );
+	    set_optflags( $chainref, DONT_OPTIMIZE | DONT_DELETE | DONT_MOVE );
+	}
+
+	$mangle_table->{PREROUTING}{chainnumber}    = PREROUTING;
+	$mangle_table->{INPUT}{chainnumber}         = INPUT;
+	$mangle_table->{OUTPUT}{chainnumber}        = OUTPUT;
+	$mangle_table->{FORWARD}{chainnumber}       = FORWARD;
+	$mangle_table->{POSTROUTING}{chainnumber}   = POSTROUTING;
+    }
+
+    if ( my $docker = $config{DOCKER} ) {
+	add_commands( $nat_table->{OUTPUT}, '[ -f ${VARDIR}/.nat_OUTPUT ] && cat ${VARDIR}/.nat_OUTPUT >&3' );
+	add_commands( $nat_table->{POSTROUTING}, '[ -f ${VARDIR}/.nat_POSTROUTING ] && cat ${VARDIR}/.nat_POSTROUTING >&3' );
+	$chainref = new_standard_chain( 'DOCKER' );
+	set_optflags( $chainref, DONT_OPTIMIZE | DONT_DELETE | DONT_MOVE );
+	add_commands( $chainref, '[ -f ${VARDIR}/.filter_DOCKER ] && cat ${VARDIR}/.filter_DOCKER >&3' );
+	$chainref = new_nat_chain( 'DOCKER' );
+	set_optflags( $chainref, DONT_OPTIMIZE | DONT_DELETE | DONT_MOVE );
+	add_commands( $chainref, '[ -f ${VARDIR}/.nat_DOCKER ] && cat ${VARDIR}/.nat_DOCKER >&3' );
+	$chainref = new_standard_chain( 'DOCKER-ISOLATION' );
+	set_optflags( $chainref, DONT_OPTIMIZE | DONT_DELETE | DONT_MOVE );
+	add_commands( $chainref, '[ -f ${VARDIR}/.filter_DOCKER-ISOLATION ] && cat ${VARDIR}/.filter_DOCKER-ISOLATION >&3' );
     }
 
     my $ruleref = transform_rule( $globals{LOGLIMIT} );
@@ -2967,6 +3070,9 @@ sub initialize_chain_table($) {
     $globals{iLOGLIMIT} =
 	( $ruleref->{hashlimit} ? [ hashlimit => $ruleref->{hashlimit} ] :
 	  $ruleref->{limit}     ? [ limit     => $ruleref->{limit}     ] : [] );
+
+    our $file_comments = $config{TRACK_RULES} eq 'File';
+    our $rule_comments = $config{TRACK_RULES} eq 'Yes';
 }
 
 #
@@ -3071,8 +3177,8 @@ sub calculate_digest( $ ) {
 #
 # Replace jumps to the passed chain with jumps to the passed target
 #
-sub replace_references( $$$$;$ ) {
-    my ( $chainref, $target, $targetopts, $comment, $digest ) = @_;
+sub replace_references( $$$$$;$ ) {
+    my ( $chainref, $target, $targetopts, $comment, $origin, $digest ) = @_;
     my $tableref  = $chain_table{$chainref->{table}};
     my $count     = 0;
     my $name      = $chainref->{name};
@@ -3090,6 +3196,7 @@ sub replace_references( $$$$;$ ) {
 		    $_->{target}     = $target;
 		    $_->{targetopts} = $targetopts if $targetopts;
 		    $_->{comment}    = $comment unless $_->{comment};
+		    $_->{origin}     = $origin if $origin;
 
 		    if ( $targetref ) {
 			add_reference ( $fromref, $targetref );
@@ -3340,7 +3447,8 @@ sub optimize_level4( $$ ) {
 				replace_references( $chainref,
 						    $firstrule->{target},
 						    $firstrule->{targetopts},
-						    $firstrule->{comment} );
+						    $firstrule->{comment},
+						    $firstrule->{origin} );
 				$progress = 1;
 			    }
 			} elsif ( $firstrule->{target} ) {
@@ -3560,7 +3668,7 @@ sub optimize_level8( $$$ ) {
 		if ( $chainref->{digest} eq $chainref1->{digest} ) {
 		    progress_message "  Chain $chainref1->{name} combined with $chainref->{name}";
 		    $progress = 1;
-		    replace_references $chainref1, $chainref->{name}, undef, '', 1;
+		    replace_references $chainref1, $chainref->{name}, undef, '', '', 1;
 
 		    unless ( $chainref->{name} =~ /^~/ || $chainref1->{name} =~ /^%/ ) {
 			#
@@ -3694,10 +3802,12 @@ sub get_multi_sports( $ ) {
 }
 
 #
-# Return an array of keys for the passed rule. 'dport' and 'comment' are omitted;
+# Return an array of keys for the passed rule. 'dport', 'comment', and 'origin' are omitted;
 #
 sub get_keys( $ ) {
-    sort grep $_ ne 'dport' && $_ ne 'comment',  keys %{$_[0]};
+    my %skip = ( dport => 1, comment => 1, origin => 1 );
+
+    sort grep ! $skip{$_},  keys %{$_[0]};
 }
 
 #
@@ -3731,6 +3841,8 @@ sub combine_dports {
 		my $comment      = $baseref->{comment} || '';
 		my $lastcomment  = $comment;
 		my $multi_sports = get_multi_sports( $baseref );
+		my $origin       = $baseref->{origin} || '';
+		my $lastorigin   = $origin;
 
 	      RULE:
 
@@ -3744,6 +3856,7 @@ sub combine_dports {
 			# We have a candidate
 			#
 			my $comment2 = $ruleref->{comment} || '';
+			my $origin2  = $ruleref->{origin}  || '';
 
 			last if $comment2 ne $lastcomment && length( $comment ) + length( $comment2 ) > 253;
 
@@ -3784,6 +3897,25 @@ sub combine_dports {
 			    $lastcomment = $comment2;
 			}
 
+			if ( $origin2 ) {
+			    if ( $origin ) {
+				$origin .= ", $origin2" unless $origin2 eq $lastorigin;
+			    } else {
+				$origin = 'Others and ';
+				$origin .= $origin2;
+			    }
+
+			    $lastorigin = $origin2;
+			} else {
+			    if ( $origin ) {
+				unless ( ( $origin2 = ' and others' ) eq $lastorigin ) {
+				    $origin .= $origin2;
+				}
+			    }
+
+			    $lastorigin = $origin2;
+			}
+
 			push @ports, split ',', $ports2;
 
 			trace( $chainref, 'D', $rulenum, $ruleref ) if $debug;
@@ -3817,6 +3949,7 @@ sub combine_dports {
 		    }
 
 		    $baseref->{comment} = $comment if $comment;
+		    $baseref->{origin}  = $origin  if $origin;
 
 		    trace ( $chainref, 'R', $basenum, $baseref ) if $debug;
 		}
@@ -3855,6 +3988,7 @@ sub delete_duplicates {
     my $lastrule  = @_;
     my $baseref   = pop;
     my $ruleref;
+    my %skip = ( comment => 1, origin => 1 );
 
     while ( @_ ) {
 	my $docheck;
@@ -3862,7 +3996,7 @@ sub delete_duplicates {
 
 	if ( $baseref->{mode} == CAT_MODE ) {
 	    my $ports1;
-	    my @keys1    = sort( grep $_ ne 'comment', keys( %$baseref ) );
+	    my @keys1    = sort( grep ! $skip{$_}, keys( %$baseref ) );
 	    my $rulenum  = @_;
 	    my $adjacent = 1;
 		
@@ -3874,7 +4008,7 @@ sub delete_duplicates {
 
 		    last unless $ruleref->{mode} == CAT_MODE;
 
-		    my @keys2 = sort(grep $_ ne 'comment', keys( %$ruleref ) );
+		    my @keys2 = sort(grep ! $skip{$_}, keys( %$ruleref ) );
 
 		    next unless @keys1 == @keys2 ;
 
@@ -3946,10 +4080,12 @@ sub get_conntrack( $ ) {
 }
 
 #
-# Return an array of keys for the passed rule. 'conntrack' and 'comment' are omitted;
+# Return an array of keys for the passed rule. 'conntrack',  'comment' & origin are omitted;
 #
 sub get_keys1( $ ) {
-    sort grep $_ ne 'conntrack --ctstate' && $_ ne 'comment',  keys %{$_[0]};
+    my %skip = ( comment => 1, origin => 1 , 'conntrack --ctstate' => 1 );
+
+    sort grep ! $skip{$_},  keys %{$_[0]};
 }
 
 #
@@ -4235,7 +4371,8 @@ sub logchain( $$$$$$ ) {
 		       $disposition ,
 		       [] ,
 		       $logtag,
-		       'add' );
+		       'add',
+	               '' );
 	add_jump( $logchainref, $target, 0, $exceptionrule );
     }
 
@@ -4380,7 +4517,7 @@ sub clearrule() {
 sub state_match( $ ) {
     my $state = shift;
 
-    if ( $state eq 'ALL' ) {
+    if ( $state eq 'ALL' || $state eq '-' ) {
 	''
     } else {
 	have_capability( 'CONNTRACK_MATCH' ) ? ( "-m conntrack --ctstate $state " ) : ( "-m state --state $state " );
@@ -6194,16 +6331,18 @@ sub do_ipsec($$) {
 #
 # Generate a log message
 #
-sub log_rule_limit( $$$$$$$$ ) {
-    my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, $matches ) = @_;
+sub log_rule_limit( $$$$$$$$;$ ) {
+    my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, $matches, $origin ) = @_;
 
     my $prefix = '';
-    my $chain       = get_action_chain_name  || $chn;
-    my $disposition = get_action_disposition || $dispo;
+    my $chain            = get_action_chain_name  || $chn;
+    my $disposition      = get_action_disposition || $dispo;
+    my $original_matches = $matches;
+    my $ruleref;
 
     $level = validate_level $level; # Do this here again because this function can be called directly from user exits.
 
-    return 1 if $level eq '';
+    return $dummyrule if $level eq '';
 
     $matches .= ' ' if $matches && substr( $matches, -1, 1 ) ne ' ';
 
@@ -6281,19 +6420,24 @@ sub log_rule_limit( $$$$$$$$ ) {
     }
 
     if ( $command eq 'add' ) {
-	add_rule ( $chainref, $matches . $prefix , 1 );
+	$ruleref = add_rule ( $chainref, $matches . $prefix , $original_matches );
     } else {
-	insert_rule1 ( $chainref , 0 , $matches . $prefix );
+	$ruleref = insert_rule1 ( $chainref , 0 , $matches . $prefix );
     }
+
+    $ruleref->{origin} = $origin if reftype( $ruleref ) && $origin;
+
+    $ruleref;
 }
 
-sub log_irule_limit( $$$$$$$@ ) {
-    my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, @matches ) = @_;
+sub log_irule_limit( $$$$$$$$@ ) {
+    my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, $origin, @matches ) = @_;
 
     my $prefix = '';
     my %matches;
     my $chain       = get_action_chain_name  || $chn;
     my $disposition = get_action_disposition || $dispo;
+    my $original_matches = @matches;
 
     $level = validate_level $level; # Do this here again because this function can be called directly from user exits.
 
@@ -6375,7 +6519,7 @@ sub log_irule_limit( $$$$$$$@ ) {
     }
 
     if ( $command eq 'add' ) {
-	add_ijump_internal ( $chainref, j => $prefix , 1, @matches );
+	add_ijump_internal ( $chainref, j => $prefix , $original_matches, $origin, @matches );
     } else {
 	insert_ijump ( $chainref, j => $prefix, 0 , @matches );
     }
@@ -6390,7 +6534,7 @@ sub log_rule( $$$$ ) {
 sub log_irule( $$$;@ ) {
     my ( $level, $chainref, $disposition, @matches ) = @_;
 
-    log_irule_limit $level, $chainref, $chainref->{name} , $disposition, $globals{LOGILIMIT} , '', 'add', @matches;
+    log_irule_limit $level, $chainref, $chainref->{name} , $disposition, $globals{LOGILIMIT} , '', 'add', '', @matches;
 }
 
 #
@@ -6686,14 +6830,12 @@ sub get_interface_gateway ( $;$ ) {
     my $interface = get_physical $logical;
     my $variable = interface_gateway( $interface );
 
-    my $routine = $config{USE_DEFAULT_RT} ? 'detect_dynamic_gateway' : 'detect_gateway';
-
     $global_variables |= ALL_COMMANDS;
 
     if ( interface_is_optional $logical ) {
-	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface));
+	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$(detect_gateway $interface));
     } else {
-	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$($routine $interface)
+	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$(detect_gateway $interface)
 [ -n "\$$variable" ] || startup_error "Unable to detect the gateway through interface $interface");
     }
 
@@ -7397,10 +7539,11 @@ sub handle_exclusion( $$$$$$$$$$$$$$$$$$$$$ ) {
 	log_irule_limit( $loglevel ,
 			 $echainref ,
 			 $chain ,
-			 $actparms{disposition} || ( $disposition eq 'reject' ? 'REJECT' : $disposition ),
+			 $actparams{disposition} || ( $disposition eq 'reject' ? 'REJECT' : $disposition ),
 			 [] ,
 			 $logtag ,
-			 'add' )
+			 'add' ,
+			 '' )
 	    if $loglevel;
 	#
 	# Generate Final Rule
@@ -7443,7 +7586,7 @@ sub expand_rule( $$$$$$$$$$$$;$ )
 
     my ( $iiface, $diface, $inets, $dnets, $iexcl, $dexcl, $onets , $oexcl, $trivialiexcl, $trivialdexcl ) = 
        ( '',      '',      '',     '',     '',     '',     '',      '',     '',            '' );
-    my  $chain = $actparms{chain} || $chainref->{name};
+    my  $chain = $actparams{chain} || $chainref->{name};
     my $table = $chainref->{table};
     my ( $jump, $mac,  $targetref, $basictarget );
     our @ends = ();
@@ -7605,7 +7748,7 @@ sub expand_rule( $$$$$$$$$$$$;$ )
 			# No logging or user-specified logging -- add the target rule with matches to the rule chain
 			#
 			if ( $targetref ) {
-			    add_expanded_jump( $chainref, $targetref , 0, $matches );
+			    add_expanded_jump( $chainref, $targetref , 0, $prerule . $matches );
 			} else {
 			    add_rule( $chainref, $prerule . $matches . $jump , 1 );
 			}
@@ -7617,22 +7760,22 @@ sub expand_rule( $$$$$$$$$$$$;$ )
 				       $loglevel ,
 				       $chainref ,
 				       $chain,
-				       $actparms{disposition} || ( $disposition eq 'reject' ? 'REJECT' : $disposition ),
+				       $actparams{disposition} || ( $disposition eq 'reject' ? 'REJECT' : $disposition ),
 				       '' ,
 				       $logtag ,
 				       'add' ,
-				       $matches
+				       $prerule . $matches
 				      );
 		    } elsif ( $logname || $basictarget eq 'RETURN' ) {
 			log_rule_limit(
 				       $loglevel ,
 				       $chainref ,
 				       $logname || $chain,
-				       $actparms{disposition} || $disposition,
+				       $actparams{disposition} || $disposition,
 				       '',
 				       $logtag,
 				       'add',
-				       $matches );
+				       $prerule . $matches );
 
 			if ( $targetref ) {
 			    add_expanded_jump( $chainref, $targetref, 0, $matches );
@@ -7649,10 +7792,10 @@ sub expand_rule( $$$$$$$$$$$$;$ )
 						     $loglevel,
 						     $logtag,
 						     $exceptionrule,
-						     $actparms{disposition} || $disposition,
+						     $actparams{disposition} || $disposition,
 						     $target ),
 					   $terminating{$basictarget} || ( $targetref && $targetref->{complete} ),
-					   $matches );
+					   $prerule . $matches );
 		    }
 
 		    conditional_rule_end( $chainref ) if $cond3;
@@ -7775,9 +7918,10 @@ sub add_interface_options( $ ) {
 		    } else {
 			for my $interface ( @input_interfaces ) {
 			    $chain1ref = $input_chains{$interface};
-			    add_ijump ( $chainref ,
-					j => $chain1ref->{name},
-					@input_interfaces > 1 ? imatch_source_dev( $interface ) : () )->{comment} = interface_origin( $interface ) if @{$chain1ref->{rules}};
+			    add_ijump_extended ( $chainref ,
+						 j => $chain1ref->{name},
+						 interface_origin( $interface ) ,
+						 @input_interfaces > 1 ? imatch_source_dev( $interface ) : () );
 			}
 		    }
 		} else {
@@ -7790,7 +7934,10 @@ sub add_interface_options( $ ) {
 		    } else {
 			for my $interface ( @forward_interfaces ) {
 			    $chain1ref = $forward_chains{$interface};
-			    add_ijump ( $chainref , j => $chain1ref->{name}, @forward_interfaces > 1 ? imatch_source_dev( $interface ) : () )->{comment} = interface_origin( $interface ) if  @{$chain1ref->{rules}};
+			    add_ijump_extended( $chainref ,
+						j => $chain1ref->{name},
+						interface_origin( $interface ) ,
+						@forward_interfaces > 1 ? imatch_source_dev( $interface ) : () );
 			}
 		    }
 		}
@@ -7879,6 +8026,8 @@ sub enter_cmd_mode() {
 sub emitr( $$ ) {
     my ( $chainref, $ruleref ) = @_;
 
+    our $file_comments;
+
     assert( $chainref );
 
     if ( $ruleref ) {
@@ -7887,6 +8036,11 @@ sub emitr( $$ ) {
 	    # A rule
 	    #
 	    enter_cat_mode unless $mode == CAT_MODE;
+
+	    if ( $file_comments && ( my $origin = $ruleref->{origin} ) ) {
+		emit_unindented '# ' . $origin;
+	    }
+
 	    emit_unindented format_rule( $chainref, $ruleref );
 	} else {
 	    #
@@ -7897,6 +8051,9 @@ sub emitr( $$ ) {
 	    if ( exists $ruleref->{cmd} ) {
 		emit join( '', '    ' x $ruleref->{cmdlevel}, $ruleref->{cmd} );
 	    } else {
+		if ( $file_comments && ( my $origin = $ruleref->{origin} ) ) {
+		    emit join( '', '    ' x $ruleref->{cmdlevel} , '# ' , $origin );
+		}
 		#
 		# Must preserve quotes in the rule
 		#
@@ -7953,6 +8110,34 @@ sub emitr1( $$ ) {
 #
 # Emit code to save the dynamic chains to hidden files in ${VARDIR}
 #
+sub save_docker_rules($) {
+    my $tool = $_[0];
+
+    emit( qq(if [ -n "\$g_docker" ]; then),
+	  qq(    $tool -t nat -S DOCKER | tail -n +2 > \${VARDIR}/.nat_DOCKER),
+	  qq(    $tool -t nat -S OUTPUT | tail -n +2 | fgrep DOCKER > \${VARDIR}/.nat_OUTPUT),
+	  qq(    $tool -t nat -S POSTROUTING | tail -n +2 | fgrep -v SHOREWALL > \${VARDIR}/.nat_POSTROUTING),
+	  qq(    $tool -t filter -S DOCKER | tail -n +2 > \${VARDIR}/.filter_DOCKER),
+	  qq(    [ -n "\$g_dockernetwork" ] && $tool -t filter -S DOCKER-ISOLATION | tail -n +2 > \${VARDIR}/.filter_DOCKER-ISOLATION)
+	);
+
+    if ( known_interface( 'docker0' ) ) {
+	emit( qq(    $tool -t filter -S FORWARD | grep '^-A FORWARD.*[io] br-[a-z0-9]\\{12\\}' > \${VARDIR}/.filter_FORWARD) );
+    } else {
+	emit( qq(    $tool -t filter -S FORWARD | egrep '^-A FORWARD.*[io] (docker0|br-[a-z0-9]{12})' > \${VARDIR}/.filter_FORWARD) );
+    }
+
+    emit( q(    [ -s ${VARDIR}/.filter_FORWARD ] || rm -f ${VARDIR}/.filter_FORWARD),
+	  q(else),
+	  q(    rm -f ${VARDIR}/.nat_DOCKER),
+	  q(    rm -f ${VARDIR}/.nat_OUTPUT),
+	  q(    rm -f ${VARDIR}/.nat_POSTROUTING),
+	  q(    rm -f ${VARDIR}/.filter_DOCKER),
+	  q(    rm -f ${VARDIR}/.filter_DOCKER-ISOLATION),
+	  q(    rm -f ${VARDIR}/.filter_FORWARD),
+	  q(fi)
+	)
+}
 
 sub save_dynamic_chains() {
 
@@ -7987,25 +8172,22 @@ else
     rm -f \${VARDIR}/.dynamic
 fi
 EOF
-
     } else {
-	$tool = $family == F_IPV4 ? '${IPTABLES}-save' : '${IP6TABLES}-save';
-
 	emit <<"EOF";
 if chain_exists 'UPnP -t nat'; then
-    $tool -t nat | grep '^-A UPnP ' > \${VARDIR}/.UPnP
+    $utility -t nat | grep '^-A UPnP ' > \${VARDIR}/.UPnP
 else
     rm -f \${VARDIR}/.UPnP
 fi
 
 if chain_exists forwardUPnP; then
-    $tool -t filter | grep '^-A forwardUPnP ' > \${VARDIR}/.forwardUPnP
+    $utility -t filter | grep '^-A forwardUPnP ' > \${VARDIR}/.forwardUPnP
 else
     rm -f \${VARDIR}/.forwardUPnP
 fi
 
 if chain_exists dynamic; then
-    $tool -t filter | grep '^-A dynamic ' > \${VARDIR}/.dynamic
+    $utility -t filter | grep '^-A dynamic ' > \${VARDIR}/.dynamic
 else
     rm -f \${VARDIR}/.dynamic
 fi
@@ -8021,25 +8203,11 @@ rm -f \${VARDIR}/.UPnP
 rm -f \${VARDIR}/.forwardUPnP
 EOF
 
-    if ( have_capability 'IPTABLES_S' ) {
-	emit( qq(if [ "\$COMMAND" = stop -o "\$COMMAND" = clear ]; then),
-	      qq(    if chain_exists dynamic; then),
-	      qq(        $tool -S dynamic | tail -n +2 > \${VARDIR}/.dynamic) );
-    } else {
-	emit( qq(if [ "\$COMMAND" = stop -o "\$COMMAND" = clear ]; then),
-	      qq(    if chain_exists dynamic; then),
-	      qq(        $tool -t filter | grep '^-A dynamic ' > \${VARDIR}/.dynamic) );
-    }
-
-emit <<"EOF";
-    fi
-fi
-EOF
-
     pop_indent;
 
     emit ( 'fi' ,
 	   '' );
+    emit( '' ), save_docker_rules( $tool ), emit( '' ) if $config{DOCKER};
 }
 
 sub ensure_ipset( $ ) {
@@ -8331,7 +8499,7 @@ sub create_netfilter_load( $ ) {
 
 	my @chains;
 	#
-	# iptables-restore seems to be quite picky about the order of the builtin chains
+	# Iptables-restore seems to be quite picky about the order of the builtin chains
 	#
 	for my $chain ( @builtins ) {
 	    my $chainref = $chain_table{$table}{$chain};
@@ -8347,8 +8515,25 @@ sub create_netfilter_load( $ ) {
 	for my $chain ( grep $chain_table{$table}{$_}->{referenced} , ( sort keys %{$chain_table{$table}} ) ) {
 	    my $chainref =  $chain_table{$table}{$chain};
 	    unless ( $chainref->{builtin} ) {
-		assert( $chainref->{cmdlevel} == 0 , $chainref->{name} );
-		emit_unindented ":$chainref->{name} - [0:0]";
+		my $name = $chainref->{name};
+		assert( $chainref->{cmdlevel} == 0 , $name );
+
+		if ( $name =~ /^DOCKER/ ) {
+		    if ( $name eq 'DOCKER' ) {
+			enter_cmd_mode;
+			emit( '[ -n "$g_docker" ] && echo ":DOCKER - [0:0]" >&3' );
+			enter_cat_mode;
+		    } elsif ( $name eq 'DOCKER-ISOLATION' ) {
+			enter_cmd_mode;
+			emit( '[ -n "$g_dockernetwork" ] && echo ":DOCKER-ISOLATION - [0:0]" >&3' );
+			enter_cat_mode;
+		    } else {		    
+			emit_unindented ":$name - [0:0]";
+		    }
+		} else {
+		    emit_unindented ":$name - [0:0]";
+		}
+
 		push @chains, $chainref;
 	    }
 	}
@@ -8434,8 +8619,26 @@ sub preview_netfilter_load() {
 	for my $chain ( grep $chain_table{$table}{$_}->{referenced} , ( sort keys %{$chain_table{$table}} ) ) {
 	    my $chainref =  $chain_table{$table}{$chain};
 	    unless ( $chainref->{builtin} ) {
-		assert( $chainref->{cmdlevel} == 0, $chainref->{name} );
-		print ":$chainref->{name} - [0:0]\n";
+		my $name = $chainref->{name};
+		assert( $chainref->{cmdlevel} == 0 , $name );
+		if ( $name =~ /^DOCKER/ ) {
+		    if ( $name eq 'DOCKER' ) {
+			enter_cmd_mode1;
+			print( '[ -n "$g_docker" ] && echo ":DOCKER - [0:0]" >&3' );
+			print "\n";
+		    } elsif ( $name eq 'DOCKER-ISOLATION' ) {
+			enter_cmd_mode1 unless $mode = CMD_MODE;
+			print( '[ -n "$g_dockernetwork" ] && echo ":DOCKER-ISOLATION - [0:0]" >&3' );
+			print "\n";
+			enter_cat_mode1;
+		    } else {		    
+			enter_cmd_mode1 unless $mode = CMD_MODE;
+			print( ":$name - [0:0]\n" );
+		    }
+		} else {
+		    print( ":$name - [0:0]\n" );
+		}
+
 		push @chains, $chainref;
 	    }
 	}
@@ -8620,13 +8823,11 @@ sub create_stop_load( $ ) {
 
     emit '';
 
-    emit(  '[ -n "$g_debug_iptables" ] && command=debug_restore_input || command=$' . $UTILITY,
-	   '',
-	   'progress_message2 "Running $command..."',
-	   '',
-	   '$command <<__EOF__' );
+    save_progress_message "Preparing $utility input...";
 
-    $mode = CAT_MODE;
+    emit "exec 3>\${VARDIR}/.${utility}-stop-input";
+
+    enter_cat_mode;
 
     unless ( $test ) {
 	my $date = localtime;
@@ -8656,8 +8857,24 @@ sub create_stop_load( $ ) {
 	for my $chain ( grep $chain_table{$table}{$_}->{referenced} , ( sort keys %{$chain_table{$table}} ) ) {
 	    my $chainref =  $chain_table{$table}{$chain};
 	    unless ( $chainref->{builtin} ) {
-		assert( $chainref->{cmdlevel} == 0 , $chainref->{name} );
-		emit_unindented ":$chainref->{name} - [0:0]";
+		my $name = $chainref->{name};
+		assert( $chainref->{cmdlevel} == 0 , $name );
+		if ( $name =~ /^DOCKER/ ) {
+		    if ( $name eq 'DOCKER' ) {
+			enter_cmd_mode;
+			emit( '[ -n "$g_docker" ] && echo ":DOCKER - [0:0]" >&3' );
+			enter_cat_mode;
+		    } elsif ( $name eq 'DOCKER-ISOLATION' ) {
+			enter_cmd_mode;
+			emit( '[ -n "$g_dockernetwork" ] && echo ":DOCKER-ISOLATION - [0:0]" >&3' );
+			enter_cat_mode;
+		    } else {		    
+			emit_unindented ":$name - [0:0]";
+		    }
+		} else {
+		    emit_unindented ":$name - [0:0]";
+		}
+
 		push @chains, $chainref;
 	    }
 	}
@@ -8670,10 +8887,19 @@ sub create_stop_load( $ ) {
 	#
 	# Commit the changes to the table
 	#
+	enter_cat_mode unless $mode == CAT_MODE;
 	emit_unindented 'COMMIT';
     }
 
-    emit_unindented '__EOF__';
+    enter_cmd_mode;
+
+    emit( '[ -n "$g_debug_iptables" ] && command=debug_restore_input || command=$' . $UTILITY );
+
+    emit( '',
+	  'progress_message2 "Running $command..."',
+	  '',
+	  "cat \${VARDIR}/.${utility}-stop-input | \$command # Use this nonsensical form to appease SELinux",
+	);
     #
     # Test result
     #

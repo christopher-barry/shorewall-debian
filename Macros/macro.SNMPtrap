@@ -1,9 +1,9 @@
 #
-# Shorewall -- /usr/share/shorewall/macro.SVN
+# Shorewall - /usr/share/shorewall/macro.SNMPtrap
 #
-# This macro handles connections to the Subversion server (svnserve).
+# This macro handles SNMP traps.
 #
 ###############################################################################
 #ACTION	SOURCE	DEST	PROTO	DPORT	SPORT	ORIGDEST	RATE	USER
 
-PARAM	-	-	tcp	3690
+PARAM	-	-	udp	162
