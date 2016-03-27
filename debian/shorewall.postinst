@@ -44,6 +44,7 @@ case "$1" in
                     fi
                 elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall.service" ]
                 then
+                    deb-systemd-invoke enable shorewall.service
                     deb-systemd-invoke restart shorewall.service
                 fi
             else
