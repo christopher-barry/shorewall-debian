@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 01/21/2016
+.\"      Date: 03/26/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "01/21/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-RULES" "5" "03/26/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -226,6 +226,11 @@ Beginning with Shorewall 4\&.5\&.11, ?COMMENT is a synonym for COMMENT and is pr
 .RE
 .RE
 .PP
+\fBCONMARK({\fR\fB\fImark\fR\fR\fB})\fR
+.RS 4
+Added in Shorewall 5\&.0\&.7, CONNMARK is identical to MARK with the exception that the mark is assigned to connection to which the packet belongs is marked rather than to the packet itself\&.
+.RE
+.PP
 \fBCONTINUE\fR
 .RS 4
 For experts only\&.
@@ -389,6 +394,21 @@ name is followed by the parenthesized
 Example: FTP(ACCEPT)\&.
 .sp
 The older syntax where the macro name and the target are separated by a slash (e\&.g\&. FTP/ACCEPT) is still allowed but is deprecated\&.
+.RE
+.PP
+\fBMARK({\fR\fB\fImark\fR\fR\fB})\fR
+.RS 4
+where
+\fImark\fR
+is a packet mark value\&.
+.sp
+Added in Shorewall 5\&.0\&.7, MARK requires "Mark in filter table" support in your kernel and iptables\&.
+.sp
+Normally will set the mark value of the current packet\&. If preceded by a vertical bar ("|"), the mark value will be logically ORed with the current mark value to produce a new mark value\&. If preceded by an ampersand ("&"), will be logically ANDed with the current mark value to produce a new mark value\&.
+.sp
+Both "|" and "&" require Extended MARK Target support in your kernel and iptables\&.
+.sp
+The mark value may be optionally followed by "/" and a mask value (used to determine those bits of the connection mark to actually be set)\&. When a mask is specified, the result of logically ANDing the mark value with the mask must be the same as the mark value\&.
 .RE
 .PP
 \fBNFLOG\fR[(\fInflog\-parameters\fR)]

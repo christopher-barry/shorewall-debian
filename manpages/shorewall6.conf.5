@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 01/21/2016
+.\"      Date: 03/26/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "01/21/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\&.CONF" "5" "03/26/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -1441,6 +1441,18 @@ The default value is zero which disables all optimizations\&.
 Added in Shorewall 4\&.4\&.7\&. If set to Yes, Shorewall accounting changes are subject to optimization (OPTIMIZE=4,5,6 or 7)\&. If not specified or set to the empty value, OPTIMIZE_ACCOUNTING=No is assumed\&.
 .RE
 .PP
+\fBPAGER=\fR\fIpathname\fR
+.RS 4
+Added in Shorewall 5\&.0\&.6\&. Specifies a path name of a pager program like
+\fBless\fR
+or
+\fBmore\fR\&. When PAGER is given, the output of verbose
+\fBstatus\fR
+commands and the
+\fBdump\fR
+command are piped through the named program when the output file is a terminal\&.
+.RE
+.PP
 \fBPATH=\fR\fIpathname\fR[\fB:\fR\fIpathname\fR]\&.\&.\&.
 .RS 4
 Determines the order in which Shorewall6 searches directories for executable files\&.
@@ -1890,7 +1902,7 @@ Beginning in Shorewall 4\&.4\&.6, setting this option to \*(AqYes\*(Aq also simp
 \m[blue]\fBshorewall6\-rtrules\fR\m[]\&\s-2\u[29]\d\s+2(5) file was created to provide a better alternative to clearing the packet mark\&. As a consequence, passing these packets to PREROUTING complicates things without providing any real benefit\&. Beginning with Shorewall 4\&.4\&.6, when TRACK_PROVIDERS=Yes and TC_EXPERT=No, packets arriving through \*(Aqtracked\*(Aq interfaces will not be passed to the PREROUTING rules\&. Since TRACK_PROVIDERS was just introduced in 4\&.4\&.3, this change should be transparent to most, if not all, users\&.
 .RE
 .PP
-\fBTRACK_RULES=\fR{\fBYes\fR|\fBNo\fR}
+\fBTRACK_RULES=\fR{\fBYes\fR|\fBNo\fR|File}
 .RS 4
 Added in Shorewall 4\&.5\&.20\&. If set to
 \fBYes\fR, causes the compiler to add a comment to iptables rules to indicate the file name and line number of the configuration entry that generated the rule\&. If set to
@@ -1901,7 +1913,13 @@ Setting this option to
 \fBYes\fR
 requires the
 Comments
-capability in ip6tables and kernel\&.
+capability in iptables and kernel\&.
+.sp
+Beginning with Shorewall 5\&.0\&.5, the option may also be set to
+\fBFile\fR\&. That setting causes similar comments to be added to the
+\&.ip6tables\-restore\-input
+file, which is normally created in
+/var/lib/shorewall6\&.
 .RE
 .PP
 \fBUNTRACKED_DISPOSITION=[ACCEPT|A_ACCEPT|A_DROP|A_REJECT|DROP|REJECT|CONTINUE]\fR
@@ -1998,6 +2016,26 @@ You should disable all default route management outside of Shorewall6\&. If a de
 .RE
 .sp
 Prior to Shorewall 4\&.6\&.0, if USE_DEFAULT_RT was not set or if it was set to the empty string then USE_DEFAULT_RT=No was assumed\&. Beginning with Shorewall 4\&.6\&.0, the default is USE_DEFAULT_RT=Yes and use of USE_DEFAULT_RT=No is deprecated\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBWarning\fR
+.ps -1
+.br
+The
+\fBenable\fR,
+\fBdisable\fR
+and
+\fBreenable\fR
+commands do not work correctly when USE_DEFAULT_RT=No\&.
+.sp .5v
+.RE
 .RE
 .PP
 \fBUSE_PHYSICAL_NAMES=\fR[\fBYes\fR|\fBNo\fR]

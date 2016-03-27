@@ -28,6 +28,13 @@
 # 
 #     Added in Shorewall 4.5.10. Available options are:
 # 
+#     audit
+# 
+#         Added in Shorewall 5.0.7. When this option is specified, the action is
+#         expected to have at least two parameters; the first is a target and the
+#         second is either 'audit' or omitted. If the second is 'audit', then the
+#         first must be an auditable target (ACCEPT, DROP or REJECT).
+# 
 #     builtin
 # 
 #         Added in Shorewall 4.5.16. Defines the action as a rule target that is
@@ -59,12 +66,17 @@
 #         generate a warning and the compiler will ignore inline if you try to
 #         use them that way:
 # 
-#         Broadcast
 #         DropSmurfs
+#         IfEvent
 #         Invalid (Prior to Shorewall 4.5.13)
 #         NotSyn (Prior to Shorewall 4.5.13)
 #         RST (Prior to Shorewall 4.5.13)
 #         TCPFlags
+# 
+#     mangle
+# 
+#         Added in Shorewall 5.0.7. Specifies that this action is to be used in
+#         shorewall6-mangle(5) rather than shorewall6-rules(5).
 # 
 #     noinline
 # 
@@ -79,6 +91,10 @@
 #         simply sets the $_loglevel and $_logtag shell variables which can be
 #         used within the action body to apply those logging options only to a
 #         subset of the rules.
+# 
+#     state={UNTRACKED|NEW|ESTABLISHED|RELATED|INVALID}
+# 
+#         Added in Shorewall 5.0.7. Reserved for use by Shorewall in actions.std.
 # 
 #     terminating
 # 

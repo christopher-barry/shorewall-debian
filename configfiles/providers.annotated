@@ -58,12 +58,15 @@
 #     The name of the network interface to the provider. Must be listed in
 #     shorewall6-interfaces(5).
 # 
-# GATEWAY - {-|address|detect}
+# GATEWAY - {-|address|detect|none}
 # 
 #     The IP address of the provider's gateway router.
 # 
-#     You can enter "detect" here and Shorewall6 will attempt to detect the
-#     gateway automatically.
+#     You can enter detect here and Shorewall6 will attempt to detect the gateway
+#     automatically.
+# 
+#     Beginning with Shorewall 5.0.6, you may also enter none. This causes
+#     creation of a routing table with no default route in it.
 # 
 #     For PPP devices, you may omit this column.
 # 

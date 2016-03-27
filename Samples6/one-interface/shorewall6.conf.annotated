@@ -81,6 +81,18 @@ VERBOSITY=1
 #     If not specified, then 2 is assumed.
 # 
 ###############################################################################
+#			        P A G E R
+###############################################################################
+PAGER=
+#
+# PAGER=pathname
+# 
+#     Added in Shorewall 5.0.6. Specifies a path name of a pager program like 
+#     less or more. When PAGER is given, the output of verbose status commands
+#     and the dump command are piped through the named program when the output
+#     file is a terminal.
+# 
+###############################################################################
 #			       L O G G I N G
 ###############################################################################
 BLACKLIST_LOG_LEVEL=
@@ -1366,15 +1378,19 @@ TRACK_PROVIDERS=Yes
 # 
 TRACK_RULES=No
 #
-# TRACK_RULES={Yes|No}
+# TRACK_RULES={Yes|No|File}
 # 
 #     Added in Shorewall 4.5.20. If set to Yes, causes the compiler to add a
 #     comment to iptables rules to indicate the file name and line number of the
 #     configuration entry that generated the rule. If set to No (the default),
 #     then no such comments are added.
 # 
-#     Setting this option to Yes requires the Comments capability in ip6tables
-#     and kernel.
+#     Setting this option to Yes requires the Comments capability in iptables and
+#     kernel.
+# 
+#     Beginning with Shorewall 5.0.5, the option may also be set to File. That
+#     setting causes similar comments to be added to the .ip6tables-restore-input
+#     file, which is normally created in /var/lib/shorewall6.
 # 
 USE_DEFAULT_RT=Yes
 #
@@ -1414,6 +1430,11 @@ USE_DEFAULT_RT=Yes
 #     the empty string then USE_DEFAULT_RT=No was assumed. Beginning with
 #     Shorewall 4.6.0, the default is USE_DEFAULT_RT=Yes and use of
 #     USE_DEFAULT_RT=No is deprecated.
+# 
+#     Warning
+# 
+#     The enable, disable and reenable commands do not work correctly when
+#     USE_DEFAULT_RT=No.
 # 
 USE_PHYSICAL_NAMES=No
 #

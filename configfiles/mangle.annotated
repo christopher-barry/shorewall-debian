@@ -40,8 +40,8 @@
 # 
 # ACTION - command[(parameters)][:chain-designator]
 # 
-#     The chain-specifier indicates the Netfilter chain that the entry applies to
-#     and may be one of the following:
+#     The chain-designator indicates the Netfilter chain that the entry applies
+#     to and may be one of the following:
 # 
 #     P
 # 
@@ -66,12 +66,20 @@
 #     A chain-designator may not be specified if the SOURCE or DEST columns begin
 #     with '$FW'. When the SOURCE is $FW, the generated rule is always placed in
 #     the OUTPUT chain. If DEST is '$FW', then the rule is placed in the INPUT
-#     chain.
+#     chain. Additionally, a chain-designator may not be specified in an action
+#     body unless the action is declared as inline in shorewall6-actions(5).
 # 
 #     Where a command takes parameters, those parameters are enclosed in
 #     parentheses ("(....)") and separated by commas.
 # 
 #     The command may be one of the following.
+# 
+#     action[([param[,...])]
+# 
+#         Added in Shorewall 5.0.7. action must be an action declared with the
+#         mangle option in shorewall6-actions(5). If the action accepts
+#         paramaters, they are specified as a comma-separated list within
+#         parentheses following the action name.
 # 
 #     ADD(ipset:flags)
 # 
