@@ -5,8 +5,8 @@ Maintainer: Roberto C. Sanchez <roberto@connexer.com>
 Homepage: http://www.shorewall.net
 Build-Depends: debhelper (>= 8.0.0)
 Build-Depends-Indep: docbook-xsl, docbook-xml, xsltproc
-Standards-Version: 3.9.6
-Vcs-Browser: http://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/debian;a=tree
+Standards-Version: 3.9.7
+Vcs-Browser: https://shorewall.git.sourceforge.net/git/gitweb.cgi?p=shorewall/debian;a=tree
 Vcs-Git: git://shorewall.git.sourceforge.net/gitroot/shorewall/shorewall/debian
 
 Package: shorewall-doc
