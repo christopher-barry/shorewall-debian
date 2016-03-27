@@ -734,6 +734,23 @@
       </varlistentry>
 
       <varlistentry>
+        <term><emphasis role="bold">DOCKER=</emphasis>[<emphasis
+        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>]</term>
+
+        <listitem>
+          <para>Added in Shorewall 5.0.6. When set to <option>Yes</option>,
+          the generated script will save Docker-generated rules before and
+          restore them after executing the <command>start</command>,
+          <command>stop</command>, <command>reload</command> and
+          <command>restart</command> commands. If set to <option>No</option>
+          (the default), the generated script will delete any Docker-generated
+          rules when executing those commands. See<ulink url="/Docker.html">
+          http://www.shorewall.net/Docker.html</ulink> for additional
+          information.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
         <term><emphasis
         role="bold">DONT_LOAD=</emphasis>[<emphasis>module</emphasis>[,<emphasis>module</emphasis>]...]</term>
 
@@ -763,8 +780,8 @@
         <listitem>
           <para>Normally, when the SOURCE or DEST columns in
           shorewall-policy(5) contains 'all', a single policy chain is created
-          and the policy is enforced in that chain. For example, if the policy
-          entry is<programlisting>#SOURCE DEST POLICY LOG
+          and thes policy is enforced in that chain. For example, if the
+          policy entry is<programlisting>#SOURCE DEST POLICY LOG
 #                   LEVEL
 net     all  DROP   info</programlisting>then the chain name is 'net-all'
           ('net2all if ZONE2ZONE=2) which is also the chain named in Shorewall
@@ -1629,7 +1646,7 @@ LOG:info:,bar                        net                    fw</programlisting>
           "/lib/modules/$uname/kernel/net/ipv${g_family}/netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/kernel/net/sched:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset"
           where <emphasis role="bold">uname</emphasis> holds the output of
           '<command>uname -r</command>' and <emphasis
-          role="bold">g_family</emphasis> holds '4'. </para>
+          role="bold">g_family</emphasis> holds '4'.</para>
         </listitem>
       </varlistentry>
 
@@ -1932,6 +1949,19 @@ LOG:info:,bar                        net                    fw</programlisting>
           changes are subject to optimization (OPTIMIZE=4,5,6 or 7). If not
           specified or set to the empty value, OPTIMIZE_ACCOUNTING=No is
           assumed.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
+        role="bold">PAGER=</emphasis><emphasis>pathname</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 5.0.6. Specifies a path name of a pager
+          program like <command>less</command> or <command>more</command>.
+          When PAGER is given, the output of verbose <command>status</command>
+          commands and the <command>dump</command> command are piped through
+          the named program when the output file is a terminal.</para>
         </listitem>
       </varlistentry>
 
@@ -2620,7 +2650,8 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis role="bold">TRACK_RULES=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+        role="bold">Yes</emphasis>|<emphasis
+        role="bold">No</emphasis>|File}</term>
 
         <listitem>
           <para>Added in Shorewall 4.5.20. If set to <emphasis
@@ -2633,6 +2664,12 @@ INLINE          -       -       -       ; -j REJECT
           <para>Setting this option to <emphasis role="bold">Yes</emphasis>
           requires the <firstterm>Comments</firstterm> capability in iptables
           and kernel.</para>
+
+          <para>Beginning with Shorewall 5.0.5, the option may also be set to
+          <emphasis role="bold">File</emphasis>. That setting causes similar
+          comments to be added to the
+          <filename>.iptables-restore-input</filename> file, which is normally
+          created in <filename>/var/lib/shorewall</filename>.</para>
         </listitem>
       </varlistentry>
 
@@ -2728,6 +2765,12 @@ INLINE          -       -       -       ; -j REJECT
           it was set to the empty string then USE_DEFAULT_RT=No was assumed.
           Beginning with Shorewall 4.6.0, the default is USE_DEFAULT_RT=Yes
           and use of USE_DEFAULT_RT=No is deprecated.</para>
+
+          <warning>
+            <para>The <command>enable</command>, <command>disable</command>
+            and <command>reenable</command> commands do not work correctly
+            when USE_DEFAULT_RT=No.</para>
+          </warning>
         </listitem>
       </varlistentry>
 

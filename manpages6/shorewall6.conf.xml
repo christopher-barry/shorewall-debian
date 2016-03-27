@@ -1693,6 +1693,19 @@ LOG:info:,bar                        net                    fw</programlisting>
 
       <varlistentry>
         <term><emphasis
+        role="bold">PAGER=</emphasis><emphasis>pathname</emphasis></term>
+
+        <listitem>
+          <para>Added in Shorewall 5.0.6. Specifies a path name of a pager
+          program like <command>less</command> or <command>more</command>.
+          When PAGER is given, the output of verbose <command>status</command>
+          commands and the <command>dump</command> command are piped through
+          the named program when the output file is a terminal.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term><emphasis
         role="bold">PATH=</emphasis><emphasis>pathname</emphasis>[<emphasis
         role="bold">:</emphasis><emphasis>pathname</emphasis>]...</term>
 
@@ -2295,7 +2308,8 @@ INLINE          -       -       -       ; -j REJECT
 
       <varlistentry>
         <term><emphasis role="bold">TRACK_RULES=</emphasis>{<emphasis
-        role="bold">Yes</emphasis>|<emphasis role="bold">No</emphasis>}</term>
+        role="bold">Yes</emphasis>|<emphasis
+        role="bold">No</emphasis>|File}</term>
 
         <listitem>
           <para>Added in Shorewall 4.5.20. If set to <emphasis
@@ -2306,8 +2320,14 @@ INLINE          -       -       -       ; -j REJECT
           added.</para>
 
           <para>Setting this option to <emphasis role="bold">Yes</emphasis>
-          requires the <firstterm>Comments</firstterm> capability in ip6tables
+          requires the <firstterm>Comments</firstterm> capability in iptables
           and kernel.</para>
+
+          <para>Beginning with Shorewall 5.0.5, the option may also be set to
+          <emphasis role="bold">File</emphasis>. That setting causes similar
+          comments to be added to the
+          <filename>.ip6tables-restore-input</filename> file, which is
+          normally created in <filename>/var/lib/shorewall</filename>6.</para>
         </listitem>
       </varlistentry>
 
@@ -2399,6 +2419,12 @@ INLINE          -       -       -       ; -j REJECT
           it was set to the empty string then USE_DEFAULT_RT=No was assumed.
           Beginning with Shorewall 4.6.0, the default is USE_DEFAULT_RT=Yes
           and use of USE_DEFAULT_RT=No is deprecated.</para>
+
+          <warning>
+            <para>The <command>enable</command>, <command>disable</command>
+            and <command>reenable</command> commands do not work correctly
+            when USE_DEFAULT_RT=No.</para>
+          </warning>
         </listitem>
       </varlistentry>
 
