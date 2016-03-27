@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	               S H O R E W A L L  5 . 0 . 4
+	           S H O R E W A L L  5 . 0 . 7  R C  1
                        ----------------------------
-                      J a n u a r y  2 2 ,  2 0 1 6
+                        M a r c h  2 7 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,47 +14,44 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  There previously existed a slight possibility that starting both
-    Shorewall and Shorewall6 simultaneously could lead to a failure
-    such as this one:
+1)  This release includes defect repair from Shorewall 5.0.6.2.
 
-    Dec 18 13:18:35 elmo.example.com shorewall6[1889]: Loading Modules...
-    Dec 18 13:18:38 elmo.example.com shorewall6[1889]: Another app is
-       currently holding the xtables lock. Perhaps you want to use 
-       the -w option?
-    Dec 18 13:18:40 elmo.example.com shorewall6[1889]:
-       ERROR: Cannot Create Mangle chain fooX2349
-    Dec 18 13:18:40 elmo.example.com systemd[1]: shorewall6.service:
-        main process exited, code=exited, status=255/n/a
+2)  Previously, the compiler failed to catch invalid action/chain
+    combinations which caused iptables-restore failures when such
+    combinations were present in the configuration. That has been
+    corrected.
 
-    That problem can no longer occur.
+3)  An issue involving nested inlined action and macro invocations has
+    been resolved.
 
-2)  Previously, when a source- or destination-specific RATE was
-    specified on a logging rule (LOG, ULOG or NFLOG), the compiler
-    incorrectly applied both the specified RATE as well as the global
-    LOGLIMIT. That has been corrected so that only the specified RATE
-    is applied.
+4)  The '&' (and) and '|' (or) symbols were previously ignored when
+    the action was CONNMARK (mangle file). These symbols now work as
+    documented.
 
-3)  Previously, when @caller was used within an action body, the
-    compiler would not create unique ip[6]tables chains for each
-    invocation of the action, even though the invocations had different
-    values of @caller. Now, each invocation of such an action creates a
-    separate ip[6]tables chain for each unique caller.
+5)  When 'DOCKER=Yes', 'check -r' would previously fail. The command
+    now works correctly.
 
-4)  Previously, the 'status -i' command produced error output when
-    there were no optional interfaces. That erroneous output is no
-    longer produced.
+6)  Previously, the specified linklayer, overhead, mtu, mpu and tsize
+    were not applied to ingress qdiscs that provide IN-BANDWIDTH
+    limiting. That has been corrected so that these options also apply
+    to inbound traffic.
 
-5)  Traffic shaping configurations that use red or codel will now
-    produce consistent compiled scripts. Previously, these
-    configurations could produce equivalent but different scripts on
-    consecutive compilations.
+    IMPORTANT: If you have specified linklayer, overhead, etc., then
+    after this fix is installed, your inbound speed will be less than
+    it was before the fix. You are advised to re-test and possibly
+    adjust your IN-BANDWIDTH accordingly.
 
-6)  Previously, the Shoreall compiler enforced old rules about where
-    country codes could appear. As those restrictions have now been
-    removed, the compiler no longer issues messages such as these:
+7)  The syntax which Shorewall previously used to define ingress
+    filters is misinterpreted by the tc utility, with the result that
+    rather than dropping packets exceeding the IN-BANDWIDTH, the filter
+    instead reclassified them. That caused 'packet reclassify loop'
+    errors during periods of high inbound traffic. The compiler now
+    generates the options in the 'tc add filter' command in an order
+    that tc handles correctly.
 
-      ERROR: A countrycode list may not be used in this context
+8)  If a log level was specified in one of the *_DEFAULT options,
+    the compiler would previously raise a fatal error when applying the
+    default action. That has been corrected.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -63,48 +60,115 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 1)  On systems running Upstart, shorewall-init cannot reliably secure
     the firewall before interfaces are brought up.
 
+2)  The 'enable', 'reenable' and 'disable' commands do not work
+    correctly in configurations with USE_DEFAULT_RT=No.
+
 ----------------------------------------------------------------------------
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  Shorewall Init is now supported on OpenWRT.
+1)  Actions may now be used in the mangle file. To be used in the
+    mangle file, an action must be declared in the actions file with
+    the 'mangle' option. Actions with this option may only be used in
+    the mangle file (or in other actions with the mangle option); they
+    may not be used in the rules file. Mangle actions may be inlined
+    using the 'inline' option in the actions file.
 
-2)  The IPTABLES and IP6TABLES actions in the rules and mangle files
-    can now correctly handle logging targets (LOG, ULOG and
-    NFLOG). Previously, an attempt to use these targets would result in
-    an error similar to:
+    A new template file (/usr/share/shorewall/action.mangletemplate) is
+    included in the release for use in creating mangle actions.
 
-       ERROR: LOG requires a level
+2)  The 'check -r' command now uses the PAGER program unless the -d
+    option is also specified. Additionally, when the compiler runs with
+    'trace', the PAGER program is used unless -d is set.
 
-3)  To further reduce the possibility of failures caused by Shorewall
-    and Shorewall6 starting concurrently, a new WAIT_OPTION capability
-    has been implemented. On systems with that capability, all
-    'iptables' and 'ip6tables' commands will use the --wait option.
+3)  It is now possible to raise an error if a condition isn't met using
+    the ?ERROR directive.
 
-4)  The .214.service files have been removed and the .service files
-    (with the exception of Debian) have been updated to use the
-    network-pre.target (Tuomo Soini).
+    	?ERROR <message>
 
-5)  Shorewall, Shorewall6, Shorewall-lite and Shorewall6-lite now
-    install /etc/sysconfig/<product> files for specifying
-    start/restart/reload options on those distributions that use
-    /etc/sysconfig.
+    The text after ?ERROR is displayed in a standard Shorewall error
+    message.
 
-6)  The mangle file now supports an DIVERTHA action that provides
-    support for HAProxy.
+4)  Using the new ?ERROR directive, embedded Perl has been eliminated
+    from a number of standard actions.
 
-    To setup the HAProxy configuration described at
-    http://www.loadbalancer.org/blog/setting-up-haproxy-with-transparent-mode-on-centos-6-x,
-    place this entry in shorewall-providers(5):
-    
 
-      #NAME	NUMBER   MARK    DUPLICATE  INTERFACE	GATEWAY   OPTIONS
-      TProxy    1        -       -          lo          -         tproxy 
+    Example from action.GlusterFS:
 
-      and use this DIVERTHA entry:
+    ?if @1 !~ /^\d+/ || ! @1 || @1 > 1024
+        ?error Invalid value for Bricks (@1)
+    ?elsif @2 !~ /^[01]$/
+        ?error Invalid value for IB (@2)
+    ?endif
 
-      #ACTION         SOURCE          DEST            PROTO  ...
-      DIVERTHA        -               -               tcp
+    The above logic insures that the first action paramater is a
+    non-zero number <= 1024 and that the second parameter is either 0
+    or 1. If 2000 is passed for the first parameter, the following
+    error message is generated:
+
+    ERROR: Invalid value for Bricks (2000)
+      /usr/share/shorewall/action.GlusterFS (line 15)
+      from /etc/shorewall/rules (line 45)
+
+5)  Previously, inline matches were placed after column-generated
+    matches in the generated rule. This meant that "-p' could not be
+    used in inline matches. Beginning with this release, if the first
+    non-blank characters in an inline match is '+', then the remainder
+    of the inline matches are placed at the front of the generated
+    rule.
+
+    There are a couple of restrictions:
+
+    a. When -p is used  in an inline match and the PROTO column is
+       supplied, then an error is generated unless the resolved
+       contents of the column matches the protocol specified in the
+       inline match. This means that only protocol numbers should
+       appear in the inline match.
+
+    b. Use of -i, -s, -o, or -d (or their long-form equivalents) in an
+       inline match will result in a compilation error if the contents
+       of the columns generates the same match.
+
+6)  The TCPFlags action has been modified to use '+' in inline matches
+    rather than embedded Perl with perl_action_tcp_handler() calls.
+
+7)  A new 'audit' action option has been added. Such actions are
+    expected to have at least two parameters; the first is a
+    target and the second is either omitted or is 'audit'.
+    Two existing standard actions (RST and NotSyn) have this
+    characteristic and they have been converted to use the 'audit'
+    option, eliminating embedded Perl within their bodies.
+
+8)  Within an action body, if a parameter is omitted in a DEFAULTS
+    statement, then the value of the corresponding action and Shorewall
+    variables is '-', while if the parameter is specified as '-' in
+    the parameter list, the value of the variables is '' if
+    expanded before the DEFAULTS statement.
+
+    Additionally, when an expression is evaluated, the value 0
+    evaluates as false; so '?IF @n' and 'IF $n' both fail if the nth
+    parameter is passed with value zero.
+
+    To make testing of the presense of parameters more efficient and
+    uniform, an new function has been added for use in ?IF and
+    ?ELSEIF:
+
+        ?IF [!] passed(<variable>)
+
+    where <variable> is an action or Shoreall variable.
+
+    'passed(@n)' and 'passed($n)' evaluate to true if the nth parameter
+    is not empty and its contents are other than '-'. If '!' is
+    present, the result is inverted.
+
+    In this simple form, the expression is evaluated by the compiler
+    without having to invoke the (expensive) Perl exec() function. The
+    'passed' function may also be used in more complex expressions, but
+    exec() will be invoked to evaluate those expressions.
+
+9)  The MARK and CONNMARK targets are now available in the rules file,
+    macros, and actions. Mark ranges are not currently supported with
+    these targets.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -252,6 +316,204 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
 ----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 6
+----------------------------------------------------------------------------
+1)  This release includes defect repair through Shorewall 5.0.5.1.
+
+2)  Previously, the generated function define_firewall() contained
+    logic for handling the 'stop' and 'clear' commands. Beginning with
+    this release, the function will no longer include that logic, since
+    the function is not called when processing those commands.
+
+3)  The 'persistent' option on a provider previously resulted in
+    a duplicate routing rule was created each time that the provider
+    was disabled. This has been corrected so that duplicate rules are
+    not created. 
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 6
+----------------------------------------------------------------------------
+
+1)  The GATEWAY column in /etc/shorewall[6]/providers may now contain
+    the keyword 'none'. This will create a routing table with no
+    default route, to allow handling policy-routing senarios where a
+    default route is not required.
+
+2)  Previously, when both Shorewall and Docker were used on the same
+    system, one of two approaches had to be followed:
+
+    a)  Run docker with --iptables=false and use Shorewall to
+        configure Netfilter.
+
+    b)  Run docker with ---iptables=true and use extension scripts to
+    	save/restore the Docker-generated rules.
+
+    The first is complex and the second is difficult to do in a way
+    that insures that changes to the Shorewall configuration aren't
+    lost during restart/reload.
+
+    In this release, a new DOCKER option is available in
+    shorewall.conf. When DOCKER=Yes, the generated script takes
+    responsibility for saving and restoring the Docker-generated rules.
+
+    The Shorewall implementation assumes that the default 'docker0'
+    bridge is being used.
+    
+    It is recommended that docker0 be assigned to a zone in
+    /etc/shorewall/interfaces. When you do that, the setting
+    of 'routeback' for that interface determines whether
+    inter-container communication is allowed. If docker0 is not listed
+    in the interfaces file, then the generated script will save/restore
+    the FORWARD chain rules for that interface.
+
+    If you are using Docker's network features where bridges with names
+    of the form br-xxxxxxxxxxxx are created, those bridges should not
+    be defined to Shorewall.
+
+    Note that DOCKER=Yes is currently supported only in Shorewall and
+    not in Shorewall6.
+
+3)  A new SNMPtrap macro has been added and is intended to supersede
+    SNMPTrap. The latter is now deprecated, but is still available for
+    use.
+
+4)  As an alternative to entries in the ecn file, the IPv4 mangle file
+    now supports an ECN target for clearing the ECN flags in the TCP
+    header. See shorewall-mangle(8) for details.
+
+5)  The remainder of the documentation has been updated to use the new
+    column headings.
+
+6)  Beginning with this release, voluminous CLI output to terminals from 'show'
+    and 'dump' commands may be automatically paged using a program like
+    'less' or 'more'. The pager program to be used, if any, is
+    specified using the PAGER option in shorewall[6].conf.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 5
+----------------------------------------------------------------------------
+
+1)  Previously, an interface could be erroneously assigned to two
+    different providers and the compiler did not flag that as an error.
+
+    The compiler now correctly catches this violation.
+
+2)  The alignment of the output of the 'shorewall[6] show macros'
+    command has been corrected.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 5
+----------------------------------------------------------------------------
+
+1)  The .ip[6]tables-restore-input file may now include comments which
+    indicate the origin of the rules, similar to the ip[6]tables
+    comments that are generated when TRACK_RULES=Yes in
+    shorewall[6].conf. This additional information is added when
+    TRACK_RULES=File.
+
+    Note: This change also enhances TRACK_RULES=Yes by adding tracking
+    comments to additional generated ip[6]tables rules.
+
+2)  The output of 'shorewall[6] show actions' is now sorted.
+
+3)  The macro file headers have been updated to use the new
+    column names. Also, some macros now invoke other macros rather than
+    duplicating their rules. This is intended to ease future
+    maintenance (Tuomo Soini).
+
+4)  Additional documentation articles have been updated to use the new
+    column names (Tuomo Soini).
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 4
+----------------------------------------------------------------------------
+
+1)  There previously existed a slight possibility that starting both
+    Shorewall and Shorewall6 simultaneously could lead to a failure
+    such as this one:
+
+    Dec 18 13:18:35 elmo.example.com shorewall6[1889]: Loading Modules...
+    Dec 18 13:18:38 elmo.example.com shorewall6[1889]: Another app is
+       currently holding the xtables lock. Perhaps you want to use 
+       the -w option?
+    Dec 18 13:18:40 elmo.example.com shorewall6[1889]:
+       ERROR: Cannot Create Mangle chain fooX2349
+    Dec 18 13:18:40 elmo.example.com systemd[1]: shorewall6.service:
+        main process exited, code=exited, status=255/n/a
+
+    That problem can no longer occur.
+
+2)  Previously, when a source- or destination-specific RATE was
+    specified on a logging rule (LOG, ULOG or NFLOG), the compiler
+    incorrectly applied both the specified RATE as well as the global
+    LOGLIMIT. That has been corrected so that only the specified RATE
+    is applied.
+
+3)  Previously, when @caller was used within an action body, the
+    compiler would not create unique ip[6]tables chains for each
+    invocation of the action, even though the invocations had different
+    values of @caller. Now, each invocation of such an action creates a
+    separate ip[6]tables chain for each unique caller.
+
+4)  Previously, the 'status -i' command produced error output when
+    there were no optional interfaces. That erroneous output is no
+    longer produced.
+
+5)  Traffic shaping configurations that use red or codel will now
+    produce consistent compiled scripts. Previously, these
+    configurations could produce equivalent but different scripts on
+    consecutive compilations.
+
+6)  Previously, the Shoreall compiler enforced old rules about where
+    country codes could appear. As those restrictions have now been
+    removed, the compiler no longer issues messages such as these:
+
+      ERROR: A countrycode list may not be used in this context
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 4
+----------------------------------------------------------------------------
+
+1)  Shorewall Init is now supported on OpenWRT.
+
+2)  The IPTABLES and IP6TABLES actions in the rules and mangle files
+    can now correctly handle logging targets (LOG, ULOG and
+    NFLOG). Previously, an attempt to use these targets would result in
+    an error similar to:
+
+       ERROR: LOG requires a level
+
+3)  To further reduce the possibility of failures caused by Shorewall
+    and Shorewall6 starting concurrently, a new WAIT_OPTION capability
+    has been implemented. On systems with that capability, all
+    'iptables' and 'ip6tables' commands will use the --wait option.
+
+4)  The .214.service files have been removed and the .service files
+    (with the exception of Debian) have been updated to use the
+    network-pre.target (Tuomo Soini).
+
+5)  Shorewall, Shorewall6, Shorewall-lite and Shorewall6-lite now
+    install /etc/sysconfig/<product> files for specifying
+    start/restart/reload options on those distributions that use
+    /etc/sysconfig.
+
+6)  The mangle file now supports an DIVERTHA action that provides
+    support for HAProxy.
+
+    To setup the HAProxy configuration described at
+    http://www.loadbalancer.org/blog/setting-up-haproxy-with-transparent-mode-on-centos-6-x,
+    place this entry in shorewall-providers(5):
+    
+
+      #NAME	NUMBER   MARK    DUPLICATE  INTERFACE	GATEWAY   OPTIONS
+      TProxy    1        -       -          lo          -         tproxy 
+
+      and use this DIVERTHA entry:
+
+      #ACTION         SOURCE          DEST            PROTO  ...
+      DIVERTHA        -               -               tcp
+
+----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 3
 ----------------------------------------------------------------------------
 
@@ -270,7 +532,7 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     accepted.
 
 ----------------------------------------------------------------------------
-               N E W   F E A T U R E S   I N   5 . 0 . 2
+               N E W   F E A T U R E S   I N   5 . 0 . 3
 ----------------------------------------------------------------------------
 
 1)  The MODULESDIR option in shorewall[6].conf has been extended to
