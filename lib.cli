@@ -266,7 +266,7 @@ search_log() # $1 = IP address to search for
 #
 # Show traffic control information
 #
-show_tc() {
+show_tc1() {
 
     show_one_tc() {
 	local device
@@ -290,6 +290,19 @@ show_tc() {
 	done
     fi
 
+}
+
+show_tc() {
+    echo "$g_product $SHOREWALL_VERSION Traffic Control at $g_hostname - $(date)"
+    echo
+    shift
+
+    if [ -z "$1" ]; then
+	$g_tool -t mangle -L -n -v | $output_filter
+	echo
+    fi
+
+    show_tc1 $1
 }
 
 #
@@ -908,6 +921,209 @@ show_events() {
     fi
 }
 
+show_actions() {
+    if [ -f ${g_confdir}/actions ]; then
+	cat ${g_sharedir}/actions.std ${g_confdir}/actions | grep -Ev '^[#?[:space:]]|^$'
+    else
+	grep -Ev '^[#?[:space:]]|^$' ${g_sharedir}/actions.std
+    fi
+}
+
+show_chain() {
+    echo "$g_product $SHOREWALL_VERSION $([ $# -gt 1 ] && echo "Chains " || [ $# -gt 0 ] && echo "Chain " || echo $table Table)$* at $g_hostname - $(date)"
+    echo
+    show_reset
+    if [ $# -gt 0 ]; then
+	for chain in $*; do
+	    $g_tool -t $table -L $chain $g_ipt_options | $output_filter
+	    echo
+	done
+    else
+	$g_tool -t $table -L $g_ipt_options | $output_filter
+    fi
+}
+
+show_chains() {
+    echo "$g_product $SHOREWALL_VERSION $([ $# -gt 1 ] && echo "Chains " || echo "Chain ")$* at $g_hostname - $(date)"
+    echo
+    show_reset
+    for chain in $*; do
+	$g_tool -t $table -L $chain $g_ipt_options | $output_filter
+	echo
+    done
+}
+
+show_table() {
+    echo "$g_product $SHOREWALL_VERSION $table Table at $g_hostname - $(date)"
+    echo
+    show_reset
+    $g_tool -t $table -L $g_ipt_options | $output_filter
+}
+
+show_nat() {
+    echo "$g_product $SHOREWALL_VERSION NAT Table at $g_hostname - $(date)"
+    echo
+    show_reset
+    $g_tool -t nat -L $g_ipt_options | $output_filter
+}
+
+show_raw() {
+    echo "$g_product $SHOREWALL_VERSION RAW Table at $g_hostname - $(date)"
+    echo
+    show_reset
+    $g_tool -t raw -L $g_ipt_options | $output_filter
+}
+
+show_rawpost() {
+    echo "$g_product $SHOREWALL_VERSION RAWPOST Table at $g_hostname - $(date)"
+    echo
+    show_reset
+    $g_tool -t rawpost -L $g_ipt_options | $output_filter
+}
+
+show_mangle() {
+    echo "$g_product $SHOREWALL_VERSION Mangle Table at $g_hostname - $(date)"
+    echo
+    show_reset
+    $g_tool -t mangle -L $g_ipt_options | $output_filter
+}
+
+show_classifiers_command() {
+    echo "$g_product $SHOREWALL_VERSION Classifiers at $g_hostname - $(date)"
+    echo
+    show_classifiers
+}
+
+show_ip_addresses() {
+    echo "$g_product $SHOREWALL_VERSION IP at $g_hostname - $(date)"
+    echo
+    ip -$g_family addr list
+}
+
+show_routing_command() {
+    echo "$g_product $SHOREWALL_VERSION Routing at $g_hostname - $(date)"
+    echo
+    show_routing
+}
+
+show_policies() {
+    echo "$g_product $SHOREWALL_VERSION Policies at $g_hostname - $(date)"
+    echo
+    [ -f ${VARDIR}/policies ] && cat ${VARDIR}/policies
+}
+
+show_ipa() {
+    echo "$g_product $SHOREWALL_VERSION per-IP Accounting at $g_hostname - $(date)"
+    echo
+    perip_accounting
+}
+
+show_arptables() {
+    echo "$g_product $SHOREWALL_VERSION arptables at $g_hostname - $(date)"
+    echo
+    $arptables -L -n -v
+}
+
+show_log() {
+    echo "$g_product $SHOREWALL_VERSION Log ($LOGFILE) at $g_hostname - $(date)"
+    echo
+    show_reset
+    host=$(echo $g_hostname | sed 's/\..*$//')
+
+    if [ $# -eq 2 ]; then
+	eval search_log $2
+    elif [ -n "$g_pager" ]; then
+	packet_log 100
+    else
+	packet_log 20
+    fi
+}
+
+show_connections() {
+    if [ $g_family -eq 4 ]; then
+	if [ -d /proc/sys/net/netfilter/ ]; then
+	    local count
+	    local max
+	    count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
+	    max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
+	    echo "$g_product $SHOREWALL_VERSION Connections ($count out of $max) at $g_hostname - $(date)"
+	else
+	    echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
+	fi
+
+	echo
+
+	if qt mywhich conntrack ; then
+	    shift
+	    conntrack -f ipv4 -L $@ | show_connections_filter
+	else
+	    [ $# -gt 1 ] && usage 1
+	    if [ -f /proc/net/ip_conntrack ]; then
+		cat /proc/net/ip_conntrack | show_connections_filter
+	    else
+		grep -v '^ipv6' /proc/net/nf_conntrack | show_connections_filter
+	    fi
+	fi
+    elif qt mywhich conntrack ; then
+	shift
+	echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
+	echo
+	conntrack -f ipv6 -L $@ | show_connections_filter
+    else
+	[ $# -gt 1 ] && usage 1
+	if [ -f /proc/sys/net/netfilter/nf_conntrack_count -a -f /proc/sys/net/nf_conntrack ]; then
+	    local count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
+	    local max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
+	    echo "$g_product $SHOREWALL_VERSION Connections ($count of $max) at $g_hostname - $(date)"
+	    echo
+	    grep '^ipv6' /proc/net/nf_conntrack | sed -r 's/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | show_connections_filter
+	fi
+    fi
+}
+
+show_nfacct_command() {
+    echo "$g_product $SHOREWALL_VERSION NF Accounting at $g_hostname - $(date)"
+    echo
+    show_nfacct
+}
+
+show_events_command() {
+    echo "$g_product $SHOREWALL_VERSION events at $g_hostname - $(date)"
+    echo
+    show_events
+}
+
+show_blacklists() {
+    echo "$g_product $SHOREWALL_VERSION blacklist chains at $g_hostname - $(date)"
+    echo
+    show_bl;
+}
+
+show_actions_sorted() {
+    show_actions | sort
+}
+
+show_macros() {
+    for directory in $(split $CONFIG_PATH); do
+	temp=
+	for macro in ${directory}/macro.*; do
+	    case $macro in
+		*\*)
+                ;;
+		*)
+		    if [ -z "$temp" ]; then
+			echo
+			echo "Macros in $directory:"
+			echo
+			temp=Yes
+		    fi
+		    show_macro
+		    ;;
+	    esac
+	done
+    done
+}
+
 #
 # Show Command Executor
 #
@@ -921,6 +1137,7 @@ show_command() {
     local output_filter
     output_filter=cat
     local arptables
+    local macro
 
     show_macro() {
 	foo=`grep 'This macro' $macro | sed 's/This macro //'`
@@ -1021,108 +1238,37 @@ show_command() {
 
     case "$1" in
 	connections)
-	    if [ $g_family -eq 4 ]; then
-		if [ -d /proc/sys/net/netfilter/ ]; then
-		    local count
-		    local max
-		    count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
-		    max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
-		    echo "$g_product $SHOREWALL_VERSION Connections ($count out of $max) at $g_hostname - $(date)"
-		else
-		    echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
-		fi
-
-		echo
-
-		if qt mywhich conntrack ; then
-		    shift
-		    conntrack -f ipv4 -L $@ | show_connections_filter
-		else
-		    [ $# -gt 1 ] && usage 1
-		    if [ -f /proc/net/ip_conntrack ]; then
-			cat /proc/net/ip_conntrack | show_connections_filter
-		    else
-			grep -v '^ipv6' /proc/net/nf_conntrack | show_connections_filter
-		    fi
-	        fi
-	    elif qt mywhich conntrack ; then
-		shift
-		echo "$g_product $SHOREWALL_VERSION Connections at $g_hostname - $(date)"
-		echo
-		conntrack -f ipv6 -L $@ | show_connections_filter
-	    else
-		[ $# -gt 1 ] && usage 1
-		if [ -f /proc/sys/net/netfilter/nf_conntrack_count -a -f /proc/sys/net/nf_conntrack ]; then
-		    local count=$(cat /proc/sys/net/netfilter/nf_conntrack_count)
-		    local max=$(cat /proc/sys/net/netfilter/nf_conntrack_max)
-		    echo "$g_product $SHOREWALL_VERSION Connections ($count of $max) at $g_hostname - $(date)"
-		    echo
-		    grep '^ipv6' /proc/net/nf_conntrack | sed -r 's/0000:/:/g; s/:::+/::/g; s/:0+/:/g' | show_connections_filter
-		fi
-	    fi
+	    eval show_connections $@ $g_pager
 	    ;;
 	nat)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION NAT Table at $g_hostname - $(date)"
-	    echo
-	    show_reset
-	    $g_tool -t nat -L $g_ipt_options | $output_filter
+	    eval show_nat $g_pager
 	    ;;
 	raw)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION RAW Table at $g_hostname - $(date)"
-	    echo
-	    show_reset
-	    $g_tool -t raw -L $g_ipt_options | $output_filter
+	    eval show_raw $g_pager
 	    ;;
 	rawpost)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION RAWPOST Table at $g_hostname - $(date)"
-	    echo
-	    show_reset
-	    $g_tool -t rawpost -L $g_ipt_options | $output_filter
+	    eval show_rawpost $g_pager
 	    ;;
 	tos|mangle)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION Mangle Table at $g_hostname - $(date)"
-	    echo
-	    show_reset
-	    $g_tool -t mangle -L $g_ipt_options | $output_filter
+	    eval show_mangle $g_pager
 	    ;;
 	log)
 	    [ $# -gt 2 ] && usage 1
 
 	    setup_logread
-
-	    echo "$g_product $SHOREWALL_VERSION Log ($LOGFILE) at $g_hostname - $(date)"
-	    echo
-	    show_reset
-	    host=$(echo $g_hostname | sed 's/\..*$//')
-
-	    if [ $# -eq 2 ]; then
-		search_log $2
-	    else
-		packet_log 20
-	    fi
+	    eval show_log $g_pager
 	    ;;
 	tc)
 	    [ $# -gt 2 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION Traffic Control at $g_hostname - $(date)"
-	    echo
-	    shift
-
-	    if [ -z "$1" ]; then
-		$g_tool -t mangle -L -n -v | $output_filter
-		echo
-	    fi
-
-	    show_tc $1
+	    eval show_tc $@ $g_pager
 	    ;;
 	classifiers|filters)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION Classifiers at $g_hostname - $(date)"
-	    echo
-	    show_classifiers
+	    eval show_classifiers_command $g_pager
 	    ;;
 	zones)
 	    [ $# -gt 1 ] && usage 1
@@ -1152,22 +1298,18 @@ show_command() {
 	    determine_capabilities
 	    VERBOSITY=2
 	    if [ -n "$g_filemode" ]; then
-		report_capabilities1
+		eval report_capabilities1 $g_pager
 	    else
-		report_capabilities
+		eval report_capabilities $g_pager
 	    fi
 	    ;;
 	ip)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION IP at $g_hostname - $(date)"
-	    echo
-	    ip -$g_family addr list
+	    eval show_ip_addresses $g_pager
 	    ;;
 	routing)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION Routing at $g_hostname - $(date)"
-	    echo
-	    show_routing
+	    eval show_routing_command $g_pager
 	    ;;
 	config)
 	    . ${g_sharedir}/configpath
@@ -1189,33 +1331,19 @@ show_command() {
 	    ;;
 	chain)
 	    shift
-	    echo "$g_product $SHOREWALL_VERSION $([ $# -gt 1 ] && echo "Chains " || [ $# -gt 0 ] && echo "Chain " || echo $table Table)$* at $g_hostname - $(date)"
-	    echo
-	    show_reset
-	    if [ $# -gt 0 ]; then
-		for chain in $*; do
-		    $g_tool -t $table -L $chain $g_ipt_options | $output_filter
-		    echo
-		done
-	    else
-		$g_tool -t $table -L $g_ipt_options | $output_filter
-	    fi
+	    eval show_chain $@ $g_pager
 	    ;;
 	vardir)
 	    echo $VARDIR;
 	    ;;
 	policies)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION Policies at $g_hostname - $(date)"
-	    echo
-	    [ -f ${VARDIR}/policies ] && cat ${VARDIR}/policies;
+	    eval show_policies $g_pager
 	    ;;
 	ipa)
 	    [ $g_family -eq 4 ] || usage 1
-	    echo "$g_product $SHOREWALL_VERSION per-IP Accounting at $g_hostname - $(date)"
-	    echo
 	    [ $# -gt 1 ] && usage 1
-	    perip_accounting
+	    eval show_ipa $g_pager
 	    ;;
 	marks)
 	    [ $# -gt 1 ] && usage 1
@@ -1225,17 +1353,13 @@ show_command() {
 	    ;;
 	nfacct)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION NF Accounting at $g_hostname - $(date)"
-	    echo
-	    show_nfacct
+	    eval show_nfacct_command $g_pager
 	    ;;
 	arptables)
 	    [ $# -gt 1 ] && usage 1
 	    resolve_arptables
 	    if [ -n "$arptables" -a -x $arptables ]; then
-		echo "$g_product $SHOREWALL_VERSION arptables at $g_hostname - $(date)"
-		echo
-		$arptables -L -n -v
+		eval show_arptables $g_pager
 	    else
 		error_message "Cannot locate the arptables executable"
 	    fi
@@ -1249,15 +1373,11 @@ show_command() {
 	    ;;
 	events)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION events at $g_hostname - $(date)"
-	    echo
-	    show_events
+	    eval show_events_command $g_pager
 	    ;;
 	bl|blacklists)
 	    [ $# -gt 1 ] && usage 1
-	    echo "$g_product $SHOREWALL_VERSION blacklist chains at $g_hostname - $(date)"
-	    echo
-	    show_bl;
+	    eval show_blacklists $g_pager
 	    ;;
 	opens)
 	    [ $# -gt 1 ] && usage 1
@@ -1277,25 +1397,7 @@ show_command() {
 		    case $1 in
 			actions)
 			    [ $# -gt 1 ] && usage 1
-			    echo "A_ACCEPT                        # Audit and accept the connection"
-			    echo "A_DROP                          # Audit and drop the connection"
-			    echo "A_REJECT                        # Audit and reject the connection "
-			    echo "allowBcast                      # Silently Allow Broadcast/multicast"
-			    echo "allowInvalid                    # Accept packets that are in the INVALID conntrack state."
-			    echo "allowinUPnP                     # Allow UPnP inbound (to firewall) traffic"
-			    echo "allowoutUPnP                    # Allow traffic from local command 'upnpd' (does not work with kernels after 2.6.13)"
-			    echo "dropBcast                       # Silently Drop Broadcast/multicast"
-			    echo "dropInvalid                     # Silently Drop packets that are in the INVALID conntrack state"
-			    echo "dropNotSyn                      # Silently Drop Non-syn TCP packets"
-			    echo "forwardUPnP                     # Allow traffic that upnpd has redirected from"
-			    echo "rejNotSyn                       # Silently Reject Non-syn TCP packets"
-
-			    if [ -f ${g_confdir}/actions ]; then
-				cat ${g_sharedir}/actions.std ${g_confdir}/actions | grep -Ev '^\#|^$'
-			    else
-				grep -Ev '^\#|^$' ${g_sharedir}/actions.std
-			    fi
-
+			    eval show_actions_sorted $g_pager
 			    return
 			    ;;
 			macro)
@@ -1312,25 +1414,7 @@ show_command() {
 			    ;;
 			macros)
 			    [ $# -gt 1 ] && usage 1
-
-			    for directory in $(split $CONFIG_PATH); do
-				temp=
-				for macro in ${directory}/macro.*; do
-				    case $macro in
-					*\*)
-                                            ;;
-					*)
-				            if [ -z "$temp" ]; then
-						echo
-						echo "Macros in $directory:"
-						echo
-						temp=Yes
-					    fi
-					    show_macro
-					    ;;
-				    esac
-				done
-			    done
+			    eval show_macros $g_pager
 			    return
 			    ;;
 		    esac
@@ -1350,20 +1434,11 @@ show_command() {
 			error_message "ERROR: Chain '$chain' is not recognized by $g_tool."
 			exit 1
 		    fi
-		done
+					 done
 
-		echo "$g_product $SHOREWALL_VERSION $([ $# -gt 1 ] && echo "Chains " || echo "Chain ")$* at $g_hostname - $(date)"
-		echo
-		show_reset
-		for chain in $*; do
-		    $g_tool -t $table -L $chain $g_ipt_options | $output_filter
-		    echo
-		done
+		eval show_chains $@ $g_pager
 	    else
-		echo "$g_product $SHOREWALL_VERSION $table Table at $g_hostname - $(date)"
-		echo
-		show_reset
-		$g_tool -t $table -L $g_ipt_options | $output_filter
+		eval show_table $g_pager
 	    fi
 	    ;;
     esac
@@ -1414,10 +1489,14 @@ dump_filter() {
 		;;
 	esac
 
-	$command $filter
+	eval $command $filter $g_pager
     else
 	cat -
     fi
+}
+
+dump_filter_wrapper() {
+    eval dump_filter $g_pager
 }
 
 #
@@ -1630,14 +1709,14 @@ do_dump_command() {
 
     if [ -n "$TC_ENABLED" ]; then
 	heading "Traffic Control"
-	show_tc
+	show_tc1
 	heading "TC Filters"
 	show_classifiers
 	fi
 }
 
 dump_command() {
-    do_dump_command $@ | dump_filter
+    do_dump_command $@ | dump_filter_wrapper
 }
 
 #
@@ -3697,6 +3776,23 @@ get_config() {
 
     g_loopback=$(find_loopback_interfaces)
 
+    if [ -n "$PAGER" -a -t 1 ]; then
+	case $PAGER in
+	    /*)
+		g_pager="$PAGER"
+		[ -f "$g_pager" ] || fatal_error "PAGER=$PAGER does not exist"
+		;;
+	    *)
+		g_pager=$(mywhich pager 2> /dev/null)
+		[ -n "$g_pager" ] || fatal_error "PAGER=$PAGER does not exist"
+		;;
+	esac
+
+	[ -x "$g_pager" ] || fatal_error "PAGER $g_pager is not executable"
+
+	g_pager="| $g_pager"
+     fi
+
     lib=$(find_file lib.cli-user)
 
     [ -f $lib ] && . $lib
@@ -4037,6 +4133,7 @@ shorewall_cli() {
     g_counters=
     g_loopback=
     g_compiled=
+    g_pager=
 
     VERBOSE=
     VERBOSITY=1
