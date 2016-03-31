@@ -242,7 +242,7 @@
 # 
 #         Allows you to place your own ip[6]tables matches at the end of the line
 #         following a semicolon (";"). If an action is specified, the compiler
-#         procedes as if that action had been specified in this column. If no
+#         proceeds as if that action had been specified in this column. If no
 #         action is specified, then you may include your own jump ("-j target [
 #         option] ...") after any matches specified at the end of the rule. If
 #         the target is not one known to Shorewall, then it must be defined as a

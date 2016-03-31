@@ -749,7 +749,7 @@
 # 
 #     When s: or d: is specified, the rate applies per source IP address or per
 #     destination IP address respectively. The names may be chosen by the user
-#     and specifiy a hash table to be used to count matching connections. If not
+#     and specify a hash table to be used to count matching connections. If not
 #     given, the name shorewallN (where N is a unique integer) is assumed. Where
 #     more than one rule or POLICY specifies the same name, the connections
 #     counts for the rules are aggregated and the individual rates apply to the

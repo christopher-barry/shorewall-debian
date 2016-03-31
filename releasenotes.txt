@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	           S H O R E W A L L  5 . 0 . 7  R C  1
+	           S H O R E W A L L  5 . 0 . 7  . 2
                        ----------------------------
-                        M a r c h  2 7 ,  2 0 1 6
+                        M a r c h  3 1 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,40 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.7.2
+
+1)  When using older versions of Perl, the following warnings were
+    generated with 5.0.7 and 5.0.7.1.
+
+    Found = in conditional, should be == at
+       /usr/share/perl5/Shorewall/Chains.pm line 8630.
+    Found = in conditional, should be == at
+       /usr/share/perl5/Shorewall/Chains.pm line 8635.
+
+    That has been corrected.
+
+    (Tuomo Soini)
+
+2)  Several typos in the manpages have been corrected (Roberto
+    Sánchez).
+
+3)  Previously, if an inline match was used in the last line of an
+    action, then the inline match could also be applied to the jump to
+    the action's chain. That has been corrected so that the jump to the
+    chain contains the correct set of matches. 
+
+5.0.7.1
+
+1)  In 5.0.6.2 and 5.0.7, use of an inline match in a rule that
+    generated multiple ip[6]tables rules caused only the first
+    generated rule to contain the inline match.  That has been
+    corrected.
+
+2)  In 5.0.7, if ':R' was specified with the DIVERT action, an error
+    message was erroneously generated. That has been corrected.
+
+5.0.7
 
 1)  This release includes defect repair from Shorewall 5.0.6.2.
 
