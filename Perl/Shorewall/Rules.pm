@@ -1798,6 +1798,7 @@ sub process_action(\$\$$) {
     my ( $action, $level, $tag, undef, $param ) = split /:/, $wholeaction, ACTION_TUPLE_ELEMENTS;
     my $type = $targets{$action};
     my $actionref = $actions{$action};
+    my $matches   = fetch_inline_matches;
 
     if ( $type & BUILTIN ) {
 	$level = '' if $level =~ /none!?/;
@@ -1910,6 +1911,7 @@ sub process_action(\$\$$) {
 				      $dscp ,
 				      $state,
 				      $time );
+		set_inline_matches( $matches );
 	    }
 	} else {
 	    my ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper );
@@ -1961,6 +1963,8 @@ sub process_action(\$\$$) {
 			  $condition,
 			  $helper,
 			  0 );
+
+	    set_inline_matches( $matches );
 	}
     }
 
@@ -2198,7 +2202,8 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$$) {
     my $generated = 0;
 
 
-    my $macrofile = $macros{$macro};
+    my $macrofile    = $macros{$macro};
+    my $save_matches = fetch_inline_matches;
 
     progress_message "..Expanding Macro $macrofile...";
 
@@ -2306,6 +2311,8 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$$) {
 				  );
 
 	progress_message "   Rule \"$currentline\" $done";
+
+	set_inline_matches( $save_matches );
     }
 
     pop_open;
@@ -2333,10 +2340,11 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$$) {
 					 $chainref->{name} ,
 				       );
 
-    my $actionref  = $actions{$inline};
-    my $inlinefile = $actionref->{file};
-    my $options    = $actionref->{options};
-    my $nolog      = $options & NOLOG_OPT;
+    my $actionref    = $actions{$inline};
+    my $inlinefile   = $actionref->{file};
+    my $options      = $actionref->{options};
+    my $nolog        = $options & NOLOG_OPT;
+    my $save_matches = fetch_inline_matches;
 
     setup_audit_action( $inline ) if $options & AUDIT_OPT;
 
@@ -2444,6 +2452,8 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$$) {
 				  );
 
 	progress_message "   Rule \"$currentline\" $done";
+
+	set_inline_matches( $save_matches );
     }
 
     pop_comment( $save_comment );
@@ -3662,10 +3672,6 @@ sub process_raw_rule ( ) {
 					   $wild ) ) {
 			    $generated = 1;
 			}
-			#
-			# Clear inline matches
-			#
-			set_inline_matches( '' );
 		    }
 		}
 	    }
@@ -3787,6 +3793,7 @@ sub process_mangle_inline( $$$$$$$$$$$$$$$$$$$ ) {
 					 $chainref->{name} );
 
     my $inlinefile = $actions{$inline}{file};
+    my $matches    = fetch_inline_matches;
 
     progress_message "..Expanding inline action $inlinefile...";
 
@@ -3881,6 +3888,8 @@ sub process_mangle_inline( $$$$$$$$$$$$$$$$$$$ ) {
 	}
 
 	progress_message "   Rule \"$currentline\" $done";
+
+	set_inline_matches( $matches );
     }
 
     pop_comment( $save_comment );
@@ -4169,7 +4178,9 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	    minparams      => 0,
 	    maxparams      => 0,
 	    function       => sub () {
-		fatal_error 'DIVERT is only allowed in the PREROUTING chain' if $designator && $designator != PREROUTING;
+		fatal_error 'DIVERT is only allowed in the PREROUTING chain' if $designator && 
+		    $designator != PREROUTING &&
+		    $designator != REALPREROUTING;
 		my $mark = in_hex( $globals{TPROXY_MARK} ) . '/' . in_hex( $globals{TPROXY_MARK} );
 
 		unless ( $divertref ) {

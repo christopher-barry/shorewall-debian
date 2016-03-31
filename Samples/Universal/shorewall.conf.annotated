@@ -1043,7 +1043,7 @@ INLINE_MATCHES=Yes
 #     INLINE_MATCHES=Yes in order to be able to specify your own iptables text in
 #     a rule. You may simply preface that text with a pair of semicolons (";;").
 #     If alternate input is also specified in the rule, it should appear before
-#     the semicolons and may be seperated from normal column input by a single
+#     the semicolons and may be separated from normal column input by a single
 #     semicolon.
 # 
 IPSET_WARNINGS=Yes
