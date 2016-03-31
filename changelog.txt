@@ -1,3 +1,29 @@
+Changes in 5.0.7.2
+
+1)  Update release documents.
+
+2)  Fix warning when using older Perl versions.
+
+3)  Improve handling of inline matches
+
+Changes in 5.0.7.1
+
+1)  Update release documents.
+
+2)  Fix inline matches in rule with wildcard zones
+
+3)  Allow ';R' with DIVERT.
+
+Changes in 5.0.7 Final
+
+1)  Update release documents.
+
+2)  Correct 3-interface doc.
+
+3)  Updates to the configuration basics document.
+
+4)  Small efficiency change.
+
 Changes in 5.0.7 RC 1
 
 1)  Update release documents.
