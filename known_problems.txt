@@ -3,3 +3,36 @@
 
 2)  The 'enable', 'reenable' and 'disable' commands do not work
     correctly in configurations with USE_DEFAULT_RT=No.
+
+1)  In 5.0.7, use of an inline match in a rule that generats multiple
+    ip[6]tables rules causes only the first generated rule to contain
+    the inline match.
+
+    Fixed in 5.0.7.1.
+
+2)  In 5.0.7, if ':R' is specified with the DIVERT action, an error
+    message is erroneously generated.
+
+    Workaround: Remove ':R' -- the real PREROUTING chain is the default
+    		for DIVERT.
+
+    Fixed in 5.0.7.1.
+
+3)  When using older versions of Perl, the following warnings were
+    generated with 5.0.7 and 5.0.7.1.
+
+    Found = in conditional, should be == at
+       /usr/share/perl5/Shorewall/Chains.pm line 8630.
+    Found = in conditional, should be == at
+       /usr/share/perl5/Shorewall/Chains.pm line 8635.
+
+    These may be safely ignored.
+
+    Fixed in 5.0.7.2.
+
+4)  If an inline match is used in the last rule of an action, then the
+    inline match can also be erroneously applied to the jump to the
+    action's chain.
+
+    Fixed in 5.0.7.2.
+

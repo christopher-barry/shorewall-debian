@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=5.0.7
+VERSION=5.0.7.2
 
 PRODUCT=shorewall-core
 Product="Shorewall Core"
