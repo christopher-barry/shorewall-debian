@@ -28,7 +28,7 @@
 #
 # Build updates this
 #
-VERSION=5.0.7
+VERSION=5.0.7.2
 
 case "$BASH_VERSION" in
     [4-9].*)
