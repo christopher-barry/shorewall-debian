@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-tcclasses
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 03/30/2016
+.\"      Date: 04/23/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-TCCLASSE" "5" "03/30/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-TCCLASSE" "5" "04/23/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -132,17 +132,17 @@ Normally, all classes defined here are sub\-classes of a root class (class numbe
 class \-\- the number of a class that you have previously defined\&. The sub\-class may borrow unused bandwidth from its parent\&.
 .RE
 .PP
-\fBMARK\fR \- {\-|\fIvalue\fR}
+\fBMARK\fR \- {\-|\fIvalue\fR[:\fIpriority\fR]}
 .RS 4
 The mark
 \fIvalue\fR
 which is an integer in the range 1\-255\&. You set mark values in the
-\m[blue]\fBshorewall6\-mangle\fR\m[]\&\s-2\u[2]\d\s+2(5) file, marking the traffic you want to fit in the classes defined in here\&. Must be specified as \*(Aq\-\*(Aq if the
-\fBclassify\fR
-option is given for the interface in
-\m[blue]\fBshorewall6\-tcdevices\fR\m[]\&\s-2\u[1]\d\s+2(5) and you are running Shorewall 4\&.5 5 or earlier\&.
+\m[blue]\fBshorewall\-mangle\fR\m[]\&\s-2\u[2]\d\s+2(5) file, marking the traffic you want to fit in the classes defined in here\&. You can use the same marks for different interfaces\&.
 .sp
-You can use the same marks for different interfaces\&.
+The
+\fIpriority\fR, if specified, is an integer in the range 1\-65535 and determines the relative order in which the tc mark classification filter for this class is to be applied to packets being sent on the
+\fIinterface\fR\&. Filters are applied in ascending numerical order\&. If not supplied, the value is derived from the class priority (PRIORITY column value below): (\fIclass priority\fR
+<< 8) | 20\&.
 .RE
 .PP
 \fBRATE\fR \- {\-|\fIrate\fR[:\fIdmax\fR[:\fIumax\fR]]}
@@ -265,7 +265,7 @@ Beginning with Shorewall 4\&.5\&.8, the
 \fIvalue/mask\fR
 may be followed by a colon (":") and a
 \fIpriority\fR\&. This priority determines the order in which filter rules are processed during packet classification\&. If not specified, the value (\fIclass priority\fR
-<< 8) | 10) is used\&.
+<< 8) | 15) is used\&.
 .RE
 .PP
 \fBtos\-\fR\fItosname\fR[:\fIpriority\fR]
@@ -316,7 +316,7 @@ Beginning with Shorewall 4\&.5\&.8, the
 \fBtcp\-ack\fR
 may be followed by a colon (":") and a
 \fIpriority\fR\&. This priority determines the order in which filter rules are processed during packet classification\&. If not specified, the value (\fIclass priority\fR
-<< 8) | 20) is used\&.
+<< 8) | 10) is used\&.
 .if n \{\
 .sp
 .\}
@@ -517,9 +517,9 @@ shorewall6-tcdevices
 \%http://www.shorewall.net/manpages6/shorewall6-tcdevices.html
 .RE
 .IP " 2." 4
-shorewall6-mangle
+shorewall-mangle
 .RS 4
-\%http://www.shorewall.net/manpages6/shorewall6-mangle.html
+\%http://www.shorewall.net/manpages/shorewall-mangle.html
 .RE
 .IP " 3." 4
 http://www.shorewall.net/traffic_shaping.htm

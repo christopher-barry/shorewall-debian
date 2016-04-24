@@ -385,9 +385,23 @@
 #         Like REDIRECT but only generates the REDIRECT iptables rule and not the
 #         companion ACCEPT rule. Requires Shorewall 4.5.14 or later.
 # 
-#     REJECT
+#     REJECT[(option)]
 # 
 #         disallow the request and return an icmp-unreachable or an RST packet.
+#         If no option is passed, Shorewall selects the appropriate option based
+#         on the protocol of the packet.
+# 
+#         Beginning with Shorewall 5.0.8, the type of reject may be specified in
+#         the option paramater. Valid option values are:
+# 
+#         icmp6-no-route
+#         no-route
+#         icmp6-adm-prohibited
+#         adm-prohibited
+#         icmp6-addr-unreachable
+#         addr-unreach
+#         icmp6-port-unreachable
+#         tcp-reset (the PROTO column must specify TCP)
 # 
 #     REJECT!
 # 

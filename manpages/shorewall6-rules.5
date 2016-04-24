@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 03/30/2016
+.\"      Date: 04/23/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "03/30/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-RULES" "5" "04/23/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -469,9 +469,40 @@ iptables rule and not the companion
 rule\&. Requires Shorewall 4\&.5\&.14 or later\&.
 .RE
 .PP
-\fBREJECT\fR
+\fBREJECT[(\fR\fB\fIoption\fR\fR\fB)]\fR
 .RS 4
-disallow the request and return an icmp\-unreachable or an RST packet\&.
+disallow the request and return an icmp\-unreachable or an RST packet\&. If no option is passed, Shorewall selects the appropriate option based on the protocol of the packet\&.
+.sp
+Beginning with Shorewall 5\&.0\&.8, the type of reject may be specified in the
+\fIoption\fR
+paramater\&. Valid
+\fIoption\fR
+values are:
+.RS 4
+\fBicmp6\-no\-route\fR
+.RE
+.RS 4
+\fBno\-route\fR
+.RE
+.RS 4
+\fBi\fR\fBcmp6\-adm\-prohibited\fR
+.RE
+.RS 4
+\fBadm\-prohibited\fR
+.RE
+.RS 4
+\fBicmp6\-addr\-unreachable\fR
+.RE
+.RS 4
+\fBaddr\-unreach\fR
+.RE
+.RS 4
+\fBicmp6\-port\-unreachable\fR
+.RE
+.RS 4
+\fBtcp\-reset\fR (the PROTO column must
+                  specify TCP)
+.RE
 .RE
 .PP
 \fBREJECT!\fR
