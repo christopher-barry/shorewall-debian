@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 5.0.7
-%define release 2
+%define version 5.0.8
+%define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -80,6 +80,7 @@ fi
 %ghost %attr(0644,root,root) /etc/shorewall/isusable
 %ghost %attr(0644,root,root) /etc/shorewall/notrack
 %attr(0755,root,root) %dir /usr/share/shorewall/configfiles
+%attr(0755,root,root) %dir /usr/share/shorewall/deprecated
 %attr(0700,root,root) %dir /var/lib/shorewall
 %attr(0600,root,root) %config(noreplace) /etc/shorewall/*
 
@@ -97,6 +98,8 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/action.Drop
 %attr(0644,root,root) /usr/share/shorewall/action.DropSmurfs
 %attr(0644,root,root) /usr/share/shorewall/action.A_Drop
+%attr(0644,root,root) /usr/share/shorewall/action.A_REJECT
+%attr(0644,root,root) /usr/share/shorewall/action.A_REJECT!
 %attr(0644,root,root) /usr/share/shorewall/action.AutoBL
 %attr(0644,root,root) /usr/share/shorewall/action.AutoBLL
 %attr(0644,root,root) /usr/share/shorewall/action.Established
@@ -108,7 +111,7 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/action.RST
 %attr(0644,root,root) /usr/share/shorewall/action.Reject
 %attr(0644,root,root) /usr/share/shorewall/action.Related
-%attr(0644,root,root) /usr/share/shorewall/action.A_Reject
+%attr(0644,root,root) /usr/share/shorewall/deprecated/action.A_Reject
 %attr(0644,root,root) /usr/share/shorewall/action.ResetEvent
 %attr(0644,root,root) /usr/share/shorewall/action.SetEvent
 %attr(0644,root,root) /usr/share/shorewall/action.TCPFlags
@@ -120,6 +123,7 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/lib.cli-std
 %attr(0644,root,root) /usr/share/shorewall/lib.core
 %attr(0644,root,root) /usr/share/shorewall/macro.*
+%attr(0644,root,root) /usr/share/shorewall/deprecated/macro.*
 %attr(0644,root,root) /usr/share/shorewall/modules*
 %attr(0644,root,root) /usr/share/shorewall/helpers
 %attr(0644,root,root) /usr/share/shorewall/configpath
@@ -137,10 +141,20 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
 
 %changelog
-* Tue Mar 29 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.7-2
-* Mon Mar 28 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.7-1
+* Tue Apr 19 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0base
+* Fri Apr 15 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0RC2
+* Mon Apr 11 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0RC1
+* Thu Apr 07 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0Beta4
+* Sat Apr 02 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0Beta3
+* Fri Apr 01 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0Beta2
+* Sun Mar 27 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.8-0Beta1
 * Thu Mar 24 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.7-0base
 * Fri Mar 18 2016 Tom Eastep tom@shorewall.net

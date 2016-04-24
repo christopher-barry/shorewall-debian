@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=5.0.7.2
+VERSION=5.0.8
 
 #
 # Change to the directory containing this script
@@ -419,11 +419,13 @@ mkdir -p ${DESTDIR}${CONFDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${LIBEXECDIR}/$PRODUCT
 mkdir -p ${DESTDIR}${PERLLIBDIR}/Shorewall
 mkdir -p ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+mkdir -p ${DESTDIR}${SHAREDIR}/$PRODUCT/deprecated
 mkdir -p ${DESTDIR}${VARDIR}
 
 chmod 755 ${DESTDIR}${CONFDIR}/$PRODUCT
 chmod 755 ${DESTDIR}${SHAREDIR}/$PRODUCT
 chmod 755 ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+chmod 755 ${DESTDIR}${SHAREDIR}/$PRODUCT/deprecated
 
 if [ -n "$DESTDIR" ]; then
     mkdir -p ${DESTDIR}${CONFDIR}/logrotate.d
@@ -1060,15 +1062,31 @@ fi
 # Install the Action files
 #
 for f in action.* ; do
-    install_file $f ${DESTDIR}${SHAREDIR}/$PRODUCT/$f 0644
-    echo "Action ${f#*.} file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/$f"
+    case $f in
+	*.deprecated)
+	    install_file $f ${DESTDIR}${SHAREDIR}/$PRODUCT/deprecated/${f%.*} 0644
+	    echo "Action ${f#*.} file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/deprecated/${f%.*}"
+	    ;;
+	*)
+	    install_file $f ${DESTDIR}${SHAREDIR}/$PRODUCT/$f 0644
+	    echo "Action ${f#*.} file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/$f"
+	    ;;
+    esac
 done
 
 cd Macros
 
 for f in macro.* ; do
-    install_file $f ${DESTDIR}${SHAREDIR}/$PRODUCT/$f 0644
-    echo "Macro ${f#*.} file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/$f"
+    case $f in
+	*.deprecated)
+	    install_file $f ${DESTDIR}${SHAREDIR}/$PRODUCT/deprecated/${f%.*} 0644
+	    echo "Macro ${f#*.} file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/deprecated/${f%.*}"
+	    ;;
+	*)
+	    install_file $f ${DESTDIR}${SHAREDIR}/$PRODUCT/$f 0644
+	    echo "Macro ${f#*.} file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/$f"
+	    ;;
+    esac
 done
 
 cd ..

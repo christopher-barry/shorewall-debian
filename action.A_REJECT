@@ -1,11 +1,11 @@
 #
-# Shorewall -- /usr/share/shorewall/action.dropInvalid
+# Shorewall -- /usr/share/shorewall/action.A_REJECTWITH
 #
-# dropInvalid Action
+# A_REJECT Action.
 #
 # This program is under GPL [http://www.gnu.org/licenses/old-licenses/gpl-2.0.txt]
 #
-# (c) 2011-2016 Tom Eastep (teastep@shorewall.net)
+# (c) 2012-2016 Tom Eastep (teastep@shorewall.net)
 #
 # Complete documentation is available at http://shorewall.net
 #
@@ -22,18 +22,20 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
-# dropInvalid[([audit])]
-#
+# A_REJECTWITH[([<option>])] where <option> is a valid REJECT option.#
 ###############################################################################
 
 DEFAULTS -
 
-?if passed(@1)
-    ?if @1 eq 'audit'
-Invalid(A_DROP)
+AUDIT(reject)
+
+?if passed @1
+    ?if @1 =~ /tcp-reset$/
+        ?set reject_proto 6
     ?else
-        ?error The first parameter to dropInvalid must be 'audit' or '-'
+        ?set reject_proto ''
     ?endif
+REJECT(@1)	-	-	$reject_proto
 ?else
-Invalid(DROP)
+REJECT
 ?endif

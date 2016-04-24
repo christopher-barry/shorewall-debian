@@ -48,7 +48,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '5.0_7';
+our $VERSION = '5.0_8';
 
 our $family;
 
@@ -89,6 +89,7 @@ sub setup_ecn()
 {
     my %interfaces;
     my @hosts;
+    my $interfaceref;
 
     if ( my $fn = open_file 'ecn' ) {
 
@@ -105,7 +106,13 @@ sub setup_ecn()
 						    2 );
 
 	    fatal_error 'INTERFACE must be specified' if $interface eq '-';
-	    fatal_error "Unknown interface ($interface)" unless known_interface $interface;
+	    fatal_error "Unknown interface ($interface)" unless $interfaceref = known_interface( $interface );
+
+	    if ( $interfaceref->{root} ) {
+		$interface = $interfaceref->{name} if $interface eq $interfaceref->{physical};
+	    } else {
+		$interface = $interfaceref->{name};
+	    }
 
 	    my $lineinfo = shortlineinfo( '' );
 
@@ -639,6 +646,7 @@ sub create_docker_rules() {
 	add_commands( $chainref, 'if [ -n "$g_docker" ]; then' );
 	incr_cmd_level( $chainref );
 	add_ijump( $chainref, j => 'DOCKER', o => 'docker0' );
+	add_ijump( $chainref, j => 'ACCEPT', o => 'docker0', state_imatch 'ESTABLISHED,RELATED' );
 	add_ijump( $chainref, j => 'ACCEPT', i => 'docker0', o => '! docker0' );
 	add_ijump( $chainref, j => 'ACCEPT', i => 'docker0', o => 'docker0' ) if $dockerref->{options}{routeback};
 	add_ijump( $filter_table->{OUTPUT}, j => 'DOCKER' );
@@ -667,16 +675,88 @@ sub add_common_rules ( $ ) {
     my $level     = $config{BLACKLIST_LOG_LEVEL};
     my $tag       = $globals{BLACKLIST_LOG_TAG};
     my $rejectref = $filter_table->{reject};
+    my $dbl_type;
+    my $dbl_ipset;
+    my $dbl_level;
+    my $dbl_tag;
+    my $dbl_target;
+
+    if ( $config{REJECT_ACTION} ) {
+	process_reject_action;
+	fatal_eror( "The REJECT_ACTION ($config{REJECT_ACTION}) is not terminating" ) unless terminating( $rejectref );
+    } else {
+	if ( have_capability( 'ADDRTYPE' ) ) {
+	    add_ijump $rejectref , j => 'DROP' , addrtype => '--src-type BROADCAST';
+	} else {
+	    if ( $family == F_IPV4 ) {
+		add_commands $rejectref, 'for address in $ALL_BCASTS; do';
+	    } else {
+		add_commands $rejectref, 'for address in $ALL_ACASTS; do';
+	    }
+
+	    incr_cmd_level $rejectref;
+	    add_ijump $rejectref, j => 'DROP', d => '$address';
+	    decr_cmd_level $rejectref;
+	    add_commands $rejectref, 'done';
+	}
+
+	if ( $family == F_IPV4 ) {
+	    add_ijump $rejectref , j => 'DROP', s => '224.0.0.0/4';
+	} else {
+	    add_ijump $rejectref , j => 'DROP', s => IPv6_MULTICAST;
+	}
+
+	add_ijump $rejectref , j => 'DROP', p => 2;
+	add_ijump $rejectref , j => 'REJECT', targetopts => '--reject-with tcp-reset', p => 6;
+
+	if ( have_capability( 'ENHANCED_REJECT' ) ) {
+	    add_ijump $rejectref , j => 'REJECT', p => 17;
+
+	    if ( $family == F_IPV4 ) {
+		add_ijump $rejectref, j => 'REJECT --reject-with icmp-host-unreachable', p => 1;
+		add_ijump $rejectref, j => 'REJECT --reject-with icmp-host-prohibited';
+	    } else {
+		add_ijump $rejectref, j => 'REJECT --reject-with icmp6-addr-unreachable', p => 58;
+		add_ijump $rejectref, j => 'REJECT --reject-with icmp6-adm-prohibited';
+	    }
+	} else {
+	    add_ijump $rejectref , j => 'REJECT';
+	}
+    }
+
     #
     # Insure that Docker jumps are early in the builtin chains
     #
     create_docker_rules if $config{DOCKER};
 
-    if ( $config{DYNAMIC_BLACKLIST} ) {
-	add_rule_pair( set_optflags( new_standard_chain( 'logdrop' )  , DONT_OPTIMIZE | DONT_DELETE ), '' , 'DROP'   , $level , $tag);
-	add_rule_pair( set_optflags( new_standard_chain( 'logreject' ), DONT_OPTIMIZE | DONT_DELETE ), '' , 'reject' , $level , $tag);
-	$dynamicref =  set_optflags( new_standard_chain( 'dynamic' ) ,  DONT_OPTIMIZE );
-	add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
+    if ( my $val = $config{DYNAMIC_BLACKLIST} ) {
+	( $dbl_type, $dbl_ipset, $dbl_level, $dbl_tag ) = split( ':', $val );
+
+	unless ( $dbl_type =~ /^ipset-only/ ) {
+	    add_rule_pair( set_optflags( new_standard_chain( 'logdrop' )  , DONT_OPTIMIZE | DONT_DELETE ), '' , 'DROP'   , $level , $tag);
+	    add_rule_pair( set_optflags( new_standard_chain( 'logreject' ), DONT_OPTIMIZE | DONT_DELETE ), '' , 'reject' , $level , $tag);
+	    $dynamicref =  set_optflags( new_standard_chain( 'dynamic' ) ,  DONT_OPTIMIZE );
+	    add_commands( $dynamicref, '[ -f ${VARDIR}/.dynamic ] && cat ${VARDIR}/.dynamic >&3' );
+	}
+
+	if ( $dbl_ipset ) {
+	    if ( $dbl_level ) {
+		my $chainref = set_optflags( new_standard_chain( $dbl_target = 'dbl_log' ) , DONT_OPTIMIZE | DONT_DELETE );
+
+		log_rule_limit( $dbl_level,
+				$chainref,
+				'dbl_log',
+				'DROP',
+				$globals{LOGLIMIT},
+				$dbl_tag,
+				'add',
+				'',
+				$origin{DYNAMIC_BLACKLIST} );
+		add_ijump_extended( $chainref, j => 'DROP', $origin{DYNAMIC_BLACKLIST} );
+	    } else {
+		$dbl_target = 'DROP'; 
+	    }
+	}
     }
 
     setup_mss;
@@ -780,8 +860,13 @@ sub add_common_rules ( $ ) {
 		}
 	    }
 
+	    if ( $dbl_ipset && ! get_interface_option( $interface, 'nodbl' ) ) {
+		add_ijump_extended( $filter_table->{input_option_chain($interface)},  j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset src" );
+		add_ijump_extended( $filter_table->{output_option_chain($interface)}, j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset dst" ) if $dbl_type =~ /,src-dst$/;
+	    }
+	    
 	    for ( option_chains( $interface ) ) {
-		add_ijump_extended( $filter_table->{$_}, j => $dynamicref, $origin{DYNAMIC_BLACKLIST}, @state ) if $dynamicref;
+		add_ijump_extended( $filter_table->{$_}, j => $dynamicref, $origin{DYNAMIC_BLACKLIST}, @state ) if $dynamicref && ! get_interface_option( $interface, 'nodbl' );
 		add_ijump_extended( $filter_table->{$_}, j => 'ACCEPT',    $origin{FASTACCEPT},        state_imatch $faststate )->{comment} = '' if $config{FASTACCEPT};
 	    }
 	}
@@ -940,46 +1025,6 @@ sub add_common_rules ( $ ) {
 	}
     }
 
-    unless ( $config{REJECT_ACTION} ) {
-	if ( have_capability( 'ADDRTYPE' ) ) {
-	    add_ijump $rejectref , j => 'DROP' , addrtype => '--src-type BROADCAST';
-	} else {
-	    if ( $family == F_IPV4 ) {
-		add_commands $rejectref, 'for address in $ALL_BCASTS; do';
-	    } else {
-		add_commands $rejectref, 'for address in $ALL_ACASTS; do';
-	    }
-
-	    incr_cmd_level $rejectref;
-	    add_ijump $rejectref, j => 'DROP', d => '$address';
-	    decr_cmd_level $rejectref;
-	    add_commands $rejectref, 'done';
-	}
-
-	if ( $family == F_IPV4 ) {
-	    add_ijump $rejectref , j => 'DROP', s => '224.0.0.0/4';
-	} else {
-	    add_ijump $rejectref , j => 'DROP', s => IPv6_MULTICAST;
-	}
-
-	add_ijump $rejectref , j => 'DROP', p => 2;
-	add_ijump $rejectref , j => 'REJECT', targetopts => '--reject-with tcp-reset', p => 6;
-
-	if ( have_capability( 'ENHANCED_REJECT' ) ) {
-	    add_ijump $rejectref , j => 'REJECT', p => 17;
-
-	    if ( $family == F_IPV4 ) {
-		add_ijump $rejectref, j => 'REJECT --reject-with icmp-host-unreachable', p => 1;
-		add_ijump $rejectref, j => 'REJECT --reject-with icmp-host-prohibited';
-	    } else {
-		add_ijump $rejectref, j => 'REJECT --reject-with icmp6-addr-unreachable', p => 58;
-		add_ijump $rejectref, j => 'REJECT --reject-with icmp6-adm-prohibited';
-	    }
-	} else {
-	    add_ijump $rejectref , j => 'REJECT';
-	}
-    }
-
     $list = find_interfaces_by_option 'dhcp';
 
     if ( @$list ) {
@@ -1095,10 +1140,18 @@ sub add_common_rules ( $ ) {
 
 	    add_commands( $chainref, '[ -s /${VARDIR}/.UPnP ] && cat ${VARDIR}/.UPnP >&3' );
 
+	    my $chainref1;
+
+	    if ( $config{MINIUPNPD} ) {
+		$chainref1 = set_optflags( new_nat_chain( 'MINIUPNPD-POSTROUTING' ), DONT_OPTIMIZE ); 
+		add_commands( $chainref, '[ -s /${VARDIR}/.MINIUPNPD-POSTROUTING ] && cat ${VARDIR}/.MINIUPNPD-POSTROUTING >&3' );
+	    }
+
 	    $announced = 1;
 
 	    for $interface ( @$list ) {
-		add_ijump_extended $nat_table->{PREROUTING} , j => 'UPnP', get_interface_origin($interface), imatch_source_dev ( $interface );
+		add_ijump_extended $nat_table->{PREROUTING} ,            j => 'UPnP',                   get_interface_origin($interface), imatch_source_dev ( $interface );
+		add_ijump_extended $nat_table->{$globals{POSTROUTING}} , j => 'MINIUPNPD-POSTROUTING' , $origin{MINIUPNPD}              , imatch_dest_dev   ( $interface ) if $chainref1;
 	    }
 	}
 
@@ -1786,12 +1839,14 @@ sub add_output_jumps( $$$$$$$$ ) {
     my $use_output        = 0;
     my @dest              = imatch_dest_net $net;
     my @ipsec_out_match   = match_ipsec_out $zone , $hostref;
+    my @zone_interfaces   = keys %{zone_interfaces( $zone )};
 
-    if ( @vservers || use_output_chain( $interface, $interfacechainref ) || ( @{$interfacechainref->{rules}} && ! $chain1ref ) ) {
+    if ( @vservers || use_output_chain( $interface, $interfacechainref ) || ( @{$interfacechainref->{rules}} && ! $chain1ref ) || @zone_interfaces > 1 ) {
 	#
 	# - There are vserver zones (so OUTPUT will have multiple source; or
 	# - We must use the interface output chain; or
 	# - There are rules in the interface chain and none in the rules chain
+	# - The zone has multiple interfaces
 	#
 	#   In any of these cases use the inteface output chain
 	#
@@ -1808,7 +1863,7 @@ sub add_output_jumps( $$$$$$$$ ) {
 		unless $output_jump_added{$interface}++;
 	} else {
 	    #
-	    # Not a bridge -- match the input interface
+	    # Not a bridge -- match the output interface
 	    #
 	    add_ijump_extended $filter_table->{OUTPUT}, j => $outputref, $origin, imatch_dest_dev( $interface ) unless $output_jump_added{$interface}++;
 	}
@@ -2418,16 +2473,16 @@ EOF
     emit <<'EOF';
             case $COMMAND in
 	        start)
-	            logger -p kern.err "ERROR:$g_product start failed"
+	            mylogger kern.err "ERROR:$g_product start failed"
 	            ;;
 	        reload)
-	            logger -p kern.err "ERROR:$g_product reload failed"
+	            mylogger kern.err "ERROR:$g_product reload failed"
 	            ;;
 	        refresh)
-	            logger -p kern.err "ERROR:$g_product refresh failed"
+	            mylogger kern.err "ERROR:$g_product refresh failed"
 	            ;;
                 enable)
-                    logger -p kern.err "ERROR:$g_product 'enable $g_interface' failed"
+                    mylogger kern.err "ERROR:$g_product 'enable $g_interface' failed"
                     ;;
             esac
 
@@ -2636,7 +2691,7 @@ EOF
     emit '
 
     set_state "Stopped"
-    logger -p kern.info "$g_product Stopped"
+    mylogger kern.info "$g_product Stopped"
 
     case $COMMAND in
     stop|clear)

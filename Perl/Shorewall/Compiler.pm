@@ -45,7 +45,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '5.0_7';
+our $VERSION = '5.0_8';
 
 our $export;
 
@@ -368,6 +368,7 @@ sub generate_script_3($) {
     create_arptables_load( $test ) if $have_arptables;
     create_chainlist_reload( $_[0] );
     create_save_ipsets;
+    create_load_ipsets;
 
     emit "#\n# Start/Reload the Firewall\n#";
 
@@ -406,7 +407,9 @@ sub generate_script_3($) {
 	   'fi',
 	   '' );
 
-    load_ipsets;
+    emit( 'load_ipsets' ,
+	  '' );
+
     create_nfobjects;
     verify_address_variables;
     save_dynamic_chains;
@@ -573,16 +576,16 @@ date > ${VARDIR}/restarted
 
 case $COMMAND in
     start)
-        logger -p kern.info "$g_product started"
+        mylogger kern.info "$g_product started"
         ;;
-    reloaded)
-        logger -p kern.info "$g_product reloaded"
+    reload)
+        mylogger kern.info "$g_product reloaded"
         ;;
     refresh)
-        logger -p kern.info "$g_product refreshed"
+        mylogger kern.info "$g_product refreshed"
         ;;
     restore)
-        logger -p kern.info "$g_product restored"
+        mylogger kern.info "$g_product restored"
         ;;
 esac
 EOF
@@ -866,10 +869,6 @@ sub compiler {
     # Apply Policies
     #
     complete_policy_chains;
-    #
-    # Reject Action
-    #
-    process_reject_action if $config{REJECT_ACTION};
     #
     # Accounting.
     #

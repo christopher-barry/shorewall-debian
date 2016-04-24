@@ -1,44 +1,44 @@
 #
-# Shorewall version 5 - Reject Action
+# Shorewall -- /usr/share/shorewall/action.Reject
 #
-# /usr/share/shorewall/action.Reject
+# The default REJECT action common rules
 #
-#	The default REJECT action common rules
+# This action is invoked before a REJECT policy is enforced. The purpose
+# of the action is:
 #
-#	This action is invoked before a REJECT policy is enforced. The purpose
-#	of the action is:
+# a) Avoid logging lots of useless cruft.
+# b) Ensure that certain ICMP packets that are necessary for successful
+#    internet operation are always ACCEPTed.
 #
-#	a) Avoid logging lots of useless cruft.
-#	b) Ensure that certain ICMP packets that are necessary for successful
-#	   internet operation are always ACCEPTed.
+# The action accepts six optional parameters:
 #
-#  The action accepts five optional parameters:
-#
-#	1 - 'audit' or '-'. Default is '-' which means don't audit in builtin
-#           actions.
-#       2 - Action to take with Auth requests. Default is to do nothing
-#	    special with them.
-#	3 - Action to take with SMB requests. Default is REJECT or A_REJECT,
-#           depending on the setting of the first parameter.
-#       4 - Action to take with required ICMP packets. Default is ACCEPT or
-#           A_ACCEPT depending on the first parameter.
-#       5 - Action to take with late UDP replies (UDP source port 53). Default
-#           is DROP or A_DROP depending on the first parameter.
+# 1 - 'audit' or '-'. Default is '-' which means don't audit in builtin
+#     actions.
+# 2 - Action to take with Auth requests. Default is to do nothing
+#     special with them.
+# 3 - Action to take with SMB requests. Default is REJECT or A_REJECT,
+#     depending on the setting of the first parameter.
+# 4 - Action to take with required ICMP packets. Default is ACCEPT or
+#     A_ACCEPT depending on the first parameter.
+# 5 - Action to take with late UDP replies (UDP source port 53). Default
+#     is DROP or A_DROP depending on the first parameter.
+# 6 - Action to take with UPnP packets. Default is DROP or A_DROP
+#     depending on the first parameter.
 #
 # IF YOU ARE HAVING CONNECTION PROBLEMS, CHANGING THIS FILE WON'T HELP!!!!!!!!!
 ###############################################################################
 
 ?if passed(@1)
     ?if @1 eq 'audit'
-DEFAULTS -,-,A_REJECT,A_ACCEPT,A_DROP
+DEFAULTS -,-,A_REJECT,A_ACCEPT,A_DROP,A_DROP
     ?else
 	?error The first parameter to Reject must be 'audit' or '-'
     ?endif
 ?else
-DEFAULTS -,-,REJECT,ACCEPT,DROP
+DEFAULTS -,-,REJECT,ACCEPT,DROP,DROP
 ?endif
 
-#TARGET		SOURCE	DEST	PROTO
+#ACTION		SOURCE	DEST	PROTO
 #
 # Count packets that come through here
 #
@@ -50,14 +50,17 @@ COUNT
 Auth(@2)
 ?endif
 #
+# ACCEPT critical ICMP types
+#
+# For IPv6 connectivity ipv6-icmp broadcasting is required so
+# AllowICMPs must be before silent broadcast Drop.
+#
+AllowICMPs(@4)	-	-	icmp
+#
 # Drop Broadcasts so they don't clutter up the log
 # (broadcasts must *not* be rejected).
 #
 Broadcast(DROP,@1)
-#
-# ACCEPT critical ICMP types
-#
-AllowICMPs(@4)	-	-	icmp
 #
 # Drop packets that are in the INVALID state -- these are usually ICMP packets
 # and just confuse people when they appear in the log (these ICMPs cannot be
@@ -68,7 +71,7 @@ Invalid(DROP,@1)
 # Reject Microsoft noise so that it doesn't clutter up the log.
 #
 SMB(@3)
-DropUPnP(@5)
+DropUPnP(@6)
 #
 # Drop 'newnotsyn' traffic so that it doesn't get logged.
 #

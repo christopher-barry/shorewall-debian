@@ -161,6 +161,8 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
                                        set_section_function
                                        clear_section_function
                                        directive_callback
+		                       add_ipset
+		                       all_ipsets
 
 				       $product
 				       $Product
@@ -236,7 +238,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_7';
+our $VERSION = '5.0_8';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -344,7 +346,7 @@ our %capdesc = ( NAT_ENABLED     => 'NAT',
                                  => 'Ipset Match nomatch',
 		 IPSET_MATCH_COUNTERS
                                  => 'Ipset Match counters',
-		 IPSET_V5        => 'Version 5 ipsets',
+		 IPSET_V5        => 'Version 5 or later ipset',
 		 CONNMARK        => 'CONNMARK Target',
 		 XCONNMARK       => 'Extended CONNMARK Target',
 		 CONNMARK_MATCH  => 'Connmark Match',
@@ -673,6 +675,7 @@ our $section_function; #Function Reference for handling ?section
 
 our $evals = 0; # Number of times eval() called out of evaluate_expression() or embedded_perl().
 
+our %ipsets; # All required IPsets
 #
 # Files located via find_file()
 #
@@ -734,7 +737,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.7.2",
+		    VERSION                 => "5.0.8",
 		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
@@ -885,6 +888,7 @@ sub initialize( $;$$) {
 	  RESTART => undef ,
 	  DOCKER => undef ,
 	  PAGER => undef ,
+	  MINIUPNPD => undef ,
 	  #
 	  # Packet Disposition
 	  #
@@ -1072,6 +1076,7 @@ sub initialize( $;$$) {
     %actparams = ( 0 => 0, loglevel => '', logtag => '', chain => '', disposition => '', caller => ''  );
     $parmsmodified = 0;
     $usedcaller    = 0;
+    %ipsets = ();
 
     %helpers_enabled = (
 			amanda       => 1,
@@ -1170,6 +1175,14 @@ sub initialize( $;$$) {
 
 my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
 
+sub add_ipset( $ ) {
+    $ipsets{$_[0]} = 1;
+}
+
+sub all_ipsets() {
+    sort keys %ipsets;
+}
+
 #
 # Create 'currentlineinfo'
 #
@@ -1242,6 +1255,34 @@ sub shortlineinfo( $ ) {
 }
 
 sub handle_first_entry();
+
+#
+# Issue a Information Message
+#
+sub info_message
+{
+    my $currentlineinfo = currentlineinfo;
+    our @localtime;
+
+    handle_first_entry if $first_entry;
+
+    $| = 1; #Reset output buffering (flush any partially filled buffers).
+
+    if ( $log ) {
+	@localtime = localtime;
+	printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+    }
+
+    if ( $confess ) {
+	print STDERR longmess( "   INFO: @_$currentlineinfo" );
+	print $log   longmess( "   INFO: @_$currentlineinfo\n" ) if $log;
+    } else {
+	print STDERR "   INFO: @_$currentlineinfo\n";
+	print $log   "   INFO: @_$currentlineinfo\n" if $log;
+    }
+
+    $| = 0; #Re-allow output buffering
+}
 
 #
 # Issue a Warning Message
@@ -1672,7 +1713,7 @@ sub progress_message {
 
 	    @localtime = localtime unless $havelocaltime;
 
-	    printf $log '%s %2d %2d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+	    printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
 	    print $log "${leading}${line}\n";
 	}
     }
@@ -1691,7 +1732,7 @@ sub progress_message_nocompress {
 
 	@localtime = localtime unless $havelocaltime;
 
-	printf $log '%s %2d %2d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+	printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
 	print $log "@_\n";
     }
 }
@@ -1712,7 +1753,7 @@ sub progress_message2 {
 
 	@localtime = localtime unless $havelocaltime;
 
-	printf $log '%s %2d %2d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+	printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
 	print $log "@_\n";
     }
 }
@@ -1733,7 +1774,7 @@ sub progress_message3 {
 
 	@localtime = localtime unless $havelocaltime;
 
-	printf $log '%s %2d %2d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+	printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
 	print $log "@_\n";
     }
 }
@@ -2509,6 +2550,13 @@ sub directive_warning( $$$ ) {
     ( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
 }
 
+sub directive_info( $$$ ) {
+    my ( $savefilename, $savelineno ) = ( $currentfilename, $currentlinenumber );
+    ( my $info, $currentfilename, $currentlinenumber ) = @_;
+    info_message $info;
+    ( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
+}
+
 #
 # Add quotes to the passed value if the passed 'first part' has an odd number of quotes
 # Return an expression that concatenates $first, $val and $rest
@@ -2655,7 +2703,7 @@ sub process_compiler_directive( $$$$ ) {
 
     print "CD===> $line\n" if $debug;
 
-    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*|ERROR\s+)(.*)$/i;
+    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*|ERROR\s+|WARNING\s+|INFO\s+)(.*)$/i;
 
     my ($keyword, $expression) = ( uc $1, $2 );
 
@@ -2800,7 +2848,26 @@ sub process_compiler_directive( $$$$ ) {
 						    1 ) ,
 			       $filename ,
 			       $linenumber ) unless $omitting;
-	  }
+	  } ,
+
+	  WARNING => sub() {
+	      directive_warning( evaluate_expression( $expression ,
+						      $filename ,
+						      $linenumber ,
+						      1 ),
+				 $filename ,
+				 $linenumber ) unless $omitting;
+	  } ,
+
+	  INFO => sub() {
+	      directive_info( evaluate_expression( $expression ,
+						   $filename ,
+						   $linenumber ,
+						   1 ),
+			      $filename ,
+			      $linenumber ) unless $omitting;
+	  } ,
+
 	);
 
     if ( my $function = $directives{$keyword} ) {
@@ -3300,9 +3367,9 @@ sub push_action_params( $$$$$$ ) {
     $actparams{caller}      = $caller;
     $actparams{disposition} = '' if $chainref->{action};
     #
-    # The Shorewall variable '@chain' has the non-word charaters removed
+    # The Shorewall variable '@chain' has non-word characters other than hyphen removed
     #
-    ( $actparams{chain} = $chainref->{name} ) =~ s/[^\w]//g;
+    ( $actparams{chain} = $chainref->{name} ) =~ s/[^\w-]//g;
 
     \%oldparms;
 }
@@ -3513,7 +3580,7 @@ sub read_a_line($) {
 	    #
 	    # Handle directives
 	    #
-	    if ( /^\s*\?(?:IF|ELSE|ELSIF|ENDIF|SET|RESET|FORMAT|COMMENT|ERROR)/i ) {
+	    if ( /^\s*\?(?:IF|ELSE|ELSIF|ENDIF|SET|RESET|FORMAT|COMMENT|ERROR|WARNING|INFO)/i ) {
 		$omitting = process_compiler_directive( $omitting, $_, $currentfilename, $. );
 		next;
 	    }
@@ -4893,8 +4960,16 @@ sub ensure_config_path() {
 
     @config_path = split /:/, $config{CONFIG_PATH};
 
+    #
+    # To accomodate Cygwin-based compilation, we have separate directories for files whose names
+    # clash on a case-insensitive filesystem.
+    #
+    push @config_path, $globals{SHAREDIR}    . "/deprecated";
+    push @config_path, $shorewallrc{SHAREDIR}. '/shorewall/deprecated' unless $globals{PRODUCT} eq 'shorewall';
+
     for ( @config_path ) {
 	$_ .= '/' unless m|/$|;
+        s|//|/|g;
     }
 
     if ( $shorewall_dir ) {
@@ -5410,7 +5485,7 @@ sub get_params( $ ) {
 		#
 		delete $params{$_};
 	    } else {
-		unless ( $_ eq 'SHOREWALL_INIT_SCRIPT' ) {
+		unless ( $_ eq 'SHOREWALL_INIT_SCRIPT' || $_ eq 'SW_LOGGERTAG' ) {
 		    fatal_error "The variable name $_ is reserved and may not be set in the params file"
 			if /^SW_/ || /^SHOREWALL_/ || ( exists $config{$_} && ! exists $ENV{$_} ) || exists $reserved{$_};
 		}
@@ -5850,15 +5925,20 @@ sub get_configuration( $$$$ ) {
     unsupported_yes_no         'BRIDGING';
     unsupported_yes_no_warning 'RFC1918_STRICT';
 
+    $val = $config{SAVE_IPSETS};
+
     unless (default_yes_no 'SAVE_IPSETS', '', '*' ) {
-	$val = $config{SAVE_IPSETS};
-	unless ( $val eq 'ipv4' ) {
+	if ( $val eq 'ipv4' ) {
+	    fatal_error 'SAVE_IPSETS=ipv4 is invalid in shorewall6.conf' if $family == F_IPV6;
+	} else {
 	    my @sets = split_list( $val , 'ipset' );
 	    $globals{SAVED_IPSETS} = \@sets;
-	    require_capability 'IPSET_V5', 'A saved ipset list', 's';
 	    $config{SAVE_IPSETS} = '';
 	}
+
+	require_capability( 'IPSET_V5', "SAVE_IPSETS=$val", 's' ) if $config{SAVE_IPSETS};
     }
+
 
     default_yes_no 'SAVE_ARPTABLES'             , '';
     default_yes_no 'STARTUP_ENABLED'            , 'Yes';
@@ -5942,7 +6022,7 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'INLINE_MATCHES'             , '';
     default_yes_no 'BASIC_FILTERS'              , '';
     default_yes_no 'WORKAROUNDS'                , 'Yes';
-    default_yes_no 'DOCKER'                      , '';
+    default_yes_no 'DOCKER'                     , '';
 
     if ( $config{DOCKER} ) {
 	fatal_error "DOCKER=Yes is not allowed in Shorewall6" if $family == F_IPV6;
@@ -5990,7 +6070,33 @@ sub get_configuration( $$$$ ) {
 	$config{ACCOUNTING_TABLE} = 'filter';
     }
 
-    default_yes_no 'DYNAMIC_BLACKLIST'          , 'Yes';
+    if ( supplied( $val = $config{DYNAMIC_BLACKLIST} ) ) {
+	if ( $val =~ /^ipset/ ) {
+	    my ( $key, $set, $level, $tag, $rest ) = split( ':', $val , 5 );
+
+	    fatal_error "Invalid DYNAMIC_BLACKLIST setting ( $val )" if $key !~ /^ipset(?:-only)?(?:,src-dst)?$/ || defined $rest;
+
+	    if ( supplied( $set ) ) {
+		fatal_error "Invalid DYNAMIC_BLACKLIST ipset name" unless $set =~ /^[A-Za-z][\w-]*/;
+	    } else {
+		$set = 'SW_DBL' . $family;
+	    }
+
+	    add_ipset( $set );
+	    
+	    $level = validate_level( $level );
+
+	    $tag = '' unless defined $tag;
+
+	    $config{DYNAMIC_BLACKLIST} = join( ':', $key, $set, $level, $tag );
+
+	    require_capability( 'IPSET_V5', 'DYNAMIC_BLACKLIST=ipset...', 's' );
+
+	} else {
+	    default_yes_no( 'DYNAMIC_BLACKLIST'     , 'Yes' );
+	}
+    }
+
     default_yes_no 'REQUIRE_INTERFACE'          , '';
     default_yes_no 'FORWARD_CLEAR_MARK'         , have_capability( 'MARK' ) ? 'Yes' : '';
     default_yes_no 'COMPLETE'                   , '';
@@ -6002,8 +6108,9 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'IGNOREUNKNOWNVARIABLES'     , 'Yes';
     default_yes_no 'WARNOLDCAPVERSION'          , 'Yes';
     default_yes_no 'DEFER_DNS_RESOLUTION'       , 'Yes';
+    default_yes_no 'MINIUPNPD'                  , '';
 
-    $config{IPSET} = '' if supplied $config{IPSET} && $config{IPSET} eq 'ipset'; 
+    $config{IPSET} = '' if supplied $config{IPSET} && $config{IPSET} eq 'ipset';
 
     require_capability 'MARK' , 'FORWARD_CLEAR_MARK=Yes', 's', if $config{FORWARD_CLEAR_MARK};
 
@@ -6501,7 +6608,7 @@ sub generate_aux_config() {
 
     emit "#\n# Shorewall auxiliary configuration file created by Shorewall version $globals{VERSION} - $date\n#";
 
-    for my $option ( qw(VERBOSITY LOGFILE LOGFORMAT ARPTABLES IPTABLES IP6TABLES IP TC IPSET PATH SHOREWALL_SHELL SUBSYSLOCK LOCKFILE RESTOREFILE WORKAROUNDS RESTART) ) {
+    for my $option ( qw(VERBOSITY LOGFILE LOGFORMAT ARPTABLES IPTABLES IP6TABLES IP TC IPSET PATH SHOREWALL_SHELL SUBSYSLOCK LOCKFILE RESTOREFILE WORKAROUNDS RESTART DYNAMIC_BLACKLIST) ) {
 	conditionally_add_option $option;
     }
 

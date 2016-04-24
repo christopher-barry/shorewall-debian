@@ -82,6 +82,7 @@ our @EXPORT = ( qw( NOTHING
 		    find_interface
 		    known_interface
 		    get_physical
+		    get_logical
 		    physical_name
 		    have_bridges
 		    port_to_bridge
@@ -102,13 +103,12 @@ our @EXPORT = ( qw( NOTHING
 		    find_hosts_by_option
 		    find_zone_hosts_by_option
 		    find_zones_by_option
-		    all_ipsets
 		    have_ipsec
 		 ),
 	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '5.0_5';
+our $VERSION = '5.0_8';
 
 #
 # IPSEC Option types
@@ -209,8 +209,6 @@ our @interfaces;
 our %interfaces;
 our %roots;
 our @bport_zones;
-our %ipsets;
-our %physical;
 our %basemap;
 our %basemap1;
 our %mapbase;
@@ -326,8 +324,6 @@ sub initialize( $$ ) {
     %roots = ();
     %interfaces = ();
     @bport_zones = ();
-    %ipsets = ();
-    %physical = ();
     %basemap = ();
     %basemap1 = ();
     %mapbase = ();
@@ -349,6 +345,7 @@ sub initialize( $$ ) {
 				  logmartians => BINARY_IF_OPTION,
 				  loopback    => BINARY_IF_OPTION,
 				  nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
+				  nodbl       => SIMPLE_IF_OPTION,
 				  norfc1918   => OBSOLETE_IF_OPTION,
 				  nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				  optional    => SIMPLE_IF_OPTION,
@@ -396,6 +393,7 @@ sub initialize( $$ ) {
 				    loopback    => BINARY_IF_OPTION,
 				    maclist     => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
+				    nodbl       => SIMPLE_IF_OPTION,
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
 				    optional    => SIMPLE_IF_OPTION,
 				    optional    => SIMPLE_IF_OPTION,
@@ -1281,7 +1279,7 @@ sub process_interface( $$ ) {
 		    fatal_error q("nets=" may not be specified for a multi-zone interface) unless $zone;
 		    fatal_error "Duplicate $option option" if $netsref;
 		    if ( $value eq 'dynamic' ) {
-			require_capability( 'IPSET_MATCH', 'Dynamic nets', '');
+			require_capability( 'IPSET_V5', 'Dynamic nets', '');
 			$hostoptions{dynamic} = 1;
 			#
 			# Defer remaining processing until we have the final physical interface name
@@ -1311,7 +1309,7 @@ sub process_interface( $$ ) {
 		    fatal_error "Invalid Physical interface name ($value)" unless $value && $value !~ /%/;
 		    fatal_error "Virtual interfaces ($value) are not supported" if $value =~ /:\d+$/;
 
-		    fatal_error "Duplicate physical interface name ($value)" if ( $physical{$value} && ! $port );
+		    fatal_error "Duplicate physical interface name ($value)" if ( $interfaces{$value} && ! $port );
 
 		    fatal_error "The type of 'physical' name ($value) doesn't match the type of interface name ($interface)" if $wildcard && ! $value =~ /\+$/;
 		    $physical = $value;
@@ -1345,7 +1343,7 @@ sub process_interface( $$ ) {
 	    my $ipset = $family == F_IPV4 ? "${zone}" : "6_${zone}";
 	    $ipset = join( '_', $ipset, var_base1( $physical ) ) unless $zoneref->{options}{in_out}{dynamic_shared};	    
 	    $netsref = [ "+$ipset" ];
-	    $ipsets{$ipset} = 1;
+	    add_ipset($ipset);
 	}
 
 	if ( $options{bridge} ) {
@@ -1385,21 +1383,23 @@ sub process_interface( $$ ) {
 	$options{tcpflags} = $hostoptionsref->{tcpflags} = 1 unless exists $options{tcpflags};
     }
 
-    $physical{$physical} = $interfaces{$interface} = { name       => $interface ,
-						       bridge     => $bridge ,
-						       filter     => $filterref ,
-						       nets       => 0 ,
-						       number     => $nextinum ,
-						       root       => $root ,
-						       broadcasts => $broadcasts ,
-						       options    => \%options ,
-						       zone       => '',
-						       physical   => $physical ,
-						       base       => var_base( $physical ),
-						       zones      => {},
-						       origin     => shortlineinfo( '' ),
-						       wildcard   => $wildcard,
-						     };
+    my $interfaceref = $interfaces{$interface} = { name       => $interface ,
+						   bridge     => $bridge ,
+						   filter     => $filterref ,
+						   nets       => 0 ,
+						   number     => $nextinum ,
+						   root       => $root ,
+						   broadcasts => $broadcasts ,
+						   options    => \%options ,
+						   zone       => '',
+						   physical   => $physical ,
+						   base       => var_base( $physical ),
+						   zones      => {},
+						   origin     => shortlineinfo( '' ),
+						   wildcard   => $wildcard,
+					         };
+
+    $interfaces{$physical} = $interfaceref if $physical ne $interface;
 
     if ( $zone ) {
 	fatal_error "Unmanaged interfaces may not be associated with a zone" if $options{unmanaged};
@@ -1570,20 +1570,23 @@ sub known_interface($)
 
 		my $physical = map_physical( $interface, $interfaceref );
 
-		return $interfaces{$interface} = { options  => $interfaceref->{options} ,
-						   bridge   => $interfaceref->{bridge} ,
-						   name     => $i ,
-						   number   => $interfaceref->{number} ,
-						   physical => $physical ,
-						   base     => var_base( $physical ) ,
-						   wildcard => $interfaceref->{wildcard} ,
-						   zones    => $interfaceref->{zones} ,
-						 };
+		$interfaceref =
+		    $interfaces{$interface} =
+		    $interfaces{$physical} = { options  => $interfaceref->{options} ,
+					       bridge   => $interfaceref->{bridge} ,
+					       name     => $i ,
+					       number   => $interfaceref->{number} ,
+					       physical => $physical ,
+					       base     => var_base( $physical ) ,
+					       wildcard => $interfaceref->{wildcard} ,
+					       zones    => $interfaceref->{zones} ,
+		                              };
+		return $interfaceref;
 	    }
 	}
     }
 
-    $physical{$interface} || 0;
+    0;
 }
 
 # 
@@ -1655,10 +1658,17 @@ sub find_interface( $ ) {
 }
 
 #
-# Returns the physical interface associated with the passed logical name
+# Returns the physical interface associated with the passed interface name
 #
 sub get_physical( $ ) {
     $interfaces{ $_[0] }->{physical};
+}
+
+#
+# Returns the logical interface associated with the passed interface name
+#
+sub get_logical( $ ) {
+    $interfaces{ $_[0] }->{name};
 }
 
 #
@@ -2040,6 +2050,7 @@ sub process_host( ) {
 	    $interface = $1;
 	    $hosts = $2;
 	    fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
+	    $interface = $interfaceref->{name};
 	} else {
 	    fatal_error "Invalid HOST(S) column contents: $hosts";
 	}
@@ -2053,7 +2064,7 @@ sub process_host( ) {
 
 	fatal_error "Unknown interface ($interface)" unless ($interfaceref = $interfaces{$interface}) && $interfaceref->{root};
 	fatal_error "Unmanaged interfaces may not be associated with a zone" if $interfaceref->{unmanaged};
-
+	$interface = $interfaceref->{name};
 	if ( $interfaceref->{physical} eq $loopback_interface ) {
 	    fatal_error "Only a loopback zone may be associated with the loopback interface ($loopback_interface)" if $type != LOOPBACK;
 	} else {
@@ -2141,7 +2152,7 @@ sub process_host( ) {
 
 	$hosts = "+$set";
 	$optionsref->{dynamic} = 1;
-	$ipsets{$set} = 1;
+	add_ipset($set);
     }
 
     #
@@ -2259,10 +2270,6 @@ sub find_zones_by_option( $$ ) {
     }
 
     \@zns;
-}
-
-sub all_ipsets() {
-    sort keys %ipsets;
 }
 
 1;

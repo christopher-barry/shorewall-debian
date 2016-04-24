@@ -283,6 +283,11 @@
 #         iptables and kernel. See http://www.shorewall.net/Dynamic.html for
 #         further information.
 # 
+#     nodbl
+# 
+#         Added in Shorewall 5.0.8. When specified, dynamic blacklisting is
+#         disabled on the interface.
+# 
 #     nosmurfs
 # 
 #         Filter packets for smurfs (packets with a broadcast address as the
