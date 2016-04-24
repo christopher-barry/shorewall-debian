@@ -1739,12 +1739,18 @@ SSH(ACCEPT)    net:$MYIP      $FW
 
       <listitem>
         <para><ulink
-        url="manpages/shorewall-accounting.html">shorewall-blacklist</ulink>
+        url="manpages/shorewall-blrules.html">shorewall-blrules</ulink>
         (5)</para>
       </listitem>
 
       <listitem>
         <para><ulink url="Macros.html">Macro</ulink> files</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink
+        url="manpages/shorewall-mangle.html">shorewall-mangle</ulink>
+        (5)</para>
       </listitem>
 
       <listitem>
@@ -1755,17 +1761,6 @@ SSH(ACCEPT)    net:$MYIP      $FW
       <listitem>
         <para><ulink
         url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5)</para>
-      </listitem>
-
-      <listitem>
-        <para><ulink
-        url="manpages/shorewall-tcrules.html">shorewall-tcrules</ulink>
-        (5)</para>
-      </listitem>
-
-      <listitem>
-        <para><ulink url="manpages/shorewall-tos.html">shorewall-tos</ulink>
-        (5)</para>
       </listitem>
     </itemizedlist>
 
@@ -1830,12 +1825,18 @@ SSH(ACCEPT)    net:$MYIP      $FW
 
       <listitem>
         <para><ulink
-        url="manpages/shorewall-accounting.html">shorewall-blacklist</ulink>
+        url="manpages/shorewall-blrules.html">shorewall-blrules</ulink>
         (5)</para>
       </listitem>
 
       <listitem>
         <para><ulink url="Macros.html">Macro</ulink> files</para>
+      </listitem>
+
+      <listitem>
+        <para><ulink
+        url="manpages/shorewall-mangle.html">shorewall-mangle</ulink>
+        (5)</para>
       </listitem>
 
       <listitem>
@@ -1846,18 +1847,13 @@ SSH(ACCEPT)    net:$MYIP      $FW
 
       <listitem>
         <para><ulink
-        url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5)</para>
+        url="manpages/shorewall-routes.html">shorewall-routes</ulink>
+        (5)</para>
       </listitem>
 
       <listitem>
         <para><ulink
-        url="manpages/shorewall-tcrules.html">shorewall-tcrules</ulink>
-        (5)</para>
-      </listitem>
-
-      <listitem>
-        <para><ulink url="manpages/shorewall-tos.html">shorewall-tos</ulink>
-        (5)</para>
+        url="manpages/shorewall-rules.html">shorewall-rules</ulink> (5)</para>
       </listitem>
     </itemizedlist>
 
@@ -2227,6 +2223,20 @@ SSH(ACCEPT)    net:$MYIP      $FW
 
     <programlisting>   ERROR: Invalid value for Bricks (2000) /usr/share/shorewall/action.GlusterFS (line 15)
       from /etc/shorewall/rules (line 45)</programlisting>
+
+    <para>In Shorewall 5.0.8, ?WARNING and ?INFO directives were added.</para>
+
+    <programlisting>?WARNING <replaceable>message</replaceable>
+?INFO <replaceable>message</replaceable></programlisting>
+
+    <para>?WARNING message produces a standard Shorewall WARNING: message,
+    while ?INFO produces a similar message which is prefaced by INFO: rather
+    than WARNING:. Both write the message to STDERR. The message is also
+    written to the STARTUP_LOG, if any, provided that the command is
+    <command>start</command>, <command>try</command>,
+    <command>restart</command>, <command>reload</command>,
+    <command>refresh</command>, or one of the <command>safe</command>-*
+    commands.</para>
   </section>
 
   <section id="Embedded">
