@@ -1,3 +1,98 @@
+Changes in 5.0.8 RC 2
+
+1)  Update release documents.
+
+2)  Implement SW_LOGGERTAG
+
+3)  Correct logging of 'reloaded' message.
+
+4)  Enable compiler logging on reload and restart
+
+5)  Use uniform timestamp formatting on compiler messages
+
+6)  Flag 0 in the tcclasses MARK column
+
+7)  Correct tcclasses filter priority documentation.
+
+8)  Add an ESTABLISHED,RELATED rule for o => docker0
+
+9)  ?WARNING and ?INFO
+
+10) Warning on optional provider in the DUPLICATE column
+
+Changes in 5.0.8 RC 1
+
+1)  Update release documents.
+
+2)  Correct date format in messages produced by startup_error().
+
+3)  Correct many issues with save/restore of ipsets.
+
+4)  Update DHCP article (refresh -> restart)
+
+5)  Correct start command's handling of AUTOMAKE.
+
+6)  Place deprecated files with name collisions in a separate
+    directory.
+
+7)  Create an undo_routing file for the main table.
+
+Changes in 5.0.8 Beta 4
+
+1)  Update release documents.
+
+2)  Use '-g' when the target is a terminating chain.
+
+3)  Catch case where a transformed rule jumps to its own chain.
+
+4)  Implement ipset-based blacklisting.
+
+5)  Add 'nodbl' interface option.
+
+6)  Correct handling of MINIUPNPD with DOCKER
+
+7)  Correct handling of interface options with multi-interface zones.
+
+8)  Merge Tuomo's new macros.
+
+9)  Reverse the order of Broadcast and ICMP checking in the default actions.
+
+Changes in 5.0.8 Beta 3
+
+1)  Update release documents.
+
+2)  Make the physical interface name a true synonym of the logical
+    name.
+
+3)  Update IPv6 article.
+
+4)  Make IPv6 Drop Auth default consistent with IPv4.
+
+5)  Delete four IPv6 actions that duplicate their IPv4 counterparts
+
+6)  Allow reject method to be specified in REJECT and A_REJECT
+
+Changes in 5.0.8 Beta 2
+
+1)  Update release documents.
+
+2)  Correct handling of physical interface names in the nat-related
+    INTERFACE columns.
+
+3)  Add MINIUPNPD option to shorewall.conf.
+
+4)  Document '+' in the MODULESDIR description.
+
+Changes in 5.0.7 Final
+
+1)  Update release documents.
+
+2)  Correct 3-interface doc.
+
+3)  Updates to the configuration basics document.
+
+4)  Small efficiency change.
+
 Changes in 5.0.7.2
 
 1)  Update release documents.
