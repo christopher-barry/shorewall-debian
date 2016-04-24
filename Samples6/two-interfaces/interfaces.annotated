@@ -200,6 +200,11 @@
 #         match support in your iptables and kernel. See http://www.shorewall.net
 #         /Dynamic.html for further information.
 # 
+#     nodbl
+# 
+#         Added in Shorewall 5.0.8. When specified, dynamic blacklisting is
+#         disabled on the interface.
+# 
 #     optional
 # 
 #         When optional is specified for an interface, shorewall6 will be silent

@@ -76,15 +76,19 @@
 #     the number of a class that you have previously defined. The sub-class may
 #     borrow unused bandwidth from its parent.
 # 
-# MARK - {-|value}
+# MARK - {-|value[:priority]}
 # 
 #     The mark value which is an integer in the range 1-255. You set mark values
-#     in the shorewall6-mangle(5) file, marking the traffic you want to fit in
-#     the classes defined in here. Must be specified as '-' if the classify
-#     option is given for the interface in shorewall6-tcdevices(5) and you are
-#     running Shorewall 4.5 5 or earlier.
+#     in the shorewall-mangle(5) file, marking the traffic you want to fit in the
+#     classes defined in here. You can use the same marks for different
+#     interfaces.
 # 
-#     You can use the same marks for different interfaces.
+#     The priority, if specified, is an integer in the range 1-65535 and
+#     determines the relative order in which the tc mark classification filter
+#     for this class is to be applied to packets being sent on the interface.
+#     Filters are applied in ascending numerical order. If not supplied, the
+#     value is derived from the class priority (PRIORITY column value below): (
+#     class priority << 8) | 20.
 # 
 # RATE - {-|rate[:dmax[:umax]]}
 # 
@@ -174,7 +178,7 @@
 #         Beginning with Shorewall 4.5.8, the value/mask may be followed by a
 #         colon (":") and a priority. This priority determines the order in which
 #         filter rules are processed during packet classification. If not
-#         specified, the value (class priority << 8) | 10) is used.
+#         specified, the value (class priority << 8) | 15) is used.
 # 
 #     tos-tosname[:priority]
 # 
@@ -208,7 +212,7 @@
 #         Beginning with Shorewall 4.5.8, the tcp-ack may be followed by a colon
 #         (":") and a priority. This priority determines the order in which
 #         filter rules are processed during packet classification. If not
-#         specified, the value (class priority << 8) | 20) is used.
+#         specified, the value (class priority << 8) | 10) is used.
 # 
 #         Note
 # 

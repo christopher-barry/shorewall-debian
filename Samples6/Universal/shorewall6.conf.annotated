@@ -301,9 +301,9 @@ STARTUP_LOG=/var/log/shorewall6-init.log
 #
 # STARTUP_LOG=[pathname]
 # 
-#     If specified, determines where Shorewall6 will log the details of each 
-#     start, reload, restart and refresh command. Logging verbosity is determined
-#     by the setting of LOG_VERBOSITY above.
+#     If specified, determines where Shorewall will log the details of each start
+#     , reload, restart, refresh, try, and safe-* command. Logging verbosity is
+#     determined by the setting of LOG_VERBOSITY above.
 # 
 TCP_FLAGS_LOG_LEVEL=info
 #
@@ -396,7 +396,7 @@ LOCKFILE=
 # 
 MODULESDIR=
 #
-# MODULESDIR=[pathname[:pathname]...]
+# MODULESDIR=[[+]pathname[:pathname]...]
 # 
 #     This parameter specifies the directory/directories where your kernel
 #     netfilter modules may be found. If you leave the variable empty, Shorewall
@@ -404,6 +404,9 @@ MODULESDIR=
 #     netfilter:/lib/modules/$uname/kernel/net/netfilter:/lib/modules/$uname/
 #     kernel/net/sched:/lib/modules/$uname/extra:/lib/modules/$uname/extra/ipset"
 #     where uname holds the output of 'uname -r' and g_family holds '6'.
+# 
+#     The option plus sign ('+') was added in Shorewall 5.0.3 and causes the
+#     listed pathnames to be appended to the default list above.
 # 
 NFACCT=
 #
@@ -795,11 +798,26 @@ DONT_LOAD=
 # 
 DYNAMIC_BLACKLIST=Yes
 #
-# DYNAMIC_BLACKLIST={Yes|No}
+# DYNAMIC_BLACKLIST={Yes|No||ipset[-only][,src-dst][:[setname][:log_level|:l
+#     og_tag]]]}
 # 
-#     Added in Shorewall 4.4.7. When set to No or no, dynamic blacklisting using
-#     the shorewall6 drop, shorewall6 reject, shorewall6 logdrop and shorewall6
-#     logreject is disabled. Default is Yes.
+#     Added in Shorewall 4.4.7. When set to No or no, chain-based dynamic
+#     blacklisting using the shorewall6 drop, shorewall6 reject, shorewall6
+#     logdrop and shorewall6 logreject is disabled. Default is Yes. Beginning
+#     with Shorewall 5.0.8, ipset-based dynamic blacklisting is also supported.
+#     The name of the set (setname) and the level (log_level), if any, at which
+#     blacklisted traffic is to be logged may also be specified. The default set
+#     name is SW_DBL6 and the default log level is none (no logging). if
+#     ipset-only is given, then chain-based dynamic blacklisting is disabled just
+#     as if DYNAMIC_BLACKLISTING=No had been specified. Normally, only packets
+#     whose source address matches an entry in the ipsec are dropped. If src-dst
+#     is included, then packets whose destination address matches an entry in the
+#     ipset are also dropped.
+# 
+#     When ipset-based dynamic blacklisting is enabled, the contents of the
+#     blacklist will be preserved over stop/reboot/start sequences if SAVE_IPSETS
+#     =Yes or if setname is included in the list of sets to be saved in
+#     SAVE_IPSETS.
 # 
 EXPAND_POLICIES=Yes
 #
@@ -843,7 +861,8 @@ FASTACCEPT=Yes
 #     Normally, Shorewall6 defers accepting ESTABLISHED/RELATED packets until
 #     these packets reach the chain in which the original connection was
 #     accepted. So for packets going from the 'loc' zone to the 'net' zone,
-#     ESTABLISHED/RELATED packets are ACCEPTED in the 'loc2net' chain.
+#     ESTABLISHED/RELATED packets are ACCEPTED in the 'loc-net' or 'loc2net'
+#     chain, depending on the setting of ZONE2ZONE (see below).
 # 
 #     If you set FASTACCEPT=Yes, then ESTABLISHED/RELATED packets are accepted
 #     early in the INPUT, FORWARD and OUTPUT chains. If you set FASTACCEPT=Yes
