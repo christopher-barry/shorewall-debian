@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-lite
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 03/30/2016
+.\"      Date: 04/23/2016
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-LITE" "8" "03/30/2016" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL6\-LITE" "8" "04/23/2016" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -34,6 +34,8 @@ shorewall6-lite \- Administration tool for Shoreline 6 Firewall Lite (Shorewall6
 \fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBadd\fR \fIinterface\fR[:\fIhost\-list\fR]... \fIzone\fR
 .HP \w'\fBshorewall6\-lite\fR\ 'u
 \fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
+.HP \w'\fBshorewall6\-lite\fR\ 'u
+\fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBblacklist\fR \fIaddress\fR
 .HP \w'\fBshorewall6\-lite\fR\ 'u
 \fBshorewall6\-lite\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBcall\fR \fIfunction\fR\ [\fIparameter\fR\ \&.\&.\&.] 
 .HP \w'\fBshorewall6\-lite\fR\ 'u
@@ -199,6 +201,20 @@ Re\-enables receipt of packets from hosts previously blacklisted by a
 \fBlogdrop\fR,
 \fBreject\fR, or
 \fBlogreject\fR
+command\&.
+.RE
+.PP
+\fBblacklist\fR \fIaddress\fR [ \fIoption\fR \&.\&.\&. ]
+.RS 4
+Added in Shorewall 5\&.0\&.8 and requires DYNAMIC_BLACKLIST=ipset\&.\&. in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[4]\d\s+2(5)\&. Causes packets from the given host or network
+\fIaddress\fR
+to be dropped, based on the setting of BLACKLIST in
+\m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[4]\d\s+2(5)\&. The
+\fIaddress\fR
+along with any
+\fIoption\fRs are passed to the
+\fBipset add\fR
 command\&.
 .RE
 .PP
@@ -836,6 +852,20 @@ command returns exit status as follows:
 3 \- Firewall is stopped or cleared
 .PP
 4 \- Unknown state; usually means that the firewall has never been started\&.
+.SH "ENVIRONMENT"
+.PP
+Two environmental variables are recognized by Shorewall6\-lite:
+.PP
+SHOREWALL_INIT_SCRIPT
+.RS 4
+When set to 1, causes Std out to be redirected to the file specified in the STARTUP_LOG option in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[7]\d\s+2\&.
+.RE
+.PP
+SW_LOGGERTAG
+.RS 4
+Added in Shorewall 5\&.0\&.8\&. When set to a non\-empty value, that value is passed to the logger utility in its \-t (\-\-tag) option\&.
+.RE
 .SH "SEE ALSO"
 .PP
 \m[blue]\fBhttp://www\&.shorewall\&.net/starting_and_stopping_shorewall\&.htm\fR\m[]
@@ -858,7 +888,7 @@ shorewall-interfaces
 \%http://www.shorewall.netshorewall-interfaces.html
 .RE
 .IP " 4." 4
-shorewall6.conf (5)
+shorewall6.conf
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall6.conf.html
 .RE
@@ -871,4 +901,9 @@ shorewall-accounting
 shorewall-routestopped
 .RS 4
 \%http://www.shorewall.netshorewall-routestopped.html
+.RE
+.IP " 7." 4
+shorewall6.conf(5)
+.RS 4
+\%http://www.shorewall.netshorewall6.conf.html
 .RE
