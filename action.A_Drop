@@ -1,40 +1,38 @@
 #
-# Shorewall version 5 - Drop Action
+# Shorewall -- /usr/share/shorewall/action.A_Drop
 #
-# /usr/share/shorewall/action.A_Drop
+# The audited default DROP common rules
 #
-#	The audited default DROP common rules
+# This action is invoked before a DROP policy is enforced. The purpose
+# of the action is:
 #
-#	This action is invoked before a DROP policy is enforced. The purpose
-#	of the action is:
-#
-#	a) Avoid logging lots of useless cruft.
-#	b) Ensure that 'auth' requests are rejected, even if the policy is
-#	   DROP. Otherwise, you may experience problems establishing
-#	   connections with servers that use auth.
-#	c) Ensure that certain ICMP packets that are necessary for successful
-#	   internet operation are always ACCEPTed.
+# a) Avoid logging lots of useless cruft.
+# b) Ensure that certain ICMP packets that are necessary for successful
+#    internet operation are always ACCEPTed.
 #
 # IF YOU ARE HAVING CONNECTION PROBLEMS, CHANGING THIS FILE WON'T HELP!!!!!!!!!
 #
 ###############################################################################
-#TARGET		SOURCE	DEST	PROTO	DPORT	SPORT
+#ACTION		SOURCE	DEST	PROTO	DPORT	SPORT
 #
 # Count packets that come through here
 #
 COUNT
 #
-# Silently DROP 'auth'
+# Special Handling for Auth
 #
 Auth(A_DROP)
+#
+# ACCEPT critical ICMP types
+#
+# For IPv6 connectivity ipv6-icmp broadcasting is required so
+# AllowICMPs must be before broadcast Drop.
+#
+A_AllowICMPs	-	-	icmp
 #
 # Don't log broadcasts
 #
 dropBcast(audit)
-#
-# ACCEPT critical ICMP types
-#
-A_AllowICMPs	-	-	icmp
 #
 # Drop packets that are in the INVALID state -- these are usually ICMP packets
 # and just confuse people when they appear in the log.

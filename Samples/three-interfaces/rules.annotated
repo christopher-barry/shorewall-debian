@@ -386,9 +386,23 @@
 #         like QUEUE but exempts the rule from being suppressed by OPTIMIZE=1 in
 #         shorewall.conf(5).
 # 
-#     REJECT
+#     REJECT[(option)]
 # 
 #         disallow the request and return an icmp-unreachable or an RST packet.
+#         If no option is passed, Shorewall selects the appropriate option based
+#         on the protocol of the packet.
+# 
+#         Beginning with Shorewall 5.0.8, the type of reject may be specified in
+#         the option paramater. Valid option values are:
+# 
+#         icmp-net-unreachable
+#         icmp-host-unreachable
+#         icmp-port-unreachable
+#         icmp-proto-unreachable
+#         icmp-net-prohibited
+#         icmp-host-prohibited
+#         icmp-admin-prohibited
+#         icmp-tcp-reset (the PROTO column must specify TCP)
 # 
 #     REJECT!
 # 

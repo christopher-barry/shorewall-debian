@@ -73,6 +73,13 @@
 #         RST (Prior to Shorewall 4.5.13)
 #         TCPFlags
 # 
+#     logjump
+# 
+#         Added in Shorewall 5.0.8. Performs the same function as nolog (below),
+#         with the addition that the jump to the actions chain is logged if a log
+#         level is specified on the action invocation. For inline actions, this
+#         option is identical to nolog.
+# 
 #     mangle
 # 
 #         Added in Shorewall 5.0.7. Specifies that this action is to be used in

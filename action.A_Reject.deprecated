@@ -1,33 +1,34 @@
 #
-# Shorewall version 5 - Reject Action
+# Shorewall -- /usr/share/shorewall/action.A_Reject
 #
-# /usr/share/shorewall/action.A_Reject
+# The audited default REJECT action common rules
 #
-#	The audited default REJECT action common rules
+# This action is invoked before a REJECT policy is enforced. The purpose
+# of the action is:
 #
-#	This action is invoked before a REJECT policy is enforced. The purpose
-#	of the action is:
-#
-#	a) Avoid logging lots of useless cruft.
-#	b) Ensure that certain ICMP packets that are necessary for successful
-#	   internet operation are always ACCEPTed.
+# a) Avoid logging lots of useless cruft.
+# b) Ensure that certain ICMP packets that are necessary for successful
+#    internet operation are always ACCEPTed.
 #
 # IF YOU ARE HAVING CONNECTION PROBLEMS, CHANGING THIS FILE WON'T HELP!!!!!!!!!
 ###############################################################################
-#TARGET		SOURCE	DEST	PROTO
+#ACTION		SOURCE	DEST	PROTO
 #
 # Count packets that come through here
 #
 COUNT
 #
+# ACCEPT critical ICMP types
+#
+# For IPv6 connectivity ipv6-icmp broadcasting is required so
+# AllowICMPs must be before broadcast Drop.
+#
+A_AllowICMPs	-	-	icmp
+#
 # Drop Broadcasts so they don't clutter up the log
 # (broadcasts must *not* be rejected).
 #
 dropBcast(audit)
-#
-# ACCEPT critical ICMP types
-#
-A_AllowICMPs	-	-	icmp
 #
 # Drop packets that are in the INVALID state -- these are usually ICMP packets
 # and just confuse people when they appear in the log (these ICMPs cannot be

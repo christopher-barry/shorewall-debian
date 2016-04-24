@@ -279,6 +279,7 @@ our %EXPORT_TAGS = (
 				       save_docker_rules
 				       load_ipsets
 				       create_save_ipsets
+				       create_load_ipsets
 				       validate_nfobject
 				       create_nfobjects
 				       create_netfilter_load
@@ -286,6 +287,7 @@ our %EXPORT_TAGS = (
 				       create_chainlist_reload
 				       create_stop_load
 				       initialize_switches
+				       terminating
 				       %targets
 				       %builtin_target
 				       %dscpmap
@@ -294,7 +296,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_7';
+our $VERSION = '5.0_8';
 
 #
 # Chain Table
@@ -619,7 +621,7 @@ our %builtin_target = ( ACCEPT      => STANDARD + FILTER_TABLE + NAT_TABLE + MAN
 			RAWDNAT     => STANDARD                                           + RAW_TABLE,
 			RAWSNAT     => STANDARD                                           + RAW_TABLE,
 			REDIRECT    => STANDARD                + NAT_TABLE,
-			REJECT      => STANDARD + FILTER_TABLE,
+			REJECT      => STANDARD + FILTER_TABLE + OPTIONS,
 			RETURN      => STANDARD                            + MANGLE_TABLE + RAW_TABLE,
 			SAME        => STANDARD,
 			SECMARK     => STANDARD                            + MANGLE_TABLE,
@@ -808,14 +810,13 @@ sub initialize( $$$ ) {
 		     NETMAP       => 1,
 		     NFQUEUE      => 1,
 		     NOTRACK      => 1,
-		     REDIRECT     => 1,
 		     RAWDNAT      => 1,
+		     REDIRECT     => 1,
 		     RAWSNAT      => 1,
 		     REJECT       => 1,
 		     SAME         => 1,
 		     SNAT         => 1,
 		     TPROXY       => 1,
-		     reject       => 1,
 		   );
     #
     # The chain table is initialized via a call to initialize_chain_table() after the configuration and capabilities have been determined.
@@ -842,6 +843,24 @@ sub make_terminating( $ ) {
     $terminating{$_[0]} = 1;
 }
 
+#
+# Determine if a chain is terminating
+#
+sub terminating( $ ) {
+    my ( $chainref ) = @_;
+
+    return $chainref->{complete} && ! ( $chainref->{optflags} & RETURNS );
+}
+
+sub is_terminating( $$ ) {
+    my ( $table, $target ) = @_;
+
+    if ( my $chainref = $chain_table{$table}{$target} ) {
+	terminating( $chainref );
+    } else {
+	$terminating{$target};
+    }
+}
 #
 # Transform the passed iptables rule into an internal-form hash reference.
 # Most of the compiler has been converted to use the new form natively.
@@ -1309,6 +1328,8 @@ sub push_rule( $$ ) {
     my $complete = 0;
     my $ruleref  = transform_rule( $_[1], $complete );
 
+    fatal_error "Chain $chainref->{name} jumps to itself" if ( $ruleref->{target} || '' ) eq $chainref->{name};
+
     set_irule_comment( $chainref, $ruleref );
 
     $ruleref->{mode}    = CMD_MODE if $ruleref->{cmdlevel} = $chainref->{cmdlevel};
@@ -1539,6 +1560,7 @@ sub create_irule( $$$;@ ) {
 	$ruleref->{jump}       = $jump;
 	$ruleref->{target}     = $target;
 	$chainref->{optflags} |= RETURNS_DONT_MOVE if $target eq 'RETURN';
+	$chainref->{complete} ||= ( ! @matches && ( $jump eq 'g' || is_terminating( $chainref->{table}, $target ) ) );
 	$ruleref->{targetopts} = $targetopts if $targetopts;
     } else {
 	$ruleref->{target} = '';
@@ -2030,7 +2052,7 @@ sub chain_base( $ ) {
 sub forward_chain($)
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_fwd';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_fwd';
 }
 
 #
@@ -2085,7 +2107,7 @@ sub use_forward_chain($$) {
 #
 sub input_option_chain($) {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_iop';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_iop';
 }
 
 #
@@ -2093,7 +2115,7 @@ sub input_option_chain($) {
 #
 sub output_option_chain($) {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_oop';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_oop';
 }
 
 #
@@ -2101,7 +2123,7 @@ sub output_option_chain($) {
 #
 sub forward_option_chain($) {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_fop';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_fop';
 }
 
 #
@@ -2110,7 +2132,7 @@ sub forward_option_chain($) {
 sub input_chain($)
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_in';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_in';
 }
 
 #
@@ -2173,7 +2195,7 @@ sub use_input_chain($$) {
 sub output_chain($)
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_out';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_out';
 }
 
 #
@@ -2182,7 +2204,7 @@ sub output_chain($)
 sub prerouting_chain($)
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_pre';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_pre';
 }
 
 #
@@ -2191,7 +2213,7 @@ sub prerouting_chain($)
 sub postrouting_chain($)
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_post';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_post';
 }
 
 #
@@ -2244,7 +2266,7 @@ sub use_output_chain($$) {
 sub masq_chain($)
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_masq';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_masq';
 }
 
 #
@@ -2260,7 +2282,7 @@ sub syn_flood_chain ( $ ) {
 sub mac_chain( $ )
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_mac';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_mac';
 }
 
 sub macrecent_target($)
@@ -2297,7 +2319,7 @@ sub load_chain( $ ) {
 sub snat_chain( $ )
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_snat';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_snat';
 }
 
 #
@@ -2306,7 +2328,7 @@ sub snat_chain( $ )
 sub ecn_chain( $ )
 {
     my $interface = shift;
-    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : $interface ) . '_ecn';
+    ( $config{USE_PHYSICAL_NAMES} ? chain_base( get_physical( $interface ) ) : get_logical( $interface ) ) . '_ecn';
 }
 
 #
@@ -2485,7 +2507,7 @@ sub add_ijump_internal( $$$$$;@ ) {
     }
 
     if ( $ruleref->{simple} ) {
-	$fromref->{complete} = 1 if $jump eq 'g' || $terminating{$to};
+	$fromref->{complete} = 1 if $jump eq 'g' || ( $toref ? terminating( $toref ) : $terminating{$to} );
     }
 
     $ruleref->{origin} = $origin if $origin;
@@ -2915,8 +2937,6 @@ sub initialize_chain_table($) {
 		    'A_ACCEPT!'       => STANDARD  + AUDIT,
 		    'A_DROP'          => STANDARD + AUDIT,
 		    'A_DROP!'         => STANDARD + AUDIT,
-		    'A_REJECT'        => STANDARD + AUDIT,
-		    'A_REJECT!'       => STANDARD + AUDIT,
 		    'NONAT'           => STANDARD + NONAT  + NATONLY,
 		    'CONNMARK'        => STANDARD + OPTIONS,
 		    'CONTINUE'        => STANDARD,
@@ -2987,8 +3007,6 @@ sub initialize_chain_table($) {
 		    'A_DROP!'         => STANDARD + AUDIT,
 		    'REJECT'          => STANDARD + OPTIONS,
 		    'REJECT!'         => STANDARD + OPTIONS,
-		    'A_REJECT'        => STANDARD + AUDIT,
-		    'A_REJECT!'       => STANDARD + AUDIT,
 		    'DNAT'            => NATRULE  + OPTIONS,
 		    'DNAT-'           => NATRULE  + NATONLY,
 		    'REDIRECT'        => NATRULE  + REDIRECT + OPTIONS,
@@ -6335,7 +6353,7 @@ sub log_rule_limit( $$$$$$$$;$ ) {
     my ($level, $chainref, $chn, $dispo, $limit, $tag, $command, $matches, $origin ) = @_;
 
     my $prefix = '';
-    my $chain            = get_action_chain_name  || $chn;
+    my $chain            = get_action_chain_name  ||  $chn;
     my $disposition      = get_action_disposition || $dispo;
     my $original_matches = $matches;
     my $ruleref;
@@ -6435,7 +6453,7 @@ sub log_irule_limit( $$$$$$$$@ ) {
 
     my $prefix = '';
     my %matches;
-    my $chain       = get_action_chain_name  || $chn;
+    my $chain       = get_action_chain_name  ||  $chn;
     my $disposition = get_action_disposition || $dispo;
     my $original_matches = @matches;
 
@@ -7748,7 +7766,10 @@ sub expand_rule( $$$$$$$$$$$$;$ )
 			# No logging or user-specified logging -- add the target rule with matches to the rule chain
 			#
 			if ( $targetref ) {
-			    add_expanded_jump( $chainref, $targetref , 0, $prerule . $matches );
+			    add_expanded_jump( $chainref ,
+					       $targetref ,
+					       terminating( $targetref ) ,
+					       $prerule . $matches );
 			} else {
 			    add_rule( $chainref, $prerule . $matches . $jump , 1 );
 			}
@@ -8172,6 +8193,15 @@ else
     rm -f \${VARDIR}/.dynamic
 fi
 EOF
+	if ( $config{MINIUPNPD} ) {
+	    emit << "EOF";
+if chain_exists 'MINIUPNPD-POSTROUTING -t nat'; then
+    $tool -t nat -S MINIUPNPD-POSTROUTING | tail -n +2 > \${VARDIR}/.MINIUPNPD-POSTROUTING
+else
+    rm -f \${VARDIR}/.MINIUPNPD-POSTROUTING
+fi
+EOF
+	}
     } else {
 	emit <<"EOF";
 if chain_exists 'UPnP -t nat'; then
@@ -8192,6 +8222,15 @@ else
     rm -f \${VARDIR}/.dynamic
 fi
 EOF
+	if ( $config{MINIUPNPD} ) {
+	    emit << "EOF";
+if chain_exists 'MINIUPNPD-POSTROUTING -t nat'; then
+    $utility -t nat | grep '^-A MINIUPNPD-POSTROUTING' > \${VARDIR}/.MINIUPNPD-POSTROUTING
+else
+    rm -f \${VARDIR}/.MINIUPNPD-POSTROUTING    
+fi
+EOF
+	}
     }
 
     pop_indent;
@@ -8210,14 +8249,22 @@ EOF
     emit( '' ), save_docker_rules( $tool ), emit( '' ) if $config{DOCKER};
 }
 
-sub ensure_ipset( $ ) {
-    my $set = shift;
+sub ensure_ipsets( @ ) {
+    my $set;
+
+    if ( @_ > 1 ) {
+	push_indent;
+	emit( "for set in @_; do" );
+	$set = '$set';
+    } else {
+	$set = $_[0];
+    }
 
     if ( $family == F_IPV4 ) {
 	if ( have_capability 'IPSET_V5' ) {
 	    emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
-		   qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:ip set") ,
-		   qq(        \$IPSET -N $set hash:ip family inet) ,
+		   qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:net set") ,
+		   qq(        \$IPSET -N $set hash:net family inet timeout 0 counters) ,
 		   qq(    fi) );
 	} else {
 	    emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
@@ -8227,9 +8274,14 @@ sub ensure_ipset( $ ) {
 	}
     } else {
 	emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
-	       qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:ip set") ,
-	       qq(        \$IPSET -N $set hash:ip family inet6) ,
+	       qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:net set") ,
+	       qq(        \$IPSET -N $set hash:net family inet6 timeout 0 counters) ,
 	       qq(    fi) );
+    }
+
+    if ( @_ > 1 ) {
+	emit 'done';
+	pop_indent;
     }
 }
 
@@ -8239,22 +8291,26 @@ sub ensure_ipset( $ ) {
 sub create_save_ipsets() {
     my @ipsets = all_ipsets;
 
-    emit( "#\n#Save the ipsets specified by the SAVE_IPSETS setting and by dynamic zones\n#",
+    emit( "#\n#Save the ipsets specified by the SAVE_IPSETS setting and by dynamic zones and blacklisting\n#",
 	  'save_ipsets() {' );
 
     if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
 	emit( '    local file' ,
+	      '    local set' ,
 	      '',
 	      '    file=${1:-${VARDIR}/save.ipsets}'
 	    );
 
 	if ( @ipsets ) {
 	    emit '';
-	    ensure_ipset( $_ ) for @ipsets;
+	    ensure_ipsets( @ipsets );
 	}
 
 	if ( $config{SAVE_IPSETS} ) {
 	    if ( $family == F_IPV6 || $config{SAVE_IPSETS} eq 'ipv4' ) {
+		#
+		# Requires V5 or later
+		#
 		my $select = $family == F_IPV4 ? '^create.*family inet ' : 'create.*family inet6 ';
 
 		emit( '' ,
@@ -8263,11 +8319,6 @@ sub create_save_ipsets() {
 		      '    local set' ,
 		    );
 
-		if ( @ipsets ) {
-		    emit '';
-		    emit( "    \$IPSET -S $_ >> \$file" ) for @ipsets;
-		}
-
 		emit( '',
 		      "    for set in \$(\$IPSET save | grep '$select' | cut -d' ' -f2); do" ,
 		      "        \$IPSET save \$set >> \$file" ,
@@ -8275,6 +8326,9 @@ sub create_save_ipsets() {
 		      '',
 		    );
 	    } else {
+		#
+		# Saving all ipsets (IPv4 and IPv6, if any )
+		# 
 		emit ( 
 		       '',
 		       '    if eval $IPSET -S > ${VARDIR}/ipsets.tmp; then' ,
@@ -8283,28 +8337,48 @@ sub create_save_ipsets() {
 	    }
 
 	    emit( "    return 0",
-		  '',
 		  "}\n" );
 	} elsif ( @ipsets || $globals{SAVED_IPSETS} ) {
+	    #
+	    # Requires V5 or later
+	    #
+	    my %ipsets;
+	    #
+	    # Requires V
+	    #
+	    $ipsets{$_} = 1 for ( @ipsets, @{$globals{SAVED_IPSETS}} );
+
+	    my @sets = sort keys %ipsets;
+
 	    emit( '' ,
+		  '    rm -f $file' ,
+		  '    touch $file' ,
 		  '    rm -f ${VARDIR}/ipsets.tmp' ,
 		  '    touch ${VARDIR}/ipsets.tmp' ,
 		);
 
-	    if ( @ipsets ) {
-		emit '';
-		emit( "    \$IPSET -S $_ >> \${VARDIR}/ipsets.tmp" ) for @ipsets;
+	    if ( @sets > 1 ) {
+		emit( '' ,
+		      "    for set in @sets; do" , 
+		      '        if qt $IPSET list $set; then' ,
+		      '            $IPSET save $set >> ${VARDIR}/ipsets.tmp' ,
+		      '        else' ,
+		      '            error_message "ipset $set not saved (not found)"' ,
+		      '        fi' ,
+		      '    done' );
+	    } else {
+		my $set = $sets[0];
+
+		emit( '' ,
+		      "    if qt \$IPSET list $set; then" ,
+		      "        \$IPSET save $set >> \${VARDIR}/ipsets.tmp" ,
+		      '    else' ,
+		      "        error_message 'ipset $set not saved (not found)'" ,
+		      '    fi' );
 	    }
 
 	    emit( '' ,
-		  "    if qt \$IPSET list $_; then" ,
-		  "        \$IPSET save $_ >> \${VARDIR}/ipsets.tmp" ,
-		  '    else' ,
-		  "        error_message 'ipset $_ not saved (not found)'" ,
-		  "    fi\n" ) for @{$globals{SAVED_IPSETS}};
-
-	    emit( '' ,
-		  "    grep -qE -- \"(-N|^create )\" \${VARDIR}/ipsets.tmp && cat \${VARDIR}/ipsets.tmp >> \$file\n" ,
+		  "    grep -q -- \"^create \" \${VARDIR}/ipsets.tmp && mv -f \${VARDIR}/ipsets.tmp \$file\n" ,
 		  '' ,
 		  '    return 0',
 		  '' ,
@@ -8320,13 +8394,58 @@ sub create_save_ipsets() {
     }
 }
 
-sub load_ipsets() {
+sub create_load_ipsets() {
 
-    my @ipsets = all_ipsets;
+    my @ipsets = all_ipsets; #Dynamic Zone IPSETS
 
-    if ( @ipsets || @{$globals{SAVED_IPSETS}} || ( $config{SAVE_IPSETS} && have_ipset_rules ) ) {
-	emit ( '', );
-	emit ( '',
+    my $setting = $config{SAVE_IPSETS};
+
+    my $havesets =  @ipsets || @{$globals{SAVED_IPSETS}} || ( $setting && have_ipset_rules );
+
+    #
+    # Generate a function that flushes and destroys sets prior to restoring them
+    #
+    if ( $havesets ) {
+	my $select = $family == F_IPV4 ? '^create.*family inet ' : 'create.*family inet6 ';
+
+	emit ( "#\n#Flush and Destroy the sets that we will subsequently attempt to restore\n#",
+	       'zap_ipsets() {',
+	       '    local set',
+	       '' );
+
+	if ( $family == F_IPV6 || $setting !~ /yes/i ) {
+	    #
+	    # Requires V5 or later
+	    #
+	    emit( '' ,
+		  "    for set in \$(\$IPSET save | grep '$select' | cut -d' ' -f2); do" ,
+		  '        $IPSET flush $set' ,
+		  '        $IPSET destroy $set' ,
+		  "    done" ,
+		  '',
+		);
+	} else {
+	    #
+	    # Restoring all ipsets (IPv4 and IPv6, if any)
+	    #
+	    emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
+		   '        $IPSET -F' ,
+		   '        $IPSET -X' ,
+		   '    fi' );
+	};
+
+	emit( '}' );
+    }
+    #
+    # Now generate load_ipsets()
+    
+    emit ( "#\n#Flush and Destroy the sets then load fresh copy from a saved ipset file\n#",
+	   'load_ipsets() {' );
+
+    push_indent;
+
+    if ( $havesets ) {
+	emit(  '',
 	       'case $IPSET in',
 	       '    */*)',
 	       '        [ -x "$IPSET" ] || startup_error "IPSET=$IPSET does not exist or is not executable"',
@@ -8337,86 +8456,56 @@ sub load_ipsets() {
 	       '        ;;',
 	       'esac' ,
 	       '' ,
-	       'if [ "$COMMAND" = start ]; then' );
+	       'if [ "$COMMAND" = start ]; then' );         ##################### Start Command ##################
 
-	if ( $config{SAVE_IPSETS} ) {
-	    emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
-		   '        $IPSET -F' ,
-		   '        $IPSET -X' ,
-		   '        $IPSET -R < ${VARDIR}/ipsets.save' ,
-		   '    fi' );
-
-	    if ( @ipsets ) {
-		emit ( '' );
-		ensure_ipset( $_ ) for @ipsets;
-		emit ( '' );
-
-		emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
-		       '        $IPSET flush' ,
-		       '        $IPSET destroy' ,
-		       '        $IPSET restore < ${VARDIR}/ipsets.save' ,
-		       "    fi\n" ) for @{$globals{SAVED_IPSETS}};
-	    }
-	} else {
-	    ensure_ipset( $_ ) for @ipsets;
-
-	    if ( @{$globals{SAVED_IPSETS}} ) {
-		emit ( '' );
-
-		emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
-		       '        $IPSET flush' ,
-		       '        $IPSET destroy' ,
-		       '        $IPSET restore < ${VARDIR}/ipsets.save' ,
-		       "    fi\n" ) for @{$globals{SAVED_IPSETS}};
-	    }
+	if ( $config{SAVE_IPSETS} || @{$globals{SAVED_IPSETS}} ) {
+	    emit( '    if [ -f ${VARDIR}/ipsets.save ]; then',
+		  '        zap_ipsets',
+		  '        $IPSET -R < ${VARDIR}/ipsets.save',
+		  '    fi' );
 	}
 
-	emit ( 'elif [ "$COMMAND" = restore -a -z "$g_recovering" ]; then' );
+	if ( @ipsets ) {
+	    emit ( '' );
+	    ensure_ipsets( @ipsets );
+	}
 
-	if ( $config{SAVE_IPSETS} ) {
+	emit ( 'elif [ "$COMMAND" = restore -a -z "$g_recovering" ]; then' ); ### Restore Command #################
+
+	if ( $config{SAVE_IPSETS} || @{$globals{SAVED_IPSETS}} ) {
 	    emit( '    if [ -f $(my_pathname)-ipsets ]; then' ,
 		  '        if chain_exists shorewall; then' ,
 		  '            startup_error "Cannot restore $(my_pathname)-ipsets with Shorewall running"' ,
 		  '        else' ,
-		  '            $IPSET -F' ,
-		  '            $IPSET -X' ,
+		  '            zap_ipsets' ,
 		  '            $IPSET -R < $(my_pathname)-ipsets' ,
 		  '        fi' ,
 		  '    fi' ,
 		);
-
-	    if ( @ipsets ) {
-		emit ( '' );
-		ensure_ipset( $_ ) for @ipsets;
-		emit ( '' );
-	    }
-	} else {
-	    ensure_ipset( $_ ) for @ipsets;
-
-	    emit ( '    if [ -f ${VARDIR}/ipsets.save ]; then' ,
-		   '        $IPSET flush' ,
-		   '        $IPSET destroy' ,
-		   '        $IPSET restore < ${VARDIR}/ipsets.save' ,
-		   "    fi\n" ) for @{$globals{SAVED_IPSETS}};
 	}
 
 	if ( @ipsets ) {
-	    emit ( 'elif [ "$COMMAND" = reload ]; then' );
-	    ensure_ipset( $_ ) for @ipsets;
-	}
+	    emit ( '' );
+	    ensure_ipsets( @ipsets );
 
-	emit( 'elif [ "$COMMAND" = stop ]; then' ,
-	      '   save_ipsets'
-	    );
+	    emit ( 'elif [ "$COMMAND" = reload ]; then' );   ################### Reload Command ####################
+	    ensure_ipsets( @ipsets );
 
-	if ( @ipsets ) {
-	    emit( 'elif [ "$COMMAND" = refresh ]; then' );
-	    ensure_ipset( $_ ) for @ipsets;
+	    emit( 'elif [ "$COMMAND" = refresh ]; then' );   ################### Refresh Command ###################
+	    emit ( '' );
+	    ensure_ipsets( @ipsets );
+	    emit ( '' );
 	};
 
 	emit ( 'fi' ,
 	       '' );
+    } else {
+	emit 'true';
     }
+
+    pop_indent;
+
+    emit '}';	    
 }
 
 #

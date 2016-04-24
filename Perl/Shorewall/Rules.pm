@@ -77,7 +77,7 @@ our %EXPORT_TAGS = ( Traffic => [ qw( process_tc_rule
 
 Exporter::export_ok_tags('Traffic');
 
-our $VERSION = '5.0_7';
+our $VERSION = '5.0_8';
 #
 # Globals are documented in the initialize() function
 #
@@ -230,6 +230,7 @@ use constant { INLINE_OPT           => 1 ,
 	       NAT_OPT              => 128 ,
 	       TERMINATING_OPT      => 256 ,
 	       AUDIT_OPT            => 512 ,
+	       LOGJUMP_OPT          => 1024 ,
 };
 
 our %options = ( inline      => INLINE_OPT ,
@@ -242,7 +243,10 @@ our %options = ( inline      => INLINE_OPT ,
 		 nat         => NAT_OPT ,
 		 terminating => TERMINATING_OPT ,
 		 audit       => AUDIT_OPT ,
+		 logjump     => LOGJUMP_OPT ,
     );
+
+our %reject_options;
 ################################################################################
 #   Declarations moved from the Tc module in 5.0.7                             #
 ################################################################################
@@ -353,8 +357,27 @@ sub initialize( $ ) {
 
     if ( $family == F_IPV4 ) {
 	@builtins = qw/dropBcast allowBcast dropNotSyn rejNotSyn allowinUPnP forwardUPnP Limit/;
+	%reject_options = ( 'icmp-net-unreachable'   => 1,
+			    'icmp-host-unreachable'  => 1,
+			    'icmp-port-unreachable'  => 1,
+			    'icmp-proto-unreachable' => 1,
+			    'icmp-net-prohibited'    => 1,
+			    'icmp-host-prohibited'   => 1,
+			    'icmp-admin-prohibited'  => 1,
+			    'icmp-tcp-reset'         => 2,
+	                  );
+			    
     } else {
 	@builtins = qw/dropBcast allowBcast dropNotSyn rejNotSyn/;
+	%reject_options = ( 'icmp6-no-route'         => 1,
+			    'no-route'               => 1,
+			    'icmp6-adm-prohibited'   => 1,
+			    'adm-prohibited'         => 1,
+			    'icmp6-addr-unreachable' => 1,
+			    'addr-unreach'           => 1,
+			    'icmp6-port-unreachable' => 1,
+			    'tcp-reset'              => 2,
+	                  );
     }
 
     ############################################################################
@@ -1257,8 +1280,14 @@ sub normalize_action( $$$ ) {
 
     ( $level, my $tag ) = split ':', $level;
 
-    $level = 'none' unless supplied $level;
-    $tag   = ''     unless defined $tag;
+    if ( $actions{$action}{options} & LOGJUMP_OPT ) {
+	$level = 'none';
+	$tag   = '';
+    } else {
+	$level = 'none' unless supplied $level;
+	$tag   = ''     unless defined $tag;
+    }
+
     $param = ''     unless defined $param;
     $param = ''     if $param eq '-';
 
@@ -1820,7 +1849,7 @@ sub process_action(\$\$$) {
 
     my $oldparms = push_action_params( $action, $chainref, $param, $level, $tag, $caller );
     my $options = $actionref->{options};
-    my $nolog = $options & NOLOG_OPT;
+    my $nolog = $options & ( NOLOG_OPT | LOGJUMP_OPT );
 
     setup_audit_action( $action ) if $options & AUDIT_OPT;
 
@@ -1914,12 +1943,12 @@ sub process_action(\$\$$) {
 		set_inline_matches( $matches );
 	    }
 	} else {
-	    my ($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper );
+	    my ($target, $source, $dest, $protos, $ports, $sports, $origdest, $rate, $users, $mark, $connlimit, $time, $headers, $condition, $helper );
 
 	    if ( $file_format == 1 ) {
 		fatal_error( "FORMAT-1 actions are no longer supported" );
 	    } else {
-		($target, $source, $dest, $proto, $ports, $sports, $origdest, $rate, $user, $mark, $connlimit, $time, $headers, $condition, $helper )
+		($target, $source, $dest, $protos, $ports, $sports, $origdest, $rate, $users, $mark, $connlimit, $time, $headers, $condition, $helper )
 		    = split_line2( 'action file',
 				   \%rulecolumns,
 				   $action_commands,
@@ -1943,28 +1972,32 @@ sub process_action(\$\$$) {
 		next;
 	    }
 
-	    process_rule( $chainref,
-			  '',
-			  '',
-			  $nolog ? $target : merge_levels( join(':', @actparams{'chain','loglevel','logtag'}), $target ),
-			  '',
-			  $source,
-			  $dest,
-			  $proto,
-			  $ports,
-			  $sports,
-			  $origdest,
-			  $rate,
-			  $user,
-			  $mark,
-			  $connlimit,
-			  $time,
-			  $headers,
-			  $condition,
-			  $helper,
-			  0 );
+	    for my $proto ( split_list( $protos, 'Protocol' ) ) {
+		for my $user ( split_list( $users, 'User/Group' ) ) {
+		    process_rule( $chainref,
+				  '',
+				  '',
+				  $nolog ? $target : merge_levels( join(':', @actparams{'chain','loglevel','logtag'}), $target ),
+				  '',
+				  $source,
+				  $dest,
+				  $proto,
+				  $ports,
+				  $sports,
+				  $origdest,
+				  $rate,
+				  $user,
+				  $mark,
+				  $connlimit,
+				  $time,
+				  $headers,
+				  $condition,
+				  $helper,
+				  0 );
 
-	    set_inline_matches( $matches );
+		    set_inline_matches( $matches );
+		}
+	    }
 	}
     }
 
@@ -2059,7 +2092,7 @@ sub process_actions() {
 		$action =~ s/:.*$//;
 	    }
 
-	    fatal_error "Invalid Action Name ($action)" unless $action =~ /^[a-zA-Z][\w-]*$/;
+	    fatal_error "Invalid Action Name ($action)" unless $action =~ /^[a-zA-Z][\w-]*!?$/;
 
 	    if ( $options ne '-' ) {
 		for ( split_list( $options, 'option' ) ) {
@@ -2160,10 +2193,16 @@ sub use_policy_action( $$ ) {
 sub process_reject_action() {
     my $rejectref = $filter_table->{reject};
     my $action    = $config{REJECT_ACTION};
+    #
+    # This gets called very early in the compilation process so we fake the section
+    #
+    $section = DEFAULTACTION_SECTION;
 
     if ( ( $targets{$action} || 0 ) == ACTION ) {
 	add_ijump $rejectref, j => use_policy_action( $action, $rejectref->{name} );
     } else {
+	progress_message2 "$doing $actions{$action}->{file} for chain reject...";
+
 	process_inline( $action,      #Inline
 			$rejectref,   #Chain
 			'',           #Matches
@@ -2188,6 +2227,8 @@ sub process_reject_action() {
 			0,            #Wildcard
 	    );
     }
+
+    $section = '';
 }
 
 ################################################################################
@@ -2213,7 +2254,7 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$$) {
 
     while ( read_a_line( NORMAL_READ ) ) {
 
-	my ( $mtarget, $msource, $mdest, $mproto, $mports, $msports, $morigdest, $mrate, $muser, $mmark, $mconnlimit, $mtime, $mheaders, $mcondition, $mhelper);
+	my ( $mtarget, $msource, $mdest, $mprotos, $mports, $msports, $morigdest, $mrate, $musers, $mmark, $mconnlimit, $mtime, $mheaders, $mcondition, $mhelper);
 
 	if ( $file_format == 1 ) {
 	    fatal_error( "FORMAT-1 macros are no longer supported" );
@@ -2221,12 +2262,12 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$$) {
 	    ( $mtarget,
 	      $msource,
 	      $mdest,
-	      $mproto,
+	      $mprotos,
 	      $mports,
 	      $msports,
 	      $morigdest,
 	      $mrate,
-	      $muser,
+	      $musers,
 	      $mmark,
 	      $mconnlimit,
 	      $mtime,
@@ -2287,32 +2328,35 @@ sub process_macro ($$$$$$$$$$$$$$$$$$$$$) {
 	    $mdest = '';
 	}
 
-	$generated |= process_rule(
-				   $chainref,
-	                           $matches,
-	                           $matches1,
-				   $mtarget,
-				   $param,
-				   $msource,
-				   $mdest,
-				   merge_macro_column( $mproto,     $proto ) ,
-				   merge_macro_column( $mports,     $ports ) ,
-				   merge_macro_column( $msports,    $sports ) ,
-				   merge_macro_column( $morigdest,  $origdest ) ,
-				   merge_macro_column( $mrate,      $rate ) ,
-				   merge_macro_column( $muser,      $user ) ,
-				   merge_macro_column( $mmark,      $mark ) ,
-				   merge_macro_column( $mconnlimit, $connlimit) ,
-				   merge_macro_column( $mtime,      $time ),
-				   merge_macro_column( $mheaders,   $headers ),
-				   merge_macro_column( $mcondition, $condition ),
-				   merge_macro_column( $mhelper,    $helper ),
-				   $wildcard
-				  );
+	for my $mp ( split_list( $mprotos, 'Protocol' ) ) {
+	    for my $mu ( split_list( $musers, 'User/Group' ) ) {
+		$generated |= process_rule( $chainref,
+					    $matches,
+					    $matches1,
+					    $mtarget,
+					    $param,
+					    $msource,
+					    $mdest,
+					    merge_macro_column( $mp,         $proto ) ,
+					    merge_macro_column( $mports,     $ports ) ,
+					    merge_macro_column( $msports,    $sports ) ,
+					    merge_macro_column( $morigdest,  $origdest ) ,
+					    merge_macro_column( $mrate,      $rate ) ,
+					    merge_macro_column( $mu,         $user ) ,
+					    merge_macro_column( $mmark,      $mark ) ,
+					    merge_macro_column( $mconnlimit, $connlimit) ,
+					    merge_macro_column( $mtime,      $time ),
+					    merge_macro_column( $mheaders,   $headers ),
+					    merge_macro_column( $mcondition, $condition ),
+					    merge_macro_column( $mhelper,    $helper ),
+					    $wildcard
+		                          );
+
+		set_inline_matches( $save_matches );
+	    }
+	}
 
 	progress_message "   Rule \"$currentline\" $done";
-
-	set_inline_matches( $save_matches );
     }
 
     pop_open;
@@ -2348,7 +2392,7 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$$) {
 
     setup_audit_action( $inline ) if $options & AUDIT_OPT;
 
-    progress_message "..Expanding inline action $inlinefile...";
+    progress_message "..Expanding inline action $inlinefile..." unless $inline eq $config{REJECT_ACTION};
 
     push_open $inlinefile, 2, 1, undef , 2;
 
@@ -2358,12 +2402,12 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$$) {
 	my  ( $mtarget,
 	      $msource,
 	      $mdest,
-	      $mproto,
+	      $mprotos,
 	      $mports,
 	      $msports,
 	      $morigdest,
 	      $mrate,
-	      $muser,
+	      $musers,
 	      $mmark,
 	      $mconnlimit,
 	      $mtime,
@@ -2428,32 +2472,35 @@ sub process_inline ($$$$$$$$$$$$$$$$$$$$$$) {
 	    $mdest = '';
 	}
 
-	$generated |= process_rule(
-				   $chainref,
-	                           $matches,
-	                           $matches1,
-				   $mtarget,
-				   $param,
-				   $msource,
-				   $mdest,
-				   merge_macro_column( $mproto,     $proto ) ,
-				   merge_macro_column( $mports,     $ports ) ,
-				   merge_macro_column( $msports,    $sports ) ,
-				   merge_macro_column( $morigdest,  $origdest ) ,
-				   merge_macro_column( $mrate,      $rate ) ,
-				   merge_macro_column( $muser,      $user ) ,
-				   merge_macro_column( $mmark,      $mark ) ,
-				   merge_macro_column( $mconnlimit, $connlimit) ,
-				   merge_macro_column( $mtime,      $time ),
-				   merge_macro_column( $mheaders,   $headers ),
-				   merge_macro_column( $mcondition, $condition ),
-				   merge_macro_column( $mhelper,    $helper ),
-				   $wildcard
-				  );
+	for my $mp ( split_list( $mprotos, 'Protocol' ) ) {
+	    for my $mu ( split_list( $musers, 'User/Group' ) ) {
+		$generated |= process_rule( $chainref,
+					    $matches,
+					    $matches1,
+					    $mtarget,
+					    $param,
+					    $msource,
+					    $mdest,
+					    merge_macro_column( $mp,          $proto ) ,
+					    merge_macro_column( $mports,     $ports ) ,
+					    merge_macro_column( $msports,    $sports ) ,
+					    merge_macro_column( $morigdest,  $origdest ) ,
+					    merge_macro_column( $mrate,      $rate ) ,
+					    merge_macro_column( $mu,         $user ) ,
+					    merge_macro_column( $mmark,      $mark ) ,
+					    merge_macro_column( $mconnlimit, $connlimit) ,
+					    merge_macro_column( $mtime,      $time ),
+					    merge_macro_column( $mheaders,   $headers ),
+					    merge_macro_column( $mcondition, $condition ),
+					    merge_macro_column( $mhelper,    $helper ),
+					    $wildcard
+		                          );
+
+		set_inline_matches( $save_matches );
+	    }
+	}
 
 	progress_message "   Rule \"$currentline\" $done";
-
-	set_inline_matches( $save_matches );
     }
 
     pop_comment( $save_comment );
@@ -2644,7 +2691,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 	    $loglevel = supplied $loglevel ? join( ':', $action, $loglevel ) : $action;
 	    $action   = 'LOG';
 	} elsif ( ! ( $actiontype & (ACTION | INLINE | IPTABLES | TARPIT ) ) ) {
-	    fatal_error "'builtin' actions may only be used in INLINE rules" if $actiontype == USERBUILTIN;
+	    fatal_error "'builtin' actions may only be used in INLINE or IP[6]TABLES rules" if $actiontype == USERBUILTIN;
 	    fatal_error "The $basictarget TARGET does not accept a parameter" unless $param eq '' || $actiontype & OPTIONS;
 	}
     }
@@ -2718,7 +2765,22 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 		  }
 	      } ,
 
-	      REJECT => sub { $action = 'reject'; } ,
+	      REJECT => sub {
+		  if ( supplied( $param ) ) {
+		      my $option = $reject_options{$param};
+		      fatal_error "Invalid REJECT option ($param)" unless $option;
+		      if ( $option == 2 ) {
+			  #
+			  # tcp-reset
+			  #
+			  fatal_error "tcp-reset may only be used with PROTO tcp" unless ( resolve_proto( $proto ) || 0 ) == TCP;
+		      }
+
+		      $action = "REJECT --reject-with $param";
+		  } else {		      
+		      $action = 'reject';
+		  }
+	      },
 
 	      CONTINUE => sub { $action = 'RETURN'; } ,
 
@@ -3031,8 +3093,8 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 
 	my $generated = process_inline( $basictarget,
 					$chainref,
-					$prerule . $rule . $raw_matches,
-					$matches1,
+					$prerule . $rule,
+					$matches1 . $raw_matches,
 					$loglevel,
 					$target,
 					$param,
@@ -3207,7 +3269,12 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 
 	if ( $actiontype & ACTION ) {
 	    $action = $actionchain;
-	    $loglevel = '';
+
+	    if ( $actions{$basictarget}{options} & LOGJUMP_OPT ) {
+		$log_action = $basictarget;
+	    } else {
+		$loglevel = '';
+	    }
 	}
 
 	if ( $origdest ) {
@@ -3708,6 +3775,11 @@ sub process_rules() {
 			RELATED_SECTION,     'RELATED',
 			INVALID_SECTION,     'INVALID',
 			UNTRACKED_SECTION,   'UNTRACKED' );
+
+    #
+    # If A_REJECT was specified in shorewall[6].conf, the A_REJECT chain may already exist.
+    #
+    $usedactions{normalize_action_name( 'A_REJECT' )} = $filter_table->{A_REJECT} if $filter_table->{A_REJECT};
     #
     # Create zone-forwarding chains if required
     #
