@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	           S H O R E W A L L  5 . 0 . 7  . 2
+	               S H O R E W A L L  5 . 0 . 8
                        ----------------------------
-                        M a r c h  3 1 ,  2 0 1 6
+                        A p r i l  2 4 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -12,6 +12,412 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  This release includes defect repair through Shorewall 5.0.7.2.
+
+2)  If a physical interface name was used in the INTERFACE column of an
+    entry in /etc/shorewall/masq, then previously a Perl diagnostic was
+    issued as the masq rule was being processed and the iptables rule
+    and its containing chain were dropped by the optimizer. That has
+    been corrected so that physical interface names are handled
+    correctly.
+
+    Similar issues with physical names in the INTERFACE column of the
+    nat, netmap and ecn files have also been resolved.
+
+3)  The optional plus sign ('+') in the MODULESDIR setting, added in
+    Shorewall 5.0.3, is now documented in the shorewall[6].conf
+    manpages.
+
+4)  Address variables that specified the physical interface name
+    previously caused Perl diagnostics to be issued and wrong code
+    to be generated. That has been corrected.
+
+5) The IPv6 default treatment of Auth (TCP 113) is now consistent with
+    IPv4; nothing special is done with these requests, so they are
+    simply logged and dropped or rejected.
+
+    IMPORTANT: If you want to continue to silengly reject Auth
+    requests, you can do so by changing your xxx_DEFAULT settings to
+    make the second parameter 'Reject'. For example, if you currently
+    have:
+
+        DROP_DEFAULT=Drop
+	REJECT_DEFAULT=Reject
+
+    you can change it to:
+
+    	DROP_DEFAULT="Drop(-,REJECT)"
+    	REJECT_DEFAULT="Reject(-,REJECT)"
+
+6)  Previously, if a zone had two or more interfaces, then the
+    interfaces' option rules (DHCP, dynamic blacklisting, etc.) could
+    be moved into the fw->zone chain without being restricted to their
+    respective interfaces. This could result in needless duplication of
+    rules. These rules are now kept in separate chains which, if they
+    are identical, will be combined by the optimizer if OPTIMIZE level 8
+    is enabled.
+
+7)  A number of issues have been resolved with saving/restoring ipsets
+    in Shorewall and Shorewall6.
+
+    - Even if Shorewall's SAVE_IPSETS was set to ipv4, restarting one
+      configuration would attempt to flush/destroy the ipsets for the
+      other address family.
+
+    - The same set could be saved multiple times, with the result
+      that ipset error messages were issued during 'shorewall[6]
+      start'.
+
+    - Needless repetition of code was generated due to the use of
+      compile-time loops rather than run-time loops.
+
+8)  Previously, when AUTOMAKE=Yes, the 'start' command would not
+    regenerate an out-of-date firewall script.
+
+9)  A couple of recent changes have resulted in file name collisions
+    on Cygwin with its underlying case-insensitive filesystem. To avoid
+    these collisions.
+
+    - /usr/share/shorewall/deprecated and
+      /usr/share/shorewall6/deprecated directories have been created.
+
+    - When a name collision occurs, the file with the older name is
+      moved to the deprecated directory
+
+    - The compiler automatically searches the deprecated directory
+      (both directories in the case of Shorewall6) for files.
+
+    In this release, macro.SNMPTraps and action.A_Reject were moved to
+    /usr/share/shorewall/deprecated/. Note that both are deprecated -
+    Reject accepts an 'audit' parameter, and macro.SNMPTraps has been
+    superseded by macro.SNMPtraps.
+
+10) Previously, the 'reload' command did not produce a system log
+    message when it succeeded. That has been corrected.
+
+11) Previously, when compilation was done as part of a reload or
+    restart operation, compiler logging to the STARTUP_LOG was
+    suppressed. Such logging is now enabled.
+
+12) The compiler now uses a uniform format for timestamps in the
+    STARTUP_LOG and on standard output (when the -t option is
+    specified). Previously, some messages suppressed a leading zero in
+    the hour where others did not. Now, the leading zero is never
+    suppressed for compatibility with the timestamps produced by the
+    generated script.
+
+13) Previously, the compiler would allow 0 to be specified in the MARK
+    column of the tcclasses file, resulting in a run-time failure:
+
+    Setting up Traffic Control...
+    RTNETLINK answers: Invalid argument
+    We have an error talking to the kernel
+       ERROR: Command "tc filter add dev eth0 protocol all parent 1:0
+                       prio 276 handle 0 fw classid 1:10" Failed
+
+    Now, the following error is generated by the compiler:
+
+       ERROR: MARK value must be non-zero
+
+    As part of this change, the shorewall[6]-tcclasses(5) manpages have
+    been updated:
+
+    - Specifity a filter priority in the MARK column is now documented
+      (this feature has been in the code for several years)
+
+    - The default priorities of the filters for tos= and tcp-ack have
+      been correcgted.
+
+14) For consistency with Docker, when bridge docker0 is listed in
+    /etc/shorewall/interfaces, the following rule is now generated:
+
+        -A FORWARD -o docker0 -m conntrack \
+                --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+15)  Previously, the safe-* commands did not direct the compiler to
+     write to the STARTUP_LOG. That has been corrected. The commands
+     which direct the compiler to write to that log are now:
+
+       start
+       try
+       refresh
+       reload
+       restart
+       safe-*
+
+16)  In the last several releases, the following Known Problem
+     Remaining has been listed:
+
+       The 'enable', 'reenable' and 'disable' commands do now work
+       correctly in configurations with USE_DEFAULT_RT=No.
+
+    That description is a bit broader than is necessary and is now
+    restricted to the case where an optional provider is listed in the
+    DUPLICATE column (see below). Additionally, the compiler now
+    generates a warning in that case:
+
+      WARNING: An optional provider (xxxx) is listed in the
+               DUPLICATE column - enable and disable will not work
+	       correctly on that provider
+
+----------------------------------------------------------------------------
+           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
+----------------------------------------------------------------------------
+
+1)  On systems running Upstart, shorewall-init cannot reliably secure
+    the firewall before interfaces are brought up.
+
+2)  The 'enable', 'reenable' and 'disable' commands do not work
+    correctly in configurations with USE_DEFAULT_RT=No and optional
+    providers listed in the DUPLICATE column.
+
+----------------------------------------------------------------------------
+      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+----------------------------------------------------------------------------
+
+1)  Support for later versions of miniupnpd has been added in the form
+    of a MINIUPNPD option in shorewall.conf. If set to Yes, Shorewall
+    will create a chain in the nat table named MINIUPNPD-POSTROUTING
+    and will add jumps from POSTROUTING to that chain for each
+    interface with the upnpd option specified.  Default is No.
+    The contents of the chain are preserved over 'shorewall reload' and
+    'shorewall restart' operations.
+
+2)  The REJECT and A_REJECT actions may now take an optional parameter
+    that specifies the way in which the packet is to be rejected. See
+    shorewall[6]-rules(5) for details.
+
+3)  The standard action files and shell libraries now have a uniform
+    format for their header comments (Tuomo Soini).
+
+4)  The compiler now uses the iptables goto (-g) parameter rather than
+    the jump (-j) parameter, when the target is a terminating chain
+    (does not have any rules with the RETURN target and the last rule
+    in the chain is an unconditional jump to a terminating target or
+    chain).
+
+5)  The compiler now raises an error if the target of a chain's rule is
+    the chain itself.
+
+6)  The compiler now raises an error if the action specified in
+    REJECT_ACTION contains a RETURN (CONTINUE) jump or if the last rule
+    in the action is not an unconditional jump to a terminating target.
+
+7)  The Drop and Reject default actions now accept a sixth parameter
+    that specifies the action to be taken on UPnP packets. Previously,
+    the same action was performed on UPnP as was performed on late DNS
+    replies. The default is DROP in both cases.
+
+8)  Heretofore, when DYNAMIC_BLACKLISTING=Yes, blacklists were checked
+    on packets arriving and leaving on all interfaces. Now, individual
+    interfaces may be exempted from dynamic blacklisting through use of
+    the "nodbl" interface option.
+
+9)  Prior to this release, dynamic blacklisting has been implemented
+    using rules in an ip[6]tables chain. This scales poorly when there
+    are a large number of blacklisted addresses.
+
+    Beginning with this release, dynamic blacklisting can be ipset-
+    based. See DYNAMIC_BLACKLIST in shorewall.conf(5) and
+    shorewall6.conf(5) and the 'blacklist' command in shorewall(8) and
+    shorewall6(8).
+
+    As part of this change, ipsets created by Shorewall are now of type
+    hash:net with the 'timeout 0 counters' options, rather than
+    hash:ip with no options. This allows both network and individual
+    host addresses to be added to these ipsets, a timeout to be
+    specified when addresses are added to the ipsets, and visibility
+    into matches on individual members of the ipset.
+
+10) New new Redis macros have been added, one for Redis Cluster and the
+    other for Redis Sentinal (Tuomo Soini).
+
+11) The system log messages created by Shorewall via the 'logger'
+    utility may now be augmented using logger's -t (--tag) option
+    through use of the SW_LOGGERTAG environmental variable. If this
+    variable is set to a non-empty value, then its contents will be
+    passed as the -t option (e.g. logger -t "$SW_LOGGERTAG" ...).
+
+12) Similar to ?ERROR, which was introduced in Shorewall 5.0.7, this
+    release supports additional ?WARNING and ?INFO directives
+
+      ?ERROR <message>
+      ?WARNING <message>
+      ?INFO <message>
+
+    The <message> is written to STDERR prefaced by the directive name
+    (WARNING or INFO) followed by a colon (':'). It is also written to
+    the STARTUP_LOG if:
+
+    - A STARTUP_LOG has been configured
+    - The command is start, try, restart, reload, refresh or one of the
+      safe-* commands
+
+    Unlike ?ERROR, ?WARNING and ?INFO do not cause compilation to be
+    aborted.
+
+----------------------------------------------------------------------------
+                  I V.  M I G R A T I O N   I S S U E S
+----------------------------------------------------------------------------
+
+1)  If you are migrating from Shorewall 4.4.x or earlier, please see
+    http://www.shorewall.net/pub/shorewall/4.5/shorewall-4.5.21/releasenotes.txt
+
+2)  It is strongly recommended that you first upgrade your installation
+    to a 4.6 release >= 4.6.12 prior to upgrading to Shorewall 5.0.
+
+    Once you are on the Shorewall 4.6 release:
+
+    - shorewall update -A
+
+    If you also run Shorewall6:
+    
+    - shorewall6 update -A
+
+    These steps are necessary because Shorewall 5.0:
+
+    - Does not contain support for the 'tcrules' and 'tos' files --
+      existing 'tcrules' and 'tos' files must be converted to an
+      equivalent set of 'mangle' file entries.
+
+    - Does not contain support for the 'blacklist' file -- it must
+      be converted to an equivalent 'blrules' file.
+
+    - Does not contain support for the 'notrack' file -- it must be
+      converted to an equivalent 'conntrack' file.
+
+    - Does not contain support for the 'routestopped' file -- it must
+      be converted to an equivalent 'stoppedrules' file.
+
+    Note that you can run the update command(s) after you upgrade to
+    Shorewall 5 but your firewall will not work correctly until
+    you do those update(s).
+
+3)  The following configuration options have been eliminated:
+
+    - EXPORTPARAMS
+    - IPSECFILE
+    - LEGACY_FASTSTART
+    - LOGRATE *
+    - LOGBURST *
+    - WIDE_TC_MARKS *
+    - HIGH_ROUTE_MARKS *
+    - BLACKLISTNEWONLY *
+
+    A fatal error results if those flagged with an asterisk ("*")
+    appear in the .conf file -- run the 'shorewall[6] update' command
+    to convert their settings to use supported options.
+
+    A warning is issued if any of the rest appear in the .conf file.
+    'shorewall[6] update' will drop them from the file.
+
+4)  To make the command names more accurately reflect what they do,
+    several changes have been included:
+
+    a)  Beginning with this release, the 'restart' command now does a
+    	true restart and is equivalent to a 'stop' followed by a
+    	'start'.
+
+    b)  The pre-5.0.0 'load' command has been renamed 'remote_start'.
+
+    c)  The pre-5.0.0 'reload' command has been renamed 'remote_reload'.
+
+    c)  The 'reload' command now performs the same function as the
+    	pre-5.0.0 'restart' command.
+
+    d)  A 'remote_restart' command has been added to Shorewall and
+    	Shorewall6 to allow a remote 'restart' after updating the
+    	remote firewall system's compiled script.
+
+    For those that can't get used to the idea of using 'reload' in
+    place of 'restart', a RESTART option has been added. The
+    option defaults to 'reload' for compatibility with earlier
+    releases. If set to 'restart', then the 'restart' command
+    does a true restart (stop followed by start)
+
+5)  While the WORKAROUNDS setting is still present in the
+    shorewall[6].conf file:
+
+    a)  It's default setting has been changed to No.
+    
+    b)  All workarounds for old distributions have been eliminated.
+
+6)  Beginning with Shorewall 5.0.0, all macros and actions are assumed
+    to be FORMAT-2.  FORMAT-1 macros and actions are no longer supported
+    and will be silently processed as if they were FORMAT-2. For most
+    macros and actions, this change will be of no concern, but may cause
+    compilation errors in rare cases.
+
+    To review, FORMAT-1 actions have the following columns:
+
+       TARGET
+       SOURCE
+       DEST
+       PROTO
+       DEST PORT(S)
+       SOURCE PORT(S)
+       RATE
+       USER/GROUP
+       MARK
+
+    FORMAT-1 macros have these columns:
+
+       TARGET
+       SOURCE
+       DEST
+       PROTO
+       DEST PORT(S)
+       SOURCE PORT(S)
+       RATE
+       USER/GROUP
+
+    FORMAT-2 actions and macros, on the other hand, have:
+
+       TARGET
+       SOURCE
+       DEST
+       PROTO
+       DEST PORT(S)
+       SOURCE PORT(S)
+       ORIGINAL DEST
+       RATE
+       USER/GROUP
+       MARK
+       CONNLIMIT
+       TIME
+       HEADERS (Only valid for IPv6)
+       SWITCH
+       HELPER
+
+    To summarize, if your action or macro only uses the first 6
+    columns (which most do), then it will process fine as
+    FORMAT-2. Otherwise, it must be modified to place specifications in
+    the proper columns.
+
+7)  COMMENT, FORMAT and SECTION lines must now begin with a question
+    mark ("?"). The 'update' command will change all bare COMMENT,
+    FORMAT and SECTION lines to include the question mark.
+
+8)  Beginning with Shorewall 5.0.8, the IPv6 default treatment of Auth
+    (TCP 113) is now consistent with IPv4; nothing special is done with
+    these requests, so they are simply logged and dropped.
+
+    IMPORTANT: If you want to continue to reject Auth requests, you
+    can do so by chaning your DROP_DEFAULT setting to make the second
+    parameter REJECT. For example, if you currently have:
+
+        DROP_DEFAULT=Drop
+
+    you can change it to:
+
+    	DROP_DEFAULT="Drop(-,REJECT)"
+
+----------------------------------------------------------------------------
+         V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 7
 ----------------------------------------------------------------------------
 
 5.0.7.2
@@ -88,17 +494,7 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     default action. That has been corrected.
 
 ----------------------------------------------------------------------------
-           I I.  K N O W N   P R O B L E M S   R E M A I N I N G
-----------------------------------------------------------------------------
-
-1)  On systems running Upstart, shorewall-init cannot reliably secure
-    the firewall before interfaces are brought up.
-
-2)  The 'enable', 'reenable' and 'disable' commands do not work
-    correctly in configurations with USE_DEFAULT_RT=No.
-
-----------------------------------------------------------------------------
-      I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
+               N E W   F E A T U R E S   I N   5 . 0 . 7
 ----------------------------------------------------------------------------
 
 1)  Actions may now be used in the mangle file. To be used in the
@@ -205,153 +601,9 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     these targets.
 
 ----------------------------------------------------------------------------
-                  I V.  M I G R A T I O N   I S S U E S
-----------------------------------------------------------------------------
-
-1)  If you are migrating from Shorewall 4.4.x or earlier, please see
-    http://www.shorewall.net/pub/shorewall/4.5/shorewall-4.5.21/releasenotes.txt
-
-2)  It is strongly recommended that you first upgrade your installation
-    to a 4.6 release >= 4.6.12 prior to upgrading to Shorewall 5.0.
-
-    Once you are on the Shorewall 4.6 release:
-
-    - shorewall update -A
-
-    If you also run Shorewall6:
-    
-    - shorewall6 update -A
-
-    These steps are necessary because Shorewall 5.0:
-
-    - Does not contain support for the 'tcrules' and 'tos' files --
-      existing 'tcrules' and 'tos' files must be converted to an
-      equivalent set of 'mangle' file entries.
-
-    - Does not contain support for the 'blacklist' file -- it must
-      be converted to an equivalent 'blrules' file.
-
-    - Does not contain support for the 'notrack' file -- it must be
-      converted to an equivalent 'conntrack' file.
-
-    - Does not contain support for the 'routestopped' file -- it must
-      be converted to an equivalent 'stoppedrules' file.
-
-    Note that you can run the update command(s) after you upgrade to
-    Shorewall 5 but your firewall will not work correctly until
-    you do those update(s).
-
-3)  The following configuration options have been eliminated:
-
-    - EXPORTPARAMS
-    - IPSECFILE
-    - LEGACY_FASTSTART
-    - LOGRATE *
-    - LOGBURST *
-    - WIDE_TC_MARKS *
-    - HIGH_ROUTE_MARKS *
-    - BLACKLISTNEWONLY *
-
-    A fatal error results if those flagged with an asterisk ("*")
-    appear in the .conf file -- run the 'shorewall[6] update' command
-    to convert their settings to use supported options.
-
-    A warning is issued if any of the rest appear in the .conf file.
-    'shorewall[6] update' will drop them from the file.
-
-4)  To make the command names more accurately reflect what they do,
-    several changes have been included:
-
-    a)  Beginning with this release, the 'restart' command now does a
-    	true restart and is equivalent to a 'stop' followed by a
-    	'start'.
-
-    b)  The pre-5.0.0 'load' command has been renamed 'remote_start'.
-
-    c)  The pre-5.0.0 'reload' command has been renamed 'remote_reload'.
-
-    c)  The 'reload' command now performs the same function as the
-    	pre-5.0.0 'restart' command.
-
-    d)  A 'remote_restart' command has been added to Shorewall and
-    	Shorewall6 to allow a remote 'restart' after updating the
-    	remote firewall system's compiled script.
-
-    For those that can't get used to the idea of using 'reload' in
-    place of 'restart', a RESTART option has been added. The
-    option defaults to 'reload' for compatibility with earlier
-    releases. If set to 'restart', then the 'restart' command
-    does a true restart (stop followed by start)
-
-5)  While the WORKAROUNDS setting is still present in the
-    shorewall[6].conf file:
-
-    a)  It's default setting has been changed to No.
-    
-    b)  All workarounds for old distributions have been eliminated. See
-    	the Migration Issues for additional information.
-
-6)  Beginning with Shorewall 5.0.0, all macros and actions are assumed
-    to be FORMAT-2.  FORMAT-1 macros and actions are no longer supported
-    and will be silently processed as if they were FORMAT-2. For most
-    macros and actions, this change will be of no concern, but may cause
-    compilation errors in rare cases.
-
-    To review, FORMAT-1 actions have the following columns:
-
-       TARGET
-       SOURCE
-       DEST
-       PROTO
-       DEST PORT(S)
-       SOURCE PORT(S)
-       RATE
-       USER/GROUP
-       MARK
-
-    FORMAT-1 macros have these columns:
-
-       TARGET
-       SOURCE
-       DEST
-       PROTO
-       DEST PORT(S)
-       SOURCE PORT(S)
-       RATE
-       USER/GROUP
-
-    FORMAT-2 actions and macros, on the other hand, have:
-
-       TARGET
-       SOURCE
-       DEST
-       PROTO
-       DEST PORT(S)
-       SOURCE PORT(S)
-       ORIGINAL DEST
-       RATE
-       USER/GROUP
-       MARK
-       CONNLIMIT
-       TIME
-       HEADERS (Only valid for IPv6)
-       SWITCH
-       HELPER
-
-    To summarize, if your action or macro only uses the first 6
-    columns (which most do), then it will process fine as
-    FORMAT-2. Otherwise, it must be modified to place specifications in
-    the proper columns.
-
-7)  COMMENT, FORMAT and SECTION lines must now begin with a question
-    mark ("?"). The 'update' command will change all bare COMMENT,
-    FORMAT and SECTION lines to include the question mark.
-
-----------------------------------------------------------------------------
-         V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
-----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 6
 ----------------------------------------------------------------------------
+
 1)  This release includes defect repair through Shorewall 5.0.5.1.
 
 2)  Previously, the generated function define_firewall() contained
