@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=5.0.8
+VERSION=5.0.10
 
 usage() # $1 = exit status
 {
@@ -495,7 +495,7 @@ done
 # Install the Man Pages
 #
 
-if [ -d manpages ]; then
+if [ -d manpages -a -n "$MANDIR" ]; then
     cd manpages
 
     mkdir -p ${DESTDIR}${MANDIR}/man5/ ${DESTDIR}${MANDIR}/man8/
@@ -550,7 +550,7 @@ if [ -n "$SYSCONFFILE" -a -f "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PR
     fi
 
     install_file ${SYSCONFFILE} ${DESTDIR}${SYSCONFDIR}/${PRODUCT} 0640
-    echo "$SYSCONFFILE installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
+    echo "$SYSCONFFILE file installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
 fi
 
 if [ ${SHAREDIR} != /usr/share ]; then

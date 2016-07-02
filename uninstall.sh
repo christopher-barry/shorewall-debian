@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=5.0.8
+VERSION=5.0.10
 PRODUCT=shorewall6-lite
 Product="Shorewall6 Lite"
 
