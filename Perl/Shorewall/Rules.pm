@@ -77,7 +77,7 @@ our %EXPORT_TAGS = ( Traffic => [ qw( process_tc_rule
 
 Exporter::export_ok_tags('Traffic');
 
-our $VERSION = '5.0_8';
+our $VERSION = '5.0_10';
 #
 # Globals are documented in the initialize() function
 #
@@ -4464,6 +4464,16 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	    },
 	},
 
+	NFLOG      => {
+	    defaultchain  => 0,
+	    allowedchains => ALLCHAINS,
+	    minparams     => 0,
+	    maxparams     => 3,
+	    function      => sub () {
+		$target = validate_level( "NFLOG($params)" );
+	    }
+	},
+
 	RESTORE    => {
 	    defaultchain   => 0,
 	    allowedchains  => PREROUTING | INPUT | FORWARD | OUTPUT | POSTROUTING,
@@ -4739,10 +4749,6 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	}
     }
 
-    unless ( ( $chain || $default_chain ) == OUTPUT ) {
-	fatal_error 'A USER/GROUP may only be specified when the SOURCE is $FW' unless $user eq '-';
-    }
-
     if ( $dest ne '-' ) {
 	if ( $dest eq $fw ) {
 	    fatal_error 'Rules with DEST $FW must use the INPUT chain' if $designator && $designator ne INPUT;
@@ -4785,6 +4791,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	    fatal_error "Duplicate STATE ($_)" if $state{$_}++;
 	}
     }
+
     #
     # Call the command's processing function
     #
@@ -4795,12 +4802,23 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	    if ( $chain == ACTIONCHAIN ) {
 		fatal_error "$cmd rules are not allowed in the $chainlabels{$chain} chain" unless $commandref->{allowedchains} & $chainref->{allowedchains};
 		$chainref->{allowedchains} &= $commandref->{allowedchains};
+		$chainref->{allowedchains} &= (OUTPUT | POSTROUTING ) if $user ne '-';
 	    } else {
+		#
+		# Inline within one of the standard chains
+		#
 		fatal_error "$cmd rules are not allowed in the $chainlabels{$chain} chain" unless $commandref->{allowedchains} & $chain;
+		unless ( $chain == OUTPUT || $chain == POSTROUTING  ) {
+		    fatal_error 'A USER/GROUP may only be specified when the SOURCE is $FW' unless $user eq '-';
+		}
 	    }
 	} else {
 	    $resolve_chain->();
 	    fatal_error "$cmd rules are not allowed in the $chainlabels{$chain} chain" unless $commandref->{allowedchains} & $chain;
+	    unless ( $chain == OUTPUT || $chain == POSTROUTING  ) {
+		fatal_error 'A USER/GROUP may only be specified when the SOURCE is $FW' unless $user eq '-';
+	    }
+
 	    $chainref = ensure_chain( 'mangle', $chainnames{$chain} );
 	}
 
@@ -4966,6 +4984,13 @@ sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
 			$mark = $rest;
 		    } elsif ( supplied $2 ) {
 			$mark = $2;
+			if ( supplied $mark && $command eq 'IPMARK' ) {
+			    my @params = split ',', $mark;
+			    $params[1] = '0xff' unless supplied $params[1];
+			    $params[2] = '0x00' unless supplied $params[2];
+			    $params[3] = '0'    unless supplied $params[3];
+			    $mark = join ',', @params;
+			}
 		    } else {
 			$mark = '';
 		    }
@@ -4976,7 +5001,7 @@ sub process_tc_rule1( $$$$$$$$$$$$$$$$ ) {
 	}
     }
 	
-    $command = ( $command ? "$command($mark)" : $mark ) . $designator;
+    $command = ( $command ? supplied $mark ? "$command($mark)" : $command : $mark ) . $designator;
     my $line = ( $family == F_IPV6 ?
 		 "$command\t$source\t$dest\t$proto\t$ports\t$sports\t$user\t$testval\t$length\t$tos\t$connbytes\t$helper\t$headers\t$probability\t$dscp\t$state" :
 		 "$command\t$source\t$dest\t$proto\t$ports\t$sports\t$user\t$testval\t$length\t$tos\t$connbytes\t$helper\t$probability\t$dscp\t$state" );

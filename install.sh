@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=5.0.8
+VERSION=5.0.10
 
 #
 # Change to the directory containing this script
@@ -514,7 +514,7 @@ echo "Default config path file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/confi
 # Install the Standard Actions file
 #
 install_file actions.std ${DESTDIR}${SHAREDIR}/$PRODUCT/actions.std 0644
-echo "Standard actions file installed as ${DESTDIR}${SHAREDIR}d/$PRODUCT/actions.std"
+echo "Standard actions file installed as ${DESTDIR}${SHAREDIR}/$PRODUCT/actions.std"
 
 cd configfiles
 
@@ -1177,6 +1177,8 @@ fi
 # Install the Man Pages
 #
 
+if [ -n "$MANDIR" ]; then
+
 cd manpages
 
 [ -n "$INSTALLD" ] || mkdir -p ${DESTDIR}${MANDIR}/man5/ ${DESTDIR}${MANDIR}/man8/
@@ -1196,6 +1198,7 @@ done
 cd ..
 
 echo "Man Pages Installed"
+fi
 
 if [ -d ${DESTDIR}${CONFDIR}/logrotate.d ]; then
     run_install $OWNERSHIP -m 0644 logrotate ${DESTDIR}${CONFDIR}/logrotate.d/$PRODUCT
@@ -1212,7 +1215,7 @@ if [ -n "$SYSCONFFILE" -a -f "$SYSCONFFILE" -a ! -f ${DESTDIR}${SYSCONFDIR}/${PR
     fi
 
     run_install $OWNERSHIP -m 0644 ${SYSCONFFILE} ${DESTDIR}${SYSCONFDIR}/$PRODUCT
-    echo "$SYSCONFFILE installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
+    echo "$SYSCONFFILE file installed in ${DESTDIR}${SYSCONFDIR}/${PRODUCT}"
 fi
 
 if [ $configure -eq 1 -a -z "$DESTDIR" -a -n "$first_install" -a -z "${cygwin}${mac}" ]; then

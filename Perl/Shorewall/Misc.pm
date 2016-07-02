@@ -48,7 +48,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '5.0_8';
+our $VERSION = '5.0_10';
 
 our $family;
 
@@ -200,6 +200,7 @@ sub remove_blacklist( $ ) {
     if ( $changed ) {
 	rename $fn, "$fn.bak" or fatal_error "Unable to rename $fn to $fn.bak: $!";
 	rename "$fn.new", $fn or fatal_error "Unable to rename $fn.new to $fn: $!";
+	transfer_permissions( "$fn.bak", $fn );
 	progress_message2 "\u$file file $fn saved in $fn.bak"
     }
 }
@@ -302,12 +303,13 @@ sub convert_blacklist() {
 	if ( @rules ) {
 	    my $fn1 = find_writable_file( 'blrules' );
 	    my $blrules;
-	    my $date = localtime;
+	    my $date = compiletime;
 
 	    if ( -f $fn1 ) {
 		open $blrules, '>>', $fn1 or fatal_error "Unable to open $fn1: $!";
 	    } else {
 		open $blrules, '>',  $fn1 or fatal_error "Unable to open $fn1: $!";
+		transfer_permissions( $fn, $fn1 );
 		print $blrules <<'EOF';
 #
 # Shorewall version 5.0 - Blacklist Rules File
@@ -393,7 +395,7 @@ sub convert_routestopped() {
 	my ( @allhosts, %source, %dest , %notrack, @rule );
 
 	my $seq  = 0;
-	my $date = localtime;
+	my $date = compiletime;
 
 	my ( $stoppedrules, $fn1 );
 
@@ -401,6 +403,7 @@ sub convert_routestopped() {
 	    open $stoppedrules, '>>', $fn1 or fatal_error "Unable to open $fn1: $!";
 	} else {
 	    open $stoppedrules, '>',  $fn1 or fatal_error "Unable to open $fn1: $!";
+	    transfer_permissions( $fn, $fn1 );
 	    print $stoppedrules <<'EOF';
 #
 # Shorewall version 5 - Stopped Rules File
@@ -421,7 +424,7 @@ EOF
 
 	first_entry(
 		    sub {
-			my $date = localtime;
+			my $date = compiletime;
 			progress_message2 "$doing $fn...";
 			print( $stoppedrules
 			       "#\n" ,
@@ -649,9 +652,15 @@ sub create_docker_rules() {
 	add_ijump( $chainref, j => 'ACCEPT', o => 'docker0', state_imatch 'ESTABLISHED,RELATED' );
 	add_ijump( $chainref, j => 'ACCEPT', i => 'docker0', o => '! docker0' );
 	add_ijump( $chainref, j => 'ACCEPT', i => 'docker0', o => 'docker0' ) if $dockerref->{options}{routeback};
-	add_ijump( $filter_table->{OUTPUT}, j => 'DOCKER' );
 	decr_cmd_level( $chainref );
 	add_commands( $chainref, 'fi' );
+
+	my $outputref;
+	add_commands( $outputref = $filter_table->{OUTPUT}, 'if [ -n "$g_docker" ]; then' );
+	incr_cmd_level( $outputref );
+	add_ijump( $outputref, j => 'DOCKER' );
+	decr_cmd_level( $outputref );
+	add_commands( $outputref, 'fi' );
     }
 
     add_commands( $chainref, '[ -f ${VARDIR}/.filter_FORWARD ] && cat $VARDIR/.filter_FORWARD >&3', );
@@ -860,13 +869,30 @@ sub add_common_rules ( $ ) {
 		}
 	    }
 
-	    if ( $dbl_ipset && ! get_interface_option( $interface, 'nodbl' ) ) {
-		add_ijump_extended( $filter_table->{input_option_chain($interface)},  j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset src" );
-		add_ijump_extended( $filter_table->{output_option_chain($interface)}, j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset dst" ) if $dbl_type =~ /,src-dst$/;
+	    if ( $dbl_ipset && ( ( my $setting = get_interface_option( $interface, 'dbl' ) ) ne '0:0' ) ) {
+
+		my ( $in, $out ) = split /:/, $setting;
+
+		if ( $in  == 1 ) {
+		    #
+		    # src
+		    #
+		    add_ijump_extended( $filter_table->{input_option_chain($interface)},   j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset src" );
+		    add_ijump_extended( $filter_table->{forward_option_chain($interface)}, j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset src" );
+		} elsif ( $in == 2 ) {
+		    add_ijump_extended( $filter_table->{forward_option_chain($interface)}, j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset dst" );
+		}
+
+		if ( $out == 2 ) {
+		    #
+		    # dst
+		    #
+		    add_ijump_extended( $filter_table->{output_option_chain($interface)},  j => $dbl_target, $origin{DYNAMIC_BLACKLIST}, @state, set => "--match-set $dbl_ipset dst" );
+		}
 	    }
 	    
 	    for ( option_chains( $interface ) ) {
-		add_ijump_extended( $filter_table->{$_}, j => $dynamicref, $origin{DYNAMIC_BLACKLIST}, @state ) if $dynamicref && ! get_interface_option( $interface, 'nodbl' );
+		add_ijump_extended( $filter_table->{$_}, j => $dynamicref, $origin{DYNAMIC_BLACKLIST}, @state ) if $dynamicref && ( get_interface_option( $interface, 'dbl' ) ne '0:0' );
 		add_ijump_extended( $filter_table->{$_}, j => 'ACCEPT',    $origin{FASTACCEPT},        state_imatch $faststate )->{comment} = '' if $config{FASTACCEPT};
 	    }
 	}

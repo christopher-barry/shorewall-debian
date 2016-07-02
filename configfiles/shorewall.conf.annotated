@@ -1705,6 +1705,16 @@ USE_RT_NAMES=No
 # 
 #     Without these entries, the firewall will fail to start.
 # 
+VERBOSE_MESSAGES=Yes
+#
+# VERBOSE_MESSAGES=[Yes|No]
+# 
+#     Added in Shorewall 5.0.9. When Yes (the default), messages produced by the
+#     ?INFO and ?WARNING directives include the filename and linenumber of the
+#     directive. When set to No, that additional information is omitted. The
+#     setting may be overridden on a directive by directive basis by following ?
+#     INFO or ?WARNING with '!' (no intervening white space).
+# 
 WARNOLDCAPVERSION=Yes
 #
 # WARNOLDCAPVERSION=[Yes|No]

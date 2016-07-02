@@ -84,6 +84,8 @@ our @EXPORT = qw(
 		 require_capability
 		 report_used_capabilities
 		 kernel_version
+
+                 compiletime
                 );
 
 our @EXPORT_OK = qw( $shorewall_dir initialize shorewall);
@@ -163,6 +165,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
                                        directive_callback
 		                       add_ipset
 		                       all_ipsets
+                                       transfer_permissions
 
 				       $product
 				       $Product
@@ -238,7 +241,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_8';
+our $VERSION = '5.0_10';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -681,6 +684,8 @@ our %ipsets; # All required IPsets
 #
 our %filecache;
 
+our $compiletime;
+
 sub process_shorewallrc($$);
 sub add_variables( \% );
 #
@@ -737,7 +742,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.8",
+		    VERSION                 => "5.0.10",
 		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
@@ -889,6 +894,7 @@ sub initialize( $;$$) {
 	  DOCKER => undef ,
 	  PAGER => undef ,
 	  MINIUPNPD => undef ,
+	  VERBOSE_MESSAGES => undef ,
 	  #
 	  # Packet Disposition
 	  #
@@ -1171,6 +1177,12 @@ sub initialize( $;$$) {
     %shorewallrc1 = %shorewallrc unless $shorewallrc1;
 
     add_variables %shorewallrc1;
+
+    $compiletime = `date`;
+
+    chomp $compiletime;
+
+    $compiletime =~ s/ +/ /g;
 }
 
 my @abbr = qw( Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec );
@@ -1181,6 +1193,10 @@ sub add_ipset( $ ) {
 
 sub all_ipsets() {
     sort keys %ipsets;
+}
+
+sub compiletime() {
+    $compiletime;
 }
 
 #
@@ -2543,18 +2559,54 @@ sub directive_error( $$$ ) {
     fatal_error $_[0];
 }
 
-sub directive_warning( $$$ ) {
-    my ( $savefilename, $savelineno ) = ( $currentfilename, $currentlinenumber );
-    ( my $warning, $currentfilename, $currentlinenumber ) = @_;
-    warning_message $warning;
-    ( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
+sub directive_warning( $$$$ ) {
+    if ( shift ) {
+	my ( $savefilename, $savelineno ) = ( $currentfilename, $currentlinenumber );
+	( my $warning, $currentfilename, $currentlinenumber ) = @_;
+	warning_message $warning;
+	( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
+    } else {
+	our @localtime;
+
+	handle_first_entry if $first_entry;
+
+	$| = 1; #Reset output buffering (flush any partially filled buffers).
+
+	if ( $log ) {
+	    @localtime = localtime;
+	    printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+	    print $log  "   WARNING: $_[0]\n";
+	}
+
+	print STDERR "   WARNING: $_[0]\n";
+
+	$| = 0; #Re-allow output buffering
+    }
 }
 
-sub directive_info( $$$ ) {
-    my ( $savefilename, $savelineno ) = ( $currentfilename, $currentlinenumber );
-    ( my $info, $currentfilename, $currentlinenumber ) = @_;
-    info_message $info;
-    ( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
+sub directive_info( $$$$ ) {
+    if ( shift ) {
+	my ( $savefilename, $savelineno ) = ( $currentfilename, $currentlinenumber );
+	( my $info, $currentfilename, $currentlinenumber ) = @_;
+	info_message $info;
+	( $currentfilename, $currentlinenumber ) = ( $savefilename, $savelineno );
+    } else {
+	our @localtime;
+
+	handle_first_entry if $first_entry;
+
+	$| = 1; #Reset output buffering (flush any partially filled buffers).
+
+	if ( $log ) {
+	    @localtime = localtime;
+	    printf $log '%s %2d %02d:%02d:%02d ', $abbr[$localtime[4]], @localtime[3,2,1,0];
+	    print $log  "   INFO: $_[0]\n";
+	}
+
+	print STDERR "   INFO: $_[0]\n";
+
+	$| = 0; #Re-allow output buffering
+    }
 }
 
 #
@@ -2703,7 +2755,7 @@ sub process_compiler_directive( $$$$ ) {
 
     print "CD===> $line\n" if $debug;
 
-    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*|ERROR\s+|WARNING\s+|INFO\s+)(.*)$/i;
+    directive_error( "Invalid compiler directive ($line)" , $filename, $linenumber ) unless $line =~ /^\s*\?(IF\s+|ELSE|ELSIF\s+|ENDIF|SET\s+|RESET\s+|FORMAT\s+|COMMENT\s*|ERROR\s+|WARNING\s+|INFO\s+|WARNING!\s+|INFO!\s+)(.*)$/i;
 
     my ($keyword, $expression) = ( uc $1, $2 );
 
@@ -2811,14 +2863,14 @@ sub process_compiler_directive( $$$$ ) {
 			      delete $actparams{$var}
 			  }
 		      } else {
-			  directive_warning( "Shorewall variable $2 does not exist", $filename, $linenumber );
+			  directive_warning( 'Yes', "Shorewall variable $2 does not exist", $filename, $linenumber );
 		      }
 
 		  } else {
 		      if ( exists $variables{$2} ) {
 			  delete $variables{$2};
 		      } else {
-			  directive_warning( "Shell variable $2 does not exist", $filename, $linenumber );
+			  directive_warning( 'Yes', "Shell variable $2 does not exist", $filename, $linenumber );
 		      }
 		  }
 	      }
@@ -2832,7 +2884,7 @@ sub process_compiler_directive( $$$$ ) {
 			      ( $comment = $line ) =~ s/^\s*\?COMMENT\s*//;
 			      $comment =~ s/\s*$//;
 			  } else {
-			      directive_warning( "COMMENTs ignored -- require comment support in iptables/Netfilter" , $filename, $linenumber ) unless $warningcount++;
+			      directive_warning( 'Yes', "COMMENTs ignored -- require comment support in iptables/Netfilter" , $filename, $linenumber ) unless $warningcount++;
 			  }
 		      }
 		  } else {
@@ -2851,7 +2903,8 @@ sub process_compiler_directive( $$$$ ) {
 	  } ,
 
 	  WARNING => sub() {
-	      directive_warning( evaluate_expression( $expression ,
+	      directive_warning( $config{VERBOSE_MESSAGES} ,
+		                 evaluate_expression( $expression ,
 						      $filename ,
 						      $linenumber ,
 						      1 ),
@@ -2860,7 +2913,28 @@ sub process_compiler_directive( $$$$ ) {
 	  } ,
 
 	  INFO => sub() {
-	      directive_info( evaluate_expression( $expression ,
+	      directive_info( $config{VERBOSE_MESSAGES} ,
+			      evaluate_expression( $expression ,
+						   $filename ,
+						   $linenumber ,
+						   1 ),
+			      $filename ,
+			      $linenumber ) unless $omitting;
+	  } ,
+
+	  'WARNING!' => sub() {
+	      directive_warning( ! $config{VERBOSE_MESSAGES} ,
+		                 evaluate_expression( $expression ,
+						      $filename ,
+						      $linenumber ,
+						      1 ),
+				 $filename ,
+				 $linenumber ) unless $omitting;
+	  } ,
+
+	  'INFO!' => sub() {
+	      directive_info( ! $config{VERBOSE_MESSAGES} ,
+			      evaluate_expression( $expression ,
 						   $filename ,
 						   $linenumber ,
 						   1 ),
@@ -3821,9 +3895,10 @@ my %logoptions = ( tcp_sequence         => '--log-tcp-sequence',
 
 sub validate_level( $;$ ) {
     my ( $rawlevel, $option ) = @_;
-    my $level    = uc $rawlevel;
+    my $level;
 
-    if ( supplied ( $level ) ) {
+    if ( supplied ( $rawlevel ) ) {
+	$level = uc $rawlevel;
 	$level =~ s/!$//;
 	my $value = $level;
 	my $qualifier;
@@ -5015,6 +5090,19 @@ sub update_default($$) {
     $config{$var} = $val unless defined $config{$var};
 }
 
+#
+# Transfer the permissions from an old .bak file to a newly-created file
+#
+sub transfer_permissions( $$ ) {
+    my ( $old, $new ) = @_;
+
+    my @stat = stat $old;
+
+    if ( @stat ) {
+	fatal_error "Can't transfer permissions from $old to $new" unless chmod( $stat[2] & 0777, $new );
+    }
+}
+
 sub update_config_file( $ ) {
     my ( $annotate ) = @_;
 
@@ -5164,6 +5252,7 @@ EOF
 
 	if ( system( "diff -q $configfile $configfile.bak > /dev/null" ) ) {
 	    progress_message3 "Configuration file $configfile updated - old file renamed $configfile.bak";
+	    transfer_permissions( "$configfile.bak", $configfile );
 	} else {
 	    if ( rename "$configfile.bak", $configfile ) {
 		progress_message3 "No update required to configuration file $configfile; $configfile.bak not saved";
@@ -5678,6 +5767,24 @@ sub get_configuration( $$$$ ) {
 	$ENV{PATH} = $default_path;
     }
 
+    fatal_error "Shorewall-core does not appear to be installed" unless open_file "$globals{SHAREDIRPL}coreversion";
+
+    fatal_error "$globals{SHAREDIRPL}coreversion is empty" unless read_a_line( PLAIN_READ );
+
+    close_file;
+
+    warning_message "Version Mismatch: Shorewall-core is version $currentline, while the Shorewall version is $globals{VERSION}" unless $currentline eq $globals{VERSION};
+
+    if ( $family == F_IPV6 ) {
+	open_file( "$globals{SHAREDIR}/version" ) || fatal_error "Unable to open $globals{SHAREDIR}/version";
+
+	fatal_error "$globals{SHAREDIR}/version is empty" unless read_a_line( PLAIN_READ );
+
+	close_file;
+
+	warning_message "Version Mismatch: Shorewall6 is version $currentline, while the Shorewall version is $globals{VERSION}" unless $currentline eq $globals{VERSION};
+    }
+
     my $have_capabilities;
 
     if ( $export || $> != 0 ) {
@@ -6093,8 +6200,10 @@ sub get_configuration( $$$$ ) {
 	    require_capability( 'IPSET_V5', 'DYNAMIC_BLACKLIST=ipset...', 's' );
 
 	} else {
-	    default_yes_no( 'DYNAMIC_BLACKLIST'     , 'Yes' );
+	    default_yes_no( 'DYNAMIC_BLACKLIST', 'Yes' );
 	}
+    } else {
+	default_yes_no( 'DYNAMIC_BLACKLIST', 'Yes' );
     }
 
     default_yes_no 'REQUIRE_INTERFACE'          , '';
@@ -6109,6 +6218,7 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'WARNOLDCAPVERSION'          , 'Yes';
     default_yes_no 'DEFER_DNS_RESOLUTION'       , 'Yes';
     default_yes_no 'MINIUPNPD'                  , '';
+    default_yes_no 'VERBOSE_MESSAGES'           , 'Yes';
 
     $config{IPSET} = '' if supplied $config{IPSET} && $config{IPSET} eq 'ipset';
 
