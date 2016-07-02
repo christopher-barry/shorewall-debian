@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	               S H O R E W A L L  5 . 0 . 8
+	              S H O R E W A L L  5 . 0 . 1 0
                        ----------------------------
-                        A p r i l  2 4 ,  2 0 1 6
+                          J u n e  3 0 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,153 +14,26 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  This release includes defect repair through Shorewall 5.0.7.2.
+1)  This release includes defect repair through Shorewall 5.0.9.2.
 
-2)  If a physical interface name was used in the INTERFACE column of an
-    entry in /etc/shorewall/masq, then previously a Perl diagnostic was
-    issued as the masq rule was being processed and the iptables rule
-    and its containing chain were dropped by the optimizer. That has
-    been corrected so that physical interface names are handled
-    correctly.
+2)  Previously, the 'update' commmand could result in updated files
+    having the user's default permissions rather than the permissions
+    of the original file. That has been corrected.
 
-    Similar issues with physical names in the INTERFACE column of the
-    nat, netmap and ecn files have also been resolved.
+3)  A number of update and update-compatibility issues have been
+    corrected:
 
-3)  The optional plus sign ('+') in the MODULESDIR setting, added in
-    Shorewall 5.0.3, is now documented in the shorewall[6].conf
-    manpages.
+    a)  <user>: (e.g., "fred:") is once again accepted in USER columns.
+    b)  The USER column in the mangle file can once again be specified
+        when :T is the chain designator.
+    c)  The 'notrack' file is now correctly appended to the 'mangle'
+        file during update.
+    d)  IPMARK entries in 'tcrules' are now correctly converted into
+        the 'mangle' file.
 
-4)  Address variables that specified the physical interface name
-    previously caused Perl diagnostics to be issued and wrong code
-    to be generated. That has been corrected.
-
-5) The IPv6 default treatment of Auth (TCP 113) is now consistent with
-    IPv4; nothing special is done with these requests, so they are
-    simply logged and dropped or rejected.
-
-    IMPORTANT: If you want to continue to silengly reject Auth
-    requests, you can do so by changing your xxx_DEFAULT settings to
-    make the second parameter 'Reject'. For example, if you currently
-    have:
-
-        DROP_DEFAULT=Drop
-	REJECT_DEFAULT=Reject
-
-    you can change it to:
-
-    	DROP_DEFAULT="Drop(-,REJECT)"
-    	REJECT_DEFAULT="Reject(-,REJECT)"
-
-6)  Previously, if a zone had two or more interfaces, then the
-    interfaces' option rules (DHCP, dynamic blacklisting, etc.) could
-    be moved into the fw->zone chain without being restricted to their
-    respective interfaces. This could result in needless duplication of
-    rules. These rules are now kept in separate chains which, if they
-    are identical, will be combined by the optimizer if OPTIMIZE level 8
-    is enabled.
-
-7)  A number of issues have been resolved with saving/restoring ipsets
-    in Shorewall and Shorewall6.
-
-    - Even if Shorewall's SAVE_IPSETS was set to ipv4, restarting one
-      configuration would attempt to flush/destroy the ipsets for the
-      other address family.
-
-    - The same set could be saved multiple times, with the result
-      that ipset error messages were issued during 'shorewall[6]
-      start'.
-
-    - Needless repetition of code was generated due to the use of
-      compile-time loops rather than run-time loops.
-
-8)  Previously, when AUTOMAKE=Yes, the 'start' command would not
-    regenerate an out-of-date firewall script.
-
-9)  A couple of recent changes have resulted in file name collisions
-    on Cygwin with its underlying case-insensitive filesystem. To avoid
-    these collisions.
-
-    - /usr/share/shorewall/deprecated and
-      /usr/share/shorewall6/deprecated directories have been created.
-
-    - When a name collision occurs, the file with the older name is
-      moved to the deprecated directory
-
-    - The compiler automatically searches the deprecated directory
-      (both directories in the case of Shorewall6) for files.
-
-    In this release, macro.SNMPTraps and action.A_Reject were moved to
-    /usr/share/shorewall/deprecated/. Note that both are deprecated -
-    Reject accepts an 'audit' parameter, and macro.SNMPTraps has been
-    superseded by macro.SNMPtraps.
-
-10) Previously, the 'reload' command did not produce a system log
-    message when it succeeded. That has been corrected.
-
-11) Previously, when compilation was done as part of a reload or
-    restart operation, compiler logging to the STARTUP_LOG was
-    suppressed. Such logging is now enabled.
-
-12) The compiler now uses a uniform format for timestamps in the
-    STARTUP_LOG and on standard output (when the -t option is
-    specified). Previously, some messages suppressed a leading zero in
-    the hour where others did not. Now, the leading zero is never
-    suppressed for compatibility with the timestamps produced by the
-    generated script.
-
-13) Previously, the compiler would allow 0 to be specified in the MARK
-    column of the tcclasses file, resulting in a run-time failure:
-
-    Setting up Traffic Control...
-    RTNETLINK answers: Invalid argument
-    We have an error talking to the kernel
-       ERROR: Command "tc filter add dev eth0 protocol all parent 1:0
-                       prio 276 handle 0 fw classid 1:10" Failed
-
-    Now, the following error is generated by the compiler:
-
-       ERROR: MARK value must be non-zero
-
-    As part of this change, the shorewall[6]-tcclasses(5) manpages have
-    been updated:
-
-    - Specifity a filter priority in the MARK column is now documented
-      (this feature has been in the code for several years)
-
-    - The default priorities of the filters for tos= and tcp-ack have
-      been correcgted.
-
-14) For consistency with Docker, when bridge docker0 is listed in
-    /etc/shorewall/interfaces, the following rule is now generated:
-
-        -A FORWARD -o docker0 -m conntrack \
-                --ctstate RELATED,ESTABLISHED -j ACCEPT
-
-15)  Previously, the safe-* commands did not direct the compiler to
-     write to the STARTUP_LOG. That has been corrected. The commands
-     which direct the compiler to write to that log are now:
-
-       start
-       try
-       refresh
-       reload
-       restart
-       safe-*
-
-16)  In the last several releases, the following Known Problem
-     Remaining has been listed:
-
-       The 'enable', 'reenable' and 'disable' commands do now work
-       correctly in configurations with USE_DEFAULT_RT=No.
-
-    That description is a bit broader than is necessary and is now
-    restricted to the case where an optional provider is listed in the
-    DUPLICATE column (see below). Additionally, the compiler now
-    generates a warning in that case:
-
-      WARNING: An optional provider (xxxx) is listed in the
-               DUPLICATE column - enable and disable will not work
-	       correctly on that provider
+4)  When multiple zones are configured on an interface, the 'tcpflags',
+    'nosmurfs' and 'maclist' options could previously result in silly
+    duplicate rules. That problem has been corrected.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -177,86 +50,34 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  Support for later versions of miniupnpd has been added in the form
-    of a MINIUPNPD option in shorewall.conf. If set to Yes, Shorewall
-    will create a chain in the nat table named MINIUPNPD-POSTROUTING
-    and will add jumps from POSTROUTING to that chain for each
-    interface with the upnpd option specified.  Default is No.
-    The contents of the chain are preserved over 'shorewall reload' and
-    'shorewall restart' operations.
+1)  The 'allow' command can now remove entries from the ipset-based
+    dynamic blacklists.
 
-2)  The REJECT and A_REJECT actions may now take an optional parameter
-    that specifies the way in which the packet is to be rejected. See
-    shorewall[6]-rules(5) for details.
+      allow <address> ...
 
-3)  The standard action files and shell libraries now have a uniform
-    format for their header comments (Tuomo Soini).
+2)  A new 'dbl' (Dynamic Blacklist) option is now available in the
+    'interfaces' file. Possible settings are:
 
-4)  The compiler now uses the iptables goto (-g) parameter rather than
-    the jump (-j) parameter, when the target is a terminating chain
-    (does not have any rules with the RETURN target and the last rule
-    in the chain is an unconditional jump to a terminating target or
-    chain).
+    none    - equivalent to specifying 'nodbl'.
+    src     - packets entering the firewall on the interface have their
+    	      source IP address checked against the ipset-based
+    	      blacklist.
+    dst     - packets entering the firewall on the interface have their
+              destination IP address checked against the ipset-based
+    	      blacklist.
+    src-dst - packets entering the firewall on the interface have their
+    	      source IP address checked against the ipset-based
+    	      blacklist. Packets originating on the fireawll and
+    	      leaving through the interface have their destination IP
+    	      address checked against the ipset-based blacklist.
 
-5)  The compiler now raises an error if the target of a chain's rule is
-    the chain itself.
+    The normal setting for an internet-facing interface will be either
+    'src' or 'src-dst'. The normal setting for an internal interface
+    will be either 'none' or 'dst'.
 
-6)  The compiler now raises an error if the action specified in
-    REJECT_ACTION contains a RETURN (CONTINUE) jump or if the last rule
-    in the action is not an unconditional jump to a terminating target.
-
-7)  The Drop and Reject default actions now accept a sixth parameter
-    that specifies the action to be taken on UPnP packets. Previously,
-    the same action was performed on UPnP as was performed on late DNS
-    replies. The default is DROP in both cases.
-
-8)  Heretofore, when DYNAMIC_BLACKLISTING=Yes, blacklists were checked
-    on packets arriving and leaving on all interfaces. Now, individual
-    interfaces may be exempted from dynamic blacklisting through use of
-    the "nodbl" interface option.
-
-9)  Prior to this release, dynamic blacklisting has been implemented
-    using rules in an ip[6]tables chain. This scales poorly when there
-    are a large number of blacklisted addresses.
-
-    Beginning with this release, dynamic blacklisting can be ipset-
-    based. See DYNAMIC_BLACKLIST in shorewall.conf(5) and
-    shorewall6.conf(5) and the 'blacklist' command in shorewall(8) and
-    shorewall6(8).
-
-    As part of this change, ipsets created by Shorewall are now of type
-    hash:net with the 'timeout 0 counters' options, rather than
-    hash:ip with no options. This allows both network and individual
-    host addresses to be added to these ipsets, a timeout to be
-    specified when addresses are added to the ipsets, and visibility
-    into matches on individual members of the ipset.
-
-10) New new Redis macros have been added, one for Redis Cluster and the
-    other for Redis Sentinal (Tuomo Soini).
-
-11) The system log messages created by Shorewall via the 'logger'
-    utility may now be augmented using logger's -t (--tag) option
-    through use of the SW_LOGGERTAG environmental variable. If this
-    variable is set to a non-empty value, then its contents will be
-    passed as the -t option (e.g. logger -t "$SW_LOGGERTAG" ...).
-
-12) Similar to ?ERROR, which was introduced in Shorewall 5.0.7, this
-    release supports additional ?WARNING and ?INFO directives
-
-      ?ERROR <message>
-      ?WARNING <message>
-      ?INFO <message>
-
-    The <message> is written to STDERR prefaced by the directive name
-    (WARNING or INFO) followed by a colon (':'). It is also written to
-    the STARTUP_LOG if:
-
-    - A STARTUP_LOG has been configured
-    - The command is start, try, restart, reload, refresh or one of the
-      safe-* commands
-
-    Unlike ?ERROR, ?WARNING and ?INFO do not cause compilation to be
-    aborted.
+3)  The RPMs from shorewall.net are now created to assume that systemd
+    is being used. They are targeted specifically at OpenSuSE and have
+    been verified on OpenSuSE 42.1.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -416,6 +237,317 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 9
+----------------------------------------------------------------------------
+
+1)  This release contains defect repair through Shorewall 5.0.8.2.
+
+2)  Previously, if:
+
+    - DOCKER=Yes
+    - docker0 was defined in /etc/shorewall/interfaces
+    - Docker was not running
+
+    then Shorewall would fail to start with an error similar to this
+
+      iptables-restore v1.4.21: Couldn't load target `DOCKER':
+           No such file or directory
+      Error occurred at line: 29
+      Try `iptables-restore -h' or
+           'iptables-restore --help' for more information.
+      ERROR: /sbin/iptables-restore Failed.
+
+    This has been corrected such that Shorewall starts correctly under
+    these conditions.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 9
+----------------------------------------------------------------------------
+
+1)  The file 'lib.core' has been renamed 'lib.runtime' to more
+    accurately reflect the file's role.
+
+2)  The CLI now produces helpful error messages rather than simply
+    dumping out the complete usage syntax.
+
+3)  The 'status' and 'version -a" command outputs now include the time
+    and date when the current firewall script was compiled.
+
+    This feature implements a new 'info' command that is recognized by
+    the compiled script. That command produces output similar to the
+    following:
+
+      compiled Thu Apr 28 14:18:58 2016 by Shorewall version 5.0.9
+
+    Note 1: The time and date of compilation will only be displayed
+    after the firewall script has been compiled using this or a later
+    Shorewall release.
+
+    Note 2: Information about the current firewall script is only
+    displayed by the 'version -a' command when the command is executed
+    by root.
+
+    Caution: If you execute 'shorewall compile', a subsequent 'status'
+    command will display the compilation information for the newly
+    compiled script and not for the one that was used to instantiate
+    the running firewall configuration. Note that the compilation
+    date/time, in this case, will be later than the started date/time:
+
+    Example:
+
+      State:Started Sun Apr 24 12:22:18 PDT 2016 from /etc/shorewall/
+         (/var/lib/shorewall/firewall compiled Thu Apr 28 14:18:58 2016
+	  by Shorewall version 5.0.9)
+
+4)  The ?INFO and ?WARNING directives added in Shorewall 5.0.8 include
+    the current filename and line number in the generated message. That
+    behavior can be suppressed by using ?INFO! AND ?WARNING!
+    instead. Additionally, the default behavior can be changed by
+    setting VERBOSE_MESSAGES=No in shorewall[6].conf. In that case,
+    including the exclaimation point causes the filename and line
+    number to be included.
+
+5)  NFLOG(...) is now supported in the mangle files.
+
+6)  The compiler now checks the version of the installed Shorewall-core
+    and issues a warning message if there is a mis-match.
+
+    Example (folded to fit within 72 columns):
+
+      WARNING: Version Mismatch: Shorewall-core is version 5.0.8.2,
+               while the Shorewall version is 5.0.9-Beta2
+
+    When compiling for IPv6, the Shorewall6 version is also verified
+    and a similar warning is issued in the case of a mismatch.
+
+7)  The sample configurations now have AUTOMAKE enabled.
+
+8)  Full date and time strings generated by the compiler are now in
+    'date' format rather than Perl's 'localtime' format.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 8
+----------------------------------------------------------------------------
+
+1)  This release includes defect repair through Shorewall 5.0.7.2
+
+2)  If a physical interface name was used in the INTERFACE column of an
+    entry in /etc/shorewall/masq, then previously a Perl diagnostic was
+    issued as the masq rule was being processed and the iptables rule
+    and its containing chain were dropped by the optimizer. That has
+    been corrected so that physical interface names are handled
+    correctly.
+
+    Similar issues with physical names in the INTERFACE column of the
+    nat, netmap and ecn files have also been resolved.
+
+3)  The optional plus sign ('+') in the MODULESDIR setting, added in
+    Shorewall 5.0.3, is now documented in the shorewall[6].conf
+    manpages.
+
+4)  Address variables that specified the physical interface name
+    previously caused Perl diagnostics to be issued and wrong code
+    to be generated. That has been corrected.
+
+5)  The IPv6 default treatment of Auth (TCP 113) is now consistent with
+    IPv4; nothing special is done with these requests, so they are
+    simply logged and dropped or rejected.
+
+    IMPORTANT: If you want to continue to silengly reject Auth
+    requests, you can do so by changing your xxx_DEFAULT settings to
+    make the second parameter 'Reject'. For example, if you currently
+    have:
+
+        DROP_DEFAULT=Drop
+	REJECT_DEFAULT=Reject
+
+    you can change it to:
+
+    	DROP_DEFAULT="Drop(-,REJECT)"
+    	REJECT_DEFAULT="Reject(-,REJECT)"
+
+6)  Previously, if a zone had two or more interfaces, then the
+    interfaces' option rules (DHCP, dynamic blacklisting, etc.) could
+    be moved into the fw->zone chain without being restricted to their
+    respective interfaces. This could result in needless duplication of
+    rules. These rules are now kept in separate chains which, if they
+    are identical, will be combined by the optimizer if OPTIMIZE level 8
+    is enabled.
+
+7)  A number of issues have been resolved with saving/restoring ipsets
+    in Shorewall and Shorewall6.
+
+    - Even if Shorewall's SAVE_IPSETS was set to ipv4, restarting one
+      configuration would attempt to flush/destroy the ipsets for the
+      other address family.
+
+    - The same set could be saved multiple times, with the result
+      that ipset error messages were issued during 'shorewall[6]
+      start'.
+
+    - Needless repetition of code was generated due to the use of
+      compile-time loops rather than run-time loops.
+
+8)  Previously, when AUTOMAKE=Yes, the 'start' command would not
+    regenerate an out-of-date firewall script.
+
+9)  A couple of recent changes have resulted in file name collisions
+    on Cygwin with its underlying case-insensitive filesystem. To avoid
+    these collisions.
+
+    - /usr/share/shorewall/deprecated and
+      /usr/share/shorewall6/deprecated directories have been created.
+
+    - When a name collision occurs, the file with the older name is
+      moved to the deprecated directory
+
+    - The compiler automatically searches the deprecated directory
+      (both directories in the case of Shorewall6) for files.
+
+    In this release, macro.SNMPTraps and action.A_Reject were moved to
+    /usr/share/shorewall/deprecated/. Note that both are deprecated -
+    Reject accepts an 'audit' parameter, and macro.SNMPTraps has been
+    superseded by macro.SNMPtraps.
+
+10) Previously, the 'reload' command did not produce a system log
+    message when it succeeded. That has been corrected.
+
+11) Previously, when compilation was done as part of a reload or
+    restart operation, compiler logging to the STARTUP_LOG was
+    suppressed. Such logging is now enabled.
+
+12) The compiler now uses a uniform format for timestamps in the
+    STARTUP_LOG and on standard output (when the -t option is
+    specified). Previously, some messages suppressed a leading zero in
+    the hour where others did not. Now, the leading zero is never
+    suppressed for compatibility with the timestamps produced by the
+    generated script.
+
+13) Previously, the compiler would allow 0 to be specified in the MARK
+    column of the tcclasses file, resulting in a run-time failure:
+
+    Setting up Traffic Control...
+    RTNETLINK answers: Invalid argument
+    We have an error talking to the kernel
+       ERROR: Command "tc filter add dev eth0 protocol all parent 1:0
+                       prio 276 handle 0 fw classid 1:10" Failed
+
+    Now, the following error is generated by the compiler:
+
+       ERROR: MARK value must be non-zero
+
+    As part of this change, the shorewall[6]-tcclasses(5) manpages have
+    been updated:
+
+    - Specifity a filter priority in the MARK column is now documented
+      (this feature has been in the code for several years)
+
+    - The default priorities of the filters for tos= and tcp-ack have
+      been correcgted.
+
+14) For consistency with Docker, when bridge docker0 is listed in
+    /etc/shorewall/interfaces, the following rule is now generated:
+
+        -A FORWARD -o docker0 -m conntrack \
+                --ctstate RELATED,ESTABLISHED -j ACCEPT
+
+15)  Previously, the safe-* commands did not direct the compiler to
+     write to the STARTUP_LOG. That has been corrected. The commands
+     which direct the compiler to write to that log are now:
+
+       start
+       try
+       refresh
+       reload
+       restart
+       safe-*
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 8
+----------------------------------------------------------------------------
+
+1)  Support for later versions of miniupnpd has been added in the form
+    of a MINIUPNPD option in shorewall.conf. If set to Yes, Shorewall
+    will create a chain in the nat table named MINIUPNPD-POSTROUTING
+    and will add jumps from POSTROUTING to that chain for each
+    interface with the upnpd option specified.  Default is No.
+    The contents of the chain are preserved over 'shorewall reload' and
+    'shorewall restart' operations.
+
+2)  The REJECT and A_REJECT actions may now take an optional parameter
+    that specifies the way in which the packet is to be rejected. See
+    shorewall[6]-rules(5) for details.
+
+3)  The standard action files and shell libraries now have a uniform
+    format for their header comments (Tuomo Soini).
+
+4)  The compiler now uses the iptables goto (-g) parameter rather than
+    the jump (-j) parameter, when the target is a terminating chain
+    (does not have any rules with the RETURN target and the last rule
+    in the chain is an unconditional jump to a terminating target or
+    chain).
+
+5)  The compiler now raises an error if the target of a chain's rule is
+    the chain itself.
+
+6)  The compiler now raises an error if the action specified in
+    REJECT_ACTION contains a RETURN (CONTINUE) jump or if the last rule
+    in the action is not an unconditional jump to a terminating target.
+
+7)  The Drop and Reject default actions now accept a sixth parameter
+    that specifies the action to be taken on UPnP packets. Previously,
+    the same action was performed on UPnP as was performed on late DNS
+    replies. The default is DROP in both cases.
+
+8)  Heretofore, when DYNAMIC_BLACKLISTING=Yes, blacklists were checked
+    on packets arriving and leaving on all interfaces. Now, individual
+    interfaces may be exempted from dynamic blacklisting through use of
+    the "nodbl" interface option.
+
+9)  Prior to this release, dynamic blacklisting has been implemented
+    using rules in an ip[6]tables chain. This scales poorly when there
+    are a large number of blacklisted addresses.
+
+    Beginning with this release, dynamic blacklisting can be ipset-
+    based. See DYNAMIC_BLACKLIST in shorewall.conf(5) and
+    shorewall6.conf(5) and the 'blacklist' command in shorewall(8) and
+    shorewall6(8).
+
+    As part of this change, ipsets created by Shorewall are now of type
+    hash:net with the 'timeout 0 counters' options, rather than
+    hash:ip with no options. This allows both network and individual
+    host addresses to be added to these ipsets, a timeout to be
+    specified when addresses are added to the ipsets, and visibility
+    into matches on individual members of the ipset.
+
+10) New new Redis macros have been added, one for Redis Cluster and the
+    other for Redis Sentinal (Tuomo Soini).
+
+11) The system log messages created by Shorewall via the 'logger'
+    utility may now be augmented using logger's -t (--tag) option
+    through use of the SW_LOGGERTAG environmental variable. If this
+    variable is set to a non-empty value, then its contents will be
+    passed as the -t option (e.g. logger -t "$SW_LOGGERTAG" ...).
+
+12) Similar to ?ERROR, which was introduced in Shorewall 5.0.7, this
+    release supports additional ?WARNING and ?INFO directives
+
+      ?ERROR <message>
+      ?WARNING <message>
+      ?INFO <message>
+
+    The <message> is written to STDERR prefaced by the directive name
+    (WARNING or INFO) followed by a colon (':'). It is also written to the
+    STARTUP_LOG if:
+
+    - A STARTUP_LOG has been configured
+    - The command is start, try, restart, reload, refresh or one of the
+      safe-* commands
+
+    Unlike ?ERROR, ?WARNING and ?INFO do not cause compilation to be
+    aborted.
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 7
 ----------------------------------------------------------------------------
