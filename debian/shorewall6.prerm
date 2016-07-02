@@ -3,7 +3,11 @@
 case "$1" in
     # do not stop the firewall during an upgrade
     remove)
-        if [ -f "/etc/init.d/shorewall6" ]
+        if [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
+        then
+            deb-systemd-helper disable shorewall.service
+            deb-systemd-invoke stop shorewall.service
+        elif [ -f "/etc/init.d/shorewall6" ]
         then
             if [ -x "/usr/sbin/invoke-rc.d" ]
             then
@@ -11,10 +15,6 @@ case "$1" in
             else
                 /etc/init.d/shorewall6 stop
             fi
-        elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
-        then
-            deb-systemd-helper disable shorewall.service
-            deb-systemd-invoke stop shorewall.service
         fi
         ;;
     upgrade|deconfigure|failed-upgrade)
