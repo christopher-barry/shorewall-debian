@@ -13,8 +13,8 @@ case "$1" in
             fi
         elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall.service" ]
         then
-            deb-systemd-helper disable shorewall.service
             deb-systemd-invoke stop shorewall.service
+            deb-systemd-helper purge shorewall.service
         fi
         ;;
     upgrade|deconfigure|failed-upgrade)
