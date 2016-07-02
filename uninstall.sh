@@ -26,7 +26,7 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=5.0.8
+VERSION=5.0.10
 PRODUCT="shorewall-core"
 Product="Shorewall Core"
  
@@ -117,6 +117,7 @@ fi
 echo "Uninstalling Shorewall Core $VERSION"
 
 rm -rf ${SHAREDIR}/shorewall
+rm -f ~/.shorewallrc
 
 echo "Shorewall Core Uninstalled"
 
