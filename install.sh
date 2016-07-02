@@ -27,7 +27,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=5.0.8
+VERSION=5.0.10
 PRODUCT=shorewall-init
 Product="Shorewall Init"
 
@@ -412,7 +412,7 @@ if [ $HOST = debian ]; then
 
     if [ ! -f ${DESTDIR}${CONFDIR}/default/shorewall-init ]; then
 	if [ -n "${DESTDIR}" ]; then
-	    mkdir ${DESTDIR}${ETC}/default
+	    mkdir -p ${DESTDIR}${ETC}/default
 	fi
 
 	[ $configure -eq 1 ] || mkdir -p ${DESTDIR}${CONFDIR}/default
@@ -572,9 +572,9 @@ if [ -z "$DESTDIR" ]; then
 		    cant_autostart
 		fi
 	    elif [ $HOST = openwrt -a -f ${CONFDIR}/rc.common ]; then
-		/etc/init.d/shorewall-inir enable
+		/etc/init.d/$PRODUCT enable
 		if /etc/init.d/shorewall-init enabled; then
-		    echo "Shorrewall Init will start automatically at boot"
+		    echo "$Product will start automatically at boot"
 		else
 		    cant_autostart
 		fi
@@ -585,7 +585,7 @@ if [ -z "$DESTDIR" ]; then
     fi
 else
     if [ $configure -eq 1 -a -n "$first_install" ]; then
-	if [ $HOST = debian ]; then
+	if [ $HOST = debian -a -z "$SERVICEDIR" ]; then
 	    if [ -n "${DESTDIR}" ]; then
 		mkdir -p ${DESTDIR}/etc/rcS.d
 	    fi
