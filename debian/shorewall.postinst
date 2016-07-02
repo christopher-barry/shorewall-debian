@@ -34,7 +34,11 @@ case "$1" in
         then 
             if /sbin/shorewall check
             then
-                if [ -f "/etc/init.d/shorewall" ]
+                if [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall.service" ]
+                then
+                    deb-systemd-helper enable shorewall.service
+                    deb-systemd-invoke restart shorewall.service
+                elif [ -f "/etc/init.d/shorewall" ]
                 then
                     if [ -x "/usr/sbin/invoke-rc.d" ]
                     then
@@ -42,10 +46,6 @@ case "$1" in
                     else
                         /etc/init.d/shorewall restart
                     fi
-                elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall.service" ]
-                then
-                    deb-systemd-helper enable shorewall.service
-                    deb-systemd-invoke restart shorewall.service
                 fi
             else
                 db_input critical shorewall/invalid_config || true
