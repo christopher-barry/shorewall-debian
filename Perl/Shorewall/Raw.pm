@@ -36,7 +36,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( setup_conntrack );
 our @EXPORT_OK = qw( handle_helper_rule );
-our $VERSION = '5.0_4';
+our $VERSION = '5.0_10';
 
 our %valid_ctevent = ( new        => 1,
 		       related    => 1,
@@ -368,12 +368,19 @@ sub setup_conntrack($) {
     if ( $convert ) {
 	my $conntrack;
 	my $empty  = 1;
-	my $date = localtime;
+	my $date = compiletime;
+	my $fn1 = find_writable_file 'conntrack';
 
-	if ( $fn ) {
-	    open $conntrack, '>>', $fn or fatal_error "Unable to open $fn for notrack conversion: $!";
+	$fn = open_file( 'notrack' , 3, 1 ) || fatal_error "Unable to open the notrack file for conversion: $!";
+
+	if ( -f $fn1 ) {
+	    open $conntrack, '>>', $fn1 or fatal_error "Unable to open $fn for notrack conversion: $!";
 	} else {
-	    open $conntrack, '>', $fn = find_file 'conntrack' or fatal_error "Unable to open $fn for notrack conversion: $!";
+	    open $conntrack, '>' , $fn1 or fatal_error "Unable to open $fn for notrack conversion: $!";
+	    #
+	    # Transfer permissions from the existing notrack file
+	    #
+	    transfer_permissions( $fn, $fn1 );
 
 	    print $conntrack <<'EOF';
 #
@@ -395,8 +402,6 @@ EOF
 	       "#\n" ,
 	       "# Rules generated from notrack file $fn by Shorewall $globals{VERSION} - $date\n" ,
 	       "#\n" );
-
-	$fn = open_file( 'notrack' , 3, 1 ) || fatal_error "Unable to open the notrack file for conversion: $!";
 
 	while ( read_a_line( PLAIN_READ ) ) {
 	    #

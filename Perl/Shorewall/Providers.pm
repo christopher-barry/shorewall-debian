@@ -47,7 +47,7 @@ our @EXPORT = qw( process_providers
                   map_provider_to_interface
 	       );
 our @EXPORT_OK = qw( initialize provider_realm );
-our $VERSION = '5.0_6';
+our $VERSION = '5.0_9';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -1096,7 +1096,7 @@ CEOF
 
     if ( $optional ) {
 	if ( $persistent ) {
-	    emit( "persistent_${what}_${table}\n" );
+	    emit( "do_persistent_${what}_${table}\n" );
 	}
 
 	if ( $shared ) {

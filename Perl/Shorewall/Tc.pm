@@ -43,7 +43,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( process_tc setup_tc );
 our @EXPORT_OK = qw( process_tc_rule initialize );
-our $VERSION = '5.0_7';
+our $VERSION = '5.0_10';
 
 our %flow_keys = ( 'src'            => 1,
 		   'dst'            => 1,
@@ -352,7 +352,7 @@ sub process_simple_device() {
 	my $prio = 16 | $i;
 	emit "run_tc qdisc add dev $physical parent $number:$i handle ${number}${i}: sfq quantum 1875 limit 127 perturb 10";
 	emit "run_tc filter add dev $physical protocol all prio $prio parent $number: handle $i fw classid $number:$i";
-	emit "run_tc filter add dev $physical protocol all prio 1 parent ${number}$i: handle ${number}${i} flow hash keys $type divisor 1024" if $type ne '-' && have_capability 'FLOW_FILTER';
+	emit "run_tc filter add dev $physical protocol all prio 1 parent ${number}$i: flow hash keys $type divisor 1024" if $type ne '-' && have_capability 'FLOW_FILTER';
 	emit '';
     }
 
@@ -2166,7 +2166,7 @@ sub convert_tos($$) {
     if ( my $fn = open_file 'tos' ) {
 	first_entry(
 		    sub {
-			my $date = localtime;
+			my $date = compiletime;
 			progress_message2 "Converting $fn...";
 			print( $mangle
 			       "#\n" ,
@@ -2234,13 +2234,19 @@ sub convert_tos($$) {
     }
 }
 
-sub open_mangle_for_output() {
+sub open_mangle_for_output( $ ) {
+    my ($fn ) = @_;
     my ( $mangle, $fn1 );
 
     if ( -f ( $fn1 = find_writable_file( 'mangle' ) ) ) {
 	open( $mangle , '>>', $fn1 ) || fatal_error "Unable to open $fn1:$!";
     } else {
 	open( $mangle , '>', $fn1 ) || fatal_error "Unable to open $fn1:$!";
+	#
+	# Transfer permissions from the existing tcrules file to the new mangle file
+	#
+	transfer_permissions( $fn, $fn1 );
+
 	print $mangle <<'EOF';
 #
 # Shorewall version 4 - Mangle File
@@ -2326,13 +2332,13 @@ sub setup_tc( $ ) {
 		#
 		# We are going to convert this tcrules file to the equivalent mangle file
 		#
-		( $mangle, $fn1 ) = open_mangle_for_output;
+		( $mangle, $fn1 ) = open_mangle_for_output( $fn );
 
 		directive_callback( sub () { print $mangle "$_[1]\n" unless $_[0] eq 'FORMAT'; 0; } );
 
 		first_entry(
 			    sub {
-				my $date = localtime;
+				my $date = compiletime;
 				progress_message2 "Converting $fn...";
 				print( $mangle
 				       "#\n" ,
@@ -2376,7 +2382,7 @@ sub setup_tc( $ ) {
 		    #
 		    # We are going to convert this tosfile to the equivalent mangle file
 		    #
-		    ( $mangle, $fn1 ) = open_mangle_for_output;
+		    ( $mangle, $fn1 ) = open_mangle_for_output( $fn );
 		    convert_tos( $mangle, $fn1 );
 		    close $mangle;
 		}

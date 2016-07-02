@@ -1,5 +1,5 @@
 %define name shorewall
-%define version 5.0.8
+%define version 5.0.10
 %define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
@@ -45,9 +45,13 @@ rm -rf %{buildroot}
 %post
 
 if [ $1 -eq 1 ]; then
-	if [ -x /usr%{_sbindir}/insserv ]; then
-		/usr%{_sbindir}/insserv %{_initddir}/shorewall
-	elif [ -x /usr%{_sbindir}/chkconfig ]; then
+        if [ -x %{_sbindir}/systemctl ]; then
+	        %{_sbindir}/systemctl enable shorewall
+        elif [ -x /usr/bin/systemctl ]; then
+	        /usr/bin/systemctl enable shorewall
+	elif [ -x %{_sbindir}/insserv ]; then
+		%{_sbindir}/insserv %{_initddir}/shorewall
+	elif [ -x %{_sbindir}/chkconfig ]; then
 		%{_sbindir}/chkconfig --add shorewall;
 	fi
 fi
@@ -55,7 +59,11 @@ fi
 %preun
 
 if [ $1 = 0 ]; then
-	if [ -x %{_sbindir}/insserv ]; then
+        if [ -x %{_sbindir}/systemctl ]; then
+	        %{_sbindir}/systemctl disable shorewall
+	elif [ -x /usr/bin/systemctl ]; then
+	        /usr/bin/systemctl disable shorewall
+	elif [ -x %{_sbindir}/insserv ]; then
 		%{_sbindir}/insserv -r %{_initddir}/shorewall
 	elif [ -x %{_sbindir}/chkconfig ]; then
 		%{_sbindir}/chkconfig --del shorewall
@@ -75,7 +83,7 @@ fi
 
 %files
 %defattr(0644,root,root,0755)
-%attr(0544,root,root) %{_initddir}/shorewall
+%attr(644,root,root) /usr/lib/systemd/system/shorewall.service
 %attr(0755,root,root) %dir /etc/shorewall
 %ghost %attr(0644,root,root) /etc/shorewall/isusable
 %ghost %attr(0644,root,root) /etc/shorewall/notrack
@@ -121,7 +129,7 @@ fi
 %attr(0644,root,root) /usr/share/shorewall/action.template
 %attr(0644,root,root) /usr/share/shorewall/action.Untracked
 %attr(0644,root,root) /usr/share/shorewall/lib.cli-std
-%attr(0644,root,root) /usr/share/shorewall/lib.core
+%attr(0644,root,root) /usr/share/shorewall/lib.runtime
 %attr(0644,root,root) /usr/share/shorewall/macro.*
 %attr(0644,root,root) /usr/share/shorewall/deprecated/macro.*
 %attr(0644,root,root) /usr/share/shorewall/modules*
@@ -138,11 +146,25 @@ fi
 %attr(0644,root,root) %{_mandir}/man5/*
 %attr(0644,root,root) %{_mandir}/man8/*
 
-%doc COPYING INSTALL changelog.txt releasenotes.txt Contrib/* Samples
+%doc COPYING INSTALL changelog.txt releasenotes.txt Samples
 
 %changelog
-* Tue Apr 19 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.8-0base
+* Sat Jun 25 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0base
+* Tue Jun 21 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0RC1
+* Tue Jun 14 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta2
+* Mon Jun 06 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta1
+* Thu May 12 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0base
+* Thu May 05 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0RC1
+* Thu Apr 28 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta2
+* Mon Apr 18 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta1
 * Fri Apr 15 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.8-0RC2
 * Mon Apr 11 2016 Tom Eastep tom@shorewall.net
