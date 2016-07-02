@@ -35,6 +35,9 @@ override_dh_install:
 	rmdir $(SRWL)/usr/share/shorewall/Shorewall
 	rmdir $(SRWL)/usr/share/shorewall
 
+override_dh_installinit:
+	dh_installinit --onlyscripts
+
 override_dh_fixperms:
 	# Temporary zones are only available to root
 	chmod 750 $(SRWL)/var/lib/shorewall6
