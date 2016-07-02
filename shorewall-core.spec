@@ -1,5 +1,5 @@
 %define name shorewall-core
-%define version 5.0.8
+%define version 5.0.10
 %define release 0base
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
@@ -63,8 +63,22 @@ cp /usr/share/shorewall/shorewallrc ~/.shorewallrc
 %doc COPYING INSTALL changelog.txt releasenotes.txt
 
 %changelog
-* Tue Apr 19 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.8-0base
+* Sat Jun 25 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0base
+* Tue Jun 21 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0RC1
+* Tue Jun 14 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta2
+* Mon Jun 06 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta1
+* Thu May 12 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0base
+* Thu May 05 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0RC1
+* Thu Apr 28 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta2
+* Mon Apr 18 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta1
 * Fri Apr 15 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.8-0RC2
 * Mon Apr 11 2016 Tom Eastep tom@shorewall.net
