@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-mangle
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 04/23/2016
+.\"      Date: 06/30/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-MANGLE" "5" "04/23/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-MANGLE" "5" "06/30/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -462,7 +462,7 @@ Suppose that the source IP address is 192\&.168\&.4\&.3
 0xc0a80403 LAND 0xFF = 0x03
 .RE
 .RS 4
-0x03 LOR 0x0x10100 = 0x10103 or class ID
+0x03 LOR 0x10100 = 0x10103 or class ID
                     1:103
 .RE
 It is important to realize that, while class IDs are composed of a
@@ -519,6 +519,46 @@ capability in iptables and kernel\&. Marks in the specified range are assigned t
 .sp
 When a mask is specified, the result of logically ANDing each mark value with the mask must be the same as the mark value\&. The least significant bit in the mask is used as an increment\&. For example, if \*(Aq0x200\-0x400/0xff00\*(Aq is specified, then the assigned mark values are 0x200, 0x300 and 0x400 in equal proportions\&. If no mask is specified, then ( 2 ** MASK_BITS ) \- 1 is assumed (MASK_BITS is set in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5))\&.
+.RE
+.PP
+\fBNFLOG\fR[(\fInflog\-parameters\fR)]
+.RS 4
+Added in Shorewall 5\&.0\&.9\&. Logs matching packets using NFLOG\&. The
+\fInflog\-parameters\fR
+are a comma\-separated list of up to 3 numbers:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The first number specifies the netlink group (0\-65535)\&. If omitted (e\&.g\&., NFLOG(,0,10)) then a value of 0 is assumed\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The second number specifies the maximum number of bytes to copy\&. If omitted, 0 (no limit) is assumed\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The third number specifies the number of log messages that should be buffered in the kernel before they are sent to user space\&. The default is 1\&.
+.RE
 .RE
 .PP
 \fBRESTORE\fR[(\fImask\fR)]

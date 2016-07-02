@@ -319,7 +319,7 @@
 #             then
 #             0xc0a80403 >> 0 = 0xc0a80403
 #             0xc0a80403 LAND 0xFF = 0x03
-#             0x03 LOR 0x0x10100 = 0x10103 or class ID 1:103
+#             0x03 LOR 0x10100 = 0x10103 or class ID 1:103
 # 
 #         It is important to realize that, while class IDs are composed of a
 #         major and a minor value, the set of values must be unique. That is, the
@@ -379,6 +379,21 @@
 #         0x200, 0x300 and 0x400 in equal proportions. If no mask is specified,
 #         then ( 2 ** MASK_BITS ) - 1 is assumed (MASK_BITS is set in
 #         shorewall6.conf(5)).
+# 
+#     NFLOG[(nflog-parameters)]
+# 
+#         Added in Shorewall 5.0.9. Logs matching packets using NFLOG. The
+#         nflog-parameters are a comma-separated list of up to 3 numbers:
+# 
+#           ☆ The first number specifies the netlink group (0-65535). If omitted
+#             (e.g., NFLOG(,0,10)) then a value of 0 is assumed.
+# 
+#           ☆ The second number specifies the maximum number of bytes to copy. If
+#             omitted, 0 (no limit) is assumed.
+# 
+#           ☆ The third number specifies the number of log messages that should
+#             be buffered in the kernel before they are sent to user space. The
+#             default is 1.
 # 
 #     RESTORE[(mask)]
 # 

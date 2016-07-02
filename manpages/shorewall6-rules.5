@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-rules
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 04/23/2016
+.\"      Date: 06/30/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-RULES" "5" "04/23/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-RULES" "5" "06/30/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -416,7 +416,44 @@ The mark value may be optionally followed by "/" and a mask value (used to deter
 Added in Shorewall 4\&.5\&.9\&.3\&. Queues matching packets to a back end logging daemon via a netlink socket then continues to the next rule\&. See
 \m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[7]\d\s+2\&.
 .sp
-Similar to\fB LOG:NFLOG\fR[(\fInflog\-parameters\fR)], except that the log level is not changed when this ACTION is used in an action or macro and the invocation of that action or macro specifies a log level\&.
+The
+\fInflog\-parameters\fR
+are a comma\-separated list of up to 3 numbers:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The first number specifies the netlink group (0\-65535)\&. If omitted (e\&.g\&., NFLOG(,0,10)) then a value of 0 is assumed\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The second number specifies the maximum number of bytes to copy\&. If omitted, 0 (no limit) is assumed\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+The third number specifies the number of log messages that should be buffered in the kernel before they are sent to user space\&. The default is 1\&.
+.RE
+.sp
+NFLOG is similar to\fB LOG:NFLOG\fR[(\fInflog\-parameters\fR)], except that the log level is not changed when this ACTION is used in an action or macro and the invocation of that action or macro specifies a log level\&.
 .RE
 .PP
 \fBNFQUEUE\fR[([\fIqueuenumber\fR1[:\fIqueuenumber2\fR][,bypass]]|bypass)]
@@ -1185,7 +1222,7 @@ extension header\&.
 Hop\-by\-hop options extension header\&.
 .RE
 .PP
-\fBroute\fR, \fBipv6\-route\fR or \fB41\fR
+\fBroute\fR, \fBipv6\-route\fR or \fB43\fR
 .RS 4
 IPv6 Route extension header\&.
 .RE

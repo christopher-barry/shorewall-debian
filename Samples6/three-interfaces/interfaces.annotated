@@ -133,6 +133,35 @@
 #         Designates the interface as a bridge. Beginning with Shorewall 4.4.7,
 #         setting this option also sets routeback.
 # 
+#     dbl={none|src|dst|src-dst}
+# 
+#         Added in Shorewall 5.0.10. This option defined whether or not dynamic
+#         blacklisting is applied to packets entering the firewall through this
+#         interface and whether the source address and/or destination address is
+#         to be compared against the ipset-based dynamic blacklist
+#         (DYNAMIC_BLACKLIST=ipset... in shorewall6.conf(5)). The default is
+#         determine by the setting of DYNAMIC_BLACKLIST:
+# 
+#         DYNAMIC_BLACKLIST=No
+# 
+#             Default is none (e.g., no dynamic blacklist checking).
+# 
+#         DYNAMIC_BLACKLIST=Yes
+# 
+#             Default is src (e.g., the source IP address is checked against the
+#             ipset).
+# 
+#         DYNAMIC_BLACKLIST=ipset[-only]
+# 
+#             Default is src.
+# 
+#         DYNAMIC_BLACKLIST=ipset[-only],src-dst...
+# 
+#             Default is src-dst (e.g., the source IP addresses in checked
+#             against the ipset on input and the destination IP address is
+#             checked against the ipset on packets originating from the firewall
+#             and leaving through this interface).
+# 
 #     destonly
 # 
 #         Added in Shorewall 4.5.17. Causes the compiler to omit rules to handle
@@ -203,7 +232,8 @@
 #     nodbl
 # 
 #         Added in Shorewall 5.0.8. When specified, dynamic blacklisting is
-#         disabled on the interface.
+#         disabled on the interface. Beginning with Shorewall 5.0.10, nodbl is
+#         equivalent to dbl=none.
 # 
 #     optional
 # 
