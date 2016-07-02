@@ -2,12 +2,12 @@
 .\"     Title: shorewall6.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 04/23/2016
+.\"      Date: 06/30/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\&.CONF" "5" "04/23/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\&.CONF" "5" "06/30/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -2091,6 +2091,11 @@ If you set USE_RT_NAMES=Yes and KEEP_RT_TABLES=Yes, then you must insure that al
 Without these entries, the firewall will fail to start\&.
 .sp .5v
 .RE
+.RE
+.PP
+\fBVERBOSE_MESSAGES=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 5\&.0\&.9\&. When Yes (the default), messages produced by the ?INFO and ?WARNING directives include the filename and linenumber of the directive\&. When set to No, that additional information is omitted\&. The setting may be overridden on a directive by directive basis by following ?INFO or ?WARNING with \*(Aq!\*(Aq (no intervening white space)\&.
 .RE
 .PP
 \fBVERBOSITY=\fR[\fInumber\fR]

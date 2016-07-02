@@ -332,9 +332,21 @@
 #         logging daemon via a netlink socket then continues to the next rule.
 #         See http://www.shorewall.net/shorewall_logging.html.
 # 
-#         Similar to LOG:NFLOG[(nflog-parameters)], except that the log level is
-#         not changed when this ACTION is used in an action or macro and the
-#         invocation of that action or macro specifies a log level.
+#         The nflog-parameters are a comma-separated list of up to 3 numbers:
+# 
+#           ☆ The first number specifies the netlink group (0-65535). If omitted
+#             (e.g., NFLOG(,0,10)) then a value of 0 is assumed.
+# 
+#           ☆ The second number specifies the maximum number of bytes to copy. If
+#             omitted, 0 (no limit) is assumed.
+# 
+#           ☆ The third number specifies the number of log messages that should
+#             be buffered in the kernel before they are sent to user space. The
+#             default is 1.
+# 
+#         NFLOG is similar to LOG:NFLOG[(nflog-parameters)], except that the log
+#         level is not changed when this ACTION is used in an action or macro and
+#         the invocation of that action or macro specifies a log level.
 # 
 #     NFQUEUE[([queuenumber1[:queuenumber2][,bypass]]|bypass)]
 # 
@@ -923,7 +935,7 @@
 # 
 #         Hop-by-hop options extension header.
 # 
-#     route, ipv6-route or 41
+#     route, ipv6-route or 43
 # 
 #         IPv6 Route extension header.
 # 

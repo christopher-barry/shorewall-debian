@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-interfaces
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 04/23/2016
+.\"      Date: 06/30/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-INTERFAC" "5" "04/23/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-INTERFAC" "5" "06/30/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -184,6 +184,39 @@ Designates the interface as a bridge\&. Beginning with Shorewall 4\&.4\&.7, sett
 \fBrouteback\fR\&.
 .RE
 .PP
+\fBdbl={none|src|dst|src\-dst}\fR
+.RS 4
+Added in Shorewall 5\&.0\&.10\&. This option defined whether or not dynamic blacklisting is applied to packets entering the firewall through this interface and whether the source address and/or destination address is to be compared against the ipset\-based dynamic blacklist (DYNAMIC_BLACKLIST=ipset\&.\&.\&. in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[6]\d\s+2)\&. The default is determine by the setting of DYNAMIC_BLACKLIST:
+.PP
+DYNAMIC_BLACKLIST=No
+.RS 4
+Default is
+\fBnone\fR
+(e\&.g\&., no dynamic blacklist checking)\&.
+.RE
+.PP
+DYNAMIC_BLACKLIST=Yes
+.RS 4
+Default is
+\fBsrc\fR
+(e\&.g\&., the source IP address is checked against the ipset)\&.
+.RE
+.PP
+DYNAMIC_BLACKLIST=ipset[\-only]
+.RS 4
+Default is
+\fBsrc\fR\&.
+.RE
+.PP
+DYNAMIC_BLACKLIST=ipset[\-only],src\-dst\&.\&.\&.
+.RS 4
+Default is
+\fBsrc\-dst\fR
+(e\&.g\&., the source IP addresses in checked against the ipset on input and the destination IP address is checked against the ipset on packets originating from the firewall and leaving through this interface)\&.
+.RE
+.RE
+.PP
 \fBdestonly\fR
 .RS 4
 Added in Shorewall 4\&.5\&.17\&. Causes the compiler to omit rules to handle traffic from this interface\&.
@@ -235,7 +268,7 @@ the interface has a static IP but is on a LAN segment with lots of DHCP clients\
 .IP "  4." 4.2
 .\}
 the interface is a
-\m[blue]\fBsimple bridge\fR\m[]\&\s-2\u[6]\d\s+2
+\m[blue]\fBsimple bridge\fR\m[]\&\s-2\u[7]\d\s+2
 with a DHCP server on one port and DHCP clients on another port\&.
 .if n \{\
 .sp
@@ -250,8 +283,8 @@ with a DHCP server on one port and DHCP clients on another port\&.
 .ps -1
 .br
 If you use
-\m[blue]\fBShorewall\-perl for firewall/bridging\fR\m[]\&\s-2\u[7]\d\s+2, then you need to include DHCP\-specific rules in
-\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[8]\d\s+2(8)\&. DHCP uses UDP ports 546 and 547\&.
+\m[blue]\fBShorewall\-perl for firewall/bridging\fR\m[]\&\s-2\u[8]\d\s+2, then you need to include DHCP\-specific rules in
+\m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[9]\d\s+2(8)\&. DHCP uses UDP ports 546 and 547\&.
 .sp .5v
 .RE
 .RE
@@ -273,7 +306,7 @@ must be the only OPTION\&.
 Beginning with Shorewall 4\&.5\&.5, may be specified as \*(Aq\fBignore=1\fR\*(Aq which only causes the generated script to ignore up/down events from Shorewall\-init; hairpin filtering is still applied\&. In this case, the above restrictions on the ZONE and OPTIONS columns are lifted\&.
 .RE
 .PP
-loopback
+\fBloopback\fR
 .RS 4
 Added in Shorewall 4\&.6\&.6\&. Designates the interface as the loopback interface\&. This option is assumed if the interface\*(Aqs physical name is \*(Aqlo\*(Aq\&. Only one interface man have the
 \fBloopback\fR
@@ -295,13 +328,16 @@ Limit the zone named in the ZONE column to only the listed networks\&. If you sp
 .RS 4
 Added in Shorewall 4\&.4\&.21\&. Defines the zone as
 dynamic\&. Requires ipset match support in your iptables and kernel\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/Dynamic\&.html\fR\m[]\&\s-2\u[9]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/Dynamic\&.html\fR\m[]\&\s-2\u[10]\d\s+2
 for further information\&.
 .RE
 .PP
 \fBnodbl\fR
 .RS 4
-Added in Shorewall 5\&.0\&.8\&. When specified, dynamic blacklisting is disabled on the interface\&.
+Added in Shorewall 5\&.0\&.8\&. When specified, dynamic blacklisting is disabled on the interface\&. Beginning with Shorewall 5\&.0\&.10,
+\fBnodbl\fR
+is equivalent to
+\fBdbl=none\fR\&.
 .RE
 .PP
 \fBoptional\fR
@@ -341,7 +377,7 @@ This option may not be specified together with
 \fBphysical\fR=\fB\fIname\fR\fR
 .RS 4
 Added in Shorewall 4\&.4\&.4\&. When specified, the interface or port name in the INTERFACE column is a logical name that refers to the name given in this option\&. It is useful when you want to specify the same wildcard port name on two or more bridges\&. See
-\m[blue]\fBhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\m[]\&\s-2\u[10]\d\s+2\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/bridge\-Shorewall\-perl\&.html#Multiple\fR\m[]\&\s-2\u[11]\d\s+2\&.
 .sp
 If the
 \fIinterface\fR
@@ -547,7 +583,7 @@ FORMAT 2
 /etc/shorewall6/interfaces
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[11]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[12]\d\s+2
 .PP
 shorewall6(8), shorewall6\-accounting(5), shorewall6\-actions(5), shorewall6\-blacklist(5), shorewall6\-hosts(5), shorewall6\-maclist(5), shorewall6\-netmap(5),shorewall6\-params(5), shorewall6\-policy(5), shorewall6\-providers(5), shorewall6\-rtrules(5), shorewall6\-routestopped(5), shorewall6\-rules(5), shorewall6\&.conf(5), shorewall6\-secmarks(5), shorewall6\-tcclasses(5), shorewall6\-tcdevices(5), shorewall6\-mangle(5), shorewall6\-tos(5), shorewall6\-tunnels(5), shorewall6\-zones(5)
 .SH "NOTES"
@@ -577,31 +613,36 @@ shorewall6-blacklist
 \%http://www.shorewall.net/manpages6/shorewall6-blacklist.html
 .RE
 .IP " 6." 4
+shorewall6.conf(5)
+.RS 4
+\%http://www.shorewall.netmanpages6/shorewall6.conf.html
+.RE
+.IP " 7." 4
 simple bridge
 .RS 4
 \%http://www.shorewall.net/SimpleBridge.html
 .RE
-.IP " 7." 4
+.IP " 8." 4
 Shorewall-perl for firewall/bridging
 .RS 4
 \%http://www.shorewall.net/bridge-Shorewall-perl.html
 .RE
-.IP " 8." 4
+.IP " 9." 4
 shorewall-rules
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-rules.html
 .RE
-.IP " 9." 4
+.IP "10." 4
 http://www.shorewall.net/Dynamic.html
 .RS 4
 \%http://www.shorewall.net/Dynamic.html
 .RE
-.IP "10." 4
+.IP "11." 4
 http://www.shorewall.net/bridge-Shorewall-perl.html#Multiple
 .RS 4
 \%http://www.shorewall.net/bridge-Shorewall-perl.html#Multiple
 .RE
-.IP "11." 4
+.IP "12." 4
 http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RS 4
 \%http://www.shorewall.net/configuration_file_basics.htm#Pairs
