@@ -33,6 +33,9 @@ override_dh_install:
 		>> debian/shorewall.substvars
 	DESTDIR=$(SRWL) $(CURDIR)/install.sh $(CURDIR)/debian/shorewallrc
 
+override_dh_installinit:
+	dh_installinit --onlyscripts
+
 override_dh_fixperms:
 	# Temporary zones are only available to root
 	chmod 750 $(SRWL)/var/lib/shorewall
