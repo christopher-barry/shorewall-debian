@@ -13,7 +13,7 @@ case "$1" in
             fi
         elif [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
         then
-            deb-systemd-helper enable shorewall.service
+            deb-systemd-helper disable shorewall.service
             deb-systemd-invoke stop shorewall.service
         fi
         ;;

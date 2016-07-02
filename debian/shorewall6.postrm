@@ -15,7 +15,12 @@ case "$1" in
     purge)
 
         rm -rf /var/lib/shorewall6
-        
+
+        if [ -x "/usr/bin/deb-systemd-helper" ]
+        then
+            deb-systemd-helper purge shorewall.service
+        fi
+
     ;;
 
     remove|upgrade|faild-upgrade|abort-*|disappear)
