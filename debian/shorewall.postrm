@@ -20,6 +20,11 @@ case "$1" in
         # system and remove it (it was created in order to aviod hangs
         # during a major release update)
         test -s /etc/shorewall/tcstart || rm -f /etc/shorewall/tcstart
+
+        if [ -x "/usr/bin/deb-systemd-helper" ]
+        then
+            deb-systemd-helper purge shorewall.service
+        fi
     ;;
 
     remove|upgrade|faild-upgrade|abort-*|disappear)
