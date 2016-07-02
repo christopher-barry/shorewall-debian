@@ -1,5 +1,5 @@
 %define name shorewall-init
-%define version 5.0.8
+%define version 5.0.10
 %define release 0base
 
 Summary: Shorewall-init adds functionality to Shoreline Firewall (Shorewall).
@@ -48,7 +48,11 @@ rm -rf $RPM_BUILD_ROOT
 %post
 
 if [ $1 -eq 1 ]; then
-    if [ -x %{_sbindir}/insserv ]; then
+    if [ -x %{_sbindir}/systemctl ]; then
+	%{_sbindir}/systemctl enable shorewall-init
+    elif [ -x /usr/bin/systemctl ]; then
+	/usr/bin/systemctl enable shorewall-init
+    elif [ -x %{_sbindir}/insserv ]; then
 	%{_sbindir}/insserv %{_initddir}/shorewall-init
     elif [ -x %{_sbindir}/chkconfig ]; then
 	%{_sbindir}/chkconfig --add shorewall-init;
@@ -96,7 +100,11 @@ fi
 %preun
 
 if [ $1 -eq 0 ]; then
-    if [ -x %{_sbindir}/insserv ]; then
+    if [ -x %{_sbindir}/systemctl ]; then
+	%{_sbindir}/systemctl disable shorewall-init
+    elif [ -x /usr/bin/systemctl ]; then
+	/usr/bin/systemctl disable shorewall-init
+    elif [ -x %{_sbindir}/insserv ]; then
 	%{_sbindir}/insserv -r %{_initddir}/shorewall-init
     elif [ -x %{_sbindir}/chkconfig ]; then
 	%{_sbindir}/chkconfig --del shorewall-init
@@ -115,8 +123,9 @@ fi
 %defattr(0644,root,root,0755)
 %attr(0644,root,root) %config(noreplace) /etc/sysconfig/shorewall-init
 
-%attr(0544,root,root) %{_initddir}/shorewall-init
+%attr(0644,root,root) /usr/lib/systemd/system/shorewall-init.service
 %attr(0755,root,root) %dir %{_libexecdir}/shorewall-init
+%attr(0700,root,root) %{_sbindir}/shorewall-init
 
 %attr(0644,root,root) /etc/logrotate.d/shorewall-init
 
@@ -126,8 +135,22 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Tue Apr 19 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.8-0base
+* Sat Jun 25 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0base
+* Tue Jun 21 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0RC1
+* Tue Jun 14 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta2
+* Mon Jun 06 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta1
+* Thu May 12 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0base
+* Thu May 05 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0RC1
+* Thu Apr 28 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta2
+* Mon Apr 18 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta1
 * Fri Apr 15 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.8-0RC2
 * Mon Apr 11 2016 Tom Eastep tom@shorewall.net
