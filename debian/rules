@@ -22,7 +22,7 @@ override_dh_auto_clean:
 	rm -rf $(SRWL) shorewallrc
 
 override_dh_install:
-	DESTDIR=$(SRWL) $(CURDIR)/install.sh $(CURDIR)/shorewallrc.debian.systemd
+	DESTDIR=$(SRWL) $(CURDIR)/install.sh $(CURDIR)/debian/shorewallrc
 	find $(SRWL) -type d -empty -delete
 
 override_dh_fixperms:
