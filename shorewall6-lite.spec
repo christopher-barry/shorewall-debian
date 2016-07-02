@@ -1,5 +1,5 @@
 %define name shorewall6-lite
-%define version 5.0.8
+%define version 5.0.10
 %define release 0base
 
 Summary: Shoreline Firewall 6 Lite is an ip6tables-based firewall for Linux systems.
@@ -50,7 +50,11 @@ rm -rf $RPM_BUILD_ROOT
 %post
 
 if [ $1 -eq 1 ]; then
-    if [ -x %{_sbindir}/insserv ]; then
+    if [ -x %{_sbindir}/systemctl ]; then
+	%{_sbindir}/systemctl enable shorewall6-lite
+    elif [ -x /usr/bin/systemctl ]; then
+	/usr/bin/systemctl enable shorewall6-lite
+    elif [ -x %{_sbindir}/insserv ]; then
 	%{_sbindir}/insserv /etc/rc.d/shorewall6-lite
     elif [ -x %{_sbindir}/chkconfig ]; then
 	%{_sbindir}/chkconfig --add shorewall6-lite;
@@ -60,7 +64,11 @@ fi
 %preun
 
 if [ $1 -eq 0 ]; then
-    if [ -x %{_sbindir}/insserv ]; then
+    if [ -x %{_sbindir}/systemctl ]; then
+	%{_sbindir}/systemctl disable shorewall6-lite
+    elif [ -x /usr/bin/systemctl ]; then
+	/usr/bin/systemctl disable shorewall6-lite
+    elif [ -x %{_sbindir}/insserv ]; then
 	%{_sbindir}/insserv -r %{_initddir}/shorewall6-lite
     elif [ -x %{_sbindir}/chkconfig ]; then
 	%{_sbindir}/chkconfig --del shorewall6-lite
@@ -72,7 +80,7 @@ fi
 %attr(0755,root,root) %dir /etc/shorewall6-lite
 %attr(0644,root,root) /etc/shorewall6-lite/Makefile
 %attr(0644,root,root) %config(noreplace) /etc/shorewall6-lite/shorewall6-lite.conf
-%attr(0544,root,root) %{_initddir}/shorewall6-lite
+%attr(0644,root,root) /usr/lib/systemd/system/shorewall6-lite.service
 %attr(0755,root,root) %dir /usr/share/shorewall6-lite
 %attr(0700,root,root) %dir /var/lib/shorewall6-lite
 
@@ -99,8 +107,22 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
-* Tue Apr 19 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.8-0base
+* Sat Jun 25 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0base
+* Tue Jun 21 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0RC1
+* Tue Jun 14 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta2
+* Mon Jun 06 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.10-0Beta1
+* Thu May 12 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0base
+* Thu May 05 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0RC1
+* Thu Apr 28 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta2
+* Mon Apr 18 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.9-0Beta1
 * Fri Apr 15 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.8-0RC2
 * Mon Apr 11 2016 Tom Eastep tom@shorewall.net
