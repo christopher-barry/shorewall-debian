@@ -49,5 +49,6 @@ override_dh_fixperms:
 	# Global configuration has to be fully readable
 	chmod 644 $(SRWL)/usr/share/shorewall6/*
 	chmod 755 $(SRWL)/usr/share/shorewall6/configfiles/
+	chmod 755 $(SRWL)/usr/share/shorewall6/deprecated/
 	dh_fixperms -Xetc/shorewall6 -Xvar/lib/shorewall6
 
