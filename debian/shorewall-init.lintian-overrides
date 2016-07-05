@@ -1,1 +1,4 @@
 shorewall-init: binary-without-manpage
+# initramfs mounts /usr, making this error spurious; see #829649
+shorewall-init: init.d-script-missing-dependency-on-remote_fs etc/init.d/shorewall-init: required-start
+shorewall-init: init.d-script-missing-dependency-on-remote_fs etc/init.d/shorewall-init: required-stop
