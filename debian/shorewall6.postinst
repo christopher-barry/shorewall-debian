@@ -40,8 +40,8 @@ case "$1" in
             then
                 if [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
                 then
-                    deb-systemd-helper enable shorewall.service
-                    deb-systemd-invoke restart shorewall.service
+                    deb-systemd-helper enable shorewall6.service
+                    deb-systemd-invoke restart shorewall6.service
                 elif [ -f "/etc/init.d/shorewall6" ]
                 then
                     if [ -x "/usr/sbin/invoke-rc.d" ]
