@@ -24,7 +24,7 @@ override_dh_install:
 	rm -f $(SRWL)/etc/rcS.d/S38shorewall-init
 
 override_dh_installinit:
-	dh_installinit --onlyscripts
+	dh_installinit --onlyscripts --no-start
 
 override_dh_fixperms:
 	dh_fixperms -Xetc/shorewall-init -Xvar/lib/shorewall-init
