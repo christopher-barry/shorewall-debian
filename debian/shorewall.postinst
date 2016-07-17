@@ -34,7 +34,7 @@ case "$1" in
         then 
             if /sbin/shorewall check
             then
-                if [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall.service" ]
+                if [ -d "/run/systemd/system" ] && [ -f "/lib/systemd/system/shorewall.service" ]
                 then
                     deb-systemd-helper enable shorewall.service
                     deb-systemd-invoke restart shorewall.service
