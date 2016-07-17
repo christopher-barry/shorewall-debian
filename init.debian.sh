@@ -5,7 +5,7 @@
 # Required-Start:    $network $remote_fs
 # Required-Stop:     $network $remote_fs
 # Default-Start:     S
-# Default-Stop:      0 6
+# Default-Stop:      0 1 6
 # Short-Description: Configure the firewall at boot time
 # Description:       Configure the firewall according to the rules specified in
 #                    /etc/shorewall6-lite
@@ -92,10 +92,11 @@ shorewall6_start () {
 
 # stop the firewall
 shorewall6_stop () {
-  echo -n "Stopping \"Shorewall6 Lite firewall\": "
   if [ "$SAFESTOP" = 1 ]; then
+      echo -n "Stopping \"Shorewall6 Lite firewall\": "
       $SRWL $SRWL_OPTS stop >> $INITLOG 2>&1 && echo "done." || echo_notdone
   else
+      echo -n "Clearing all \"Shorewall6 Lite firewall\" rules: "
       $SRWL $SRWL_OPTS clear >> $INITLOG 2>&1 && echo "done." || echo_notdone
   fi
   return 0
