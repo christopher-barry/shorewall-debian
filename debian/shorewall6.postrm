@@ -16,7 +16,7 @@ case "$1" in
 
         rm -rf /var/lib/shorewall6
 
-        if [ -x "/usr/bin/deb-systemd-helper" ]
+        if [ -d "/run/systemd/system" ]
         then
             deb-systemd-helper purge shorewall6.service
         fi

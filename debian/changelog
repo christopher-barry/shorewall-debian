@@ -1,8 +1,9 @@
-shorewall6 (5.0.10.1-1) UNRELEASED; urgency=medium
+shorewall6 (5.0.10.1-1) unstable; urgency=medium
 
   * New Upstream Version
+  * Use a more reliable check for systemd
 
- -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 16 Jul 2016 23:39:37 -0400
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 16 Jul 2016 23:45:35 -0400
 
 shorewall6 (5.0.10-1) unstable; urgency=medium
 

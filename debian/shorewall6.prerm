@@ -3,7 +3,7 @@
 case "$1" in
     # do not stop the firewall during an upgrade
     remove)
-        if [ -x "/usr/bin/deb-systemd-invoke" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
+        if [ -d "/run/systemd/system" ] && [ -f "/lib/systemd/system/shorewall6.service" ]
         then
             deb-systemd-helper disable shorewall6.service
             deb-systemd-invoke stop shorewall6.service
