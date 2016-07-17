@@ -21,7 +21,7 @@ case "$1" in
         # during a major release update)
         test -s /etc/shorewall/tcstart || rm -f /etc/shorewall/tcstart
 
-        if [ -x "/usr/bin/deb-systemd-helper" ]
+        if [ -d "/run/systemd/system" ]
         then
             deb-systemd-helper purge shorewall.service
         fi
