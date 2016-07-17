@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 06/30/2016
+.\"      Date: 07/15/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "06/30/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\&.CONF" "5" "07/15/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -1152,7 +1152,7 @@ Do not use this option if the resulting log messages will be sent to another sys
 .RE
 .RE
 .PP
-\fBLOGFILE=\fR[\fIpathname\fR]
+\fBLOGFILE=\fR[\fIpathname\fR|\fBsystemd\fR]
 .RS 4
 This parameter tells the /sbin/shorewall program where to look for Shorewall messages when processing the
 \fBdump\fR,
@@ -1160,7 +1160,11 @@ This parameter tells the /sbin/shorewall program where to look for Shorewall mes
 \fBshow log\fR, and
 \fBhits\fR
 commands\&. If not assigned or if assigned an empty value, /var/log/messages is assumed\&. For further information, see
-\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[22]\d\s+2\&.
+\m[blue]\fBhttp://www\&.shorewall\&.net/shorewall_logging\&.html\fR\m[]\&\s-2\u[22]\d\s+2\&. Beginning with Shorewall 5\&.0\&.10\&.1, you may specify
+\fBsystemd\fR
+to use
+\fBjournelctl \-r\fR
+to read the log\&.
 .RE
 .PP
 \fBLOGFORMAT=\fR[\fB"\fR\fIformattemplate\fR\fB"\fR]

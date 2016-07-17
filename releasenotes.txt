@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	              S H O R E W A L L  5 . 0 . 1 0
+	             S H O R E W A L L  5 . 0 . 1 0 . 1
                        ----------------------------
-                          J u n e  3 0 ,  2 0 1 6
+                          J u l y  1 5 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,24 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.10.1
+
+1)  Several issues with the Debian SysV init scripts have been
+    corrected:
+
+    a) The scripts now issue progress messages for the 'stop' command
+       based on the setting of SAFESTOP in /etc/default/shorewall*.
+
+    b) The firewall is now stopped or cleared in runlevel 1 (minimal),
+       based on the setting of SAFESTOP.
+
+    c) A typo in the Shorewall init script prevented the force-stop
+       command from working correctly.
+
+    Roberto Sánchez.
+
+5.0.10
 
 1)  This release includes defect repair through Shorewall 5.0.9.2.
 
@@ -49,6 +67,15 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.10.1
+
+1)  You can now specify LOGFILE=systemd to cause 'journelctl -r' to be
+    used to read the system log (journel).
+
+    Scott Sumate.
+
+5.0.10
 
 1)  The 'allow' command can now remove entries from the ipset-based
     dynamic blacklists.
