@@ -179,12 +179,13 @@ LOGALLNEW=
 # 
 LOGFILE=/var/log/messages
 #
-# LOGFILE=[pathname]
+# LOGFILE=[pathname|systemd]
 # 
 #     This parameter tells the /sbin/shorewall6 program where to look for
 #     Shorewall6 messages when processing the dump, logwatch, show log, and hits
 #     commands. If not assigned or if assigned an empty value, /var/log/messages
-#     is assumed.
+#     is assumed. Beginning with Shorewall 5.0.10.1, you may specify systemd to
+#     use journelctl -r to read the log.
 # 
 LOGFORMAT="Shorewall:%s:%s:"
 #
