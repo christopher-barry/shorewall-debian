@@ -221,7 +221,8 @@
 #             EF   => 0x2e
 # 
 #         To indicate more than one class, add their hex values together and
-#         specify the result.
+#         specify the result. By default, DSCP rules are placed in the
+#         POSTROUTING chain.
 # 
 #     HL([-|+]number)[:P]
 # 

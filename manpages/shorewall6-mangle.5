@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-mangle
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 07/15/2016
+.\"      Date: 08/06/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-MANGLE" "5" "07/15/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-MANGLE" "5" "08/06/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -317,7 +317,7 @@ value may be given as an even number (hex or decimal) or as the name of a DSCP c
 .RE
 .\}
 .sp
-To indicate more than one class, add their hex values together and specify the result\&.
+To indicate more than one class, add their hex values together and specify the result\&. By default, DSCP rules are placed in the POSTROUTING chain\&.
 .RE
 .PP
 \fBHL\fR([\fB\-\fR|\fB+\fR]\fInumber\fR)[:P]
