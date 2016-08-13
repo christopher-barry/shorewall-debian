@@ -1,3 +1,21 @@
+Changes in 5.0.11 Beta 2
+
+1)  Update release documents
+
+2)  Default DSCP rules to the POSTROUTING chain.
+
+3)  Correct 'trace' handing of in-rule comments.
+
+4)  Correct handling of a provider interface that matches a wildcard.
+
+5)  Re-add a handle to flow classifiers.
+
+Changes in 5.0.11 Beta 1
+
+1)  Update release documents
+
+2)  Allow 'comment' in alternate input.
+
 Changes in 5.0.10.1
 
 1)  Update release documents
