@@ -296,7 +296,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_10';
+our $VERSION = '5.0_11';
 
 #
 # Chain Table
@@ -1337,7 +1337,14 @@ sub push_rule( $$ ) {
     push @{$chainref->{rules}}, $ruleref;
     $chainref->{referenced} = 1;
     $chainref->{optflags} |= RETURNS_DONT_MOVE if ( $ruleref->{target} || '' ) eq 'RETURN';
-    trace( $chainref, 'A', @{$chainref->{rules}}, "-A $chainref->{name} $_[1] $ruleref->{comment}" ) if $debug;
+
+    if ( $debug ) {
+	if ( $ruleref->{comment} ) {
+	    trace( $chainref, 'A', @{$chainref->{rules}}, "-A $chainref->{name} $_[1] -m comment --comment \"$ruleref->{comment}\"" );
+	} else {
+	    trace( $chainref, 'A', @{$chainref->{rules}}, "-A $chainref->{name} $_[1]" );
+	}
+    }
 
     $chainref->{complete} = 1 if $complete;
 
@@ -4012,7 +4019,7 @@ sub delete_duplicates {
 	my $docheck;
 	my $duplicate = 0;
 
-	if ( $baseref->{mode} == CAT_MODE ) {
+	if ( $baseref->{mode} == CAT_MODE && $baseref->{target} ) {
 	    my $ports1;
 	    my @keys1    = sort( grep ! $skip{$_}, keys( %$baseref ) );
 	    my $rulenum  = @_;
