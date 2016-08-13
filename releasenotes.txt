@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  5 . 0 . 1 0 . 1
-                       ----------------------------
-                          J u l y  1 5 ,  2 0 1 6
+	               S H O R E W A L L  5 . 0 . 1 1
+                        ----------------------------
+                        A u g u s t  1 2 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,44 +14,27 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-5.0.10.1
+1)  This release contains defect repair through Shorewall 5.0.10.1.
 
-1)  Several issues with the Debian SysV init scripts have been
-    corrected:
+2)  In Shorewall 5.0, the default chain for DSCP rules was
+    inadvertently chained to PREROUTING (FORWARD, if
+    MARK_IN_FORWARD_CHAIN=Yes).
 
-    a) The scripts now issue progress messages for the 'stop' command
-       based on the setting of SAFESTOP in /etc/default/shorewall*.
+    The default is now restored to POSTROUTING, its earlier value.
 
-    b) The firewall is now stopped or cleared in runlevel 1 (minimal),
-       based on the setting of SAFESTOP.
+3)  When 'trace' was specified, prevously the output of ip[6]tables
+    rules containing a comment were displayed incorrectly. The "-m
+    comment --comment" specification was missing and the comment was
+    not enclosed in double quotes. This has been corrected.
 
-    c) A typo in the Shorewall init script prevented the force-stop
-       command from working correctly.
+4)  Previously, if a provider interface matched only a wildcard entry
+    (one whose physical interface name ended in '+'), then the
+    generated script would always find the interface to be
+    unusable. That has been corrected.
 
-    Roberto Sánchez.
-
-5.0.10
-
-1)  This release includes defect repair through Shorewall 5.0.9.2.
-
-2)  Previously, the 'update' commmand could result in updated files
-    having the user's default permissions rather than the permissions
-    of the original file. That has been corrected.
-
-3)  A number of update and update-compatibility issues have been
-    corrected:
-
-    a)  <user>: (e.g., "fred:") is once again accepted in USER columns.
-    b)  The USER column in the mangle file can once again be specified
-        when :T is the chain designator.
-    c)  The 'notrack' file is now correctly appended to the 'mangle'
-        file during update.
-    d)  IPMARK entries in 'tcrules' are now correctly converted into
-        the 'mangle' file.
-
-4)  When multiple zones are configured on an interface, the 'tcpflags',
-    'nosmurfs' and 'maclist' options could previously result in silly
-    duplicate rules. That problem has been corrected.
+5)  A change released in 5.0.9.1 and that allowed simple traffic
+    shaping to support more than 9 interfaces prevented some users'
+    configurations from starting. That has been corrected.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -68,43 +51,21 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-5.0.10.1
+1)  When using the alternate input form, it is now possible to specify
+    a comment to be attached to the generated ip[6]tables rule. Simply
+    use the 'comment' keyword. If the comment contains embedded white
+    space,  then it must be enclosed in double quotes. Any double
+    quotes embedded in the comment must be escaped using a backslash.
 
-1)  You can now specify LOGFILE=systemd to cause 'journelctl -r' to be
-    used to read the system log (journel).
+    Example:
 
-    Scott Sumate.
+    ACCEPT net $FW { proto=tcp, dport=22, comment="Accept \"SSH\"" }
 
-5.0.10
+2)  OPTIMIZE level 16 no longer deletes duplicate COUNT rules, allowing
+    multiple similar COUNT rules in a chain.
 
-1)  The 'allow' command can now remove entries from the ipset-based
-    dynamic blacklists.
-
-      allow <address> ...
-
-2)  A new 'dbl' (Dynamic Blacklist) option is now available in the
-    'interfaces' file. Possible settings are:
-
-    none    - equivalent to specifying 'nodbl'.
-    src     - packets entering the firewall on the interface have their
-    	      source IP address checked against the ipset-based
-    	      blacklist.
-    dst     - packets entering the firewall on the interface have their
-              destination IP address checked against the ipset-based
-    	      blacklist.
-    src-dst - packets entering the firewall on the interface have their
-    	      source IP address checked against the ipset-based
-    	      blacklist. Packets originating on the fireawll and
-    	      leaving through the interface have their destination IP
-    	      address checked against the ipset-based blacklist.
-
-    The normal setting for an internet-facing interface will be either
-    'src' or 'src-dst'. The normal setting for an internal interface
-    will be either 'none' or 'dst'.
-
-3)  The RPMs from shorewall.net are now created to assume that systemd
-    is being used. They are targeted specifically at OpenSuSE and have
-    been verified on OpenSuSE 42.1.
+3)  Beginning with this release, source RPMs are available on the
+    download sites.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -264,6 +225,91 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 0
+----------------------------------------------------------------------------
+
+5.0.10.1
+
+1)  Several issues with the Debian SysV init scripts have been
+    corrected:
+
+    a) The scripts now issue progress messages for the 'stop' command
+       based on the setting of SAFESTOP in /etc/default/shorewall*.
+
+    b) The firewall is now stopped or cleared in runlevel 1 (minimal),
+       based on the setting of SAFESTOP.
+
+    c) A typo in the Shorewall init script prevented the force-stop
+       command from working correctly.
+
+    Roberto Sánchez.
+
+5.0.10
+
+1)  This release includes defect repair through Shorewall 5.0.9.2.
+
+2)  Previously, the 'update' commmand could result in updated files
+    having the user's default permissions rather than the permissions
+    of the original file. That has been corrected.
+
+3)  A number of update and update-compatibility issues have been
+    corrected:
+
+    a)  <user>: (e.g., "fred:") is once again accepted in USER columns.
+    b)  The USER column in the mangle file can once again be specified
+        when :T is the chain designator.
+    c)  The 'notrack' file is now correctly appended to the 'mangle'
+        file during update.
+    d)  IPMARK entries in 'tcrules' are now correctly converted into
+        the 'mangle' file.
+
+4)  When multiple zones are configured on an interface, the 'tcpflags',
+    'nosmurfs' and 'maclist' options could previously result in silly
+    duplicate rules. That problem has been corrected.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 1 0
+----------------------------------------------------------------------------
+
+5.0.10.1
+
+1)  You can now specify LOGFILE=systemd to cause 'journelctl -r' to be
+    used to read the system log (journel).
+
+    Scott Sumate.
+
+5.0.10
+
+1)  The 'allow' command can now remove entries from the ipset-based
+    dynamic blacklists.
+
+      allow <address> ...
+
+2)  A new 'dbl' (Dynamic Blacklist) option is now available in the
+    'interfaces' file. Possible settings are:
+
+    none    - equivalent to specifying 'nodbl'.
+    src     - packets entering the firewall on the interface have their
+    	      source IP address checked against the ipset-based
+    	      blacklist.
+    dst     - packets entering the firewall on the interface have their
+              destination IP address checked against the ipset-based
+    	      blacklist.
+    src-dst - packets entering the firewall on the interface have their
+    	      source IP address checked against the ipset-based
+    	      blacklist. Packets originating on the fireawll and
+    	      leaving through the interface have their destination IP
+    	      address checked against the ipset-based blacklist.
+
+    The normal setting for an internet-facing interface will be either
+    'src' or 'src-dst'. The normal setting for an internal interface
+    will be either 'none' or 'dst'.
+
+3)  The RPMs from shorewall.net are now created to assume that systemd
+    is being used. They are targeted specifically at OpenSuSE and have
+    been verified on OpenSuSE 42.1.
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 9
 ----------------------------------------------------------------------------
