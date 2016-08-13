@@ -77,7 +77,7 @@ our %EXPORT_TAGS = ( Traffic => [ qw( process_tc_rule
 
 Exporter::export_ok_tags('Traffic');
 
-our $VERSION = '5.0_10';
+our $VERSION = '5.0_11';
 #
 # Globals are documented in the initialize() function
 #
@@ -4299,7 +4299,7 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	},
 
 	DSCP       => {
-	    defaultchain   => 0,
+	    defaultchain   => POSTROUTING,
 	    allowedchains  => PREROUTING | FORWARD | OUTPUT | POSTROUTING,
 	    minparams      => 1,
 	    maxparams      => 1,
