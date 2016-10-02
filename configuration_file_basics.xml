@@ -774,6 +774,17 @@ DNAT            net               loc:10.0.0.1    tcp     80    ; mark="88"</pro
     <programlisting>{ action=&gt;DNAT, source=&gt;net, dest=&gt;loc:10.0.0.1, proto=&gt;tcp, dport=&gt;80, mark=&gt;88 }
 ; action:"DNAT" source:"net"  dest:"loc:10.0.0.1" proto:"tcp" dport:"80" mark:"88"
 DNAT { source=net dest=loc:10.0.0.1 proto=tcp dport=80 mark=88 }</programlisting>
+
+    <para>Beginning with Shorewall 5.0.11, ip[6]table comments can be attached
+    to individual rules using the <option>comment</option> keyword.</para>
+
+    <para>Example from the rules file:</para>
+
+    <programlisting>        ACCEPT net $FW { proto=tcp, dport=22, comment="Accept \"SSH\"" }</programlisting>
+
+    <para>As shown in that example, when the comment contains whitespace, it
+    must be enclosed in double quotes and any embedded double quotes must be
+    escaped using a backslash ("\").</para>
   </section>
 
   <section>
@@ -1371,6 +1382,10 @@ SSH(ACCEPT)    net:$MYIP      $FW
     ?COMMENT line in the rules file and the generated rule will show <emphasis
     role="bold">/* Allow SSH from home */</emphasis> when displayed through
     the Shorewall show and dump commands.</para>
+
+    <para>Beginning with Shorewall 5.0.11, the <link linkend="Pairs">alternate
+    input format </link>allows attaching comments to individual rules in the
+    files listed above.</para>
   </section>
 
   <section id="CONFIG_PATH">
@@ -2785,6 +2800,182 @@ redirect                      =&gt; 137</programlisting>
     above.</para>
   </section>
 
+  <section id="TIME">
+    <title>TIME Columns</title>
+
+    <para>Several of the files include a TIME colum that allows you to specify
+    times when the rule is to be applied. Contents of this column is a list of
+    <replaceable>timeelement</replaceable>s separated by apersands
+    (&amp;).</para>
+
+    <para>Each <replaceable>timeelement</replaceable> is one of the
+    following:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>timestart=<replaceable>hh</replaceable>:<replaceable>mm</replaceable>[:<replaceable>ss</replaceable>]</term>
+
+        <listitem>
+          <para>Defines the starting time of day.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>timestop=<replaceable>hh</replaceable>:<replaceable>mm</replaceable>[:<replaceable>ss</replaceable>]</term>
+
+        <listitem>
+          <para>Defines the ending time of day.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>contiguous</term>
+
+        <listitem>
+          <para>Added in Shoreawll 5.0.12. When <emphasis
+          role="bold">timestop</emphasis> is smaller than <emphasis
+          role="bold">timestart</emphasis> value, match this as a single time
+          period instead of distinct intervals. See the Examples below.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>utc</term>
+
+        <listitem>
+          <para>Times are expressed in Greenwich Mean Time.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>localtz</term>
+
+        <listitem>
+          <para>Deprecated by the Netfilter team in favor of <emphasis
+          role="bold">kerneltz</emphasis>. Times are expressed in Local Civil
+          Time (default).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>kerneltz</term>
+
+        <listitem>
+          <para>Added in Shorewall 4.5.2. Times are expressed in Local Kernel
+          Time (requires iptables 1.4.12 or later).</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>weekdays=ddd[,ddd]...</term>
+
+        <listitem>
+          <para>where <replaceable>ddd</replaceable> is one of
+          <option>Mon</option>, <option>Tue</option>, <option>Wed</option>,
+          <option>Thu</option>, <option>Fri</option>, <option>Sat</option> or
+          <option>Sun</option></para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>monthdays=dd[,dd],...</term>
+
+        <listitem>
+          <para>where <replaceable>dd</replaceable> is an ordinal day of the
+          month</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>datestart=<replaceable>yyyy</replaceable>[-<replaceable>mm</replaceable>[-<replaceable>dd</replaceable>[<option>T</option><replaceable>hh</replaceable>[:<replaceable>mm</replaceable>[:<replaceable>ss</replaceable>]]]]]</term>
+
+        <listitem>
+          <para>Defines the starting date and time.</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>datestop=<replaceable>yyyy</replaceable>[-<replaceable>mm</replaceable>[-<replaceable>dd</replaceable>[<option>T</option><replaceable>hh</replaceable>[:<replaceable>mm</replaceable>[:<replaceable>ss</replaceable>]]]]]</term>
+
+        <listitem>
+          <para>Defines the ending date and time.</para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+
+    <para>Examples:</para>
+
+    <variablelist>
+      <varlistentry>
+        <term>To match on weekends, use:</term>
+
+        <listitem>
+          <para/>
+
+          <para>weekdays=Sat,Sun</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Or, to match (once) on a national holiday block:</term>
+
+        <listitem>
+          <para/>
+
+          <para>datestart=2016-12-24&amp;datestop=2016-12-27</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Since the stop time is actually inclusive, you would need the
+        following stop time to not match the first second of the new
+        day:</term>
+
+        <listitem>
+          <para/>
+
+          <para>datestart=2016-12-24T17:00&amp;datestop=2016-12-27T23:59:59</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>During Lunch Hour</term>
+
+        <listitem>
+          <para/>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>The fourth Friday in the month:</term>
+
+        <listitem>
+          <para/>
+
+          <para>weekdays=Fri&amp;monthdays=22,23,24,25,26,27,28</para>
+        </listitem>
+      </varlistentry>
+
+      <varlistentry>
+        <term>Matching across days might not do what is expected. For
+        instance,</term>
+
+        <listitem>
+          <para/>
+
+          <para>weekdays=Mon&amp;timestart=23:00&amp;timestop=01:00</para>
+
+          <para>Will match Monday, for one hour from midnight to 1 a.m., and
+          then again for another hour from 23:00 onwards. If this is unwanted,
+          e.g. if you would like 'match for two hours from Montay 23:00
+          onwards' you need to also specify the <emphasis
+          role="bold">contiguous</emphasis> option in the example above.
+          </para>
+        </listitem>
+      </varlistentry>
+    </variablelist>
+  </section>
+
   <section id="Switches">
     <title>Switches</title>
 
@@ -2927,8 +3118,8 @@ Comcast 2        0x20000 main       <emphasis role="bold">COM_IF</emphasis>     
     role="bold">optional</emphasis> option in the OPTIONS column.</para>
 
     <para>When an interface is marked as optional, Shorewall will determine
-    the interface state at <command>start</command> and
-    <command>restart</command> and adjust its configuration
+    the interface state at <command>start</command>, <command>reload</command>
+    and <command>restart</command> and adjust its configuration
     accordingly.</para>
 
     <itemizedlist>
@@ -2981,13 +3172,13 @@ Comcast 2        0x20000 main       <emphasis role="bold">COM_IF</emphasis>     
 
     <para>Shorewall allows you to have configuration directories other than
     <filename class="directory">/etc/shorewall</filename>. The shorewall
-    <command>check</command>, <command>start</command> and
-    <command>restart</command> commands allow you to specify an alternate
-    configuration directory and Shorewall will use the files in the alternate
-    directory rather than the corresponding files in /etc/shorewall. The
-    alternate directory need not contain a complete configuration; those files
-    not in the alternate directory will be read from <filename
-    class="directory">/etc/shorewall</filename>.<important>
+    <command>check</command>, <command>start</command>,
+    <command>reload</command> and <command>restart</command> commands allow
+    you to specify an alternate configuration directory and Shorewall will use
+    the files in the alternate directory rather than the corresponding files
+    in /etc/shorewall. The alternate directory need not contain a complete
+    configuration; those files not in the alternate directory will be read
+    from <filename class="directory">/etc/shorewall</filename>.<important>
         <para>Shorewall requires that the file
         <filename>/etc/shorewall/shorewall.conf</filename> to always exist.
         Certain global settings are always obtained from that file. If you
