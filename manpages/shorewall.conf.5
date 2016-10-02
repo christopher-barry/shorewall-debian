@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 08/06/2016
+.\"      Date: 10/01/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "08/06/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\&.CONF" "5" "10/01/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -257,6 +257,8 @@ When ADMINISABSENTMINDED=No, only traffic to/from those addresses listed in
 routestopped
 is accepted when Shorewall is stopped\&. When ADMINISABSENTMINDED=Yes, in addition to traffic to/from addresses in
 routestopped, connections that were active when Shorewall stopped continue to work and all new connections from the firewall system itself are allowed\&.
+.sp
+Note that the routestopped file is not supported in Shorewall 5\&.0 and later versions\&.
 .RE
 .PP
 stoppedrules
@@ -431,7 +433,7 @@ Added in Shorewall 4\&.5\&.13 to replace the BLACKLISTNEWONLY option\&. Specifie
 .sp
 ALL sends all packets through the blacklist chains\&.
 .sp
-Note: The ESTABLISHED state may not be specified if FASTACCEPT is specified\&.
+Note: The ESTABLISHED state may not be specified if FASTACCEPT=Yes is specified\&.
 .RE
 .PP
 \fBBLACKLIST_DISPOSITION=\fR[\fBDROP\fR|A_DROP|\fBREJECT|A_REJECT\fR]
@@ -484,7 +486,9 @@ that you specify\&.
 .RS 4
 If this option is set to
 \fBNo\fR
-then Shorewall won\*(Aqt clear the current traffic control rules during [re]start\&. This setting is intended for use by people who prefer to configure traffic shaping when the network interfaces come up rather than when the firewall is started\&. If that is what you want to do, set TC_ENABLED=Yes and CLEAR_TC=No and do not supply an /etc/shorewall/tcstart file\&. That way, your traffic shaping rules can still use the \(lqfwmark\(rq classifier based on packet marking defined in
+then Shorewall won\*(Aqt clear the current traffic control rules during [\fBre\fR]\fBstart\fR
+or
+\fBreload\fR\&. This setting is intended for use by people who prefer to configure traffic shaping when the network interfaces come up rather than when the firewall is started\&. If that is what you want to do, set TC_ENABLED=Yes and CLEAR_TC=No and do not supply an /etc/shorewall/tcstart file\&. That way, your traffic shaping rules can still use the \(lqfwmark\(rq classifier based on packet marking defined in
 \m[blue]\fBshorewall\-tcrules\fR\m[]\&\s-2\u[11]\d\s+2(5)\&. If not specified, CLEAR_TC=Yes is assumed\&.
 .RE
 .PP
@@ -568,7 +572,7 @@ commands will succeed even if no DNS server is reachable (assuming that the conf
 .PP
 \fBDELETE_THEN_ADD=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-If set to Yes (the default value), entries in the /etc/shorewall/route_stopped files cause an \*(Aqip rule del\*(Aq command to be generated in addition to an \*(Aqip rule add\*(Aq command\&. Setting this option to No, causes the \*(Aqip rule del\*(Aq command to be omitted\&.
+If set to Yes (the default value), entries in the /etc/shorewall/rtrules files cause an \*(Aqip rule del\*(Aq command to be generated in addition to an \*(Aqip rule add\*(Aq command\&. Setting this option to No, causes the \*(Aqip rule del\*(Aq command to be omitted\&.
 .RE
 .PP
 \fBDETECT_DNAT_IPADDRS=\fR[\fBYes\fR|\fBNo\fR]
@@ -704,7 +708,7 @@ Added in Shorewall 4\&.4\&.17\&. When set to Yes when compiling for use by Shore
 \fBshorewall export\fR
 commands), the compiler will copy the modules or helpers file from the administrative system into the script\&. When set to No or not specified, the compiler will not copy the modules or helpers file from
 /usr/share/shorewall
-but will copy the found in another location on the CONFIG_PATH\&.
+but will copy those found in another location on the CONFIG_PATH\&.
 .sp
 When compiling for direct use by Shorewall, causes the contents of the local module or helpers file to be copied into the compiled script\&. When set to No or not set, the compiled script reads the file itself\&.
 .RE
@@ -719,7 +723,7 @@ If you set FASTACCEPT=Yes, then ESTABLISHED/RELATED packets are accepted early i
 .PP
 \fBFORWARD_CLEAR_MARK=\fR{\fBYes\fR|\fBNo\fR}
 .RS 4
-Added in Shorewall 4\&.4\&.11 Beta 3\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (FORWARD_CLEAR_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
+Added in Shorewall 4\&.4\&.11\&. Traditionally, Shorewall has cleared the packet mark in the first rule in the mangle FORWARD chain\&. This behavior is maintained with the default setting of this option (FORWARD_CLEAR_MARK=Yes)\&. If FORWARD_CLEAR_MARK is set to \*(AqNo\*(Aq, packet marks set in the mangle PREROUTING chain are retained in the FORWARD chains\&.
 .RE
 .PP
 \fBGEOIPDIR\fR=[\fIpathname\fR]
@@ -1727,6 +1731,8 @@ or
 commands and the
 \fBdump\fR
 command are piped through the named program when the output file is a terminal\&.
+.sp
+Beginning with Shorewall 5\&.0\&.12, the default value of this option is the DEFAULT_PAGER setting in shorewallrc\&.
 .RE
 .PP
 \fBPATH=\fR\fIpathname\fR[\fB:\fR\fIpathname\fR]\&.\&.\&.
@@ -1906,18 +1912,18 @@ The following action implements the standard behavior:
 #TARGET         SOURCE  DEST    PROTO
 Broadcast(DROP) \-       \-       \-
 DROP            \-       \-       2
-INLINE          \-       \-       6       ; \-j REJECT \-\-reject\-with tcp\-reset
+INLINE          \-       \-       6       ;; \-j REJECT \-\-reject\-with tcp\-reset
 ?if __ENHANCED_REJECT
-INLINE          \-       \-       17      ; \-j REJECT
+INLINE          \-       \-       17      ;; \-j REJECT
 ?if __IPV4
-INLINE          \-       \-       1       ; \-j REJECT \-\-reject\-with icmp\-host\-unreachable
-INLINE          \-       \-       \-       ; \-j REJECT \-\-reject\-with icmp\-host\-prohibited
+INLINE          \-       \-       1       ;; \-j REJECT \-\-reject\-with icmp\-host\-unreachable
+INLINE          \-       \-       \-       ;; \-j REJECT \-\-reject\-with icmp\-host\-prohibited
 ?else
-INLINE          \-       \-       58      ; \-j REJECT \-\-reject\-with icmp6\-addr\-unreachable
-INLINE          \-       \-       \-       ; \-j REJECT \-\-reject\-with icmp6\-adm\-prohibited
+INLINE          \-       \-       58      ;; \-j REJECT \-\-reject\-with icmp6\-addr\-unreachable
+INLINE          \-       \-       \-       ;; \-j REJECT \-\-reject\-with icmp6\-adm\-prohibited
 ?endif
 ?else
-INLINE          \-       \-       \-       ; \-j REJECT
+INLINE          \-       \-       \-       ;; \-j REJECT
 ?endif
 .fi
 .if n \{\
@@ -1963,7 +1969,7 @@ RESTORE_DEFAULT_ROUTE=No is appropriate when you don\*(Aqt want a default route 
 Added in Shorewall 4\&.5\&.9\&. When set to
 \fBYes\fR
 (the default), provider marks are restored unconditionally at the top of the mangle OUTPUT and PREROUTING chains, even if the saved mark is zero\&. When this option is set to
-\fBNo\fR, the mark is restored even when it is zero\&. If you have problems with IPSEC ESP packets not being routed correctly on output, try setting this option to
+\fBNo\fR, the mark is restored only if it is non\-zero\&. If you have problems with IPSEC ESP packets not being routed correctly on output, try setting this option to
 \fBNo\fR\&.
 .RE
 .PP
@@ -2092,7 +2098,7 @@ interfaces without the routeback option\&. The default is
 .PP
 \fBSHOREWALL_SHELL=\fR[\fIpathname\fR]
 .RS 4
-This option is used to specify the shell program to be used to run the Shorewall compiler and to interpret the compiled script\&. If not specified or specified as a null value, /bin/sh is assumed\&. Using a light\-weight shell such as ash or dash can significantly improve performance\&.
+This option is used to specify the shell program to be used to interpret the compiled script\&. If not specified or specified as a null value, /bin/sh is assumed\&. Using a light\-weight shell such as ash or dash can significantly improve performance\&.
 .RE
 .PP
 \fBSMURF_DISPOSITION=\fR[\fBDROP\fR|A_DROP]
@@ -2455,6 +2461,26 @@ Added in Shorewall 4\&.6\&.11\&. Over time, there have been a number of changes 
 Do not set WORKAROUNDS=Yes if you need to be able to use Shorewall\-generated scripts (such as created by the
 \fBsave\fR
 command) built by Shorewall 4\&.4\&.7 or older\&.
+.sp .5v
+.RE
+.RE
+.PP
+\fBZERO_MARKS=\fR[\fBYes\fR|\fBNo\fR]
+.RS 4
+Added in Shorewall 5\&.0\&.12, this is a workaround for an issue where packet marks are not zeroed by the kernel\&. It should be set to No (the default) unless you find that incoming packets are being mis\-routed for no apparent reasons\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBCaution\fR
+.ps -1
+.br
+Do not set this option to Yes if you have IPSEC software running on the firewall system\&.
 .sp .5v
 .RE
 .RE

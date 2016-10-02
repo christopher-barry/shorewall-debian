@@ -956,6 +956,12 @@
 # 
 #         Defines the ending time of day.
 # 
+#     contiguous
+# 
+#         Added in Shoreawll 5.0.12. When timestop is smaller than timestart
+#         value, match this as a single time period instead of distinct
+#         intervals.
+# 
 #     utc
 # 
 #         Times are expressed in Greenwich Mean Time.

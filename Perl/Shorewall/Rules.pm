@@ -77,7 +77,7 @@ our %EXPORT_TAGS = ( Traffic => [ qw( process_tc_rule
 
 Exporter::export_ok_tags('Traffic');
 
-our $VERSION = '5.0_11';
+our $VERSION = '5.0_12';
 #
 # Globals are documented in the initialize() function
 #
@@ -295,7 +295,7 @@ our %validstates = ( NEW                => 0,
 #      known until the compiler has started.
 #
 #   2. The compiler can run multiple times in the same process so it has to be
-#      able to re-initialize its dependent modules' state.
+#      able to re-initialize the state of its dependent modules.
 #
 sub initialize( $ ) {
     $family            = shift;
@@ -345,11 +345,11 @@ sub initialize( $ ) {
     #
     $macro_nest_level  = 0;
     #
-    # All builtin actions plus those mentioned in /etc/shorewall[6]/actions and /usr/share/shorewall[6]/actions
+    # All builtin actions plus those mentioned in /etc/shorewall[6]/actions and /usr/share/shorewall[6]/actions.std
     #
     %actions           = ();
     #
-    # Action variants actually used. Key is <action>:<loglevel>:<tag>:<params>; value is corresponding chain name
+    # Action variants actually used. Key is <action>:<loglevel>:<tag>:<caller>:<params>; value is corresponding chain name
     #
     %usedactions       = ();
 
@@ -628,29 +628,20 @@ sub handle_nfqueue( $$ ) {
 #
 # Process an entry in the policy file.
 #
-sub process_a_policy() {
+sub process_a_policy1($$$$$$$) {
 
     our %validpolicies;
     our @zonelist;
 
-    my ( $client, $server, $originalpolicy, $loglevel, $synparams, $connlimit ) =
-	split_line 'policy file', { source => 0, dest => 1, policy => 2, loglevel => 3, limit => 4, connlimit => 5 } ;
-
-    $loglevel  = '' if $loglevel  eq '-';
-    $synparams = '' if $synparams eq '-';
-    $connlimit = '' if $connlimit eq '-';
-
-    fatal_error 'SOURCE must be specified' if $client eq '-';
-    fatal_error 'DEST must be specified'   if $server eq '-';
-    fatal_error 'POLICY must be specified' if $originalpolicy eq '-';
+    my ( $client, $server, $originalpolicy, $loglevel, $synparams, $connlimit, $intrazone ) = @_;
 
     my $clientwild = ( "\L$client" =~ /^all(\+)?$/ );
-    my $intrazone  = $clientwild && $1;
+    $intrazone  = $clientwild && $1;
 
     fatal_error "Undefined zone ($client)" unless $clientwild || defined_zone( $client );
 
     my $serverwild = ( "\L$server" =~ /^all(\+)?/ );
-    $intrazone ||= $serverwild && $1;
+    $intrazone   ||= ( $serverwild && $1 );
 
     fatal_error "Undefined zone ($server)" unless $serverwild || defined_zone( $server );
 
@@ -755,6 +746,40 @@ sub process_a_policy() {
 
     } else {
 	print_policy $client, $server, $originalpolicy, $chain;
+    }
+}
+
+sub process_a_policy() {
+
+    our %validpolicies;
+    our @zonelist;
+
+    my ( $clients, $servers, $policy, $loglevel, $synparams, $connlimit ) =
+	split_line 'policy file', { source => 0, dest => 1, policy => 2, loglevel => 3, limit => 4, connlimit => 5 } ;
+
+    $loglevel  = '' if $loglevel  eq '-';
+    $synparams = '' if $synparams eq '-';
+    $connlimit = '' if $connlimit eq '-';
+
+    my $intrazone;
+
+    if ( $intrazone = $clients =~ /.*,.*\+$/) {
+	$clients =~ s/\+$//;
+    }
+
+    if ( $servers =~ /.*,.*\+$/ ) {
+	$servers =~ s/\+$//;
+	$intrazone = 1;
+    }	
+
+    fatal_error 'SOURCE must be specified' if $clients eq '-';
+    fatal_error 'DEST must be specified'   if $servers eq '-';
+    fatal_error 'POLICY must be specified' if $policy  eq '-';
+
+    for my $client ( split_list( $clients, 'zone' ) ) {
+	for my $server ( split_list( $servers, 'zone' ) ) {
+	    process_a_policy1( $client, $server, $policy, $loglevel, $synparams, $connlimit, $intrazone );
+	}
     }
 }
 
@@ -1352,7 +1377,7 @@ sub new_action( $$$$$ ) {
 # Create and record a log action chain -- Log action chains have names
 # that are formed from the action name by prepending a "%" and appending
 # a 1- or 2-digit sequence number. In the functions that follow,
-# the $chain, $level and $tag variable serves as arguments to the user's
+# the $chain, $level and $tag variables serve as arguments to the user's
 # exit. We call the exit corresponding to the name of the action but we
 # set $chain to the name of the iptables chain where rules are to be added.
 # Similarly, $level and $tag contain the log level and log tag respectively.
@@ -1533,7 +1558,7 @@ sub find_macro( $ )
 {
     my $macro = $_[0];
 
-    $macro =~ s/^macro.//;
+    $macro =~ s/^macro\.//;
 
     my $macrofile = find_file "macro.$macro";
 
@@ -2957,65 +2982,63 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
 	# And we need the dest zone for local/loopback/off-firewall/destonly checks
 	#
 	$destref   = find_zone( $chainref->{destzone}   ) if $chainref->{destzone};
-    } else {
-	unless ( $actiontype & NATONLY ) {
-	    #
-	    # Check for illegal bridge port rule
-	    #
-	    if ( $destref->{type} & BPORT ) {
-		unless ( $sourceref->{bridge} eq $destref->{bridge} || single_interface( $sourcezone ) eq $destref->{bridge} ) {
-		    return 0 if $wildcard;
-		    fatal_error "Rules with a DESTINATION Bridge Port zone must have a SOURCE zone on the same bridge";
-		}
-	    }
-
-	    $chain = rules_chain( ${sourcezone}, ${destzone} );
-	    #
-	    # Ensure that the chain exists but don't mark it as referenced until after optimization is checked
-	    #
-	    ( $chainref  = ensure_chain( 'filter', $chain ) )->{sourcezone} = $sourcezone;
-	    $chainref->{destzone} = $destzone;
-
-	    my $policy = $chainref->{policy};
-
-	    if ( $policy eq 'NONE' ) {
+    } elsif ( ! ( $actiontype & NATONLY ) ) {
+	#
+	# Check for illegal bridge port rule
+	#
+	if ( $destref->{type} & BPORT ) {
+	    unless ( $sourceref->{bridge} eq $destref->{bridge} || single_interface( $sourcezone ) eq $destref->{bridge} ) {
 		return 0 if $wildcard;
-		fatal_error "Rules may not override a NONE policy";
+		fatal_error "Rules with a DESTINATION Bridge Port zone must have a SOURCE zone on the same bridge";
 	    }
-	    #
-	    # Handle Optimization level 1 when specified alone
-	    #
-	    if ( $optimize == 1 && $section == NEW_SECTION ) {
-		my $loglevel = $filter_table->{$chainref->{policychain}}{loglevel};
-		if ( $loglevel ne '' ) {
-		    return 0 if $target eq "${policy}:${loglevel}";
-		} else {
-		    return 0 if $basictarget eq $policy;
-		}
+	}
+
+	$chain = rules_chain( ${sourcezone}, ${destzone} );
+	#
+	# Ensure that the chain exists but don't mark it as referenced until after optimization is checked
+	#
+	( $chainref  = ensure_chain( 'filter', $chain ) )->{sourcezone} = $sourcezone;
+	$chainref->{destzone} = $destzone;
+
+	my $policy = $chainref->{policy};
+
+	if ( $policy eq 'NONE' ) {
+	    return 0 if $wildcard;
+	    fatal_error "Rules may not override a NONE policy";
+	}
+	#
+	# Handle Optimization level 1 when specified alone
+	#
+	if ( $optimize == 1 && $section == NEW_SECTION ) {
+	    my $loglevel = $filter_table->{$chainref->{policychain}}{loglevel};
+	    if ( $loglevel ne '' ) {
+		return 0 if $target eq "${policy}:${loglevel}";
+	    } else {
+		return 0 if $basictarget eq $policy;
 	    }
-	    #
-	    # Mark the chain as referenced and add appropriate rules from earlier sections.
-	    #
-	    $chainref = ensure_rules_chain $chain;
-	    #
-	    # Handle rules in the BLACKLIST, ESTABLISHED, RELATED, INVALID and UNTRACKED sections
-	    #
-	    if ( $section & ( BLACKLIST_SECTION | ESTABLISHED_SECTION | RELATED_SECTION | INVALID_SECTION | UNTRACKED_SECTION ) ) {
-		my $auxchain = $section_functions{$section}->( $sourcezone, $destzone );
-		my $auxref   = $filter_table->{$auxchain};
+	}
+	#
+	# Mark the chain as referenced and add appropriate rules from earlier sections.
+	#
+	$chainref = ensure_rules_chain $chain;
+	#
+	# Handle rules in the BLACKLIST, ESTABLISHED, RELATED, INVALID and UNTRACKED sections
+	#
+	if ( $section & ( BLACKLIST_SECTION | ESTABLISHED_SECTION | RELATED_SECTION | INVALID_SECTION | UNTRACKED_SECTION ) ) {
+	    my $auxchain = $section_functions{$section}->( $sourcezone, $destzone );
+	    my $auxref   = $filter_table->{$auxchain};
 
-		unless ( $auxref ) {
-		    my $save_comment = push_comment;
-		    $auxref = new_chain 'filter', $auxchain;
-		    $auxref->{blacklistsection} = 1 if $blacklist;
+	    unless ( $auxref ) {
+		my $save_comment = push_comment;
+		$auxref = new_chain 'filter', $auxchain;
+		$auxref->{blacklistsection} = 1 if $blacklist;
 
-		    add_ijump( $chainref, j => $auxref, state_imatch( $section_states{$section} ) );
-		    pop_comment( $save_comment );
-		}
-
-		$chain    = $auxchain;
-		$chainref = $auxref;
+		add_ijump( $chainref, j => $auxref, state_imatch( $section_states{$section} ) );
+		pop_comment( $save_comment );
 	    }
+
+	    $chain    = $auxchain;
+	    $chainref = $auxref;
 	}
     }
     #
@@ -3033,7 +3056,7 @@ sub process_rule ( $$$$$$$$$$$$$$$$$$$$ ) {
     #
     # Handle actions
     #
-    my $actionchain; #Name of the action chain
+    my $actionchain; # Name of the action chain
 
     if ( $actiontype & ACTION ) {
 	#
@@ -3562,7 +3585,7 @@ sub perl_action_tcp_helper($$) {
 sub process_section ($) {
     my $sect = shift;
     #
-    # split_line1 has already verified that there are exactly two tokens on the line
+    # split_line2 has already verified that there are exactly two tokens on the line
     #
     fatal_error "Invalid SECTION ($sect)" unless defined $sections{$sect};
     fatal_error "Duplicate or out of order SECTION $sect" if $sections{$sect};
@@ -3706,7 +3729,7 @@ sub process_raw_rule ( ) {
     fatal_error "Invalid or missing ACTION ($target)" unless defined $action;
 
     if ( @protos > 1 ) {
-	fatal_error "Inversion not allowed in a PROTO list" if $protos =~ tr/!/!/;
+	fatal_error "Inversion not allowed in a PROTO list" if $protos =~ /!/;
     }
 
     for $source ( @source ) {
@@ -4173,8 +4196,8 @@ sub process_mangle_rule1( $$$$$$$$$$$$$$$$$$ ) {
 	},
 
 	CHECKSUM   => {
-	    defaultchain   => 0,
-	    allowedchains  => ALLCHAINS,
+	    defaultchain   => POSTROUTING,
+	    allowedchains  => POSTROUTING | FORWARD | OUTPUT,
 	    minparams      => 0,
 	    maxparams      => 0 ,
 	    function       => sub() {

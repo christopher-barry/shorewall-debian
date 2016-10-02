@@ -241,7 +241,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_11';
+our $VERSION = '5.0_12';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -744,7 +744,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.11",
+		    VERSION                 => "5.0.12",
 		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
@@ -897,6 +897,7 @@ sub initialize( $;$$) {
 	  PAGER => undef ,
 	  MINIUPNPD => undef ,
 	  VERBOSE_MESSAGES => undef ,
+	  ZERO_MARKS => undef ,
 	  #
 	  # Packet Disposition
 	  #
@@ -3400,7 +3401,7 @@ sub embedded_shell( $ ) {
 sub embedded_perl( $ ) {
     my $multiline = shift;
 
-    my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
+    my ( $command , $linenumber ) = ( qq(package Shorewall::User;\nno strict;\nuse Shorewall::Config (qw/shorewall/);\n# line $currentlinenumber "$currentfilename"\n$currentline), $currentlinenumber );
 
     $directive_callback->( 'PERL', $currentline ) if $directive_callback;
 
@@ -3853,8 +3854,10 @@ sub process_shorewallrc( $$ ) {
 	    $shorewallrc{VARDIR} = "$shorewallrc{VARLIB}/$product";
 	}
     } elsif ( supplied $shorewallrc{VARLIB} ) {
-	$shorewallrc{VARDIR} = "$shorewallrc{VARLIB}/$product" unless supplied $shorewallrc{VARDIR};
+	$shorewallrc{VARDIR} = "$shorewallrc{VARLIB}/$product";
     }
+
+    $shorewallrc{DEFAULT_PAGER} = '' unless supplied $shorewallrc{DEFAULT_PAGER};
 }
 
 #
@@ -5228,7 +5231,7 @@ sub update_config_file( $ ) {
     update_default( 'USE_DEFAULT_RT', 'No' );
     update_default( 'EXPORTMODULES',  'No' );
     update_default( 'RESTART',        'reload' );
-    update_default( 'PAGER',          '' );
+    update_default( 'PAGER',          $shorewallrc1{DEFAULT_PAGER} );
 
     my $fn;
 
@@ -6290,6 +6293,7 @@ sub get_configuration( $$$$ ) {
     default_yes_no 'DEFER_DNS_RESOLUTION'       , 'Yes';
     default_yes_no 'MINIUPNPD'                  , '';
     default_yes_no 'VERBOSE_MESSAGES'           , 'Yes';
+    default_yes_no 'ZERO_MARKS'                 , '';
 
     $config{IPSET} = '' if supplied $config{IPSET} && $config{IPSET} eq 'ipset';
 

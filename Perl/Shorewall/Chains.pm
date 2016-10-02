@@ -296,7 +296,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_11';
+our $VERSION = '5.0_12';
 
 #
 # Chain Table
@@ -337,7 +337,7 @@ our $VERSION = '5.0_11';
 #                                               digest       => SHA1 digest of the string representation of the chain's rules for use in optimization
 #                                                               level 8.
 #                                               complete     => The last rule in the chain is a -g or a simple -j to a terminating target
-#                                                               Suppresses adding additional rules to the chain end of the chain
+#                                                               Suppresses adding additional rules to the end of the chain
 #                                               sections     => { <section> = 1, ... } - Records sections that have been completed.
 #                                               chainnumber  => Numeric enumeration of the builtin chains (mangle table only).
 #                                               allowedchains
@@ -2935,13 +2935,13 @@ sub initialize_chain_table($) {
 	#   As new targets (Actions, Macros and Manual Chains) are discovered, they are added to the table
 	#
 	%targets = ('ACCEPT'          => STANDARD,
-		    'ACCEPT+'         => STANDARD  + NONAT,
+		    'ACCEPT+'         => STANDARD + NONAT,
 		    'ACCEPT!'         => STANDARD,
 		    'ADD'             => STANDARD + SET,
-		    'AUDIT'           => STANDARD  + AUDIT + OPTIONS,
-		    'A_ACCEPT'        => STANDARD  + AUDIT,
-		    'A_ACCEPT+'       => STANDARD  + NONAT + AUDIT,
-		    'A_ACCEPT!'       => STANDARD  + AUDIT,
+		    'AUDIT'           => STANDARD + AUDIT + OPTIONS,
+		    'A_ACCEPT'        => STANDARD + AUDIT,
+		    'A_ACCEPT+'       => STANDARD + NONAT + AUDIT,
+		    'A_ACCEPT!'       => STANDARD + AUDIT,
 		    'A_DROP'          => STANDARD + AUDIT,
 		    'A_DROP!'         => STANDARD + AUDIT,
 		    'NONAT'           => STANDARD + NONAT  + NATONLY,
@@ -3001,13 +3001,13 @@ sub initialize_chain_table($) {
 	#   As new targets (Actions, Macros and Manual Chains) are discovered, they are added to the table
 	#
 	%targets = ('ACCEPT'          => STANDARD,
-		    'ACCEPT+'         => STANDARD  + NONAT,
+		    'ACCEPT+'         => STANDARD + NONAT,
 		    'ACCEPT!'         => STANDARD,
-		    'A_ACCEPT+'       => STANDARD  + NONAT + AUDIT,
-		    'A_ACCEPT!'       => STANDARD  + AUDIT,
-		    'AUDIT'           => STANDARD  + AUDIT + OPTIONS,
-		    'A_ACCEPT'        => STANDARD  + AUDIT,
-		    'NONAT'           => STANDARD  + NONAT + NATONLY,
+		    'A_ACCEPT+'       => STANDARD + NONAT + AUDIT,
+		    'A_ACCEPT!'       => STANDARD + AUDIT,
+		    'AUDIT'           => STANDARD + AUDIT + OPTIONS,
+		    'A_ACCEPT'        => STANDARD + AUDIT,
+		    'NONAT'           => STANDARD + NONAT + NATONLY,
 		    'DROP'            => STANDARD,
 		    'DROP!'           => STANDARD,
 		    'A_DROP'          => STANDARD + AUDIT,
@@ -3186,17 +3186,17 @@ sub delete_references( $ ) {
 #
 sub calculate_digest( $ ) {
     my $chainref = shift;
-    my $digest = '';
+    my $rules = '';
 
     for ( @{$chainref->{rules}} ) {
-	if ( $digest ) {
-	    $digest .= ' |' . format_rule( $chainref, $_, 1 );
+	if ( $rules ) {
+	    $rules .= ' |' . format_rule( $chainref, $_, 1 );
 	} else {
-	    $digest = format_rule( $chainref, $_, 1 );
+	    $rules = format_rule( $chainref, $_, 1 );
 	}
     }
 
-    $chainref->{digest} = sha1_hex $digest;
+    $chainref->{digest} = sha1_hex $rules;
 }
 
 #
@@ -3485,7 +3485,7 @@ sub optimize_level4( $$ ) {
 				$progress = 1;
 			    } elsif ( $chainref->{builtin} || ! $globals{KLUDGEFREE} || $firstrule->{policy} ) {
 				#
-				# This case requires a new rule merging algorithm. Ignore this chain for
+				# This case requires a new rule merging algorithm. Ignore this chain from
 				# now on.
 				#
 				$chainref->{optflags} |= DONT_OPTIMIZE;
@@ -3493,7 +3493,7 @@ sub optimize_level4( $$ ) {
 				#
 				# Replace references to this chain with the target and add the matches
 				#
-				$progress = 1 if replace_references1 $chainref, $firstrule;
+				$progress = 1 if replace_references1( $chainref, $firstrule );
 			    }
 			}
 		    } else {
@@ -3539,7 +3539,7 @@ sub optimize_level4( $$ ) {
 				#empty builtin chain -- change it's policy
 				#
 				$chainref->{policy} = $target;
-				trace( $chainref, 'P', undef, 'ACCEPT' ) if $debug;
+				trace( $chainref, 'P', undef, $target ) if $debug;
 				$count++;
 			    }
 
@@ -3693,7 +3693,12 @@ sub optimize_level8( $$$ ) {
 		if ( $chainref->{digest} eq $chainref1->{digest} ) {
 		    progress_message "  Chain $chainref1->{name} combined with $chainref->{name}";
 		    $progress = 1;
-		    replace_references $chainref1, $chainref->{name}, undef, '', '', 1;
+		    replace_references( $chainref1,
+					$chainref->{name},
+					undef,   # Target Opts
+					'',      # Comment
+					'',      # Origin
+					1 );     # Recalculate digests of modified chains
 
 		    unless ( $chainref->{name} =~ /^~/ || $chainref1->{name} =~ /^%/ ) {
 			#
@@ -5185,7 +5190,7 @@ sub do_time( $ ) {
 	    $result .= "--monthday $days ";
 	} elsif ( $element =~ /^(datestart|datestop)=(\d{4}(-\d{2}(-\d{2}(T\d{1,2}(:\d{1,2}){0,2})?)?)?)$/ ) {
 	    $result .= "--$1 $2 ";
-	} elsif ( $element =~ /^(utc|localtz|kerneltz)$/ ) {
+	} elsif ( $element =~ /^(utc|localtz|kerneltz|contiguous)$/ ) {
 	    $result .= "--$1 ";
 	} else {
 	    fatal_error "Invalid time element ($element)";
