@@ -1,5 +1,5 @@
 %define name shorewall-lite
-%define version 5.0.11
+%define version 5.0.12
 %define release 0base
 %define initdir /etc/init.d
 
@@ -117,6 +117,18 @@ fi
 %doc COPYING changelog.txt releasenotes.txt
 
 %changelog
+* Sat Oct 01 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.12-0base
+* Sat Oct 01 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.12-0RC3
+* Tue Sep 27 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.12-0RC2
+* Tue Sep 20 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.12-0RC1
+* Tue Sep 13 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.12-0Beta2
+* Sat Aug 13 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.12-0Beta1
 * Sat Aug 06 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.11-0base
 * Sat Jul 30 2016 Tom Eastep tom@shorewall.net
