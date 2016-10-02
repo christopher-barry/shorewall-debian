@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	               S H O R E W A L L  5 . 0 . 1 1
+	               S H O R E W A L L  5 . 0 . 1 2
                         ----------------------------
-                        A u g u s t  1 2 ,  2 0 1 6
+                        O c t o b e r  0 3 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,27 +14,48 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  This release contains defect repair through Shorewall 5.0.10.1.
+1)  Minor cleanup, mostly commentary, in the Rules.pm module.
 
-2)  In Shorewall 5.0, the default chain for DSCP rules was
-    inadvertently chained to PREROUTING (FORWARD, if
-    MARK_IN_FORWARD_CHAIN=Yes).
+2)  In Shorewall 5.0.7, The assumed 'use Shorewall::Config(shorewall)'
+    statement in ?PERL and ?BEGIN PERL...?END PERL handling was
+    inadvertently removed. This results in Perl compilation errors if
+    the 'shorewall' function is invoked. The statement has now been
+    restored.
 
-    The default is now restored to POSTROUTING, its earlier value.
+3)  Previously, the firewall would fail to start if the configuration
+    contained a CHECKSUM rule without a chain designator and
+    MARK_IN_FORWARD_CHAIN=No. Now, the compiler defaults these rules to
+    the POSTROUTING chain and forbids them in the PREROUTING chain.
 
-3)  When 'trace' was specified, prevously the output of ip[6]tables
-    rules containing a comment were displayed incorrectly. The "-m
-    comment --comment" specification was missing and the comment was
-    not enclosed in double quotes. This has been corrected.
+4)  Recently, a case was observed where certain incoming packets had a
+    non-zero packet mark in the raw PREROUTING chain, causing them to
+    be misrouted. To guard against this issue, packet marks are now
+    cleared at the top of the PREROUTING and OUTPUT mangle chains when
+    the new ZERO_MARKS option is set to yes. Note that ZERO_MARKS=Yes
+    can break IPSEC in multi-ISP configurations.
 
-4)  Previously, if a provider interface matched only a wildcard entry
-    (one whose physical interface name ended in '+'), then the
-    generated script would always find the interface to be
-    unusable. That has been corrected.
+5)  Two distinct problems have been corrected in the 'disable'
+    command logic:
 
-5)  A change released in 5.0.9.1 and that allowed simple traffic
-    shaping to support more than 9 interfaces prevented some users'
-    configurations from starting. That has been corrected.
+    a)  If a balanced or fallback interface was down or had been
+    	deleted, then the 'disable' command could fail.
+
+    b)  If a persistent optional interface was down, then the
+        generated script would fail when it attempted to add routes out
+        of the interface.
+
+6)  Previously, the generated script would attempt to reenable a
+    disabled persistent provider at each 'start', 'reload' or
+    'restart'. Now, disabled persistent providers are handled the same
+    as other providers and require the 'enable' or 'reenable' command
+    to enable them.
+
+7)  Previously, the generated script assumed that all
+    probability-balanced providers (those with the 'load' option
+    specified) were optional. That assumption has been removed.
+
+8)  Previously, the permissions of files created by the 'save' command
+    were more relaxed than necessary. This has been corrected. 
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -51,21 +72,69 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  When using the alternate input form, it is now possible to specify
-    a comment to be attached to the generated ip[6]tables rule. Simply
-    use the 'comment' keyword. If the comment contains embedded white
-    space,  then it must be enclosed in double quotes. Any double
-    quotes embedded in the comment must be escaped using a backslash.
+1)  You may now place comma-separated zone lists in the SOURCE and DEST
+    columns in /etc/shorewall[6]/policy.
 
     Example:
 
-    ACCEPT net $FW { proto=tcp, dport=22, comment="Accept \"SSH\"" }
+    #SOURCE		DEST		POLICY	...
+    loc,dmz		net		REJECT
 
-2)  OPTIMIZE level 16 no longer deletes duplicate COUNT rules, allowing
-    multiple similar COUNT rules in a chain.
+    That line is equivalent to:
 
-3)  Beginning with this release, source RPMs are available on the
-    download sites.
+    #SOURCE		DEST		POLICY	...
+    loc			net		REJECT
+    loc			dmz		REJECT
+
+    If the same zone appears in both columns, the default ACCEPT
+    intrazone policy is not overridden unless the list is followed
+    immediately by '+'.
+
+    Example:
+
+    #SOURCE		DEST		POLICY	...
+    dmz,loc		loc,dmz+	REJECT
+
+    That line is equivalent to:
+
+    #SOURCE		DEST		POLICY	...
+    dmz			loc		REJECT
+    dmz			dmz		REJECT
+    loc			loc		REJECT
+    loc			dmz		REJECT
+
+    Without the plus sine, it would be equivalent to
+
+    #SOURCE		DEST		POLICY	...
+    dmz			loc		REJECT
+    loc			dmz		REJECT
+
+2)  Distribution maintainers may now set a default pager via the
+    configure and configure.pl programs in Shorewall-core to set
+    DEFAULT_PAGER in the generated shorewallrc file. The
+    Shorewall-provided shorewallrc files for Debian currently specify
+    'less' for DEFAULT_PAGER. The other shorewallrc files do not
+    specify DEFAULT_PAGER.
+
+    If shorewall[6].conf does not specify PAGER then the DEFAULT_PAGER
+    setting is used.
+
+3)  The 'contiguous' option is now supported in TIME columns. When the
+    'timestop' value  is smaller than the 'timestart' value, match this
+    as a  single  time  period  instead  distinct intervals.
+
+    Example:
+
+            weekdays=Mo&timestart=23:00&timestop=01:00
+
+        Will match Monday, for one hour from midnight  to 1 a.m., and
+  	then again for another hour from 23:00 onwards. If this is
+  	unwanted, e.g. if you would like 'match for two hours from
+  	Monday 23:00 onwards' you need to also specify the 'contiguous'
+  	option in the example above.
+
+    See http://www.shorewall.org/configuration_file_basics.htm#TIME for
+    additional TIME column examples.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -214,7 +283,7 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     these requests, so they are simply logged and dropped.
 
     IMPORTANT: If you want to continue to reject Auth requests, you
-    can do so by chaning your DROP_DEFAULT setting to make the second
+    can do so by changing your DROP_DEFAULT setting to make the second
     parameter REJECT. For example, if you currently have:
 
         DROP_DEFAULT=Drop
@@ -225,6 +294,52 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 1
+----------------------------------------------------------------------------
+
+1)  This release contains defect repair through Shorewall 5.0.10.1.
+
+2)  In Shorewall 5.0, the default chain for DSCP rules was
+    inadvertently chained to PREROUTING (FORWARD, if
+    MARK_IN_FORWARD_CHAIN=Yes).
+
+    The default is now restored to POSTROUTING, its earlier value.
+
+3)  When 'trace' was specified, previously the output of ip[6]tables
+    rules containing a comment were displayed incorrectly. The "-m
+    comment --comment" specification was missing and the comment was
+    not enclosed in double quotes. This has been corrected.
+
+4)  Previously, if a provider interface matched only a wildcard entry
+    (one whose physical interface name ended in '+'), then the
+    generated script would always find the interface to be
+    unusable. That has been corrected.
+
+5)  A change released in 5.0.9.1 and that allowed simple traffic
+    shaping to support more than 9 interfaces prevented some users'
+    configurations from starting. That has been corrected.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 1 1
+----------------------------------------------------------------------------
+
+1)  When using the alternate input form, it is now possible to specify
+    a comment to be attached to the generated ip[6]tables rule. Simply
+    use the 'comment' keyword. If the comment contains embedded white
+    space,  then it must be enclosed in double quotes. Any double
+    quotes embedded in the comment must be escaped using a backslash.
+
+    Example:
+
+    ACCEPT net $FW { proto=tcp, dport=22, comment="Accept \"SSH\"" }
+
+2)  OPTIMIZE level 16 no longer deletes duplicate COUNT rules, allowing
+    multiple similar COUNT rules in a chain.
+
+3)  Beginning with this release, source RPMs are available on the
+    download sites.
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 0
 ----------------------------------------------------------------------------
