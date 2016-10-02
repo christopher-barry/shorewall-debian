@@ -8,3 +8,5 @@ shorewall: non-standard-file-perm etc/shorewall/params 0640 != 0644
 shorewall: non-standard-file-perm etc/shorewall/conntrack 0640 != 0644
 # It is necessary to specify /sbin/shorewall
 shorewall: command-with-path-in-maintainer-script
+# This happens because the name of the command-line option is reenable
+shorewall: spelling-error-in-manpage usr/share/man/man5/shorewall-providers.5.gz reenable re-enable
