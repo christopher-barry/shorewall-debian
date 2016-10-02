@@ -28,7 +28,7 @@
 #
 # Build updates this
 #
-VERSION=5.0.11
+VERSION=5.0.12
 
 case "$BASH_VERSION" in
     [4-9].*)
@@ -235,7 +235,8 @@ for on in \
     SPARSE \
     ANNOTATED \
     VARLIB \
-    VARDIR
+    VARDIR \
+    DEFAULT_PAGER
 do
     echo "$on=${options[${on}]}"
     echo "$on=${options[${on}]}" >> shorewallrc

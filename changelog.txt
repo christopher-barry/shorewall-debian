@@ -1,3 +1,61 @@
+Changes in 5.0.12 Final
+
+1)  Update release documents.
+
+2)  Correct permissions of files created by the 'save' command.
+
+Changes in 5.0.12 RC 3
+
+1)  Update release documents.
+
+2)  Correct disabled persistent' WRT start, restart and reload.
+
+3)  Don't assume that all probability-balanced interfaces are optional.
+
+Changes in 5.0.12 RC 2
+
+1)  Update release documents.
+
+2)  Handle down or missing interfaces in the disable logic.
+
+Changes in 5.0.12 RC 1
+
+1)  Update release documents.
+
+2)  Add DEFAULT_PAGER to shorewallrc.
+
+3)  Add support for the 'contiguous' time option.
+
+4)  Clear packet marks in PREROUTING and OUTPUT.
+
+Changes in 5.0.12 Beta 2
+
+1)  Update release documents.
+
+2)  Restore 'use Shorewall::Config(shorewall)' in ?PERL handling.
+
+3)  Make POSTROUTING the default chain for CHECKSUM.
+
+Changes in 5.0.12 Beta 1
+
+1)  Update release documents.
+
+2)  Minor cleanup in the Rules module
+
+3)  Allow zone lists in policy SOURCE and DEST columns.
+
+Changes in 5.0.11 Final
+
+1)  Update release documents.
+
+Changes in 5.0.11 RC 1
+
+1)  Update release documents.
+
+2)  Update module versions.
+
+3)  Allow provider interface to match wildcard interfaces entry.
+
 Changes in 5.0.11 Beta 2
 
 1)  Update release documents
