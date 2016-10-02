@@ -64,7 +64,7 @@ More information about shorewall configuration can be found in the
 shorewall-doc package and on the shorewall website (http://www.shorewall.net).
 
 
-3. AVODING FLOOD (WITH LOGGED TRAFFIC) ON THE CONSOLE
+3. AVOIDING FLOOD (WITH LOGGED TRAFFIC) ON THE CONSOLE
 -----------------------------------------------------
 
 Shorewall logs packets using level "info". With the default klogd
