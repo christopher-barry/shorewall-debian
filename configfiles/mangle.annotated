@@ -767,6 +767,12 @@
 # 
 #         Defines the ending time of day.
 # 
+#     contiguous
+# 
+#         Added in Shoreawll 5.0.12. When timestop is smaller than timestart
+#         value, match this as a single time period instead of distinct
+#         intervals.
+# 
 #     utc
 # 
 #         Times are expressed in Greenwich Mean Time.
@@ -830,7 +836,7 @@
 #     fashion between addresses 1.1.1.1, 1.1.1.3, and 1.1.1.9 (Shorewall 4.5.9
 #     and later).
 # 
-#     /etc/shorewall/tcrules:
+#     /etc/shorewall/mangle:
 # 
 #            #ACTION            SOURCE         DEST         PROTO   DPORT         SPORT   USER    TEST
 #            CONNMARK(1-3):F    192.168.1.0/24 eth0 ; state=NEW

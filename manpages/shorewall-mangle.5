@@ -2,12 +2,12 @@
 .\"     Title: shorewall-mangle
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 08/06/2016
+.\"      Date: 10/01/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-MANGLE" "5" "08/06/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-MANGLE" "5" "10/01/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -1083,6 +1083,15 @@ timestop=\fIhh\fR:\fImm\fR[:\fIss\fR]
 Defines the ending time of day\&.
 .RE
 .PP
+contiguous
+.RS 4
+Added in Shoreawll 5\&.0\&.12\&. When
+\fBtimestop\fR
+is smaller than
+\fBtimestart\fR
+value, match this as a single time period instead of distinct intervals\&.
+.RE
+.PP
 utc
 .RS 4
 Times are expressed in Greenwich Mean Time\&.
@@ -1168,7 +1177,7 @@ SNAT outgoing connections on eth0 from 192\&.168\&.1\&.0/24 in round\-robin fash
 .RS 4
 .\}
 .nf
-/etc/shorewall/tcrules:
+/etc/shorewall/mangle:
 
        #ACTION            SOURCE         DEST         PROTO   DPORT         SPORT   USER    TEST
        CONNMARK(1\-3):F    192\&.168\&.1\&.0/24 eth0 ; state=NEW
