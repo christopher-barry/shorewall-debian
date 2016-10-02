@@ -22,7 +22,7 @@
 # This file determines what to do with a new connection request if we don't get a
 # match from the /etc/shorewall6/rules file . For each source/destination pair,
 # the file is processed in order until a match is found ("all" will match any
-# client or server).
+# source or destination).
 # 
 # Important
 # 
@@ -42,7 +42,7 @@
 # different name in parentheses, the different name is used in the alternate
 # specification syntax).
 # 
-# SOURCE - zone|$FW|all|all+
+# SOURCE - zone[,...[+]]|$FW|all|all+
 # 
 #     Source zone. Must be the name of a zone defined in shorewall6-zones(5),
 #     $FW, "all" or "all+".
@@ -50,7 +50,12 @@
 #     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
 #     the implicit intra-zone ACCEPT policy while "all+" does.
 # 
-# DEST - zone|$FW|all|all+
+#     Beginning with Shorewall 5.0.12, multiple zones may be listed separated by
+#     commas. As above, if '+' is specified after two or more zone names, then
+#     the policy overrides the implicit intra-zone ACCEPT policy if the same zone
+#     appears in both the SOURCE and DEST columns.
+# 
+# DEST - zone[,...[+]]|$FW|all|all+
 # 
 #     Destination zone. Must be the name of a zone defined in shorewall6-zones
 #     (5), $FW, "all" or "all+". If the DEST is a bport zone, then the SOURCE
@@ -59,6 +64,11 @@
 # 
 #     Support for "all+" was added in Shorewall 4.5.17. "all" does not override
 #     the implicit intra-zone ACCEPT policy while "all+" does.
+# 
+#     Beginning with Shorewall 5.0.12, multiple zones may be listed separated by
+#     commas. As above, if '+' is specified after two or more zone names, then
+#     the policy overrides the implicit intra-zone ACCEPT policy if the same zone
+#     appears in both the SOURCE and DEST columns.
 # 
 # POLICY - {ACCEPT|DROP|REJECT|CONTINUE|QUEUE|NFQUEUE[(queuenumber1[:queuenumber2
 #     ])]|NONE}[:{default-action-or-macro[:level]|None}]

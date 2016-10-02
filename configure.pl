@@ -31,7 +31,7 @@ use strict;
 # Build updates this
 #
 use constant {
-    VERSION => '5.0.11'
+    VERSION => '5.0.12'
 };
 
 my %params;
@@ -209,7 +209,8 @@ for ( qw/ HOST
 	  SPARSE
 	  ANNOTATED
 	  VARLIB
-	  VARDIR / ) {
+	  VARDIR
+          DEFAULT_PAGER / ) {
 
     my $val = $options{$_} || '';
 

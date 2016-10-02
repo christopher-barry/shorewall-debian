@@ -201,6 +201,13 @@
 # 
 #           ☆ Persistent routing rules in shorewall6-rtrules(5) are present.
 # 
+#         Note
+# 
+#         The generated script will attempt to reenable a disabled persistent
+#         provider during execution of the start, restart and reload commands.
+#         When persistent is not specified, only the enable and reenable commands
+#         can reenable the provider.
+# 
 # COPY - [{none|interface[,interface]...}]
 # 
 #     A comma-separated list of other interfaces on your firewall. Wildcards

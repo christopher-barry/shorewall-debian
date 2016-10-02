@@ -91,6 +91,9 @@ PAGER=
 #     and the dump command are piped through the named program when the output
 #     file is a terminal.
 # 
+#     Beginning with Shorewall 5.0.12, the default value of this option is the
+#     DEFAULT_PAGER setting in shorewallrc.
+# 
 ###############################################################################
 #			       L O G G I N G
 ###############################################################################
@@ -596,6 +599,9 @@ ADMINISABSENTMINDED=Yes
 #         continue to work and all new connections from the firewall system
 #         itself are allowed.
 # 
+#         Note that the routestopped file is not supported in Shorewall 5.0 and
+#         later versions.
+# 
 #     stoppedrules
 # 
 #         All existing connections continue to work. To sever all existing
@@ -738,13 +744,13 @@ CLEAR_TC=No
 # CLEAR_TC=[Yes|No]
 # 
 #     If this option is set to No then Shorewall6 won't clear the current traffic
-#     control rules during [re]start. This setting is intended for use by people
-#     that prefer to configure traffic shaping when the network interfaces come
-#     up rather than when the firewall is started. If that is what you want to
-#     do, set TC_ENABLED=Yes and CLEAR_TC=No and do not supply an /etc/shorewall6
-#     /tcstart file. That way, your traffic shaping rules can still use the
-#     “fwmark” classifier based on packet marking defined in shorewall6-tcrules
-#     (5). If not specified, CLEAR_TC=No is assumed.
+#     control rules during [re]start or reload. This setting is intended for use
+#     by people that prefer to configure traffic shaping when the network
+#     interfaces come up rather than when the firewall is started. If that is
+#     what you want to do, set TC_ENABLED=Yes and CLEAR_TC=No and do not supply
+#     an /etc/shorewall6/tcstart file. That way, your traffic shaping rules can
+#     still use the “fwmark” classifier based on packet marking defined in
+#     shorewall6-tcrules(5). If not specified, CLEAR_TC=No is assumed.
 # 
 #     Warning
 # 
@@ -786,10 +792,10 @@ DELETE_THEN_ADD=Yes
 #
 # DELETE_THEN_ADD={Yes|No}
 # 
-#     If set to Yes (the default value), entries in the /etc/shorewall6/
-#     route_stopped files cause an 'ip rule del' command to be generated in
-#     addition to an 'ip rule add' command. Setting this option to No, causes the
-#     'ip rule del' command to be omitted.
+#     If set to Yes (the default value), entries in the /etc/shorewall6/rtrules
+#     file cause an 'ip rule del' command to be generated in addition to an 'ip
+#     rule add' command. Setting this option to No, causes the 'ip rule del'
+#     command to be omitted.
 # 
 DONT_LOAD=
 #
@@ -849,7 +855,8 @@ EXPORTMODULES=Yes
 #     commands), the compiler will copy the modules or helpers file from the
 #     administrative system into the script. When set to No or not specified, the
 #     compiler will not copy the modules or helpers file from /usr/share/
-#     shorewall6 but will copy the found in another location on the CONFIG_PATH.
+#     shorewall6 but will copy those found in another location on the
+#     CONFIG_PATH.
 # 
 #     When compiling for direct use by Shorewall6, causes the contents of the
 #     local module or helpers file to be copied into the compiled script. When
@@ -874,8 +881,8 @@ FORWARD_CLEAR_MARK=Yes
 #
 # FORWARD_CLEAR_MARK={Yes|No}
 # 
-#     Added in Shorewall 4.4.11 Beta 3. Traditionally, Shorewall has cleared the
-#     packet mark in the first rule in the mangle FORWARD chain. This behavior is
+#     Added in Shorewall 4.4.11. Traditionally, Shorewall has cleared the packet
+#     mark in the first rule in the mangle FORWARD chain. This behavior is
 #     maintained with the default setting of this option (FORWARD_CLEAR_MARK=
 #     Yes). If FORWARD_CLEAR_MARK is set to 'No', packet marks set in the mangle
 #     PREROUTING chain are retained in the FORWARD chains.
@@ -1260,18 +1267,18 @@ REJECT_ACTION=
 #     #TARGET         SOURCE  DEST    PROTO
 #     Broadcast(DROP) -       -       -
 #     DROP            -       -       2
-#     INLINE          -       -       6       ; -j REJECT --reject-with tcp-reset
+#     INLINE          -       -       6       ;; -j REJECT --reject-with tcp-reset
 #     ?if __ENHANCED_REJECT
-#     INLINE          -       -       17      ; -j REJECT
+#     INLINE          -       -       17      ;; -j REJECT
 #     ?if __IPV4
-#     INLINE          -       -       1       ; -j REJECT --reject-with icmp-host-unreachable
-#     INLINE          -       -       -       ; -j REJECT --reject-with icmp-host-prohibited
+#     INLINE          -       -       1       ;; -j REJECT --reject-with icmp-host-unreachable
+#     INLINE          -       -       -       ;; -j REJECT --reject-with icmp-host-prohibited
 #     ?else
-#     INLINE          -       -       58      ; -j REJECT --reject-with icmp6-addr-unreachable
-#     INLINE          -       -       -       ; -j REJECT --reject-with icmp6-adm-prohibited
+#     INLINE          -       -       58      ;; -j REJECT --reject-with icmp6-addr-unreachable
+#     INLINE          -       -       -       ;; -j REJECT --reject-with icmp6-adm-prohibited
 #     ?endif
 #     ?else
-#     INLINE          -       -       -       ; -j REJECT
+#     INLINE          -       -       -       ;; -j REJECT
 #     ?endif
 # 
 REQUIRE_INTERFACE=No
@@ -1301,9 +1308,9 @@ RESTORE_ROUTEMARKS=Yes
 #     Added in Shorewall 4.5.9. When set to Yes (the default), provider marks are
 #     restored unconditionally at the top of the mangle OUTPUT and PREROUTING
 #     chains, even if the saved mark is zero. When this option is set to No, the
-#     mark is restored even when it is zero. If you have problems with IPSEC ESP
-#     packets not being routed correctly on output, try setting this option to No
-#     .
+#     mark is restored only if it is non-zero. If you have problems with IPSEC
+#     ESP packets not being routed correctly on output, try setting this option
+#     to No.
 # 
 SAVE_IPSETS=No
 #
@@ -1522,6 +1529,20 @@ WORKAROUNDS=No
 #     Do not set WORKAROUNDS=Yes if you need to be able to use
 #     Shorewall-generated scripts (such as created by the save command) built by
 #     Shorewall 4.4.7 or older.
+# 
+ZERO_MARKS=No
+#
+# ZERO_MARKS=[Yes|No]
+# 
+#     Added in Shorewall 5.0.12, this is a workaround for an issue where packet
+#     marks are not zeroed by the kernel. It should be set to No (the default)
+#     unless you find that incoming packets are being mis-routed for no apparent
+#     reasons.
+# 
+#     Caution
+# 
+#     Do not set this option to Yes if you have IPSEC software running on the
+#     firewall system.
 # 
 ZONE2ZONE=-
 #

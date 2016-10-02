@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 08/06/2016
+.\"      Date: 10/01/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-PROVIDER" "5" "08/06/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-PROVIDER" "5" "10/01/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -303,6 +303,33 @@ option is specified, routing rules are generated to route traffic from the inter
 Persistent routing rules in
 \m[blue]\fBshorewall6\-rtrules(5)\fR\m[]\&\s-2\u[6]\d\s+2
 are present\&.
+.RE
+.sp
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBNote\fR
+.ps -1
+.br
+The generated script will attempt to reenable a disabled persistent provider during execution of the
+\fBstart\fR,
+\fBrestart\fR
+and
+\fBreload\fR
+commands\&. When
+\fBpersistent\fR
+is not specified, only the
+\fBenable\fR
+and
+\fBreenable\fR
+commands can reenable the provider\&.
+.sp .5v
 .RE
 .RE
 .RE
