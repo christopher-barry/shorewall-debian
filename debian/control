@@ -10,7 +10,14 @@ Vcs-Git: git://git.code.sf.net/p/shorewall/debian
 
 Package: shorewall6
 Architecture: all
-Depends: iptables (>= 1.4.1), iproute2 | iproute, debconf (>= 1.4.69) | cdebconf (>= 0.39), shorewall (>= ${shorewall:current}), shorewall (<< ${shorewall:next}), libio-socket-inet6-perl, ${misc:Depends}
+Depends: iptables (>= 1.4.1),
+ iproute2 | iproute,
+ debconf (>= 1.4.69) | cdebconf (>= 0.39),
+ shorewall (>= ${shorewall:current}),
+ shorewall (<< ${shorewall:next}),
+ libio-socket-inet6-perl,
+ lsb-base (>= 3.0-6),
+ ${misc:Depends}
 Description: Shoreline Firewall (IPv6 version), netfilter configurator
  Shorewall6 allows firewall/gateway requirements to be described using
  entries in a set of configuration files. It reads those configuration
