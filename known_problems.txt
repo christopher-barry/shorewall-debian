@@ -4,3 +4,8 @@
 2)  The 'enable', 'reenable' and 'disable' commands do not work
     correctly in configurations with USE_DEFAULT_RT=No and optional
     providers listed in the DUPLICATE column.
+
+3)  The 5.0.12 release notes contain an incorrect example in the
+    first new feature. The online version of the notes at
+    http://www.shorewall.org/pub/shorewall/5.0/shorewall-5.0.12/releasenotes.txt
+    has been corrected.
