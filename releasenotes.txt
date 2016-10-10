@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	               S H O R E W A L L  5 . 0 . 1 2
-                        ----------------------------
-                        O c t o b e r  0 3 ,  2 0 1 6
+	             S H O R E W A L L  5 . 0 . 1 2 . 1
+                        -----------------------------
+                        O c t o b e r  1 0 ,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,28 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.12.1
+
+1)  The first example in New Feature 1) below has been corrected.
+
+2)  The wording in the description of DYNAMIC_BLACKLISTING in
+    shorewall[6].conf(5) has been corrected.
+
+3)  Typos in shorewall[6]-mangle(5) have been corrected (Roberto
+    C. Sánchez).
+
+4)  The options in shorewall[6].conf have been reordered to put them
+    in ASCII collating sequence within the FIREWALL OPTIONS section.
+
+5)  A defect introduced in Shorewall 5.0.12 could cause a runtime
+    failure during start:
+
+      /var/lib/shorewall/.start: 614: return: Illegal number: status
+
+    That has been corrected.
+
+5.0.12
 
 1)  Minor cleanup, mostly commentary, in the Rules.pm module.
 
@@ -84,7 +106,7 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
     #SOURCE		DEST		POLICY	...
     loc			net		REJECT
-    loc			dmz		REJECT
+    dmz			net		REJECT
 
     If the same zone appears in both columns, the default ACCEPT
     intrazone policy is not overridden unless the list is followed
