@@ -622,32 +622,6 @@ ADMINISABSENTMINDED=Yes
 #     If this variable is not set or is given the empty value then
 #     ADMINISABSENTMINDED=No is assumed.
 # 
-BASIC_FILTERS=No
-#
-# BASIC_FILTERS=[Yes|No]
-# 
-#     Added in Shorewall-4.6.0. When set to Yes, causes entries in
-#     shorewall6-tcfilters(5) to generate a basic filter rather than a u32
-#     filter. This setting requires the Basic Ematch capability in your kernel
-#     and iptables.
-# 
-#     Note
-# 
-#     One of the advantages of basic filters is that ipset matches are supported
-#     in newer iproute2 and kernel versions. Because Shorewall6 cannot reliably
-#     detect this capability, use of basic filters is controlled by this option.
-# 
-#     The default value is No which causes u32 filters to be generated.
-# 
-IGNOREUNKNOWNVARIABLES=No
-#
-# IGNOREUNKNOWNVARIABLES=[Yes|No]
-# 
-#     Added in Shorewall 4.5.11. Normally, if an unknown shell variable is
-#     encountered in a configuration file (except in ?IF and ?ELSIF directives),
-#     the compiler raises a fatal error. If IGNOREUNKNOWNVARIABLES is set to Yes,
-#     then such variables simply expand to an empty string. Default is No.
-# 
 AUTOCOMMENT=Yes
 #
 # AUTOCOMMENT=[Yes|No]
@@ -697,6 +671,23 @@ AUTOMAKE=Yes
 #     The setting of the AUTOMAKE option is ignored if the start, reload or 
 #     restart command includes a directory name (e.g., shorewall6 restart /etc/
 #     shorewall.new).
+# 
+BASIC_FILTERS=No
+#
+# BASIC_FILTERS=[Yes|No]
+# 
+#     Added in Shorewall-4.6.0. When set to Yes, causes entries in
+#     shorewall6-tcfilters(5) to generate a basic filter rather than a u32
+#     filter. This setting requires the Basic Ematch capability in your kernel
+#     and iptables.
+# 
+#     Note
+# 
+#     One of the advantages of basic filters is that ipset matches are supported
+#     in newer iproute2 and kernel versions. Because Shorewall6 cannot reliably
+#     detect this capability, use of basic filters is controlled by this option.
+# 
+#     The default value is No which causes u32 filters to be generated.
 # 
 BLACKLIST="NEW,INVALID,UNTRACKED"
 #
@@ -810,17 +801,17 @@ DYNAMIC_BLACKLIST=Yes
 #     og_tag]]]}
 # 
 #     Added in Shorewall 4.4.7. When set to No or no, chain-based dynamic
-#     blacklisting using the shorewall6 drop, shorewall6 reject, shorewall6
-#     logdrop and shorewall6 logreject is disabled. Default is Yes. Beginning
-#     with Shorewall 5.0.8, ipset-based dynamic blacklisting is also supported.
-#     The name of the set (setname) and the level (log_level), if any, at which
-#     blacklisted traffic is to be logged may also be specified. The default set
-#     name is SW_DBL6 and the default log level is none (no logging). if
-#     ipset-only is given, then chain-based dynamic blacklisting is disabled just
-#     as if DYNAMIC_BLACKLISTING=No had been specified. Normally, only packets
-#     whose source address matches an entry in the ipsec are dropped. If src-dst
-#     is included, then packets whose destination address matches an entry in the
-#     ipset are also dropped.
+#     blacklisting using shorewall6 drop, shorewall6 reject, shorewall6 logdrop
+#     and shorewall6 logreject is disabled. Default is Yes. Beginning with
+#     Shorewall 5.0.8, ipset-based dynamic blacklisting using shorewall6
+#     blacklist is also supported. The name of the set (setname) and the level (
+#     log_level), if any, at which blacklisted traffic is to be logged may also
+#     be specified. The default set name is SW_DBL6 and the default log level is
+#     none (no logging). if ipset-only is given, then chain-based dynamic
+#     blacklisting is disabled just as if DYNAMIC_BLACKLISTING=No had been
+#     specified. Normally, only packets whose source address matches an entry in
+#     the ipsec are dropped. If src-dst is included, then packets whose
+#     destination address matches an entry in the ipset are also dropped.
 # 
 #     When ipset-based dynamic blacklisting is enabled, the contents of the
 #     blacklist will be preserved over stop/reboot/start sequences if SAVE_IPSETS
@@ -926,6 +917,15 @@ HELPERS=
 # 
 #     When HELPERS is specified on a system running Kernel 3.5.0 or later,
 #     automatic association of helpers to connections is disabled.
+# 
+IGNOREUNKNOWNVARIABLES=No
+#
+# IGNOREUNKNOWNVARIABLES=[Yes|No]
+# 
+#     Added in Shorewall 4.5.11. Normally, if an unknown shell variable is
+#     encountered in a configuration file (except in ?IF and ?ELSIF directives),
+#     the compiler raises a fatal error. If IGNOREUNKNOWNVARIABLES is set to Yes,
+#     then such variables simply expand to an empty string. Default is No.
 # 
 IMPLICIT_CONTINUE=No
 #
