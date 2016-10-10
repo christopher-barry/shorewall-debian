@@ -27,7 +27,7 @@
 #       Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 
-VERSION=5.0.12
+VERSION=5.0.12.1
 PRODUCT=shorewall-init
 Product="Shorewall Init"
 
