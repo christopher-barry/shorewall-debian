@@ -1,3 +1,9 @@
+shorewall-core (5.0.12.1-1) unstable; urgency=medium
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sun, 09 Oct 2016 20:51:27 -0400
+
 shorewall-core (5.0.12-1) unstable; urgency=medium
 
   * New Upstream Version
