@@ -11,7 +11,8 @@ Vcs-Git: git://git.code.sf.net/p/shorewall/debian
 Package: shorewall-init
 Architecture: all
 Depends: shorewall | shorewall6 | shorewall-lite | shorewall6-lite,
- lsb-base (>= 3.0-6), ${misc:Depends}
+ lsb-base (>= 3.0-6),
+ ${misc:Depends}
 Description: Shorewall initialization 
  This package provides two related features:
  .
