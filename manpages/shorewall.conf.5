@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 10/01/2016
+.\"      Date: 10/09/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "10/01/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\&.CONF" "5" "10/09/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -660,14 +660,16 @@ Causes Shorewall to not load the listed kernel modules\&.
 Added in Shorewall 4\&.4\&.7\&. When set to
 \fBNo\fR
 or
-\fBno\fR, chain\-based dynamic blacklisting using the
-\fBshorewall6 drop\fR,
-\fBshorewall6 reject\fR,
-\fBshorewall6 logdrop\fR
+\fBno\fR, chain\-based dynamic blacklisting using
+\fBshorewall drop\fR,
+\fBshorewall reject\fR,
+\fBshorewall logdrop\fR
 and
-\fBshorewall6 logreject\fR
+\fBshorewall logreject\fR
 is disabled\&. Default is
-\fBYes\fR\&. Beginning with Shorewall 5\&.0\&.8, ipset\-based dynamic blacklisting is also supported\&. The name of the set (\fIsetname\fR) and the level (\fIlog_level\fR), if any, at which blacklisted traffic is to be logged may also be specified\&. The default set name is SW_DBL4 and the default log level is
+\fBYes\fR\&. Beginning with Shorewall 5\&.0\&.8, ipset\-based dynamic blacklisting using the
+\fBshorewall blacklist\fR
+command is also supported\&. The name of the set (\fIsetname\fR) and the level (\fIlog_level\fR), if any, at which blacklisted traffic is to be logged may also be specified\&. The default set name is SW_DBL4 and the default log level is
 \fBnone\fR
 (no logging)\&. if
 \fBipset\-only\fR

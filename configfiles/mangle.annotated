@@ -78,7 +78,7 @@
 # 
 #         Added in Shorewall 5.0.7. action must be an action declared with the
 #         mangle option in shorewall-actions(5). If the action accepts
-#         paramaters, they are specified as a comma-separated list within
+#         parameters, they are specified as a comma-separated list within
 #         parentheses following the action name.
 # 
 #     ADD(ipset:flags)
