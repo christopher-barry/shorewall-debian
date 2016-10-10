@@ -1,3 +1,12 @@
+Changes in 5.0.12.1
+
+1)  Update release documents.
+
+2)  Correct errors in the DYNAMIC_BLACKLISTING description in the
+    manpages.
+
+3)  Fix a typo in lib.private.
+
 Changes in 5.0.12 Final
 
 1)  Update release documents.
