@@ -2,12 +2,12 @@
 .\"     Title: shorewall6
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 10/09/2016
+.\"      Date: 11/03/2016
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL6" "8" "10/09/2016" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL6" "8" "11/03/2016" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -33,9 +33,9 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBadd\ {\fR \fIinterface\fR[:\fIhost\-list\fR]... \fIzone\ |\ zone\ host\-list\ \fR\fB}\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR \fIaddress\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBallow\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBblacklist\fR \fIaddress\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBblacklist\fR \fIaddress\fR\ [\fIoption\ \&.\&.\&.\fR] 
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBcall\fR \fIfunction\fR\ [\fIparameter\fR\ \&.\&.\&.] 
 .HP \w'\fBshorewall6\fR\ 'u
@@ -81,11 +81,11 @@ shorewall6 \- Administration tool for Shoreline Firewall 6 (Shorewall6)
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreject\fR \fIaddress\fR
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBremote\-start\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBremote\-start\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [[\fB\-D\fR]\fIdirectory\fR] [\fIsystem\fR]
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBremote\-reload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBremote\-reload\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [[\fB\-D\fR]\fIdirectory\fR] [\fIsystem\fR]
 .HP \w'\fBshorewall6\fR\ 'u
-\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBremote\-restart\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [\fIdirectory\fR] \fIsystem\fR
+\fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR] [\-\fIoptions\fR] \fBremote\-restart\fR [\fB\-s\fR] [\fB\-c\fR] [\fB\-r\fR\ \fIroot\-user\-name\fR] [\fB\-T\fR] [\fB\-i\fR] [[\fB\-D\fR]\fIdirectory\fR] [\fIsystem\fR]
 .HP \w'\fBshorewall6\fR\ 'u
 \fBshorewall6\fR [\fBtrace\fR|\fBdebug\fR\ [\fBnolock\fR]] [\-\fIoptions\fR] \fBreset\fR\ [\fIchain\fR\ \&.\&.\&.] 
 .HP \w'\fBshorewall6\fR\ 'u
@@ -248,6 +248,32 @@ along with any
 \fIoption\fRs are passed to the
 \fBipset add\fR
 command\&.
+.sp
+If the
+\fBdisconnect\fR
+option is specified in the DYNAMIC_BLACKLISTING setting, then the effective VERBOSITY determines the amount of information displayed:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+If the effective verbosity is > 0, then a message giving the number of conntrack flows deleted by the command is displayed\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+If the effective verbosity is > 1, then the conntrack table entries deleted by the command are also displayed\&.
+.RE
 .RE
 .PP
 \fBcall \fR\fB\fIfunction\fR\fR\fB [ \fR\fB\fIparameter\fR\fR\fB \&.\&.\&. ]\fR
@@ -747,7 +773,7 @@ option was added in Shorewall 4\&.6\&.5 and is only meaningful when AUTOMAKE=Yes
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&. If an existing firewall script is used and if that script was the one that generated the current running configuration, then the running netfilter configuration will be reloaded as is so as to preserve the iptables packet and byte counters\&.
 .RE
 .PP
-\fBremote\-reload \fR[\-\fBs\fR] [\-\fBc\fR] [\-\fBr\fR \fIroot\-user\-name\fR] [\-\fBT\fR] [\-\fBi\fR] [ \fIdirectory\fR ] \fIsystem\fR
+\fBremote\-reload \fR[\-\fBs\fR] [\-\fBc\fR] [\-\fBr\fR \fIroot\-user\-name\fR] [\-\fBT\fR] [\-\fBi\fR] [ [ \-D ] \fIdirectory\fR ] [ \fIsystem\fR ], 
 .RS 4
 This command was added in Shorewall 5\&.0\&.0\&.
 .sp
@@ -771,7 +797,14 @@ In other words, the configuration in the specified (or defaulted) directory is c
 \fIsystem\fR
 using scp\&. If the copy succeeds, Shorewall6 Lite on
 \fIsystem\fR
-is restarted via ssh\&.
+is restarted via ssh\&. Beginning with Shorewall 5\&.0\&.13, if
+\fIsystem\fR
+is omitted, then the FIREWALL option setting in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[7]\d\s+2
+is assumed\&. In that case, if you want to specify a
+\fIdirectory\fR, then the
+\fB\-D\fR
+option must be given\&.
 .sp
 If
 \fB\-s\fR
@@ -807,7 +840,7 @@ option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issue
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-\fBremote\- restart \fR[\-\fBs\fR] [\-\fBc\fR] [\-\fBr\fR \fIroot\-user\-name\fR] [\-\fBT\fR] [\-\fBi\fR] [ \fIdirectory\fR ] \fIsystem\fR
+\fBremote\- restart \fR[\-\fBs\fR] [\-\fBc\fR] [\-\fBr\fR \fIroot\-user\-name\fR] [\-\fBT\fR] [\-\fBi\fR] [ [ \-D ] \fIdirectory\fR ] [ \fIsystem\fR ]
 .RS 4
 This command was renamed from
 \fBreload\fR
@@ -835,6 +868,15 @@ using scp\&. If the copy succeeds, Shorewall6 Lite on
 \fIsystem\fR
 is restarted via ssh\&.
 .sp
+Beginning with Shorewall 5\&.0\&.13, if
+\fIsystem\fR
+is omitted, then the FIREWALL option setting in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[7]\d\s+2
+is assumed\&. In that case, if you want to specify a
+\fIdirectory\fR, then the
+\fB\-D\fR
+option must be given\&.
+.sp
 If
 \fB\-s\fR
 is specified and the
@@ -869,7 +911,7 @@ option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issue
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5)\&.
 .RE
 .PP
-\fBremote\-start \fR [\-\fBs\fR] [\-\fBc\fR] [\-\fBr\fR \fIroot\-user\-name\fR] [\-\fBT\fR] [\-\fBi\fR] [ \fIdirectory\fR ] \fIsystem\fR
+\fBremote\-start \fR [\-\fBs\fR] [\-\fBc\fR] [\-\fBr\fR \fIroot\-user\-name\fR] [\-\fBT\fR] [\-\fBi\fR] [ [\-D ] \fIdirectory\fR ] [ \fIsystem\fR ]
 .RS 4
 This command was added in Shorewall 5\&.0\&.0\&.
 .sp
@@ -893,7 +935,14 @@ In other words, the configuration in the specified (or defaulted) directory is c
 \fIsystem\fR
 using scp\&. If the copy succeeds, Shorewall6 Lite on
 \fIsystem\fR
-is started via ssh\&.
+is started via ssh\&. Beginning with Shorewall 5\&.0\&.13, if
+\fIsystem\fR
+is omitted, then the FIREWALL option setting in
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[7]\d\s+2
+is assumed\&. In that case, if you want to specify a
+\fIdirectory\fR, then the
+\fB\-D\fR
+option must be given\&.
 .sp
 If
 \fB\-s\fR
@@ -1362,9 +1411,9 @@ command, then the packet and byte counters will be restored along with the chain
 \fBstop \fR[\-\fBf\fR]
 .RS 4
 Stops the firewall\&. All existing connections, except those listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[7]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[8]\d\s+2(5) or permitted by the ADMINISABSENTMINDED option in
 \m[blue]\fBshorewall6\&.conf\fR\m[]\&\s-2\u[2]\d\s+2(5), are taken down\&. The only new traffic permitted through the firewall is from systems listed in
-\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[7]\d\s+2(5) or by ADMINISABSENTMINDED\&.
+\m[blue]\fBshorewall6\-routestopped\fR\m[]\&\s-2\u[8]\d\s+2(5) or by ADMINISABSENTMINDED\&.
 .sp
 If
 \fB\-f\fR
@@ -1582,7 +1631,7 @@ file to be annotated with documentation\&.
 The
 \fB\-i\fR
 option was added in Shorewall 4\&.6\&.0 and causes a warning message to be issued if the current line contains alternative input specifications following a semicolon (";")\&. Such lines will be handled incorrectly if INLINE_MATCHES is set to Yes in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[9]\d\s+2(5)\&.
 .sp
 The
 \fB\-A\fR
@@ -1621,7 +1670,7 @@ Two environmental variables are recognized by Shorewall6:
 SHOREWALL_INIT_SCRIPT
 .RS 4
 When set to 1, causes Std out to be redirected to the file specified in the STARTUP_LOG option in
-\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[9]\d\s+2\&.
+\m[blue]\fBshorewall6\&.conf(5)\fR\m[]\&\s-2\u[7]\d\s+2\&.
 .RE
 .PP
 SW_LOGGERTAG
@@ -1665,19 +1714,19 @@ logging backend
 \%http://www.shorewall.net/shorewall_logging.html#Backends
 .RE
 .IP " 7." 4
+shorewall6.conf(5)
+.RS 4
+\%http://www.shorewall.netshorewall6.conf.html
+.RE
+.IP " 8." 4
 shorewall6-routestopped
 .RS 4
 \%http://www.shorewall.net/manpages6/shorewall6-routestopped.html
 .RE
-.IP " 8." 4
+.IP " 9." 4
 shorewall.conf
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall.conf.html
-.RE
-.IP " 9." 4
-shorewall6.conf(5)
-.RS 4
-\%http://www.shorewall.netshorewall6.conf.html
 .RE
 .IP "10." 4
 http://www.shorewall.net/starting_and_stopping_shorewall.htm

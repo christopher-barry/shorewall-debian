@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-providers
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 10/09/2016
+.\"      Date: 11/03/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-PROVIDER" "5" "10/09/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-PROVIDER" "5" "11/03/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -135,20 +135,28 @@ Added in Shorewall 4\&.5\&.17\&. Causes a host route to the provider\*(Aqs gatew
 option\&.
 .RE
 .PP
-\fBbalance\fR
+\fBbalance[=\fR\fB\fIweight\fR\fR\fB]\fR
 .RS 4
-Added in Shorewall 4\&.4\&.25\&. Causes a default route to this provider\*(Aqs gateway to be added to the
-\fBmain\fR
-routing table (USE_DEFAULT_RT=No) or to the
+Added in Shorewall 4\&.4\&.25\&. The providers that have
 \fBbalance\fR
-routing table (USE_DEFAULT_RT=Yes)\&. Only one provider can specify this option\&.
+specified will get outbound traffic load\-balanced among them\&. By default, all interfaces with
+\fBbalance\fR
+specified will have the same weight (1)\&. Beginning with Shorewall 5\&.0\&.13, you can change the weight of an interface by specifying
+\fBbalance=\fR\fIweight\fR
+where
+\fIweight\fR
+is the weight of the route out of this interface\&. Prior to Shorewall 5\&.0\&.13, only one provider can specify this option\&.
 .RE
 .PP
-\fBfallback\fR
+\fBfallback[=\fR\fB\fIweight\fR\fR\fB]\fR
 .RS 4
-Added in Shorewall 4\&.4\&.25\&. Causes a default route to this provider\*(Aqs gateway to be added to the
-\fBdefault\fR
-routing table\&.At most one provider can specify this option\&.
+Added in Shorewall 4\&.4\&.25\&. Indicates that a default route through the provider should be added to the default routing table (table 253)\&. If a
+\fIweight\fR
+is given, a balanced route is added with the weight of this provider equal to the specified
+\fIweight\fR\&. If the option is given without a
+\fIweight\fR, an separate default route is added through the provider\*(Aqs gateway; the route has a metric equal to the provider\*(Aqs NUMBER\&. Prior to Shorewall 5\&.0\&.13, at most one provider can specify this option and a
+\fIweight\fR
+may not be given\&.
 .RE
 .PP
 \fBtrack\fR
