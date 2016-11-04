@@ -36,13 +36,13 @@ use Shorewall::Providers qw( provider_realm );
 use strict;
 
 our @ISA = qw(Exporter);
-our @EXPORT = qw( setup_masq setup_nat setup_netmap add_addresses );
-our %EXPORT_TAGS = ( rules => [ qw ( handle_nat_rule handle_nonat_rule ) ] );
+our @EXPORT = qw( setup_nat setup_netmap add_addresses );
+our %EXPORT_TAGS = ( rules => [ qw ( handle_nat_rule handle_nonat_rule process_one_masq convert_masq @addresses_to_add %addresses_to_add ) ] );
 our @EXPORT_OK = ();
 
 Exporter::export_ok_tags('rules');
 
-our $VERSION = '5.0_8';
+our $VERSION = '5.0_14';
 
 our @addresses_to_add;
 our %addresses_to_add;
@@ -60,20 +60,22 @@ sub initialize($) {
 #
 # Process a single rule from the the masq file
 #
-sub process_one_masq1( $$$$$$$$$$$ )
+sub process_one_masq1( $$$$$$$$$$$$ )
 {
-    my ($interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user, $condition, $origdest, $probability ) = @_;
+    my ( $snat, $interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user, $condition, $origdest, $probability ) = @_;
 
     my $pre_nat;
-    my $add_snat_aliases = $family == F_IPV4 && $config{ADD_SNAT_ALIASES};
+    my $add_snat_aliases = ! $snat && $family == F_IPV4 && $config{ADD_SNAT_ALIASES};
     my $destnets = '';
     my $baserule = '';
     my $inlinematches = '';
     my $prerule       = '';
+    my $savelist;
     #
     # Leading '+'
     #
     $pre_nat = 1 if $interfacelist =~ s/^\+//;
+
     #
     # Check for INLINE
     #
@@ -82,7 +84,9 @@ sub process_one_masq1( $$$$$$$$$$$ )
 	$inlinematches = get_inline_matches(0);
     } else {
 	$inlinematches = get_inline_matches(0);
-    }	
+    }
+
+    $savelist = $interfacelist;
     #
     # Handle early matches
     #
@@ -149,9 +153,12 @@ sub process_one_masq1( $$$$$$$$$$$ )
     $baserule .= do_user( $user )                    if $user ne '-';
     $baserule .= do_probability( $probability )      if $probability ne '-';
 
+    my $target;
+
     for my $fullinterface (split_list $interfacelist, 'interface' ) {
 	my $rule = '';
-	my $target = 'MASQUERADE ';
+
+	$target = 'MASQUERADE ';
 	#
 	# Isolate and verify the interface part
 	#
@@ -193,6 +200,7 @@ sub process_one_masq1( $$$$$$$$$$$ )
 	# Parse the ADDRESSES column
 	#
 	if ( $addresses ne '-' ) {
+	    my $saveaddresses = $addresses;
 	    if ( $addresses eq 'random' ) {
 		require_capability( 'MASQUERADE_TGT', 'Masquerade rules', '') if $family == F_IPV6;
 		$randomize = '--random ';
@@ -218,13 +226,13 @@ sub process_one_masq1( $$$$$$$$$$$ )
 		} elsif ( $addresses eq 'NONAT' ) {
 		    fatal_error "'persistent' may not be specified with 'NONAT'" if $persistent;
 		    fatal_error "'random' may not be specified with 'NONAT'"     if $randomize;
-		    $target = 'RETURN';
+		    $target = $snat ? 'CONTINUE' : 'RETURN';
 		    $add_snat_aliases = 0;
 		} elsif ( $addresses ) {
 		    my $addrlist = '';
 		    my @addrs = split_list $addresses, 'address';
 
-		    fatal_error "Only one IPv6 ADDRESS may be specified" if $family == F_IPV6 && @addrs > 1;
+		    fatal_error "Only one ADDRESS may be specified" if @addrs > 1;
 
 		    for my $addr ( @addrs ) {
 			if ( $addr =~ /^([&%])(.+)$/ ) {
@@ -240,43 +248,52 @@ sub process_one_masq1( $$$$$$$$$$$ )
 			    # Address Variable
 			    #
 			    $target = 'SNAT ';
-			    if ( $interface =~ /^{([a-zA-Z_]\w*)}$/ ) {
-				#
-				# User-defined address variable
-				#
-				$conditional = conditional_rule( $chainref, $addr );
-				$addrlist .= '--to-source ' . "\$${1}${ports} ";
-			    } else {
-				if ( $conditional = conditional_rule( $chainref, $addr ) ) {
+
+			    unless ( $snat ) {
+				if ( $interface =~ /^{([a-zA-Z_]\w*)}$/ ) {
 				    #
-				    # Optional Interface -- rule is conditional
+				    # User-defined address variable
 				    #
-				    $addr = get_interface_address $interface;
+				    $conditional = conditional_rule( $chainref, $addr );
+				    $addrlist .= '--to-source ' . "\$${1}${ports} ";
 				} else {
-				    #
-				    # Interface is not optional
-				    #
-				    $addr = record_runtime_address( $type, $interface );
-				}
+				    if ( $conditional = conditional_rule( $chainref, $addr ) ) {
+					#
+					# Optional Interface -- rule is conditional
+					#
+					$addr = get_interface_address $interface;
+				    } else {
+					#
+					# Interface is not optional
+					#
+					$addr = record_runtime_address( $type, $interface );
+				    }
 
-				if ( $ports ) {
-				    $addr =~ s/ $//;
-				    $addr = $family == F_IPV4 ? "${addr}${ports} " : "[$addr]$ports ";
-				}
+				    if ( $ports ) {
+					$addr =~ s/ $//;
+					$addr = $family == F_IPV4 ? "${addr}${ports} " : "[$addr]$ports ";
+				    }
 
-				$addrlist .= '--to-source ' . $addr;
+				    $addrlist .= '--to-source ' . $addr;
+				}
 			    }
 			} elsif ( $family == F_IPV4 ) {
 			    if ( $addr =~ /^.*\..*\..*\./ ) {
 				$target = 'SNAT ';
-				my ($ipaddr, $rest) = split ':', $addr;
+				my ($ipaddr, $rest) = split ':', $addr, 2;
 				if ( $ipaddr =~ /^(.+)-(.+)$/ ) {
 				    validate_range( $1, $2 );
 				} else {
 				    validate_address $ipaddr, 0;
 				}
-				validate_portpair1( $proto, $rest ) if supplied $rest;
-				$addrlist .= "--to-source $addr ";
+
+				if ( supplied $rest ) {
+				    validate_portpair1( $proto, $rest );
+				    $addrlist .= "--to-source $addr ";
+				} else {
+				    $addrlist .= "--to-source $ipaddr";
+				}
+
 				$exceptionrule = do_proto( $proto, '', '' ) if $addr =~ /:/;
 			    } else {
 				my $ports = $addr;
@@ -337,6 +354,7 @@ sub process_one_masq1( $$$$$$$$$$$ )
 
 	    $target .= $randomize;
 	    $target .= $persistent;
+	    $addresses = $saveaddresses;
 	} else {
 	    require_capability( 'MASQUERADE_TGT', 'Masquerade rules', '' )  if $family == F_IPV6;
 	    $add_snat_aliases = 0;
@@ -344,37 +362,39 @@ sub process_one_masq1( $$$$$$$$$$$ )
 	#
 	# And Generate the Rule(s)
 	#
-	expand_rule( $chainref ,
-		     POSTROUTE_RESTRICT ,
-		     $prerule ,
-		     $baserule . $inlinematches . $rule ,
-		     $networks ,
-		     $destnets ,
-		     $origdest ,
-		     $target ,
-		     '' ,
-		     '' ,
-		     $exceptionrule ,
-		     '' )
-	    unless unreachable_warning( 0, $chainref );
+	unless ( $snat ) {
+	    expand_rule( $chainref ,
+			 POSTROUTE_RESTRICT ,
+			 $prerule ,
+			 $baserule . $inlinematches . $rule ,
+			 $networks ,
+			 $destnets ,
+			 $origdest ,
+			 $target ,
+			 '' ,
+			 '' ,
+			 $exceptionrule ,
+			 '' )
+		unless unreachable_warning( 0, $chainref );
 
-	conditional_rule_end( $chainref ) if $detectaddress || $conditional;
+	    conditional_rule_end( $chainref ) if $detectaddress || $conditional;
 
-	if ( $add_snat_aliases ) {
-	    my ( $interface, $alias , $remainder ) = split( /:/, $fullinterface, 3 );
-	    fatal_error "Invalid alias ($alias:$remainder)" if defined $remainder;
-	    for my $address ( split_list $addresses, 'address' ) {
-		my ( $addrs, $port ) = split /:/, $address;
-		next unless $addrs;
-		next if $addrs eq 'detect';
-		for my $addr ( ip_range_explicit $addrs ) {
-		    unless ( $addresses_to_add{$addr} ) {
-			$addresses_to_add{$addr} = 1;
-			if ( defined $alias ) {
-			    push @addresses_to_add, $addr, "$interface:$alias";
-			    $alias++;
-			} else {
-			    push @addresses_to_add, $addr, $interface;
+	    if ( $add_snat_aliases ) {
+		my ( $interface, $alias , $remainder ) = split( /:/, $fullinterface, 3 );
+		fatal_error "Invalid alias ($alias:$remainder)" if defined $remainder;
+		for my $address ( split_list $addresses, 'address' ) {
+		    my ( $addrs, $port ) = split /:/, $address;
+		    next unless $addrs;
+		    next if $addrs eq 'detect';
+		    for my $addr ( ip_range_explicit $addrs ) {
+			unless ( $addresses_to_add{$addr} ) {
+			    $addresses_to_add{$addr} = 1;
+			    if ( defined $alias ) {
+				push @addresses_to_add, $addr, "$interface:$alias";
+				$alias++;
+			    } else {
+				push @addresses_to_add, $addr, $interface;
+			    }
 			}
 		    }
 		}
@@ -382,12 +402,36 @@ sub process_one_masq1( $$$$$$$$$$$ )
 	}
     }
 
+    if ( $snat ) {
+	$target =~ s/ .*//;
+	$target .= '+' if $pre_nat;
+
+	if ( $addresses ne '-' && $addresses ne 'NONAT' ) {
+	    $addresses =~ s/^://;
+	    $target .= '(' . $addresses . ')';
+	}
+
+	my $line = "$target\t$networks\t$savelist\t$proto\t$ports\t$ipsec\t$mark\t$user\t$condition\t$origdest\t$probability";
+	#
+	# Supress superfluous trailing dashes
+	#
+	$line =~ s/(?:\t-)+$//;
+
+	my $raw_matches = fetch_inline_matches;
+
+	$line .= join( '', ' ;;', $raw_matches ) if $raw_matches ne ' ';
+
+	print $snat "$line\n";
+    }
+
     progress_message "   Masq record \"$currentline\" $done";
 
 }
 
-sub process_one_masq( )
+sub process_one_masq( $ )
 {
+    my ( $snat ) = @_;
+
     my ($interfacelist, $networks, $addresses, $protos, $ports, $ipsec, $mark, $user, $condition, $origdest, $probability ) =
 	split_line2( 'masq file',
 		     { interface => 0, source => 1, address => 2, proto => 3, port => 4, ipsec => 5, mark => 6, user => 7, switch => 8, origdest => 9, probability => 10 },
@@ -398,20 +442,92 @@ sub process_one_masq( )
     fatal_error 'INTERFACE must be specified' if $interfacelist eq '-';
 
     for my $proto ( split_list $protos, 'Protocol' ) {
-	process_one_masq1( $interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user, $condition, $origdest, $probability );
+	process_one_masq1( $snat, $interfacelist, $networks, $addresses, $proto, $ports, $ipsec, $mark, $user, $condition, $origdest, $probability );
     }
 }
 
+sub open_snat_for_output( $ ) {
+    my ($fn ) = @_;
+    my ( $snat, $fn1 );
+
+    if ( -f ( $fn1 = find_writable_file( 'snat' ) ) ) {
+	open( $snat , '>>', $fn1 ) || fatal_error "Unable to open $fn1:$!";
+    } else {
+	open( $snat , '>', $fn1 ) || fatal_error "Unable to open $fn1:$!";
+	#
+	# Transfer permissions from the existing masq file to the new snat file
+	#
+	transfer_permissions( $fn, $fn1 );
+
+	if ( $family == F_IPV4 ) {
+	    print $snat <<'EOF';
 #
-# Process the masq file
+# Shorewall - SNAT/Masquerade File
 #
-sub setup_masq()
-{
+# For information about entries in this file, type "man shorewall-snat"
+#
+# See http://shorewall.net/manpages/shorewall-snat.html for additional information
+EOF
+	} else {
+	    print $snat <<'EOF';
+#
+# Shorewall6 - SNAT/Masquerade File
+#
+# For information about entries in this file, type "man shorewall6-snat"
+#
+# See http://shorewall.net/manpages6/shorewall6-snat.html for additional information
+EOF
+	}
+
+	print $snat <<'EOF';
+###################################################################################################################
+#ACTION         SOURCE          DEST            PROTO   PORT   IPSEC  MARK   USER    SWITCH  ORIGDEST   PROBABILITY
+EOF
+    }
+
+    return ( $snat, $fn1 );
+}
+
+#
+# Convert a masq file into the equivalent snat file
+#
+sub convert_masq() {
     if ( my $fn = open_file( 'masq', 1, 1 ) ) {
+	my ( $snat, $fn1 ) = open_snat_for_output( $fn );
 
-	first_entry( sub { progress_message2 "$doing $fn..."; require_capability 'NAT_ENABLED' , "a non-empty masq file" , 's'; } );
+	my $have_masq_rules;
 
-	process_one_masq while read_a_line( NORMAL_READ );
+	directive_callback( sub () { print $snat "$_[1]\n"; 0; } );
+
+	first_entry(
+	    sub {
+		my $date = compiletime;
+		progress_message2 "Converting $fn...";
+		print( $snat
+		       "#\n" ,
+		       "# Rules generated from masq file $fn by Shorewall $globals{VERSION} - $date\n" ,
+		       "#\n" );
+	    }
+	    );
+
+	process_one_masq($snat), $have_masq_rules++ while read_a_line( NORMAL_READ );
+
+	if ( $have_masq_rules ) {
+	    progress_message2 "Converted $fn to $fn1";
+	    if ( rename $fn, "$fn.bak" ) {
+		progress_message2 "$fn renamed $fn.bak";
+	    } else {
+		fatal_error "Cannot Rename $fn to $fn.bak: $!";
+	    }
+	} else {
+	    if ( unlink $fn ) {
+		warning_message "Empty masq file ($fn) removed";
+	    } else {
+		warning_message "Unable to remove empty masq file $fn: $!";
+	    }
+	}
+
+	close $snat, directive_callback( 0 );
     }
 }
 

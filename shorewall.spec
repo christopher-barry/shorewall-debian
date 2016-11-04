@@ -1,6 +1,6 @@
 %define name shorewall
-%define version 5.0.12
-%define release 1
+%define version 5.0.14
+%define release 0RC3
 
 Summary: Shoreline Firewall is an iptables-based firewall for Linux systems.
 Name: %{name}
@@ -86,7 +86,7 @@ fi
 %attr(644,root,root) /usr/lib/systemd/system/shorewall.service
 %attr(0755,root,root) %dir /etc/shorewall
 %ghost %attr(0644,root,root) /etc/shorewall/isusable
-%ghost %attr(0644,root,root) /etc/shorewall/notrack
+%ghost %attr(0644,root,root) /etc/shorewall/masq
 %attr(0755,root,root) %dir /usr/share/shorewall/configfiles
 %attr(0755,root,root) %dir /usr/share/shorewall/deprecated
 %attr(0700,root,root) %dir /var/lib/shorewall
@@ -149,8 +149,26 @@ fi
 %doc COPYING INSTALL changelog.txt releasenotes.txt Samples
 
 %changelog
-* Mon Oct 03 2016 Tom Eastep tom@shorewall.net
-- Updated to 5.0.12-1
+* Mon Oct 31 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.14-0RC3
+* Sat Oct 29 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.14-0RC2
+* Thu Oct 27 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.14-0RC1
+* Tue Oct 25 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.14-0Beta2
+* Sun Oct 16 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.14-0Beta1
+* Sun Oct 16 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.13-0base
+* Sun Oct 16 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.13-0RC2
+* Sun Oct 09 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.13-0RC1
+* Tue Oct 04 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.13-0Beta2
+* Sun Oct 02 2016 Tom Eastep tom@shorewall.net
+- Updated to 5.0.13-0Beta1
 * Sat Oct 01 2016 Tom Eastep tom@shorewall.net
 - Updated to 5.0.12-0base
 * Sat Oct 01 2016 Tom Eastep tom@shorewall.net

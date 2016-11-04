@@ -1,5 +1,5 @@
 '\" t
-.\"     Title: shorewall-masq
+.\"     Title: shorewall-snat
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
 .\"      Date: 11/03/2016
@@ -7,7 +7,7 @@
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\-MASQ" "5" "11/03/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\-SNAT" "5" "11/03/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -28,14 +28,14 @@
 .\" * MAIN CONTENT STARTS HERE *
 .\" -----------------------------------------------------------------
 .SH "NAME"
-masq \- Shorewall Masquerade/SNAT definition file
+snat \- Shorewall SNAT/Masquerade definition file
 .SH "SYNOPSIS"
-.HP \w'\fB/etc/shorewall/masq\fR\ 'u
-\fB/etc/shorewall/masq\fR
+.HP \w'\fB/etc/shorewall/snat\fR\ 'u
+\fB/etc/shorewall/snat\fR
 .SH "DESCRIPTION"
 .PP
-This file is used to define dynamic NAT (Masquerading) and to define Source NAT (SNAT)\&. While still supported, its use is deprecated in favor of
-\m[blue]\fBshorewall\-snat\fR\m[]\&\s-2\u[1]\d\s+2(5) which was introduced in Shorewall 5\&.0\&.14\&.
+This file is used to define dynamic NAT (Masquerading) and to define Source NAT (SNAT)\&. It superseded
+\m[blue]\fBshorewall\-masq\fR\m[]\&\s-2\u[1]\d\s+2(5) in Shorewall 5\&.0\&.14\&.
 .if n \{\
 .sp
 .\}
@@ -75,25 +75,116 @@ force connections to go out through a particular link\&. You must use entries in
 .PP
 The columns in the file are as follows\&.
 .PP
-\fBINTERFACE:DEST\fR \- {[\fB+\fR]\fIinterfacelist\fR[\fB:\fR[\fIdigit\fR]][\fB:\fR[\fIdest\-address\fR[\fB,\fR\fIdest\-address\fR]\&.\&.\&.[\fIexclusion\fR]]|?COMMENT}
+\fBACTION\fR
+.RS 4
+Defines the type of rule to generate\&. Choices are:
+.PP
+\fBMASQUERADE[+]\fR[([\fIlowport\fR\-\fIhighport\fR][\fBrandom\fR])]
+.RS 4
+Causes matching outgoing packages to have their source IP address set to the primary IP address of the interface specified in the DEST column\&. if
+\fIlowport\fR\-\fIhighport\fR
+is given, that port range will be used to assign a source port\&. If option
+\fBrandom\fR
+is used then port mapping will be randomized\&. MASQUERADE should only be used when the DEST interface has a dynamic IP address\&. Otherwise, SNAT should be used and should specify the interface\*(Aqs static address\&.
+.RE
+.PP
+\fBSNAT[+]\fR([\fIaddress\-or\-address\-range\fR][:\fIlowport\fR\fB\-\fR\fIhighport\fR][\fB:random\fR][:\fBpersistent\fR]|\fBdetect\fR|
+.RS 4
+If you specify an address here, matching packets will have their source address set to that address\&. If ADD_SNAT_ALIASES is set to Yes or yes in
+\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[4]\d\s+2(5) then Shorewall will automatically add this address to the INTERFACE named in the first column\&.
+.sp
+You may also specify a range of up to 256 IP addresses if you want the SNAT address to be assigned from that range in a round\-robin fashion by connection\&. The range is specified by
+\fIfirst\&.ip\&.in\&.range\fR\-\fIlast\&.ip\&.in\&.range\fR\&. You may follow the port range with\fB :random\fR
+in which case assignment of ports from the list will be random\&.
+\fBrandom\fR
+may also be specified by itself in this column in which case random local port assignments are made for the outgoing connections\&.
+.sp
+Example: 206\&.124\&.146\&.177\-206\&.124\&.146\&.180
+.sp
+You may follow the port range (or
+\fB:random\fR) with
+\fB:persistent\fR\&. This is only useful when an address range is specified and causes a client to be given the same source/destination IP pair\&. This feature replaces the SAME modifier which was removed from Shorewall in version 4\&.4\&.0\&.
+.sp
+You may also use the special value
+\fBdetect\fR
+which causes Shorewall to determine the IP addresses configured on the interface named in the DEST column and substitute them in this column\&.
+.sp
+Finally, you may also specify a comma\-separated list of ranges and/or addresses in this column\&.
+.sp
+DNS Names names are not allowed\&.
+.sp
+Normally, Netfilter will attempt to retain the source port number\&. You may cause netfilter to remap the source port by following an address or range (if any) by ":" and a port range with the format
+\fIlowport\fR\-\fIhighport\fR\&. If this is done, you must specify "tcp", "udp", "dccp" or "stcp" in the PROTO column\&.
+.sp
+Examples:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        192\&.0\&.2\&.4:5000\-6000
+        :4000\-5000
+.fi
+.if n \{\
+.RE
+.\}
+.RE
+.PP
+\fBCONTINUE\fR[+]
+.RS 4
+Causes matching packets to be exempted from any following rules in the file\&.
+.RE
+.PP
+\fB\fIaction\fR\fR[+][(\fIparameter\fR,\&.\&.\&.)]
+.RS 4
+where
+\fIaction\fR
+is an action declared in
+\m[blue]\fBshorewall\-actions(5)\fR\m[]\&\s-2\u[5]\d\s+2
+with the
+\fBnat\fR
+option\&. See
+\m[blue]\fBwww\&.shorewall\&.net/Actions\&.html\fR\m[]\&\s-2\u[6]\d\s+2
+for further information\&.
+.RE
+.sp
+Normally Masq/SNAT rules are evaluated after those for one\-to\-one NAT (defined in
+\m[blue]\fBshorewall\-nat\fR\m[]\&\s-2\u[7]\d\s+2(5))\&. If you want the rule to be applied before one\-to\-one NAT rules, follow the action name with "+": This feature should only be required if you need to insert rules in this file that preempt entries in
+\m[blue]\fBshorewall\-nat\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
+.RE
+.PP
+\fBSOURCE\fR (Optional) \- [\fIinterface\fR|\fIaddress\fR[\fB,\fR\fIaddress\fR][\fIexclusion\fR]]
+.RS 4
+Set of hosts that you wish to masquerade\&. You can specify this as an
+\fIaddress\fR
+(net or host) or as an
+\fIinterface\fR
+(use of an
+\fIinterface\fR
+is deprecated)\&. If you give the name of an interface, the interface must be up before you start the firewall and the Shorewall rules compiler will warn you of that fact\&. (Shorewall will use your main routing table to determine the appropriate addresses to masquerade)\&.
+.sp
+The preferred way to specify the SOURCE is to supply one or more host or network addresses separated by comma\&. You may use ipset names preceded by a plus sign (+) to specify a set of hosts\&.
+.RE
+.PP
+\fBDEST\fR \- {[\fB+\fR]\fIinterface\fR[\fB:\fR[\fIdigit\fR]][\fB:\fR[\fIdest\-address\fR[\fB,\fR\fIdest\-address\fR]\&.\&.\&.[\fIexclusion\fR]]}
 .RS 4
 Outgoing
-\fIinterfacelist\fR\&. This may be a comma\-separated list of interface names\&. This is usually your internet interface\&. If ADD_SNAT_ALIASES=Yes in
+\fIinterface\fR\&. This is usually your internet interface\&. If ADD_SNAT_ALIASES=Yes in
 \m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[4]\d\s+2(5), you may add ":" and a
 \fIdigit\fR
 to indicate that you want the alias added with that name (e\&.g\&., eth0:0)\&. This will allow the alias to be displayed with ifconfig\&.
 \fBThat is the only use for the alias name; it may not appear in any other place in your Shorewall configuration\&.\fR
 .sp
 Each interface must match an entry in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[5]\d\s+2(5)\&. Shorewall allows loose matches to wildcard entries in
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[5]\d\s+2(5)\&. For example,
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2(5)\&. Shorewall allows loose matches to wildcard entries in
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2(5)\&. For example,
 ppp0
 in this file will match a
-\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[5]\d\s+2(5) entry that defines
+\m[blue]\fBshorewall\-interfaces\fR\m[]\&\s-2\u[8]\d\s+2(5) entry that defines
 ppp+\&.
 .sp
 Where
-\m[blue]\fBmore that one internet provider share a single interface\fR\m[]\&\s-2\u[6]\d\s+2, the provider is specified by including the provider name or number in parentheses:
+\m[blue]\fBmore that one internet provider share a single interface\fR\m[]\&\s-2\u[9]\d\s+2, the provider is specified by including the provider name or number in parentheses:
 .sp
 .if n \{\
 .RS 4
@@ -105,10 +196,10 @@ Where
 .RE
 .\}
 .sp
-In that case, you will want to specify the interface\*(Aqs address for that provider in the ADDRESS column\&.
+In that case, you will want to specify the interface\*(Aqs address for that provider as the SNAT parameter\&.
 .sp
 The interface may be qualified by adding the character ":" followed by a comma\-separated list of destination host or subnet addresses to indicate that you only want to change the source IP address for packets being sent to those particular destinations\&. Exclusion is allowed (see
-\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[7]\d\s+2(5)) as are ipset names preceded by a plus sign \*(Aq+\*(Aq;
+\m[blue]\fBshorewall\-exclusion\fR\m[]\&\s-2\u[10]\d\s+2(5)) as are ipset names preceded by a plus sign \*(Aq+\*(Aq;
 .sp
 If you wish to inhibit the action of ADD_SNAT_ALIASES for this entry then include the ":" but omit the digit:
 .sp
@@ -123,106 +214,7 @@ If you wish to inhibit the action of ADD_SNAT_ALIASES for this entry then includ
 .RE
 .\}
 .sp
-Normally Masq/SNAT rules are evaluated after those for one\-to\-one NAT (defined in
-\m[blue]\fBshorewall\-nat\fR\m[]\&\s-2\u[8]\d\s+2(5))\&. If you want the rule to be applied before one\-to\-one NAT rules, prefix the interface name with "+":
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-        +eth0
-        +eth0:192\&.0\&.2\&.32/27
-        +eth0:2
-.fi
-.if n \{\
-.RE
-.\}
-.sp
-This feature should only be required if you need to insert rules in this file that preempt entries in
-\m[blue]\fBshorewall\-nat\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
-.sp
 Comments may be attached to Netfilter rules generated from entries in this file through the use of ?COMMENT lines\&. These lines begin with ?COMMENT; the remainder of the line is treated as a comment which is attached to subsequent rules until another ?COMMENT line is found or until the end of the file is reached\&. To stop adding comments to rules, use a line containing only ?COMMENT\&.
-.sp
-Beginning with Shorewall 4\&.6\&.0, a new syntax is also accepted\&. With the exception of the leading \*(Aq+\*(Aq, the interfacelist and qualifiers may appear within the parentheses of
-\fBINLINE\fR(\&.\&.\&.)\&.
-.sp
-Example:
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-        +INLINE(eth0)
-.fi
-.if n \{\
-.RE
-.\}
-.sp
-When this is done, you may augment the rule generated by Shorewall with iptables matches of your own\&. These matches appear after a semicolon (\*(Aq;\*(Aq) at the end of the line\&.
-.sp
-See example 8 below\&.
-.RE
-.PP
-\fBSOURCE\fR (Formerly called SUBNET \- Optional) \- [\fIinterface\fR|\fIaddress\fR[\fB,\fR\fIaddress\fR][\fIexclusion\fR]]
-.RS 4
-Set of hosts that you wish to masquerade\&. You can specify this as an
-\fIaddress\fR
-(net or host) or as an
-\fIinterface\fR
-(use of an
-\fIinterface\fR
-is deprecated)\&. If you give the name of an interface, the interface must be up before you start the firewall and the Shorewall rules compiler will warn you of that fact\&. (Shorewall will use your main routing table to determine the appropriate addresses to masquerade)\&.
-.sp
-The preferred way to specify the SOURCE is to supply one or more host or network addresses separated by comma\&. You may use ipset names preceded by a plus sign (+) to specify a set of hosts\&.
-.RE
-.PP
-\fBADDRESS\fR (Optional) \- [\fB\-\fR|\fBNONAT\fR|[\fIaddress\-or\-address\-range\fR][:\fIlowport\fR\fB\-\fR\fIhighport\fR][\fB:random\fR][:persistent]|\fBdetect\fR|\fBrandom\fR]
-.RS 4
-If you specify an address here, SNAT will be used and this will be the source address\&. If ADD_SNAT_ALIASES is set to Yes or yes in
-\m[blue]\fBshorewall\&.conf\fR\m[]\&\s-2\u[4]\d\s+2(5) then Shorewall will automatically add this address to the INTERFACE named in the first column\&.
-.sp
-You may also specify a range of up to 256 IP addresses if you want the SNAT address to be assigned from that range in a round\-robin fashion by connection\&. The range is specified by
-\fIfirst\&.ip\&.in\&.range\fR\-\fIlast\&.ip\&.in\&.range\fR\&. You may follow the port range with\fB :random\fR
-in which case assignment of ports from the list will be random\&.
-\fBrandom\fR
-may also be specified by itself in this column in which case random local port assignments are made for the outgoing connections\&.
-.sp
-Example: 206\&.124\&.146\&.177\-206\&.124\&.146\&.180
-.sp
-You may follow the port range (or
-\fB:random\fR) with
-\fB:persistent\fR\&. This is only useful when an address range is specified and causes a client to be given the same source/destination IP pair\&. This feature replaces the SAME modifier which was removed from Shorewall in version 4\&.4\&.0\&. Unlike
-\fBrandom\fR,
-\fBpersistent\fR
-may not be used by itself\&.
-.sp
-You may also use the special value "detect" which causes Shorewall to determine the IP addresses configured on the interface named in the INTERFACES column and substitute them in this column\&.
-.sp
-Finally, you may also specify a comma\-separated list of ranges and/or addresses in this column\&.
-.sp
-This column may not contain DNS Names\&.
-.sp
-Normally, Netfilter will attempt to retain the source port number\&. You may cause netfilter to remap the source port by following an address or range (if any) by ":" and a port range with the format
-\fIlowport\fR\-\fIhighport\fR\&. If this is done, you must specify "tcp" or "udp" in the PROTO column\&.
-.sp
-Examples:
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-        192\&.0\&.2\&.4:5000\-6000
-        :4000\-5000
-.fi
-.if n \{\
-.RE
-.\}
-.sp
-If you simply place
-\fBNONAT\fR
-in this column, no rewriting of the source IP address or port number will be performed\&. This is useful if you want particular traffic to be exempt from the entries that follow in the file\&.
-.sp
-If you want to leave this column empty but you need to specify the next column then place a hyphen ("\-") here\&.
 .RE
 .PP
 \fBPROTO\fR (Optional) \- {\fB\-\fR|[!]{\fIprotocol\-name\fR|\fIprotocol\-number\fR}[,\&.\&.\&.]|+\fIipset\fR}
@@ -462,8 +454,8 @@ Your entry in the file will be:
 .RS 4
 .\}
 .nf
-        #INTERFACE   SOURCE
-        eth0    192\&.168\&.0\&.0/24
+        #ACTION    SOURCE              DEST
+        MASQUERADE 192\&.168\&.0\&.0/24      eth0
 .fi
 .if n \{\
 .RE
@@ -478,8 +470,9 @@ You add a router to your local network to connect subnet 192\&.168\&.1\&.0/24 wh
 .RS 4
 .\}
 .nf
-        #INTERFACE   SOURCE
-        eth0         192\&.168\&.1\&.0/24
+        #ACTION    SOURCE              DEST
+        MASQUERADE 192\&.168\&.0\&.0/24      eth0
+        MASQUERADE 192\&.168\&.1\&.0/24      eth0
 .fi
 .if n \{\
 .RE
@@ -488,14 +481,14 @@ You add a router to your local network to connect subnet 192\&.168\&.1\&.0/24 wh
 .PP
 Example 3:
 .RS 4
-You have an IPSEC tunnel through ipsec0 and you want to masquerade packets coming from 192\&.168\&.1\&.0/24 but only if these packets are destined for hosts in 10\&.1\&.1\&.0/24:
+You want all outgoing traffic from 192\&.168\&.1\&.0/24 through eth0 to use source address 206\&.124\&.146\&.176 which is NOT the primary address of eth0\&. You want 206\&.124\&.146\&.176 to be added to eth0 with name eth0:0\&.
 .sp
 .if n \{\
 .RS 4
 .\}
 .nf
-        #INTERFACE              SOURCE
-        ipsec0:10\&.1\&.1\&.0/24      196\&.168\&.1\&.0/24
+        #ACTION                 SOURCE          DEST
+        SNAT(206\&.124\&.146\&.176)   192\&.168\&.1\&.0/24  eth0:0
 .fi
 .if n \{\
 .RE
@@ -503,22 +496,6 @@ You have an IPSEC tunnel through ipsec0 and you want to masquerade packets comin
 .RE
 .PP
 Example 4:
-.RS 4
-You want all outgoing traffic from 192\&.168\&.1\&.0/24 through eth0 to use source address 206\&.124\&.146\&.176 which is NOT the primary address of eth0\&. You want 206\&.124\&.146\&.176 to be added to eth0 with name eth0:0\&.
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-        #INTERFACE              SOURCE          ADDRESS
-        eth0:0                  192\&.168\&.1\&.0/24  206\&.124\&.146\&.176
-.fi
-.if n \{\
-.RE
-.\}
-.RE
-.PP
-Example 5:
 .RS 4
 You want all outgoing SMTP traffic entering the firewall from 172\&.20\&.1\&.0/29 to be sent from eth0 with source IP address 206\&.124\&.146\&.177\&. You want all other outgoing traffic from 172\&.20\&.1\&.0/29 to be sent from eth0 with source IP address 206\&.124\&.146\&.176\&.
 .sp
@@ -529,6 +506,18 @@ You want all outgoing SMTP traffic entering the firewall from 172\&.20\&.1\&.0/2
         #INTERFACE   SOURCE           ADDRESS         PROTO   DPORT
         eth0         172\&.20\&.1\&.0/29    206\&.124\&.146\&.177 tcp     smtp
         eth0         172\&.20\&.1\&.0/29    206\&.124\&.146\&.176
+.fi
+.if n \{\
+.RE
+.\}
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+        #ACTION                 SOURCE          DEST        PROTO     PORT
+        SNAT(206\&.124\&.146\&.177)   172\&.20\&.1\&.0/29   eth0        tcp       smtp
+        SNAT(206\&.124\&.146\&.176)   172\&.20\&.1\&.0/29   eth0
 .fi
 .if n \{\
 .RE
@@ -550,7 +539,7 @@ The order of the above two rules is significant!
 .RE
 .RE
 .PP
-Example 6:
+Example 5:
 .RS 4
 Connections leaving on eth0 and destined to any host defined in the ipset
 \fImyset\fR
@@ -560,15 +549,15 @@ should have the source IP address changed to 206\&.124\&.146\&.177\&.
 .RS 4
 .\}
 .nf
-        #INTERFACE              SOURCE          ADDRESS
-        eth0:+myset[dst]        \-               206\&.124\&.146\&.177
+        #ACTION                 SOURCE          DEST
+        SNAT(206\&.124\&.146\&.177)   \-               eth0+myset[dst]
 .fi
 .if n \{\
 .RE
 .\}
 .RE
 .PP
-Example 7:
+Example 6:
 .RS 4
 SNAT outgoing connections on eth0 from 192\&.168\&.1\&.0/24 in round\-robin fashion between addresses 1\&.1\&.1\&.1, 1\&.1\&.1\&.3, and 1\&.1\&.1\&.9 (Shorewall 4\&.5\&.9 and later)\&.
 .sp
@@ -581,19 +570,19 @@ SNAT outgoing connections on eth0 from 192\&.168\&.1\&.0/24 in round\-robin fash
        #ACTION   SOURCE         DEST         PROTO   DPORT         SPORT    USER    TEST
        1\-3:CF    192\&.168\&.1\&.0/24 eth0 ; state=NEW
 
-/etc/shorewall/masq:
+/etc/shorewall/snat:
 
-       #INTERFACE SOURCE         ADDRESS     \&.\&.\&.
-       eth0       192\&.168\&.1\&.0/24 1\&.1\&.1\&.1 ; mark=1:C
-       eth0       192\&.168\&.1\&.0/24 1\&.1\&.1\&.3 ; mark=2:C
-       eth0       192\&.168\&.1\&.0/24 1\&.1\&.1\&.9 ; mark=3:C
+       #ACTION                 SOURCE          DEST
+       SNAT(1\&.1\&.1\&.1)           192\&.168\&.1\&.0/24  eth0  { mark=1:C }
+       SNAT(1\&.1\&.1\&.3)           192\&.168\&.1\&.0/24  eth0  { mark=2:C }
+       SNAT(1\&.1\&.1\&.9)           192\&.168\&.1\&.0/24  eth0  { mark=3:C }
 .fi
 .if n \{\
 .RE
 .\}
 .RE
 .PP
-Example 8:
+Example 7:
 .RS 4
 Your eth1 has two public IP addresses: 70\&.90\&.191\&.121 and 70\&.90\&.191\&.123\&. You want to use the iptables statistics match to masquerade outgoing connections evenly between these two addresses\&.
 .sp
@@ -601,28 +590,11 @@ Your eth1 has two public IP addresses: 70\&.90\&.191\&.121 and 70\&.90\&.191\&.1
 .RS 4
 .\}
 .nf
-/etc/shorewall/masq:
+/etc/shorewall/snat:
 
-       #INTERFACE    SOURCE         ADDRESS 
-       INLINE(eth1)  0\&.0\&.0\&.0/0      70\&.90\&.191\&.121 ;  \-m statistic \-\-mode random \-\-probability 0\&.50
-       eth1          0\&.0\&.0\&.0/0      70\&.90\&.191\&.123 
-.fi
-.if n \{\
-.RE
-.\}
-.sp
-If INLINE_MATCHES=Yes in
-\m[blue]\fBshorewall\&.conf(5)\fR\m[]\&\s-2\u[4]\d\s+2, then these rules may be specified as follows:
-.sp
-.if n \{\
-.RS 4
-.\}
-.nf
-/etc/shorewall/masq:
-
-       #INTERFACE    SOURCE         ADDRESS 
-       eth1          0\&.0\&.0\&.0/0      70\&.90\&.191\&.121 ;  \-m statistic \-\-mode random \-\-probability 0\&.50
-       eth1          0\&.0\&.0\&.0/0      70\&.90\&.191\&.123 
+       #ACTION                 SOURCE           DEST
+       SNAT(70\&.90\&.191\&.121)     \-                eth1 { probability=\&.50 }
+       SNAT(70\&.90\&.191\&.123)     \-                eth1
 .fi
 .if n \{\
 .RE
@@ -630,17 +602,17 @@ If INLINE_MATCHES=Yes in
 .RE
 .SH "FILES"
 .PP
-/etc/shorewall/masq
+/etc/shorewall/snat
 .SH "SEE ALSO"
 .PP
-\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[9]\d\s+2
+\m[blue]\fBhttp://www\&.shorewall\&.net/configuration_file_basics\&.htm#Pairs\fR\m[]\&\s-2\u[11]\d\s+2
 .PP
 shorewall(8), shorewall\-accounting(5), shorewall\-actions(5), shorewall\-blacklist(5), shorewall\-exclusion(5), shorewall\-hosts(5), shorewall_interfaces(5), shorewall\-ipsets(5), shorewall\-maclist(5), shorewall\-nat(5), shorewall\-netmap(5), shorewall\-params(5), shorewall\-policy(5), shorewall\-providers(5), shorewall\-proxyarp(5), shorewall\-rtrules(5), shorewall\-routestopped(5), shorewall\-rules(5), shorewall\&.conf(5), shorewall\-secmarks(5), shorewall\-tcclasses(5), shorewall\-tcdevices(5), shorewall\-mangle(5), shorewall\-tos(5), shorewall\-tunnels(5), shorewall\-zones(5)
 .SH "NOTES"
 .IP " 1." 4
-shorewall-snat
+shorewall-masq
 .RS 4
-\%http://www.shorewall.netshorewall-snat.html
+\%http://www.shorewall.netshorewall-masq.html
 .RE
 .IP " 2." 4
 shorewall-rtrules
@@ -658,26 +630,36 @@ shorewall.conf
 \%http://www.shorewall.net/manpages/shorewall.conf.html
 .RE
 .IP " 5." 4
-shorewall-interfaces
+shorewall-actions(5)
 .RS 4
-\%http://www.shorewall.net/manpages/shorewall-interfaces.html
+\%http://www.shorewall.netshorewall-actions.html
 .RE
 .IP " 6." 4
-more that one internet provider share a single interface
+www.shorewall.net/Actions.html
 .RS 4
-\%http://www.shorewall.net/4.4/MultiISP.html#Shared
+\%http://www.shorewall.net/Actions.html
 .RE
 .IP " 7." 4
-shorewall-exclusion
-.RS 4
-\%http://www.shorewall.net/manpages/shorewall-exclusion.html
-.RE
-.IP " 8." 4
 shorewall-nat
 .RS 4
 \%http://www.shorewall.net/manpages/shorewall-nat.html
 .RE
+.IP " 8." 4
+shorewall-interfaces
+.RS 4
+\%http://www.shorewall.net/manpages/shorewall-interfaces.html
+.RE
 .IP " 9." 4
+more that one internet provider share a single interface
+.RS 4
+\%http://www.shorewall.net/4.4/MultiISP.html#Shared
+.RE
+.IP "10." 4
+shorewall-exclusion
+.RS 4
+\%http://www.shorewall.net/manpages/shorewall-exclusion.html
+.RE
+.IP "11." 4
 http://www.shorewall.net/configuration_file_basics.htm#Pairs
 .RS 4
 \%http://www.shorewall.net/configuration_file_basics.htm#Pairs

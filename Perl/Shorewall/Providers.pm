@@ -47,7 +47,7 @@ our @EXPORT = qw( process_providers
                   map_provider_to_interface
 	       );
 our @EXPORT_OK = qw( initialize provider_realm );
-our $VERSION = '5.0_12';
+our $VERSION = '5.0_14';
 
 use constant { LOCAL_TABLE   => 255,
 	       MAIN_TABLE    => 254,
@@ -309,27 +309,14 @@ sub balance_default_route( $$$$ ) {
     emit '';
 
     if ( $first_default_route ) {
-	if ( $family == F_IPV4 ) {
-	    if ( $gateway ) {
-		emit "DEFAULT_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
-	    } else {
-		emit "DEFAULT_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
-	    }
+	if ( $gateway ) {
+	    emit "DEFAULT_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
 	} else {
-	    #
-	    # IPv6 doesn't support multi-hop routes
-	    #
-	    if ( $gateway ) {
-		emit "DEFAULT_ROUTE=\"via $gateway dev $interface $realm\"";
-	    } else {
-		emit "DEFAULT_ROUTE=\"dev $interface $realm\"";
-	    }
+	    emit "DEFAULT_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
 	}
 
 	$first_default_route = 0;
     } else {
-	fatal_error "Only one 'balance' provider is allowed with IPv6" if $family == F_IPV6;
-
 	if ( $gateway ) {
 	    emit "DEFAULT_ROUTE=\"\$DEFAULT_ROUTE nexthop via $gateway dev $interface weight $weight $realm\"";
 	} else {
@@ -346,27 +333,14 @@ sub balance_fallback_route( $$$$ ) {
     emit '';
 
     if ( $first_fallback_route ) {
-	if ( $family == F_IPV4 ) {
-	    if ( $gateway ) {
-		emit "FALLBACK_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
-	    } else {
-		emit "FALLBACK_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
-	    }
+	if ( $gateway ) {
+	    emit "FALLBACK_ROUTE=\"nexthop via $gateway dev $interface weight $weight $realm\"";
 	} else {
-	    #
-	    # IPv6 doesn't support multi-hop routes
-	    #
-	    if ( $gateway ) {
-		emit "FALLBACK_ROUTE=\"via $gateway dev $interface $realm\"";
-	    } else {
-		emit "FALLBACK_ROUTE=\"dev $interface $realm\"";
-	    }
+	    emit "FALLBACK_ROUTE=\"nexthop dev $interface weight $weight $realm\"";
 	}
 
 	$first_fallback_route = 0;
     } else {
-	fatal_error "Only one 'fallback' provider is allowed with IPv6" if $family == F_IPV6;
-
 	if ( $gateway ) {
 	    emit "FALLBACK_ROUTE=\"\$FALLBACK_ROUTE nexthop via $gateway dev $interface weight $weight $realm\"";
 	} else {
@@ -498,12 +472,14 @@ sub process_a_provider( $ ) {
 
     if ( ( $gw = lc $gateway ) eq 'detect' ) {
 	fatal_error "Configuring multiple providers through one interface requires an explicit gateway" if $shared;
-	$gateway = get_interface_gateway $interface;
+	$gateway = get_interface_gateway( $interface, undef, 1 );
 	$gatewaycase = 'detect';
+	set_interface_option( $interface, 'gateway', 'detect' );
     } elsif ( $gw eq 'none' ) {
 	fatal_error "Configuring multiple providers through one interface requires a gateway" if $shared;
 	$gatewaycase = 'none';
 	$gateway = '';
+	set_interface_option( $interface, 'gateway', 'none' );
     } elsif ( $gateway && $gateway ne '-' ) {
 	( $gateway, $mac ) = split_host_list( $gateway, 0 );
 	validate_address $gateway, 0;
@@ -517,11 +493,14 @@ sub process_a_provider( $ ) {
 	}
 
 	$gatewaycase = 'specified';
+	set_interface_option( $interface, 'gateway', $gateway );
     } else {
 	$gatewaycase = 'omitted';
 	fatal_error "Configuring multiple providers through one interface requires a gateway" if $shared;
 	$gateway = '';
+	set_interface_option( $interface, 'gateway', $pseudo ? 'detect' : 'omitted' );
     }
+
 
     my ( $loose, $track, $balance, $default, $default_balance, $optional, $mtu, $tproxy, $local, $load, $what, $hostroute, $persistent );
 
@@ -542,7 +521,6 @@ sub process_a_provider( $ ) {
 		$track = 0;
 	    } elsif ( $option =~ /^balance=(\d+)$/ ) {
 		fatal_error q('balance' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
-		fatal_error q('balance=<weight>' is not available in IPv6) if $family == F_IPV6;
 		fatal_error 'The balance setting must be non-zero' unless $1;
 		$balance = $1;
 	    } elsif ( $option eq 'balance' || $option eq 'primary') {
@@ -565,7 +543,6 @@ sub process_a_provider( $ ) {
 		$mtu = "mtu $1 ";
 	    } elsif ( $option =~ /^fallback=(\d+)$/ ) {
 		fatal_error q('fallback' may not be spacified when GATEWAY is 'none') if $gatewaycase eq 'none';
-		fatal_error q('fallback=<weight>' is not available in IPv6) if $family == F_IPV6;
 		$default = $1;
 		$default_balance = 0;
 		fatal_error 'fallback must be non-zero' unless $default;
@@ -753,9 +730,9 @@ sub emit_started_message( $$$$$ ) {
     my ( $spaces, $level, $pseudo, $name, $number ) = @_;
 
     if ( $pseudo ) {
-	emit qq(${spaces}progress_message${level} "   Optional interface $name Started");
+	emit qq(${spaces}progress_message${level} "Optional interface $name Started");
     } else {
-	emit qq(${spaces}progress_message${level} "   Provider $name ($number) Started");
+	emit qq(${spaces}progress_message${level} "Provider $name ($number) Started");
     }
 }
 
@@ -822,23 +799,15 @@ sub add_a_provider( $$ ) {
 	}
 
 	if ( $gateway ) {
-	    $address = get_interface_address $interface unless $address;
+	    $address = get_interface_address( $interface, 1 ) unless $address;
 
 	    emit( qq([ -z "$address" ] && return\n) );
 
 	    if ( $hostroute ) {
-		if ( $family == F_IPV4 ) {
-		    emit qq(run_ip route replace $gateway src $address dev $physical ${mtu});
-		    emit qq(run_ip route replace $gateway src $address dev $physical ${mtu}table $id $realm);
-		    emit qq(echo "\$IP route del $gateway src $address dev $physical ${mtu} > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing);
-		    emit qq(echo "\$IP route del $gateway src $address dev $physical ${mtu}table $id $realm > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing);
-		} else {
-		    emit qq(qt \$IP -6 route add $gateway src $address dev $physical ${mtu});
-		    emit qq(qt \$IP -6 route del $gateway src $address dev $physical ${mtu}table $id $realm);
-		    emit qq(run_ip route add $gateway src $address dev $physical ${mtu}table $id $realm);
-		    emit qq(echo "\$IP -6 route del $gateway src $address dev $physical ${mtu} > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing );
-		    emit qq(echo "\$IP -6 route del $gateway src $address dev $physical ${mtu}table $id $realm > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing);
-		}
+		emit qq(run_ip route replace $gateway src $address dev $physical ${mtu});
+		emit qq(run_ip route replace $gateway src $address dev $physical ${mtu}table $id $realm);
+		emit qq(echo "\$IP route del $gateway src $address dev $physical ${mtu} > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing);
+		emit qq(echo "\$IP route del $gateway src $address dev $physical ${mtu}table $id $realm > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing);
 	    }
 
 	    emit( "run_ip route add default via $gateway src $address dev $physical ${mtu}table $id $realm" );
@@ -956,17 +925,11 @@ CEOF
     }
 
     if ( $gateway ) {
-	$address = get_interface_address $interface unless $address;
+	$address = get_interface_address( $interface, 1 ) unless $address;
 
 	if ( $hostroute ) {
-	    if ( $family == F_IPV4 ) {
-		emit qq(run_ip route replace $gateway src $address dev $physical ${mtu});
-		emit qq(run_ip route replace $gateway src $address dev $physical ${mtu}table $id $realm);
-	    } else {
-		emit qq(qt \$IP -6 route add $gateway src $address dev $physical ${mtu});
-		emit qq(qt \$IP -6 route del $gateway src $address dev $physical ${mtu}table $id $realm);
-		emit qq(run_ip route add $gateway src $address dev $physical ${mtu}table $id $realm);
-	    }
+	    emit qq(run_ip route replace $gateway src $address dev $physical ${mtu});
+	    emit qq(run_ip route replace $gateway src $address dev $physical ${mtu}table $id $realm);
 	}
 
 	emit "run_ip route add default via $gateway src $address dev $physical ${mtu}table $id $realm";
@@ -980,13 +943,8 @@ CEOF
 	my $id = $providers{default}->{id};
 	emit '';
 	if ( $gateway ) {
-	    if ( $family == F_IPV4 ) {
-		emit qq(run_ip route replace $gateway/32 dev $physical table $id) if $hostroute;
-		emit qq(run_ip route add default via $gateway src $address dev $physical table $id metric $number);
-	    } else {
-		emit qq(qt \$IP -6 route del default via $gateway src $address dev $physical table $id metric $number);
-		emit qq(run_ip route add default via $gateway src $address dev $physical table $id metric $number);
-	    }
+	    emit qq(run_ip route replace $gateway/32 dev $physical table $id) if $hostroute;
+	    emit qq(run_ip route add default via $gateway src $address dev $physical table $id metric $number);
 	    emit qq(echo "\$IP -$family route del default via $gateway table $id > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing);
 	    emit qq(echo "\$IP -4 route del $gateway/32 dev $physical table $id > /dev/null 2>&1" >> \${VARDIR}/undo_${table}_routing) if $family == F_IPV4;
 	} else {
@@ -1062,23 +1020,12 @@ CEOF
 	    $tbl    = $providers{$default ? 'default' : $config{USE_DEFAULT_RT} ? 'balance' : 'main'}->{id};
 	    $weight = $balance ? $balance : $default;
 
-	    if ( $family == F_IPV4 ) {
-		if ( $gateway ) {
-		    emit qq(add_gateway "nexthop via $gateway dev $physical weight $weight $realm" ) . $tbl;
-		} else {
-		    emit qq(add_gateway "nexthop dev $physical weight $weight $realm" ) . $tbl;
-		}
+	    if ( $gateway ) {
+		emit qq(add_gateway "nexthop via $gateway dev $physical weight $weight $realm" ) . $tbl;
 	    } else {
-		#
-		# IPv6 doesn't support multi-hop routes
-		#
-		if ( $gateway ) {
-		    emit qq(add_gateway "via $gateway dev $physical $realm" ) . $tbl;
-		} else {
-		    emit qq(add_gateway "dev $physical $realm" ) . $tbl;
-		}
+		emit qq(add_gateway "nexthop dev $physical weight $weight $realm" ) . $tbl;
 	    }
-	    	} else {
+	} else {
 	    $weight = 1;
 	}
 
@@ -1091,6 +1038,16 @@ CEOF
 	emit( qq(rm -f \${VARDIR}/${physical}_disabled) );
 	emit_started_message( '', 2, $pseudo, $table, $number );
 
+	if ( get_interface_option( $interface, 'used_address_variable' ) || get_interface_option( $interface, 'used_gateway_variable' ) ) {
+	    emit( '',
+		  'if [ -n "$g_forcereload" ]; then',
+		  "    progress_message2 \"The IP address or gateway of $physical has changed -- forcing reload of the ruleset\"",
+		  '    COMMAND=reload',
+		  '    detect_configuration',
+		  '    define_firewall',
+		  'fi' );
+	}
+
 	pop_indent;
 
 	unless ( $pseudo ) {
@@ -1101,6 +1058,17 @@ CEOF
 	}
 
 	emit "fi\n";
+
+	if ( get_interface_option( $interface, 'used_address_variable' ) ) {
+	    my $variable = interface_address( $interface );
+
+	    emit( "echo \$$variable > \${VARDIR}/${physical}.address" );
+	}
+
+	if ( get_interface_option( $interface, 'used_gateway_variable' ) ) {
+	    my $variable = interface_gateway( $interface );
+	    emit( qq(echo "\$$variable" > \${VARDIR}/${physical}.gateway\n) );
+	}
     } else {
 	emit( qq(progress_message "Provider $table ($number) Started") );
     }
@@ -1124,6 +1092,17 @@ CEOF
 	    emit ( "error_message \"WARNING: Optional Interface $physical is not usable -- $table not Started\"" );
 	} else {
 	    emit ( "error_message \"WARNING: Interface $physical is not usable -- Provider $table ($number) not Started\"" );
+	}
+
+
+	if ( get_interface_option( $interface, 'used_address_variable' ) ) {
+	    my $variable = interface_address( $interface );
+	    emit( "\necho \$$variable > \${VARDIR}/${physical}.address" );
+	}
+
+	if ( get_interface_option( $interface, 'used_gateway_variable' ) ) {
+	    my $variable = interface_gateway( $interface );
+	    emit( qq(\necho "\$$variable" > \${VARDIR}/${physical}.gateway) );
 	}
     } else {
 	if ( $shared ) {
@@ -1168,7 +1147,7 @@ CEOF
 		$via = "dev $physical";
 	    }
 
-	    $via .= " weight $weight" unless $weight < 0 or $family == F_IPV6; # IPv6 doesn't support route weights
+	    $via .= " weight $weight" unless $weight < 0;
 	    $via .= " $realm"         if $realm;
 
 	    emit( qq(delete_gateway "$via" $tbl $physical) );
@@ -1263,7 +1242,7 @@ sub add_an_rtrule1( $$$$$ ) {
     if ( $source eq '-' ) {
 	$source = 'from ' . ALLIP;
     } elsif ( $source =~ s/^&// ) {
-	$source = 'from ' . record_runtime_address '&', $source;
+	$source = 'from ' . record_runtime_address( '&', $source, undef, 1 );
     } elsif ( $family == F_IPV4 ) {
 	if ( $source =~ /:/ ) {
 	    ( my $interface, $source , my $remainder ) = split( /:/, $source, 3 );
@@ -1517,12 +1496,7 @@ sub finish_providers() {
 
     if ( $balancing ) {
 	emit  ( 'if [ -n "$DEFAULT_ROUTE" ]; then' );
-	if ( $family == F_IPV4 ) {
-	    emit  ( "    run_ip route replace default scope global table $table \$DEFAULT_ROUTE" );
-	} else {
-	    emit  ( "    qt \$IP -6 route del default scope global table $table \$DEFAULT_ROUTE" );
-	    emit  ( "    run_ip route add default scope global table $table \$DEFAULT_ROUTE" );
-	}
+	emit  ( "    run_ip route replace default scope global table $table \$DEFAULT_ROUTE" );
 
 	if ( $config{USE_DEFAULT_RT} ) {
 	    emit  ( "    while qt \$IP -$family route del default table $main; do",
@@ -1575,12 +1549,7 @@ sub finish_providers() {
 
     if ( $fallback ) {
 	emit  ( 'if [ -n "$FALLBACK_ROUTE" ]; then' );
-	if ( $family == F_IPV4 ) {
-	    emit( "    run_ip route replace default scope global table $default \$FALLBACK_ROUTE" );
-	} else {
-	    emit( "    qt \$IP -6 route del default scope global table $default \$FALLBACK_ROUTE" );
-	    emit( "    run_ip route add default scope global table $default \$FALLBACK_ROUTE" );
-	}
+	emit( "    run_ip route replace default scope global table $default \$FALLBACK_ROUTE" );
 
 	emit( "    progress_message \"Fallback route '\$(echo \$FALLBACK_ROUTE | sed 's/\$\\s*//')' Added\"",
 	      'else',
@@ -2207,6 +2176,7 @@ sub handle_optional_interfaces( $ ) {
 		}
 
 		push_indent;
+
 		if ( $providerref->{gatewaycase} eq 'detect' ) {
 		    emit qq(if interface_is_usable $physical && [ -n "$providerref->{gateway}" ]; then);
 		} else {
@@ -2219,6 +2189,28 @@ sub handle_optional_interfaces( $ ) {
 		emit( "    SW_${wildbase}_IS_USABLE=Yes" ) if $interfaceref->{wildcard};
 		emit( 'fi' );
 
+		if ( get_interface_option( $interface, 'used_address_variable' ) ) {
+		    my $variable = interface_address( $interface );
+
+		    emit( '',
+			  "if [ -f \${VARDIR}/${physical}.address ]; then",
+			  "    if [ \$(cat \${VARDIR}/${physical}.address) != \$$variable ]; then",
+			  '        g_forcereload=Yes',
+			  '    fi',
+			  'fi' );
+		}
+
+		if ( get_interface_option( $interface, 'used_gateway_variable' ) ) {
+		    my $variable = interface_gateway( $interface );
+
+		    emit( '',
+			  "if [ -f \${VARDIR}/${physical}.gateway ]; then",
+			  "    if [ \$(cat \${VARDIR}/${physical}.gateway) != \"\$$variable\" ]; then",
+			  '        g_forcereload=Yes',
+			  '    fi',
+			  'fi' );
+		}
+
 		pop_indent;
 
 		emit( "fi\n" );
@@ -2229,6 +2221,7 @@ sub handle_optional_interfaces( $ ) {
 		my $base        = uc var_base( $physical );
 		my $case        = $physical;
 		my $wild        = $case =~ s/\+$/*/;
+		my $variable    = interface_address( $interface );
 
 		if ( $wildcards ) {
 		    emit( "$case)" );
@@ -2248,6 +2241,15 @@ sub handle_optional_interfaces( $ ) {
 		emit ( '    HAVE_INTERFACE=Yes' ) if $require;
 		emit ( "    SW_${base}_IS_USABLE=Yes" ,
 		       'fi' );
+
+		if ( get_interface_option( $interface, 'used_address_variable' ) ) {
+		    emit( '',
+			  "if [ -f \${VARDIR}/${physical}.address ]; then",
+			  "    if [ \$(cat \${VARDIR}/${physical}.address) != \$$variable ]; then",
+			  '        g_forcereload=Yes',
+			  '    fi',
+			  'fi' );
+		}
 
 		if ( $wildcards ) {
 		    pop_indent, emit( 'fi' ) if $wild;

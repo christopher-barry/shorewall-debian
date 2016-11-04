@@ -1,6 +1,6 @@
 #
-# Shorewall - Sample Masq file for two-interface configuration.
-# Copyright (C) 2006-2015 by the Shorewall Team
+# Shorewall - Sample SNAT/Masqueradee File for three-interface configuration.
+# Copyright (C) 2006-2016 by the Shorewall Team
 #
 # This library is free software; you can redistribute it and/or
 # modify it under the terms of the GNU Lesser General Public
@@ -9,11 +9,13 @@
 #
 # See the file README.txt for further details.
 #------------------------------------------------------------------------------
-# For information about entries in this file, type "man shorewall-masq"
-################################################################################################################
+# For information about entries in this file, type "man shorewall-snat"
+#
+# See http://shorewall.net/manpages/shorewall-snat.html for more information
+###########################################################################################################################################
 # 
-# Use this file to define dynamic NAT (Masquerading) and to define Source NAT
-# (SNAT).
+# This file is used to define dynamic NAT (Masquerading) and to define Source NAT
+# (SNAT). It superseded shorewall-masq(5) in Shorewall 5.0.14.
 # 
 # Warning
 # 
@@ -28,15 +30,100 @@
 # 
 # The columns in the file are as follows.
 # 
-# INTERFACE:DEST - {[+]interfacelist[:[digit]][:[dest-address[,dest-address]...[
-#     exclusion]]|?COMMENT}
+# ACTION
 # 
-#     Outgoing interfacelist. This may be a comma-separated list of interface
-#     names. This is usually your internet interface. If ADD_SNAT_ALIASES=Yes in
-#     shorewall.conf(5), you may add ":" and a digit to indicate that you want
-#     the alias added with that name (e.g., eth0:0). This will allow the alias to
-#     be displayed with ifconfig. That is the only use for the alias name; it may
-#     not appear in any other place in your Shorewall configuration.
+#     Defines the type of rule to generate. Choices are:
+# 
+#     MASQUERADE[+][([lowport-highport][random])]
+# 
+#         Causes matching outgoing packages to have their source IP address set
+#         to the primary IP address of the interface specified in the DEST
+#         column. if lowport-highport is given, that port range will be used to
+#         assign a source port. If option random is used then port mapping will
+#         be randomized. MASQUERADE should only be used when the DEST interface
+#         has a dynamic IP address. Otherwise, SNAT should be used and should
+#         specify the interface's static address.
+# 
+#     SNAT[+]([address-or-address-range][:lowport-highport][:random][:persistent]
+#         |detect|
+# 
+#         If you specify an address here, matching packets will have their source
+#         address set to that address. If ADD_SNAT_ALIASES is set to Yes or yes
+#         in shorewall.conf(5) then Shorewall will automatically add this address
+#         to the INTERFACE named in the first column.
+# 
+#         You may also specify a range of up to 256 IP addresses if you want the
+#         SNAT address to be assigned from that range in a round-robin fashion by
+#         connection. The range is specified by first.ip.in.range-
+#         last.ip.in.range. You may follow the port range with :random in which
+#         case assignment of ports from the list will be random. random may also
+#         be specified by itself in this column in which case random local port
+#         assignments are made for the outgoing connections.
+# 
+#         Example: 206.124.146.177-206.124.146.180
+# 
+#         You may follow the port range (or :random) with :persistent. This is
+#         only useful when an address range is specified and causes a client to
+#         be given the same source/destination IP pair. This feature replaces the
+#         SAME modifier which was removed from Shorewall in version 4.4.0.
+# 
+#         You may also use the special value detect which causes Shorewall to
+#         determine the IP addresses configured on the interface named in the
+#         DEST column and substitute them in this column.
+# 
+#         Finally, you may also specify a comma-separated list of ranges and/or
+#         addresses in this column.
+# 
+#         DNS Names names are not allowed.
+# 
+#         Normally, Netfilter will attempt to retain the source port number. You
+#         may cause netfilter to remap the source port by following an address or
+#         range (if any) by ":" and a port range with the format lowport-highport
+#         . If this is done, you must specify "tcp", "udp", "dccp" or "stcp" in
+#         the PROTO column.
+# 
+#         Examples:
+# 
+#                 192.0.2.4:5000-6000
+#                 :4000-5000
+# 
+#     CONTINUE[+]
+# 
+#         Causes matching packets to be exempted from any following rules in the
+#         file.
+# 
+#     action[+][(parameter,...)]
+# 
+#         where action is an action declared in shorewall-actions(5) with the nat
+#         option. See www.shorewall.net/Actions.html for further information.
+# 
+#     Normally Masq/SNAT rules are evaluated after those for one-to-one NAT
+#     (defined in shorewall-nat(5)). If you want the rule to be applied before
+#     one-to-one NAT rules, follow the action name with "+": This feature should
+#     only be required if you need to insert rules in this file that preempt
+#     entries in shorewall-nat(5).
+# 
+# SOURCE (Optional) - [interface|address[,address][exclusion]]
+# 
+#     Set of hosts that you wish to masquerade. You can specify this as an 
+#     address (net or host) or as an interface (use of an interface is
+#     deprecated). If you give the name of an interface, the interface must be up
+#     before you start the firewall and the Shorewall rules compiler will warn
+#     you of that fact. (Shorewall will use your main routing table to determine
+#     the appropriate addresses to masquerade).
+# 
+#     The preferred way to specify the SOURCE is to supply one or more host or
+#     network addresses separated by comma. You may use ipset names preceded by a
+#     plus sign (+) to specify a set of hosts.
+# 
+# DEST - {[+]interface[:[digit]][:[dest-address[,dest-address]...[exclusion]]}
+# 
+#     Outgoing interface. This is usually your internet interface. If
+#     ADD_SNAT_ALIASES=Yes in shorewall.conf(5), you may add ":" and a digit to
+#     indicate that you want the alias added with that name (e.g., eth0:0). This
+#     will allow the alias to be displayed with ifconfig. That is the only use
+#     for the alias name; it may not appear in any other place in your Shorewall
+#     configuration.
 # 
 #     Each interface must match an entry in shorewall-interfaces(5). Shorewall
 #     allows loose matches to wildcard entries in shorewall-interfaces(5). For
@@ -50,7 +137,7 @@
 #             eth0(Avvanta)
 # 
 #     In that case, you will want to specify the interface's address for that
-#     provider in the ADDRESS column.
+#     provider as the SNAT parameter.
 # 
 #     The interface may be qualified by adding the character ":" followed by a
 #     comma-separated list of destination host or subnet addresses to indicate
@@ -64,102 +151,12 @@
 #             eth0(Avvanta):
 #             eth2::192.0.2.32/27
 # 
-#     Normally Masq/SNAT rules are evaluated after those for one-to-one NAT
-#     (defined in shorewall-nat(5)). If you want the rule to be applied before
-#     one-to-one NAT rules, prefix the interface name with "+":
-# 
-#             +eth0
-#             +eth0:192.0.2.32/27
-#             +eth0:2
-# 
-#     This feature should only be required if you need to insert rules in this
-#     file that preempt entries in shorewall-nat(5).
-# 
 #     Comments may be attached to Netfilter rules generated from entries in this
 #     file through the use of ?COMMENT lines. These lines begin with ?COMMENT;
 #     the remainder of the line is treated as a comment which is attached to
 #     subsequent rules until another ?COMMENT line is found or until the end of
 #     the file is reached. To stop adding comments to rules, use a line
 #     containing only ?COMMENT.
-# 
-#     Beginning with Shorewall 4.6.0, a new syntax is also accepted. With the
-#     exception of the leading '+', the interfacelist and qualifiers may appear
-#     within the parentheses of INLINE(...).
-# 
-#     Example:
-# 
-#             +INLINE(eth0)
-# 
-#     When this is done, you may augment the rule generated by Shorewall with
-#     iptables matches of your own. These matches appear after a semicolon (';')
-#     at the end of the line.
-# 
-#     See example 8 below.
-# 
-# SOURCE (Formerly called SUBNET - Optional) - [interface|address[,address][
-#     exclusion]]
-# 
-#     Set of hosts that you wish to masquerade. You can specify this as an 
-#     address (net or host) or as an interface (use of an interface is
-#     deprecated). If you give the name of an interface, the interface must be up
-#     before you start the firewall and the Shorewall rules compiler will warn
-#     you of that fact. (Shorewall will use your main routing table to determine
-#     the appropriate addresses to masquerade).
-# 
-#     The preferred way to specify the SOURCE is to supply one or more host or
-#     network addresses separated by comma. You may use ipset names preceded by a
-#     plus sign (+) to specify a set of hosts.
-# 
-# ADDRESS (Optional) - [-|NONAT|[address-or-address-range[,
-#     address-or-address-range]...][:lowport-highport][:random][:persistent]|
-#     detect|random]
-# 
-#     If you specify an address here, SNAT will be used and this will be the
-#     source address. If ADD_SNAT_ALIASES is set to Yes or yes in shorewall.conf
-#     (5) then Shorewall will automatically add this address to the INTERFACE
-#     named in the first column.
-# 
-#     You may also specify a range of up to 256 IP addresses if you want the SNAT
-#     address to be assigned from that range in a round-robin fashion by
-#     connection. The range is specified by first.ip.in.range-last.ip.in.range.
-#     You may follow the port range with :random in which case assignment of
-#     ports from the list will be random. random may also be specified by itself
-#     in this column in which case random local port assignments are made for the
-#     outgoing connections.
-# 
-#     Example: 206.124.146.177-206.124.146.180
-# 
-#     You may follow the port range (or :random) with :persistent. This is only
-#     useful when an address range is specified and causes a client to be given
-#     the same source/destination IP pair. This feature replaces the SAME
-#     modifier which was removed from Shorewall in version 4.4.0. Unlike random, 
-#     persistent may not be used by itself.
-# 
-#     You may also use the special value "detect" which causes Shorewall to
-#     determine the IP addresses configured on the interface named in the
-#     INTERFACES column and substitute them in this column.
-# 
-#     Finally, you may also specify a comma-separated list of ranges and/or
-#     addresses in this column.
-# 
-#     This column may not contain DNS Names.
-# 
-#     Normally, Netfilter will attempt to retain the source port number. You may
-#     cause netfilter to remap the source port by following an address or range
-#     (if any) by ":" and a port range with the format lowport-highport. If this
-#     is done, you must specify "tcp" or "udp" in the PROTO column.
-# 
-#     Examples:
-# 
-#             192.0.2.4:5000-6000
-#             :4000-5000
-# 
-#     If you simply place NONAT in this column, no rewriting of the source IP
-#     address or port number will be performed. This is useful if you want
-#     particular traffic to be exempt from the entries that follow in the file.
-# 
-#     If you want to leave this column empty but you need to specify the next
-#     column then place a hyphen ("-") here.
 # 
 # PROTO (Optional) - {-|[!]{protocol-name|protocol-number}[,...]|+ipset}
 # 
@@ -352,8 +349,8 @@
 # 
 #     Your entry in the file will be:
 # 
-#             #INTERFACE   SOURCE
-#             eth0    192.168.0.0/24
+#             #ACTION    SOURCE              DEST
+#             MASQUERADE 192.168.0.0/24      eth0
 # 
 # Example 2:
 # 
@@ -361,28 +358,20 @@
 #     which you also want to masquerade. You then add a second entry for eth0 to
 #     this file:
 # 
-#             #INTERFACE   SOURCE
-#             eth0         192.168.1.0/24
+#             #ACTION    SOURCE              DEST
+#             MASQUERADE 192.168.0.0/24      eth0
+#             MASQUERADE 192.168.1.0/24      eth0
 # 
 # Example 3:
-# 
-#     You have an IPSEC tunnel through ipsec0 and you want to masquerade packets
-#     coming from 192.168.1.0/24 but only if these packets are destined for hosts
-#     in 10.1.1.0/24:
-# 
-#             #INTERFACE              SOURCE
-#             ipsec0:10.1.1.0/24      196.168.1.0/24
-# 
-# Example 4:
 # 
 #     You want all outgoing traffic from 192.168.1.0/24 through eth0 to use
 #     source address 206.124.146.176 which is NOT the primary address of eth0.
 #     You want 206.124.146.176 to be added to eth0 with name eth0:0.
 # 
-#             #INTERFACE              SOURCE          ADDRESS
-#             eth0:0                  192.168.1.0/24  206.124.146.176
+#             #ACTION                 SOURCE          DEST
+#             SNAT(206.124.146.176)   192.168.1.0/24  eth0:0
 # 
-# Example 5:
+# Example 4:
 # 
 #     You want all outgoing SMTP traffic entering the firewall from 172.20.1.0/29
 #     to be sent from eth0 with source IP address 206.124.146.177. You want all
@@ -393,19 +382,23 @@
 #             eth0         172.20.1.0/29    206.124.146.177 tcp     smtp
 #             eth0         172.20.1.0/29    206.124.146.176
 # 
+#             #ACTION                 SOURCE          DEST        PROTO     PORT
+#             SNAT(206.124.146.177)   172.20.1.0/29   eth0        tcp       smtp
+#             SNAT(206.124.146.176)   172.20.1.0/29   eth0
+# 
 #     Warning
 # 
 #     The order of the above two rules is significant!
 # 
-# Example 6:
+# Example 5:
 # 
 #     Connections leaving on eth0 and destined to any host defined in the ipset 
 #     myset should have the source IP address changed to 206.124.146.177.
 # 
-#             #INTERFACE              SOURCE          ADDRESS
-#             eth0:+myset[dst]        -               206.124.146.177
+#             #ACTION                 SOURCE          DEST
+#             SNAT(206.124.146.177)   -               eth0+myset[dst]
 # 
-# Example 7:
+# Example 6:
 # 
 #     SNAT outgoing connections on eth0 from 192.168.1.0/24 in round-robin
 #     fashion between addresses 1.1.1.1, 1.1.1.3, and 1.1.1.9 (Shorewall 4.5.9
@@ -416,38 +409,31 @@
 #            #ACTION   SOURCE         DEST         PROTO   DPORT         SPORT    USER    TEST
 #            1-3:CF    192.168.1.0/24 eth0 ; state=NEW
 # 
-#     /etc/shorewall/masq:
+#     /etc/shorewall/snat:
 # 
-#            #INTERFACE SOURCE         ADDRESS     ...
-#            eth0       192.168.1.0/24 1.1.1.1 ; mark=1:C
-#            eth0       192.168.1.0/24 1.1.1.3 ; mark=2:C
-#            eth0       192.168.1.0/24 1.1.1.4 ; mark=3:C
+#            #ACTION                 SOURCE          DEST
+#            SNAT(1.1.1.1)           192.168.1.0/24  eth0  { mark=1:C }
+#            SNAT(1.1.1.3)           192.168.1.0/24  eth0  { mark=2:C }
+#            SNAT(1.1.1.9)           192.168.1.0/24  eth0  { mark=3:C }
 # 
-# Example 8:
+# Example 7:
 # 
 #     Your eth1 has two public IP addresses: 70.90.191.121 and 70.90.191.123. You
 #     want to use the iptables statistics match to masquerade outgoing
 #     connections evenly between these two addresses.
 # 
-#     /etc/shorewall/masq:
+#     /etc/shorewall/snat:
 # 
-#            #INTERFACE    SOURCE         ADDRESS
-#            INLINE(eth1)  0.0.0.0/0      70.90.191.121 ;  -m statistic --mode random --probability 0.50
-#            eth1          0.0.0.0/0      70.90.191.123
+#            #ACTION                 SOURCE           DEST
+#            SNAT(70.90.191.121)     -                eth1 { probability=.50 }
+#            SNAT(70.90.191.123)     -                eth1
 # 
-#     If INLINE_MATCHES=Yes in shorewall.conf(5), then these rules may be
-#     specified as follows:
-# 
-#     /etc/shorewall/masq:
-# 
-#            #INTERFACE    SOURCE         ADDRESS
-#            eth1          0.0.0.0/0      70.90.191.121 ;  -m statistic --mode random --probability 0.50
-#            eth1          0.0.0.0/0      70.90.191.123
-# 
-################################################################################################################
-#INTERFACE:DEST		SOURCE		ADDRESS		PROTO	PORT(S)	IPSEC	MARK	USER/	SWITCH	ORIGINAL
-#											GROUP		DEST
-eth0			10.0.0.0/8,\
+###########################################################################################################################################
+#ACTION			SOURCE			DEST            PROTO	PORT	IPSEC	MARK	USER	SWITCH	ORIGDEST	PROBABILITY
+#
+# Rules generated from masq file /home/teastep/shorewall/trunk/Shorewall/Samples/three-interfaces/masq by Shorewall 5.0.13-RC1 - Sat Oct 15 11:43:47 PDT 2016
+#
+MASQUERADE		10.0.0.0/8,\
 			169.254.0.0/16,\
 			172.16.0.0/12,\
-			192.168.0.0/16
+			192.168.0.0/16		eth0

@@ -2,12 +2,12 @@
 .\"     Title: shorewall.conf
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 10/09/2016
+.\"      Date: 11/03/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL\&.CONF" "5" "10/09/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL\&.CONF" "5" "11/03/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -655,7 +655,7 @@ for additional information\&.
 Causes Shorewall to not load the listed kernel modules\&.
 .RE
 .PP
-\fBDYNAMIC_BLACKLIST=\fR{\fBYes\fR|\fBNo\fR||\fBipset\fR[\fB\-only\fR][,\fBsrc\-dst\fR][:[\fIsetname\fR][:\fIlog_level\fR|:l\fIog_tag\fR]]]}
+\fBDYNAMIC_BLACKLIST=\fR{\fBYes\fR|\fBNo\fR||\fBipset\fR[\fB\-only\fR][\fI,option\fR[,\&.\&.\&.]][:[\fIsetname\fR][:\fIlog_level\fR|:l\fIog_tag\fR]]]}
 .RS 4
 Added in Shorewall 4\&.4\&.7\&. When set to
 \fBNo\fR
@@ -671,11 +671,55 @@ is disabled\&. Default is
 \fBshorewall blacklist\fR
 command is also supported\&. The name of the set (\fIsetname\fR) and the level (\fIlog_level\fR), if any, at which blacklisted traffic is to be logged may also be specified\&. The default set name is SW_DBL4 and the default log level is
 \fBnone\fR
-(no logging)\&. if
+(no logging)\&. If
 \fBipset\-only\fR
-is given, then chain\-based dynamic blacklisting is disabled just as if DYNAMIC_BLACKLISTING=No had been specified\&. Normally, only packets whose source address matches an entry in the ipsec are dropped\&. If
+is given, then chain\-based dynamic blacklisting is disabled just as if DYNAMIC_BLACKLISTING=No had been specified\&.
+.sp
+Possible
+\fIoption\fRs are:
+.PP
+src\-dst
+.RS 4
+Normally, only packets whose source address matches an entry in the ipset are dropped\&. If
 \fBsrc\-dst\fR
 is included, then packets whose destination address matches an entry in the ipset are also dropped\&.
+.RE
+.PP
+\fBdisconnect\fR
+.RS 4
+The
+\fBdisconnect\fR
+option was added in Shorewall 5\&.0\&.13 and requires that the conntrack utility be installed on the firewall system\&. When an address is blacklisted using the
+\fBblacklist\fR
+command, all connections originating from that address are disconnected\&. if the
+\fBsrc\-dst\fR
+option was also specified, then all connections to that address are also disconnected\&.
+.RE
+.PP
+\fBtimeout\fR=\fIseconds\fR
+.RS 4
+Added in Shorewall 5\&.0\&.13\&. Normally, Shorewall creates the dynamic blacklisting ipset with timeout 0 which means that entries are permanent\&. If you want entries in the set that are not accessed for a period of time to be deleted from the set, you may specify that period using this option\&. Note that the
+\fBblacklist\fR
+command can override the ipset\*(Aqs timeout setting\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBImportant\fR
+.ps -1
+.br
+Once the dynamic blacklisting ipset has been created, changing this option setting requires a complete restart of the firewall;
+\fBshorewall restart\fR
+if RESTART=restart, otherwise
+\fBshorewall stop && shorewall start\fR
+.sp .5v
+.RE
+.RE
 .sp
 When ipset\-based dynamic blacklisting is enabled, the contents of the blacklist will be preserved over
 \fBstop\fR/\fBreboot\fR/\fBstart\fR
@@ -721,6 +765,18 @@ Normally, Shorewall defers accepting ESTABLISHED/RELATED packets until these pac
 .sp
 If you set FASTACCEPT=Yes, then ESTABLISHED/RELATED packets are accepted early in the INPUT, FORWARD and OUTPUT chains\&. If you set FASTACCEPT=Yes then you may not include rules in the ESTABLISHED or RELATED sections of
 \m[blue]\fBshorewall\-rules\fR\m[]\&\s-2\u[8]\d\s+2(5)\&.
+.RE
+.PP
+\fBFIREWALL\fR=[\fIdnsname\-or\-ip\-address\fR]
+.RS 4
+This option was added in Shorewall 5\&.0\&.13 and may be used on an administrative system in directories containing the configurations of remote firewalls\&. The contents of the variable are the default value for the
+\fIsystem\fR
+parameter to the
+\fBremote\-start\fR,
+\fBremote\-reload\fR
+and
+\fBremote\-restart\fR
+commands\&.
 .RE
 .PP
 \fBFORWARD_CLEAR_MARK=\fR{\fBYes\fR|\fBNo\fR}
@@ -902,7 +958,7 @@ on the right\&.\&. When INLINE_MATCHES=Yes is specified, the specifications on t
 and
 \m[blue]\fBshorewall\-mangle(5\fR\m[]\&\s-2\u[19]\d\s+2) which also support INLINE\&. If not specified or if specified as the empty value, the value \*(AqNo\*(Aq is assumed for backward compatibility\&.
 .sp
-Beginning with Shorewall 5\&.0\&.0, it is no longer necessary to set INLINE_MATCHES=Yes in order to be able to specify your own iptables text in a rule\&. You may simply preface that text with a pair of semicolons (";;")\&. If alternate input is also specified in the rule, it should appear before the semicolons and may be separated from normal column input by a single semicolon\&.
+Beginning with Shorewall 5\&.0\&.0, it is no longer necessary to set INLINE_MATCHES=Yes in order to be able to specify your own iptables text in a rule and INLINE_MATCHES=Yes is deprecated\&. Beginning with 5\&.0\&.0, you may simply preface your text with a pair of semicolons (";;")\&. If alternate input is also specified in the rule, it should appear before the semicolons and may be separated from normal column input by a single semicolon or enclosed in curly braces ("{\&.\&.\&.\&.}")\&.
 .RE
 .PP
 \fBINVALID_DISPOSITION=[A_DROP|A_REJECT|DROP|REJECT|CONTINUE]\fR

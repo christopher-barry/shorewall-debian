@@ -95,7 +95,6 @@ our @EXPORT = ( qw( NOTHING
                     get_interface_origin
 		    interface_has_option
 		    set_interface_option
-		    set_interface_provider
 		    interface_zone
 		    interface_zones
 		    verify_required_interfaces
@@ -108,7 +107,7 @@ our @EXPORT = ( qw( NOTHING
 	      );
 
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '5.0_10';
+our $VERSION = '5.0_14';
 
 #
 # IPSEC Option types
@@ -195,7 +194,6 @@ our %reservedName = ( all => 1,
 #                                     number      => <ordinal position in the interfaces file>
 #                                     physical    => <physical interface name>
 #                                     base        => <shell variable base representing this interface>
-#                                     provider    => <Provider Name, if interface is associated with a provider>
 #                                     wildcard    => undef|1 # Wildcard Name
 #                                     zones       => { zone1 => 1, ... }
 #                                     origin      => <where defined>
@@ -397,7 +395,6 @@ sub initialize( $$ ) {
 				    nets        => IPLIST_IF_OPTION + IF_OPTION_ZONEONLY + IF_OPTION_VSERVER,
 				    nodbl       => SIMPLE_IF_OPTION,
 				    nosmurfs    => SIMPLE_IF_OPTION + IF_OPTION_HOST,
-				    optional    => SIMPLE_IF_OPTION,
 				    optional    => SIMPLE_IF_OPTION,
 				    proxyndp    => BINARY_IF_OPTION,
 				    required    => SIMPLE_IF_OPTION,
@@ -1119,6 +1116,8 @@ sub process_interface( $$ ) {
 
     my ($interface, $port, $extra) = split /:/ , $originalinterface, 3;
 
+    fatal_error "Invalid interface name ($interface)" if $interface =~ /[()\[\]\*\?%]/;
+
     fatal_error "Invalid INTERFACE ($originalinterface)" if ! $interface || defined $extra;
 
     if ( supplied $port ) {
@@ -1193,7 +1192,7 @@ sub process_interface( $$ ) {
     my %options;
 
     $options{port} = 1 if $port;
-    $options{dbl}  = $config{DYNAMIC_BLACKLIST} =~ /^ipset(-only)?,src-dst/ ? '1:2' : $config{DYNAMIC_BLACKLIST} ? '1:0' : '0:0';
+    $options{dbl}  = $config{DYNAMIC_BLACKLIST} =~ /^ipset(-only)?.*,src-dst/ ? '1:2' : $config{DYNAMIC_BLACKLIST} ? '1:0' : '0:0';
 
     my $hostoptionsref = {};
 
@@ -1316,7 +1315,7 @@ sub process_interface( $$ ) {
 		fatal_error "The '$option' option requires a value" unless defined $value;
 
 		if ( $option eq 'physical' ) {
-		    fatal_error "Invalid Physical interface name ($value)" unless $value && $value !~ /%/;
+		    fatal_error "Invalid interface name ($interface)" if $interface =~ /[()\[\]\*\?%]/;
 		    fatal_error "Virtual interfaces ($value) are not supported" if $value =~ /:\d+$/;
 
 		    fatal_error "Duplicate physical interface name ($value)" if ( $interfaces{$value} && ! $port );
