@@ -266,10 +266,12 @@ our %EXPORT_TAGS = (
 				       set_chain_variables
 				       mark_firewall_not_started
 				       mark_firewall6_not_started
+				       interface_address
 				       get_interface_address
 				       get_interface_addresses
 				       get_interface_bcasts
 				       get_interface_acasts
+				       interface_gateway
 				       get_interface_gateway
 				       get_interface_mac
 				       have_global_variables
@@ -296,7 +298,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_12';
+our $VERSION = '5.0_14';
 
 #
 # Chain Table
@@ -2747,11 +2749,13 @@ sub accounting_chainrefs() {
     grep $_->{accounting} , values %$filter_table;
 }
 
-sub ensure_mangle_chain($) {
-    my $chain = $_[0];
+sub ensure_mangle_chain($;$$) {
+    my ( $chain, $number, $restriction ) = @_;
 
     my $chainref = ensure_chain 'mangle', $chain;
-    $chainref->{referenced} = 1;
+    $chainref->{referenced}  = 1;
+    $chainref->{chainnumber} = $number if $number;
+    $chainref->{restriction} = $restriction if $restriction;
     $chainref;
 }
 
@@ -5773,12 +5777,12 @@ sub have_ipset_rules() {
     $ipset_rules;
 }
 
-sub get_interface_address( $ );
+sub get_interface_address( $;$ );
 
-sub get_interface_gateway ( $;$ );
+sub get_interface_gateway ( $;$$ );
 
-sub record_runtime_address( $$;$ ) {
-    my ( $addrtype, $interface, $protect ) = @_;
+sub record_runtime_address( $$;$$ ) {
+    my ( $addrtype, $interface, $protect, $provider ) = @_;
 
     if ( $interface =~ /^{([a-zA-Z_]\w*)}$/ ) {
 	fatal_error "Mixed required/optional usage of address variable $1" if ( $address_variables{$1} || $addrtype ) ne $addrtype;
@@ -5792,9 +5796,9 @@ sub record_runtime_address( $$;$ ) {
     my $addr;
 
     if ( $addrtype eq '&' ) {
-	$addr = get_interface_address( $interface );
+	$addr = get_interface_address( $interface, $provider );
     } else {
-	$addr = get_interface_gateway( $interface, $protect );
+	$addr = get_interface_gateway( $interface, $protect, $provider );
     }
 
     $addr . ' ';
@@ -5819,12 +5823,18 @@ sub conditional_rule( $$ ) {
 		if ( $type eq '&' ) {
 		    $variable = get_interface_address( $interface );
 		    add_commands( $chainref , "if [ $variable != " . NILIP . ' ]; then' );
+		    incr_cmd_level $chainref;
 		} else {
 		    $variable = get_interface_gateway( $interface );
-		    add_commands( $chainref , qq(if [ -n "$variable" ]; then) );
+
+		    if ( $variable =~ /^\$/ ) {
+			add_commands( $chainref , qq(if [ -n "$variable" ]; then) );
+			incr_cmd_level $chainref;
+		    } else {
+			return 0;
+		    }
 		}
 
-		incr_cmd_level $chainref;
 		return 1;
 	    }
 	} elsif ( $type eq '%' && $interface =~ /^{([a-zA-Z_]\w*)}$/ ) {
@@ -6785,8 +6795,8 @@ sub interface_address( $ ) {
 #
 # Record that the ruleset requires the first IP address on the passed interface
 #
-sub get_interface_address ( $ ) {
-    my ( $logical ) = $_[0];
+sub get_interface_address ( $;$ ) {
+    my ( $logical, $provider ) = @_;
 
     my $interface = get_physical( $logical );
     my $variable = interface_address( $interface );
@@ -6795,6 +6805,8 @@ sub get_interface_address ( $ ) {
     $global_variables |= ALL_COMMANDS;
 
     $interfaceaddr{$interface} = "$variable=\$($function $interface)\n";
+
+    set_interface_option( $logical, 'used_address_variable', 1 ) unless $provider;
 
     "\$$variable";
 }
@@ -6856,13 +6868,20 @@ sub interface_gateway( $ ) {
 #
 # Record that the ruleset requires the gateway address on the passed interface
 #
-sub get_interface_gateway ( $;$ ) {
-    my ( $logical, $protect ) = @_;
+sub get_interface_gateway ( $;$$ ) {
+    my ( $logical, $protect, $provider ) = @_;
 
     my $interface = get_physical $logical;
     my $variable = interface_gateway( $interface );
+    my $gateway  = get_interface_option( $interface, 'gateway' );
 
     $global_variables |= ALL_COMMANDS;
+
+    if ( $gateway ) {
+	fatal_error q(A gateway variable cannot be used for a provider interface with GATEWAY set to 'none' in the providers file)   if $gateway eq 'none';
+	fatal_error q(A gateway variable cannot be used for a provider interface with an empty GATEWAY column in the providers file) if $gateway eq 'omitted';
+	return $gateway if $gateway ne 'detect';
+    }
 
     if ( interface_is_optional $logical ) {
 	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$(detect_gateway $interface));
@@ -6870,6 +6889,8 @@ sub get_interface_gateway ( $;$ ) {
 	$interfacegateways{$interface} = qq([ -n "\$$variable" ] || $variable=\$(detect_gateway $interface)
 [ -n "\$$variable" ] || startup_error "Unable to detect the gateway through interface $interface");
     }
+
+    set_interface_option($interface, 'used_gateway_variable', 1) unless $provider;
 
     $protect ? "\${$variable:-" . NILIP . '}' : "\$$variable";
 }
@@ -7273,6 +7294,7 @@ sub isolate_dest_interface( $$$$ ) {
     my ( $diface, $dnets );
 
     if ( ( $restriction & PREROUTE_RESTRICT ) && $dest =~ /^detect:(.*)$/ ) {
+	my $niladdr = NILIP;
 	#
 	# DETECT_DNAT_IPADDRS=Yes and we're generating the nat rule
 	#
@@ -7289,14 +7311,14 @@ sub isolate_dest_interface( $$$$ ) {
 
 	    push_command( $chainref , "for address in $list; do" , 'done' );
 
-	    push_command( $chainref , 'if [ $address != 0.0.0.0 ]; then' , 'fi' ) if $optional;
+	    push_command( $chainref , "if [ \$address != $niladdr ]; then" , 'fi' ) if $optional;
 
 	    $rule .= '-d $address ';
 	} else {
 	    my $interface = $interfaces[0];
 	    my $variable  = get_interface_address( $interface );
 
-	    push_command( $chainref , "if [ $variable != 0.0.0.0 ]; then" , 'fi') if interface_is_optional( $interface );
+	    push_command( $chainref , "if [ $variable != $niladdr ]; then" , 'fi') if interface_is_optional( $interface );
 
 	    $rule .= "-d $variable ";
 	}
@@ -8265,37 +8287,65 @@ EOF
 
 sub ensure_ipsets( @ ) {
     my $set;
+    my $counters = have_capability( 'IPSET_MATCH_COUNTERS' ) ? ' counters' : '';
 
-    if ( @_ > 1 ) {
+    if ( $globals{DBL_TIMEOUT} ne '' && $_[0] eq $globals{DBL_IPSET} ) {
+	shift;
+
+	emit( qq(    if ! qt \$IPSET list $globals{DBL_IPSET}; then));
+
 	push_indent;
-	emit( "for set in @_; do" );
-	$set = '$set';
-    } else {
-	$set = $_[0];
+
+	if ( $family == F_IPV4 ) {
+	    emit(  q(    #),
+		   q(    # Set the timeout for the dynamic blacklisting ipset),
+		   q(    #),
+		  qq(    \$IPSET -exist create $globals{DBL_IPSET}  hash:net family inet timeout $globals{DBL_TIMEOUT}${counters}) );
+	} else {
+	    emit(  q(    #),
+		   q(    # Set the timeout for the dynamic blacklisting ipset),
+		   q(    #),
+		  qq(    \$IPSET -exist create $globals{DBL_IPSET} hash:net family inet6 timeout $globals{DBL_TIMEOUT}${counters}) );
+	}
+
+	pop_indent;
+
+	emit( qq(    fi\n) );
+
     }
 
-    if ( $family == F_IPV4 ) {
-	if ( have_capability 'IPSET_V5' ) {
-	    emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
-		   qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:net set") ,
-		   qq(        \$IPSET -N $set hash:net family inet timeout 0 counters) ,
-		   qq(    fi) );
+    if ( @_ ) {
+	if ( @_ > 1 ) {
+	    push_indent;
+	    emit( "for set in @_; do" );
+	    $set = '$set';
 	} else {
-	    emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
-		   qq(        error_message "WARNING: ipset $set does not exist; creating it as an iphash set") ,
-		   qq(        \$IPSET -N $set iphash) ,
+	    $set = $_[0];
+	}
+
+	if ( $family == F_IPV4 ) {
+	    if ( have_capability 'IPSET_V5' ) {
+		emit ( qq(    if ! qt \$IPSET list $set -n; then) ,
+		       qq(        error_message "WARNING: ipset $set does not exist; creating it as a hash:net set") ,
+		       qq(        \$IPSET create $set hash:net family inet timeout 0${counters}) ,
+		       qq(    fi) );
+	    } else {
+		emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
+		       qq(        error_message "WARNING: ipset $set does not exist; creating it as an iphash set") ,
+		       qq(        \$IPSET -N $set iphash) ,
+		       qq(    fi) );
+	    }
+	} else {
+	    emit ( qq(    if ! qt \$IPSET list $set -n; then) ,
+		   qq(        error_message "WARNING: ipset $set does not exist; creating it as a hash:net set") ,
+		   qq(        \$IPSET create $set hash:net family inet6 timeout 0${counters}) ,
 		   qq(    fi) );
 	}
-    } else {
-	emit ( qq(    if ! qt \$IPSET -L $set -n; then) ,
-	       qq(        error_message "WARNING: ipset $set does not exist; creating it as an hash:net set") ,
-	       qq(        \$IPSET -N $set hash:net family inet6 timeout 0 counters) ,
-	       qq(    fi) );
-    }
 
-    if ( @_ > 1 ) {
-	emit 'done';
-	pop_indent;
+	if ( @_ > 1 ) {
+	    emit 'done';
+	    pop_indent;
+	}
     }
 }
 
@@ -8473,10 +8523,21 @@ sub create_load_ipsets() {
 	       'if [ "$COMMAND" = start ]; then' );         ##################### Start Command ##################
 
 	if ( $config{SAVE_IPSETS} || @{$globals{SAVED_IPSETS}} ) {
-	    emit( '    if [ -f ${VARDIR}/ipsets.save ]; then',
-		  '        zap_ipsets',
-		  '        $IPSET -R < ${VARDIR}/ipsets.save',
-		  '    fi' );
+	    emit( '    if [ -f ${VARDIR}/ipsets.save ]; then' );
+
+	    if ( my $set = $globals{DBL_IPSET} ) {
+		emit( '        #',
+		      '        # Update the dynamic blacklisting ipset timeout value',
+		      '        #',
+		      qq(        awk '/create $set/      { sub( /timeout [0-9]+/, "timeout $globals{DBL_TIMEOUT}" ) }; {print};' \${VARDIR}/ipsets.save > \${VARDIR}/ipsets.temp),
+		      '        zap_ipsets',
+		      '        $IPSET restore < ${VARDIR}/ipsets.temp',
+		      '    fi' );
+	    } else {
+		emit( '        zap_ipsets',
+		      '        $IPSET -R < ${VARDIR}/ipsets.save',
+		      '    fi' );
+	    }
 	}
 
 	if ( @ipsets ) {

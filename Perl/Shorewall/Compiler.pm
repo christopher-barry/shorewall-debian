@@ -45,7 +45,7 @@ use strict;
 our @ISA = qw(Exporter);
 our @EXPORT = qw( compiler );
 our @EXPORT_OK = qw( $export );
-our $VERSION = '5.0_9';
+our $VERSION = '5.0_14';
 
 our $export;
 
@@ -804,33 +804,8 @@ sub compiler {
     # Validate the TC files so that the providers will know what interfaces have TC
     #
     my $tcinterfaces = process_tc;
-    #
-    # Generate a function to bring up each provider
-    #
+
     process_providers( $tcinterfaces );
-    #
-    # [Re-]establish Routing
-    #
-    if ( $scriptfilename || $debug ) {
-	emit(  "\n#",
-	       '# Setup routing and traffic shaping',
-	       '#',
-	       'setup_routing_and_traffic_shaping() {'
-	    );
-
-	push_indent;
-    }
-
-    setup_providers;
-    #
-    # TCRules and Traffic Shaping
-    #
-    setup_tc( $update );
-
-    if ( $scriptfilename || $debug ) {
-	pop_indent;
-	emit "}\n"; # End of setup_routing_and_traffic_shaping()
-    }
 
     $have_arptables = process_arprules if $family == F_IPV4;
 
@@ -841,13 +816,9 @@ sub compiler {
     #
     process_tos;
     #
-    # ECN
+    # Setup Masquerade/SNAT
     #
-    setup_ecn if $family == F_IPV4 && have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
-    #
-    # Setup Masquerading/SNAT
-    #
-    setup_masq;
+    setup_snat( $update );
     #
     # Setup Nat
     #
@@ -888,6 +859,37 @@ sub compiler {
     # Accounting.
     #
     setup_accounting if $config{ACCOUNTING};
+
+    enable_script;
+    #
+    # Generate a function to bring up each provider
+    #
+    if ( $scriptfilename || $debug ) {
+	emit(  "\n#",
+	       '# Setup routing and traffic shaping',
+	       '#',
+	       'setup_routing_and_traffic_shaping() {'
+	    );
+
+	push_indent;
+    }
+
+    setup_providers;
+    #
+    # TCRules and Traffic Shaping
+    #
+    setup_tc( $update );
+
+    if ( $scriptfilename || $debug ) {
+	pop_indent;
+	emit "}\n"; # End of setup_routing_and_traffic_shaping()
+    }
+    #
+    # ECN
+    #
+    setup_ecn if $family == F_IPV4 && have_capability( 'MANGLE_ENABLED' ) && $config{MANGLE_ENABLED};
+
+    disable_script;
 
     if ( $scriptfilename ) {
 	#

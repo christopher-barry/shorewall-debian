@@ -241,7 +241,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_12';
+our $VERSION = '5.0_14';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -744,7 +744,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.12.1",
+		    VERSION                 => "5.0.14",
 		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
@@ -754,6 +754,8 @@ sub initialize( $;$$) {
 		    RPFILTER_LOG_TAG        => '',
 		    INVALID_LOG_TAG         => '',
 		    UNTRACKED_LOG_TAG       => '',
+		    DBL_IPSET               => '',
+		    DBL_TIMEOUT             => 0,
 		    POSTROUTING             => 'POSTROUTING',
 		  );
     #
@@ -898,6 +900,7 @@ sub initialize( $;$$) {
 	  MINIUPNPD => undef ,
 	  VERBOSE_MESSAGES => undef ,
 	  ZERO_MARKS => undef ,
+	  FIREWALL => undef ,
 	  #
 	  # Packet Disposition
 	  #
@@ -4541,11 +4544,11 @@ sub IPSet_Match() {
 }
 
 sub IPSet_Match_Nomatch() {
-    have_capability 'IPSET_MATCH' && $capabilities{IPSET_MATCH_NOMATCH};
+    have_capability( 'IPSET_MATCH' ) && $capabilities{IPSET_MATCH_NOMATCH};
 }
 
 sub IPSet_Match_Counters() {
-    have_capability 'IPSET_MATCH' && $capabilities{IPSET_MATCH_COUNTERS};
+    have_capability( 'IPSET_MATCH' ) && $capabilities{IPSET_MATCH_COUNTERS};
 }
 
 sub IPSET_V5() {
@@ -6253,9 +6256,27 @@ sub get_configuration( $$$$ ) {
 
     if ( supplied( $val = $config{DYNAMIC_BLACKLIST} ) ) {
 	if ( $val =~ /^ipset/ ) {
+	    my %simple_options = ( 'src-dst' => 1, 'disconnect' => 1 );
+
 	    my ( $key, $set, $level, $tag, $rest ) = split( ':', $val , 5 );
 
-	    fatal_error "Invalid DYNAMIC_BLACKLIST setting ( $val )" if $key !~ /^ipset(?:-only)?(?:,src-dst)?$/ || defined $rest;
+	    ( $key , my @options ) = split_list( $key, 'option' );
+
+	    my $options = '';
+
+	    for ( @options ) {
+		if ( $simple_options{$_} ) {
+		    $options = join( ',' , $options, $_ );
+		} elsif ( $_ =~ s/^timeout=(\d+)$// ) {
+		    $globals{DBL_TIMEOUT} = $1;
+		} else {
+		    fatal_error "Invalid ipset option ($_)";
+		}
+	    }
+
+	    $globals{DBL_OPTIONS} = $options;
+
+	    fatal_error "Invalid DYNAMIC_BLACKLIST setting ( $val )" if $key !~ /^ipset(?:-only)?$/ || defined $rest;
 
 	    if ( supplied( $set ) ) {
 		fatal_error "Invalid DYNAMIC_BLACKLIST ipset name" unless $set =~ /^[A-Za-z][\w-]*/;
@@ -6263,7 +6284,7 @@ sub get_configuration( $$$$ ) {
 		$set = 'SW_DBL' . $family;
 	    }
 
-	    add_ipset( $set );
+	    add_ipset( $globals{DBL_IPSET} = $set );
 	    
 	    $level = validate_level( $level );
 
