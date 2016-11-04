@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-lite
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 10/09/2016
+.\"      Date: 11/03/2016
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-LITE" "8" "10/09/2016" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL6\-LITE" "8" "11/03/2016" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -218,6 +218,32 @@ along with any
 \fIoption\fRs are passed to the
 \fBipset add\fR
 command\&.
+.sp
+If the
+\fBdisconnect\fR
+option is specified in the DYNAMIC_BLACKLISTING setting, then the effective VERBOSITY determines the amount of information displayed:
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+If the effective verbosity is > 0, then a message giving the number of conntrack flows deleted by the command is displayed\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04'\(bu\h'+03'\c
+.\}
+.el \{\
+.sp -1
+.IP \(bu 2.3
+.\}
+If the effective verbosity is > 1, then the conntrack table entries deleted by the command are also displayed\&.
+.RE
 .RE
 .PP
 \fBcall \fR\fB\fIfunction\fR\fR\fB [ \fR\fB\fIparameter\fR\fR\fB \&.\&.\&. ]\fR
