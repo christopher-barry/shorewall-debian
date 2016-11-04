@@ -44,8 +44,6 @@
       <arg>-<replaceable>options</replaceable></arg>
 
       <arg choice="plain"><option>allow</option></arg>
-
-      <arg choice="plain"><replaceable>address</replaceable></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -58,7 +56,9 @@
 
       <arg choice="plain"><option>blacklist</option></arg>
 
-      <arg choice="plain"><replaceable>address</replaceable></arg>
+      <arg choice="plain"><replaceable>address</replaceable><arg
+      choice="plain"><arg><replaceable>option
+      ...</replaceable></arg></arg></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -403,9 +403,9 @@
 
       <arg><option>-i</option></arg>
 
-      <arg><replaceable>directory</replaceable></arg>
+      <arg><arg><option>-D</option></arg><replaceable>directory</replaceable></arg>
 
-      <arg choice="plain"><replaceable>system</replaceable></arg>
+      <arg choice="opt"><replaceable>system</replaceable></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -427,9 +427,9 @@
 
       <arg><option>-i</option></arg>
 
-      <arg><replaceable>directory</replaceable></arg>
+      <arg><arg><option>-D</option></arg><replaceable>directory</replaceable></arg>
 
-      <arg choice="plain"><replaceable>system</replaceable></arg>
+      <arg choice="opt"><replaceable>system</replaceable></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -451,9 +451,9 @@
 
       <arg><option>-i</option></arg>
 
-      <arg><replaceable>directory</replaceable></arg>
+      <arg><arg><option>-D</option></arg><replaceable>directory</replaceable></arg>
 
-      <arg choice="plain"><replaceable>system</replaceable></arg>
+      <arg choice="opt"><replaceable>system</replaceable></arg>
     </cmdsynopsis>
 
     <cmdsynopsis>
@@ -954,6 +954,23 @@
           The <replaceable>address</replaceable> along with any
           <replaceable>option</replaceable>s are passed to the <command>ipset
           add</command> command.</para>
+
+          <para>If the <option>disconnect</option> option is specified in the
+          DYNAMIC_BLACKLISTING setting, then the effective VERBOSITY
+          determines the amount of information displayed:</para>
+
+          <itemizedlist>
+            <listitem>
+              <para>If the effective verbosity is &gt; 0, then a message
+              giving the number of conntrack flows deleted by the command is
+              displayed.</para>
+            </listitem>
+
+            <listitem>
+              <para>If the effective verbosity is &gt; 1, then the conntrack
+              table entries deleted by the command are also displayed.</para>
+            </listitem>
+          </itemizedlist>
         </listitem>
       </varlistentry>
 
@@ -1548,9 +1565,11 @@
         <term><emphasis role="bold">remote-reload
         </emphasis>[-<option>s</option>] [-<option>c</option>]
         [-<option>r</option> <replaceable>root-user-name</replaceable>]
-        [-<option>T</option>] [-<option>i</option>] [
-        <replaceable>directory</replaceable> ]
-        <replaceable>system</replaceable></term>
+        [-<option>T</option>] [-<option>i</option>] [ [ -D ]
+        <replaceable>directory</replaceable> ] [
+        <replaceable>system</replaceable> ]</term>
+
+        <term/>
 
         <listitem>
           <para>This command was added in Shorewall 5.0.0.</para>
@@ -1574,8 +1593,14 @@
           defaulted) directory is compiled to a file called firewall in that
           directory. If compilation succeeds, then firewall is copied to
           <emphasis>system</emphasis> using scp. If the copy succeeds,
-          Shorewall6 Lite on <emphasis>system</emphasis> is restarted via
-          ssh.</para>
+          Shorewall6 Lite on <emphasis>system</emphasis> is restarted via ssh.
+          Beginning with Shorewall 5.0.13, if
+          <replaceable>system</replaceable> is omitted, then the FIREWALL
+          option setting in <ulink
+          url="shorewall6.conf.html">shorewall6.conf(5)</ulink> is assumed. In
+          that case, if you want to specify a
+          <replaceable>directory</replaceable>, then the <option>-D</option>
+          option must be given.</para>
 
           <para>If <option>-s</option> is specified and the
           <command>restart</command> command succeeds, then the remote
@@ -1610,9 +1635,9 @@
         <term><emphasis role="bold">remote- restart
         </emphasis>[-<option>s</option>] [-<option>c</option>]
         [-<option>r</option> <replaceable>root-user-name</replaceable>]
-        [-<option>T</option>] [-<option>i</option>] [
-        <replaceable>directory</replaceable> ]
-        <replaceable>system</replaceable></term>
+        [-<option>T</option>] [-<option>i</option>] [ [ -D ]
+        <replaceable>directory</replaceable> ] [
+        <replaceable>system</replaceable> ]</term>
 
         <listitem>
           <para>This command was renamed from <command>reload</command> in
@@ -1639,6 +1664,14 @@
           <emphasis>system</emphasis> using scp. If the copy succeeds,
           Shorewall6 Lite on <emphasis>system</emphasis> is restarted via
           ssh.</para>
+
+          <para>Beginning with Shorewall 5.0.13, if
+          <replaceable>system</replaceable> is omitted, then the FIREWALL
+          option setting in <ulink
+          url="shorewall6.conf.html">shorewall6.conf(5)</ulink> is assumed. In
+          that case, if you want to specify a
+          <replaceable>directory</replaceable>, then the <option>-D</option>
+          option must be given.</para>
 
           <para>If <option>-s</option> is specified and the
           <command>restart</command> command succeeds, then the remote
@@ -1673,8 +1706,8 @@
         <term><emphasis role="bold">remote-start </emphasis>
         [-<option>s</option>] [-<option>c</option>] [-<option>r</option>
         <replaceable>root-user-name</replaceable>] [-<option>T</option>]
-        [-<option>i</option>] [ <replaceable>directory</replaceable> ]
-        <replaceable>system</replaceable></term>
+        [-<option>i</option>] [ [-D ] <replaceable>directory</replaceable> ] [
+        <replaceable>system</replaceable> ]</term>
 
         <listitem>
           <para>This command was added in Shorewall 5.0.0.</para>
@@ -1699,7 +1732,13 @@
           directory. If compilation succeeds, then firewall is copied to
           <replaceable>system</replaceable> using scp. If the copy succeeds,
           Shorewall6 Lite on <replaceable>system</replaceable> is started via
-          ssh.</para>
+          ssh. Beginning with Shorewall 5.0.13, if
+          <replaceable>system</replaceable> is omitted, then the FIREWALL
+          option setting in <ulink
+          url="shorewall6.conf.html">shorewall6.conf(5)</ulink> is assumed. In
+          that case, if you want to specify a
+          <replaceable>directory</replaceable>, then the <option>-D</option>
+          option must be given.</para>
 
           <para>If <option>-s</option> is specified and the <emphasis
           role="bold">start</emphasis> command succeeds, then the remote
