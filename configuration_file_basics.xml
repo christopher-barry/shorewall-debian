@@ -1654,6 +1654,20 @@ SSH(ACCEPT)    net:$MYIP      $FW
   <section id="AddressVariables">
     <title>Address Variables</title>
 
+    <caution>
+      <para>Prior to Shorewall 5.0.14, if you use address variables that refer
+      to an optional interface, the <command>enable</command> command will not
+      change/insert the rules that use the variable. Therefore, to be
+      completely safe, if you use such address variables then you must follow
+      a successful <command>enable</command> command with a
+      <command>reload</command> command.</para>
+
+      <para>Beginning with Shorewall 5.0.14, if a Shorewall-defined address
+      variable's value has changed since the Netfilter ruleset was
+      instantiated, then a successful <command>enable</command> command will
+      automatically reload the ruleset.</para>
+    </caution>
+
     <para>Given that shell variables are expanded at compile time, there is no
     way to cause such variables to be expanded at run time. Prior to Shorewall
     4.4.17, this made it difficult (to impossible) to include dynamic IP
@@ -1883,9 +1897,8 @@ SSH(ACCEPT)    net:$MYIP      $FW
       </varlistentry>
     </variablelist>
 
-    <para>If there is no gateway out of the named interface, the nil IP
-    address is used (0.0.0.0 in IPv4 and :: in IPv6). That way, the generated
-    rule will match no packets (or all packets if used with exclusion).</para>
+    <para>If there is no gateway out of the named interface, rules containing
+    the intefaces's run-time gateway variable are omitted.</para>
   </section>
 
   <section id="ActionVariables">
@@ -2619,6 +2632,13 @@ DNAT       net        loc:192.168.1.3 tcp       <emphasis role="bold">4000:4100<
     <para>Also, unless otherwise documented, a port range can be preceded by
     '!' to specify "All ports except those in this range" (e.g.,
     "!4000:4100").</para>
+
+    <para>Beginning with Shorewall 5.0.14, a hyphen ("-") may also be used to
+    separate the two port numbers; when using service names, the colon must
+    still be used.</para>
+
+    <programlisting>#ACTION    SOURCE     DESTINATION     PROTO     DPORT
+DNAT       net        loc:192.168.1.3 tcp       <emphasis role="bold">4000-4100</emphasis></programlisting>
   </section>
 
   <section id="Portlists">
@@ -2969,8 +2989,8 @@ redirect                      =&gt; 137</programlisting>
           then again for another hour from 23:00 onwards. If this is unwanted,
           e.g. if you would like 'match for two hours from Montay 23:00
           onwards' you need to also specify the <emphasis
-          role="bold">contiguous</emphasis> option in the example above.
-          </para>
+          role="bold">contiguous</emphasis> option in the example
+          above.</para>
         </listitem>
       </varlistentry>
     </variablelist>
