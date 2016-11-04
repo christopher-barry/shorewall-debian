@@ -96,6 +96,19 @@ PAGER=
 #     DEFAULT_PAGER setting in shorewallrc.
 # 
 ###############################################################################
+#			     F I R E W A L L
+###############################################################################
+FIREWALL=
+#
+# FIREWALL=[dnsname-or-ip-address]
+# 
+#     This option was added in Shorewall 5.0.13 and may be used on an
+#     administrative system in directories containing the configurations of
+#     remote firewalls. The contents of the variable are the default value for
+#     the system parameter to the remote-start, remote-reload and remote-restart
+#     commands.
+# 
+###############################################################################
 #			       L O G G I N G
 ###############################################################################
 BLACKLIST_LOG_LEVEL=
@@ -797,7 +810,7 @@ DONT_LOAD=
 # 
 DYNAMIC_BLACKLIST=Yes
 #
-# DYNAMIC_BLACKLIST={Yes|No||ipset[-only][,src-dst][:[setname][:log_level|:l
+# DYNAMIC_BLACKLIST={Yes|No||ipset[-only][,option[,...]][:[setname][:log_level|:l
 #     og_tag]]]}
 # 
 #     Added in Shorewall 4.4.7. When set to No or no, chain-based dynamic
@@ -809,9 +822,40 @@ DYNAMIC_BLACKLIST=Yes
 #     be specified. The default set name is SW_DBL6 and the default log level is
 #     none (no logging). if ipset-only is given, then chain-based dynamic
 #     blacklisting is disabled just as if DYNAMIC_BLACKLISTING=No had been
-#     specified. Normally, only packets whose source address matches an entry in
-#     the ipsec are dropped. If src-dst is included, then packets whose
-#     destination address matches an entry in the ipset are also dropped.
+#     specified.
+# 
+#     Possible options are:
+# 
+#     src-dst
+# 
+#         Normally, only packets whose source address matches an entry in the
+#         ipset are dropped. If src-dst is included, then packets whose
+#         destination address matches an entry in the ipset are also dropped.
+# 
+#     disconnect
+# 
+#         The disconnect option was added in Shorewall 5.0.13 and requires that
+#         the conntrack utility be installed on the firewall system. When an
+#         address is blacklisted using the blacklist command, all connections
+#         originating from that address are disconnected. if the src-dst option
+#         was also specified, then all connections to that address are also
+#         disconnected.
+# 
+#     timeout=seconds
+# 
+#         Added in Shorewall 5.0.13. Normally, Shorewall creates the dynamic
+#         blacklisting ipset with timeout 0 which means that entries are
+#         permanent. If you want entries in the set that are not accessed for a
+#         period of time to be deleted from the set, you may specify that period
+#         using this option. Note that the blacklist command can override the
+#         ipset's timeout setting.
+# 
+#         Important
+# 
+#         Once the dynamic blacklisting ipset has been created, changing this
+#         option setting requires a complete restart of the firewall; shorewall6
+#         restart if RESTART=restart, otherwise shorewall6 stop && shorewall6
+#         start
 # 
 #     When ipset-based dynamic blacklisting is enabled, the contents of the
 #     blacklist will be preserved over stop/reboot/start sequences if SAVE_IPSETS
@@ -961,10 +1005,11 @@ INLINE_MATCHES=Yes
 # 
 #     Beginning with Shorewall 5.0.0, it is no longer necessary to set
 #     INLINE_MATCHES=Yes in order to be able to specify your own iptables text in
-#     a rule. You may simply preface that text with a pair of semicolons (";;").
-#     If alternate input is also specified in the rule, it should appear before
-#     the semicolons and may be separated from normal column input by a single
-#     semicolon.
+#     a rule and INLINE_MATCHES=Yes is deprecated. Beginning with 5.0.0, you may
+#     simply preface your text with a pair of semicolons (";;"). If alternate
+#     input is also specified in the rule, it should appear before the semicolons
+#     and may be separated from normal column input by a single semicolon or
+#     enclosed in curly braces ("{....}").
 # 
 IPSET_WARNINGS=Yes
 #

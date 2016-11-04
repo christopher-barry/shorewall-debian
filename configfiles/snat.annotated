@@ -1,14 +1,15 @@
 #
-# Shorewall6 -- /etc/shorewall6/masq
+# Shorewall6 -- /etc/shorewall6/snat
 #
-# For information about entries in this file, type "man shorewall6-masq"
+# For information about entries in this file, type "man shorewall6-snat"
 #
-# The manpage is also online at
-# http://www.shorewall.net/manpages6/shorewall6-masq.html
+# See http://shorewall.net/manpages6/shorewall6-snat.html for more information
 #
-######################################################################################################
+###########################################################################################################################################
 # 
-# Use this file to define Source NAT (SNAT). Requires Shorewall 4.5.14 or later.
+# This file is used to define dynamic NAT (Masquerading) and to define Source NAT
+# (SNAT). While still supported, its use is deprecated in favor of
+# shorewall6-snat(5) which was introduced in Shorewall 5.0.14.
 # 
 # Warning
 # 
@@ -23,13 +24,89 @@
 # 
 # The columns in the file are as follows.
 # 
-# INTERFACE:DEST - {[+]interfacelist|[:[dest-address[,dest-address]...[exclusion
-#     ]]|?COMMENT}
+# ACTION
 # 
-#     Outgoing interfacelist. This may be a comma-separated list of interface
-#     names. This is usually your internet interface.
+#     Defines the type of rule to generate. Choices are:
 # 
-#     Each interface must match an entry in shorewall6-interfaces(5). Shorewall
+#     MASQUERADE[+][([lowport-highport][random])]
+# 
+#         Causes matching outgoing packages to have their source IP address set
+#         to the primary IP address of the interface specified in the DEST
+#         column. if lowport-highport is given, that port range will be used to
+#         assign a source port. If option random is used then port mapping will
+#         be randomized. MASQUERADE should only be used when the DEST interface
+#         has a dynamic IP address. Otherwise, SNAT should be used and should
+#         specify the interface's static address.
+# 
+#     SNAT[+]([address-or-address-range][:lowport-highport][:random][:persistent]
+#         |detect|
+# 
+#         If you specify an address here, matching packets will have their source
+#         address set to that address. If ADD_SNAT_ALIASES is set to Yes or yes
+#         in shorewall6.conf(5) then Shorewall will automatically add this
+#         address to the INTERFACE named in the first column.
+# 
+#         You may also specify a range of up to 256 IP addresses if you want the
+#         SNAT address to be assigned from that range in a round-robin fashion by
+#         connection. The range is specified by first.ip.in.range-
+#         last.ip.in.range. You may follow the port range with :random in which
+#         case assignment of ports from the list will be random. random may also
+#         be specified by itself in this column in which case random local port
+#         assignments are made for the outgoing connections.
+# 
+#         Example: 206.124.146.177-206.124.146.180
+# 
+#         You may follow the port range (or :random) with :persistent. This is
+#         only useful when an address range is specified and causes a client to
+#         be given the same source/destination IP pair. This feature replaces the
+#         SAME modifier which was removed from Shorewall in version 4.4.0.
+# 
+#         You may also use the special value detect which causes Shorewall to
+#         determine the IP addresses configured on the interface named in the
+#         DEST column and substitute them in this column.
+# 
+#         Finally, you may also specify a comma-separated list of ranges and/or
+#         addresses in this column.
+# 
+#         DNS Names names are not allowed.
+# 
+#         Normally, Netfilter will attempt to retain the source port number. You
+#         may cause netfilter to remap the source port by following an address or
+#         range (if any) by ":" and a port range with the format lowport-highport
+#         . If this is done, you must specify "tcp", "udp", "dccp" or "stcp" in
+#         the PROTO column.
+# 
+#         Example:
+# 
+#                 [2001:470:a:787::2]:5000-6000
+# 
+#     CONTINUE[+]
+# 
+#         Causes matching packets to be exempted from any following rules in the
+#         file.
+# 
+#     action[+][(parameter,...)]
+# 
+#         where action is an action declared in shorewall6-actions(5) with the
+#         nat option. See www.shorewall.net/Actions.html for further information.
+# 
+#     Normally Masq/SNAT rules are evaluated after those for one-to-one NAT
+#     (defined in shorewall6-nat(5)). If you want the rule to be applied before
+#     one-to-one NAT rules, follow the action name with "+": This feature should
+#     only be required if you need to insert rules in this file that preempt
+#     entries in shorewall6-nat(5).
+# 
+# SOURCE (Optional) - [interface|address[,address][exclusion]]
+# 
+#     Set of hosts that you wish to SNAT; one or more host or network addresses
+#     separated by comma. You may use ipset names preceded by a plus sign (+) to
+#     specify a set of hosts.
+# 
+# DEST - {interface|[:[dest-address[,dest-address]...[exclusion]]|?COMMENT}
+# 
+#     Outgoing interface. This is usually your internet interface.
+# 
+#     The interface must match an entry in shorewall6-interfaces(5). Shorewall
 #     allows loose matches to wildcard entries in shorewall6-interfaces(5). For
 #     example, ppp0 in this file will match a shorewall6-interfaces(5) entry that
 #     defines ppp+.
@@ -41,7 +118,7 @@
 #             eth0(Avvanta)
 # 
 #     In that case, you will want to specify the interface's address for that
-#     provider in the ADDRESS column.
+#     provider as the SNAT parameter.
 # 
 #     The interface may be qualified by adding the character ":" followed by a
 #     comma-separated list of destination host or subnet addresses to indicate
@@ -55,65 +132,6 @@
 #     subsequent rules until another ?COMMENT line is found or until the end of
 #     the file is reached. To stop adding comments to rules, use a line
 #     containing only ?COMMENT.
-# 
-#     Beginning with Shorewall 4.6.0, a new syntax is also accepted. With the
-#     exception of the leading '+', the interfacelist and qualifiers may appear
-#     within the parentheses of INLINE(...).
-# 
-#     Example:
-# 
-#             +INLINE(eth0)
-# 
-#     When this is done, you may augment the rule generated by Shorewall with
-#     iptables matches of your own. These matches appear after a semicolon (';')
-#     at the end of the line.
-# 
-#     See example 2 below.
-# 
-# SOURCE (Optional) - [interface|address[,address][exclusion]]
-# 
-#     Set of hosts that you wish to SNAT; one or more host or network addresses
-#     separated by comma. You may use ipset names preceded by a plus sign (+) to
-#     specify a set of hosts.
-# 
-# ADDRESS (Optional) - [-|NONAT|[address-or-address-range][:lowport-highport][
-#     :random][:persistent]|detect|random]
-# 
-#     If you do not specify an address or address range, masquerading will be
-#     performed. This requires Masquerade Target support in your kernel and
-#     ip6tables.
-# 
-#     If you specify an address here, SNAT will be used and this will be the
-#     source address.
-# 
-#     You may also specify a range of up to 256 IP addresses if you want the SNAT
-#     address to be assigned from that range in a round-robin fashion by
-#     connection. The range is specified by first.ip.in.range-last.ip.in.range.
-#     You may follow the port range with:random in which case assignment of ports
-#     from the list will be random. random may also be specified by itself in
-#     this column in which case random local port assignments are made for the
-#     outgoing connections.
-# 
-#     Example: [2001:470:a:227::2]-[2001:470:a:227::10]:1000-1010
-# 
-#     You may follow the port range (or :random) with :persistent. This is only
-#     useful when an address range is specified and causes a client to be given
-#     the same source/destination IP pair.
-# 
-#     This column may not contain DNS Names.
-# 
-#     Normally, Netfilter will attempt to retain the source port number. You may
-#     cause netfilter to remap the source port by following an address or range
-#     (if any) by ":" and a port range with the format lowport-highport. If this
-#     is done, you must specify "tcp" or "udp" in the PROTO column.
-# 
-#     Examples:
-# 
-#             [2001:470:a:787::2]:5000-6000
-# 
-#     If you simply place NONAT in this column, no rewriting of the source IP
-#     address or port number will be performed. This is useful if you want
-#     particular traffic to be exempt from the entries that follow in the file.
 # 
 # PROTO (Optional) - {-|[!]{protocol-name|protocol-number}[,...]|+ipset}
 # 
@@ -304,8 +322,8 @@
 # 
 #     Your entry in the file will be:
 # 
-#             #INTERFACE   SOURCE                  ADDRESS
-#             eth0         2001:470:b:787::0/64    -
+#             #ACTION      SOURCE                  DEST
+#             MASQUERADE   2001:470:b:787::0/64    eth0
 # 
 # Example 2:
 # 
@@ -313,20 +331,11 @@
 #     2001:470:b:227::1. You want to use the iptables statistics match to
 #     masquerade outgoing connections evenly between these two addresses.
 # 
-#     /etc/shorewall/masq:
+#     /etc/shorewall/snat:
 # 
-#            #INTERFACE    SOURCE         ADDRESS
-#            INLINE(sit1)  ::/0           2001:470:a:227::1 ;  -m statistic --mode random --probability 0.50
-#            sit1          ::/0           2001:470:a:227::2
+#            #ACTION                      SOURCE     DEST
+#            SNAT(2001:470:a:227::1)      ::/0       sit1              { probability=0.50 }
+#            SNAT(2001:470:a:227::2)      ::/0       sit
 # 
-#     If INLINE_MATCHES=Yes in shorewall6.conf(5), then these rules may be
-#     specified as follows:
-# 
-#     /etc/shorewall/masq:
-# 
-#            #INTERFACE    SOURCE         ADDRESS
-#            sit1          ::/0           2001:470:a:227::1 ;  -m statistic --mode random --probability 0.50
-#            sit1          ::/0           2001:470:a:227::2
-# 
-######################################################################################################
-#INTERFACE		SOURCE		ADDRESS		PROTO	PORT	IPSEC	MARK	USER	SWITCH
+###########################################################################################################################################
+#ACTION			SOURCE			DEST		PROTO	PORT	IPSEC	MARK	USER	SWITCH	ORIGDEST	PROBABILITY

@@ -363,7 +363,7 @@
 #         userspace program on queues x, x+1, .. x+n and use "x:x+n". Packets
 #         belonging to the same connection are put into the same nfqueue.
 # 
-#     NFQUEUE[([queuenumber1[,queuenumber2][,bypass]]|bypass)]
+#     NFQUEUE![([queuenumber1[,queuenumber2][,bypass]]|bypass)]
 # 
 #         like NFQUEUE but exempts the rule from being suppressed by OPTIMIZE=1
 #         in shorewall6.conf(5).

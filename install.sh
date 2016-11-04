@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=5.0.12.1
+VERSION=5.0.14
 
 #
 # Change to the directory containing this script
@@ -696,17 +696,15 @@ if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/maclist ]; then
     echo "mac list file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/maclist"
 fi
 
-if [ -f masq ]; then
-    #
-    # Install the Masq file
-    #
-    run_install $OWNERSHIP -m 0644 masq           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
-    run_install $OWNERSHIP -m 0644 masq.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+#
+# Install the SNAT file
+#
+run_install $OWNERSHIP -m 0644 snat           ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
+run_install $OWNERSHIP -m 0644 snat.annotated ${DESTDIR}${SHAREDIR}/$PRODUCT/configfiles
 
-    if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/masq ]; then
-	run_install $OWNERSHIP -m 0600 masq${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/masq
-	echo "Masquerade file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/masq"
-    fi
+if [ -z "$SPARSE" -a ! -f ${DESTDIR}${CONFDIR}/$PRODUCT/snat ]; then
+    run_install $OWNERSHIP -m 0600 snat${suffix} ${DESTDIR}${CONFDIR}/$PRODUCT/snat
+    echo "SNAT file installed as ${DESTDIR}${CONFDIR}/$PRODUCT/snat"
 fi
 
 if [ -f arprules ]; then
