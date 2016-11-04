@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	             S H O R E W A L L  5 . 0 . 1 2 . 1
-                        -----------------------------
-                        O c t o b e r  1 0 ,  2 0 1 6
+	           S H O R E W A L L  5 . 0 . 1 4  R C 3
+                      ------------------------------
+                      N o v e m b e r  0 1,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,70 +14,47 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-5.0.12.1
+1)  This release includes defect repair up through Shorewall 5.0.13.4.
 
-1)  The first example in New Feature 1) below has been corrected.
+2)  When the address variable for an optional interface was used, and
+    the interface did not have an IP address when the firewall was
+    started, then enabling the interface did not previously
+    create/alter the rules that use the address variable. Also, if the
+    IP address of a disabled interface changed, enabling the interface
+    did not update/add rules using the interface's gateway address
+    variable.
 
-2)  The wording in the description of DYNAMIC_BLACKLISTING in
-    shorewall[6].conf(5) has been corrected.
+    Now, if the IP address of a disabled optional interface
+    changes from its value (if any) when the netfilter ruleset was
+    instantiated, then after a successful 'enable', the  ruleset is
+    automatically reloaded if the interface's address variable was
+    used.
 
-3)  Typos in shorewall[6]-mangle(5) have been corrected (Roberto
-    C. Sánchez).
+    Similarly, if 'detect' is specified as the GATEWAY for an optional
+    provider, then if the gateway at the time that the provider is
+    successfully enabled is different from that (if any) when the
+    netfilter ruleset was instantiated, then the ruleset is
+    automatically reloaded if the provider interface's run-time gateway
+    variable was used.
 
-4)  The options in shorewall[6].conf have been reordered to put them
-    in ASCII collating sequence within the FIREWALL OPTIONS section.
+    As part of this change, if an IP address is specified as the
+    GATEWAY for a provider, then the run-time gateway variable for the
+    provider's interface is expanded at compile time rather than at
+    runtime.
 
-5)  A defect introduced in Shorewall 5.0.12 could cause a runtime
-    failure during start:
+    Example:
 
-      /var/lib/shorewall/.start: 614: return: Illegal number: status
+        #PROVIDER  NUMBER MARK DUPLICATE INTRFACE GATEWAY OPTIONS COPY
+	foo	   1	  1    -	 eth0	  1.2.3.4 primary -
 
-    That has been corrected.
+    Then %eth0 will be expanded at compile time to '1.2.3.4'.
 
-5.0.12
-
-1)  Minor cleanup, mostly commentary, in the Rules.pm module.
-
-2)  In Shorewall 5.0.7, The assumed 'use Shorewall::Config(shorewall)'
-    statement in ?PERL and ?BEGIN PERL...?END PERL handling was
-    inadvertently removed. This results in Perl compilation errors if
-    the 'shorewall' function is invoked. The statement has now been
-    restored.
-
-3)  Previously, the firewall would fail to start if the configuration
-    contained a CHECKSUM rule without a chain designator and
-    MARK_IN_FORWARD_CHAIN=No. Now, the compiler defaults these rules to
-    the POSTROUTING chain and forbids them in the PREROUTING chain.
-
-4)  Recently, a case was observed where certain incoming packets had a
-    non-zero packet mark in the raw PREROUTING chain, causing them to
-    be misrouted. To guard against this issue, packet marks are now
-    cleared at the top of the PREROUTING and OUTPUT mangle chains when
-    the new ZERO_MARKS option is set to yes. Note that ZERO_MARKS=Yes
-    can break IPSEC in multi-ISP configurations.
-
-5)  Two distinct problems have been corrected in the 'disable'
-    command logic:
-
-    a)  If a balanced or fallback interface was down or had been
-    	deleted, then the 'disable' command could fail.
-
-    b)  If a persistent optional interface was down, then the
-        generated script would fail when it attempted to add routes out
-        of the interface.
-
-6)  Previously, the generated script would attempt to reenable a
-    disabled persistent provider at each 'start', 'reload' or
-    'restart'. Now, disabled persistent providers are handled the same
-    as other providers and require the 'enable' or 'reenable' command
-    to enable them.
-
-7)  Previously, the generated script assumed that all
-    probability-balanced providers (those with the 'load' option
-    specified) were optional. That assumption has been removed.
-
-8)  Previously, the permissions of files created by the 'save' command
-    were more relaxed than necessary. This has been corrected. 
+3)  Previously, the ADDRESS column in /etc/shorewall[6]/masq was
+    documented as allowing a list of addresses and/or address ranges.
+    That feature depended on iptables support which is no longer
+    present in current distributions. The code now disallows more than
+    one address[-range] and the documentation has been changed
+    accordingly.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -94,69 +71,34 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  You may now place comma-separated zone lists in the SOURCE and DEST
-    columns in /etc/shorewall[6]/policy.
+1)  /etc/shorewall[6]/masq has been superseded by
+    /etc/shorewall[6]/snat. The new 'snat' file is similar to most of
+    the other configuration files in that the first column specifies
+    the ACTION to be performed, the second contains the SOURCE and so
+    on.
 
-    Example:
+    The 'shorewall[6] update' command will convert an existing masq
+    file into the equivalent 'snat' file and will rename masq to
+    masq.bak.
 
-    #SOURCE		DEST		POLICY	...
-    loc,dmz		net		REJECT
+    See shorewall[6]-snat(5) for details.
 
-    That line is equivalent to:
+2)  Actions (both inline and regular) are now supported out of the new
+    snat file. Like other actions, these 'SNAT actions' must be
+    declared in the /etc/shorewall[6]/actions file where the new 'nat'
+    option must be specified.
 
-    #SOURCE		DEST		POLICY	...
-    loc			net		REJECT
-    dmz			net		REJECT
+    Like other actions, the action rules are placed in a file named
+    action.<action>. Those rules have the same format as those in the
+    snat file with two restrictions:
 
-    If the same zone appears in both columns, the default ACCEPT
-    intrazone policy is not overridden unless the list is followed
-    immediately by '+'.
+    1. The '+' is not allowed in the ACTION column to specify that the
+       rules should be applied before one-to-one NAT. It must rather be
+       specified when the action is invoked.
 
-    Example:
-
-    #SOURCE		DEST		POLICY	...
-    dmz,loc		loc,dmz+	REJECT
-
-    That line is equivalent to:
-
-    #SOURCE		DEST		POLICY	...
-    dmz			loc		REJECT
-    dmz			dmz		REJECT
-    loc			loc		REJECT
-    loc			dmz		REJECT
-
-    Without the plus sine, it would be equivalent to
-
-    #SOURCE		DEST		POLICY	...
-    dmz			loc		REJECT
-    loc			dmz		REJECT
-
-2)  Distribution maintainers may now set a default pager via the
-    configure and configure.pl programs in Shorewall-core to set
-    DEFAULT_PAGER in the generated shorewallrc file. The
-    Shorewall-provided shorewallrc files for Debian currently specify
-    'less' for DEFAULT_PAGER. The other shorewallrc files do not
-    specify DEFAULT_PAGER.
-
-    If shorewall[6].conf does not specify PAGER then the DEFAULT_PAGER
-    setting is used.
-
-3)  The 'contiguous' option is now supported in TIME columns. When the
-    'timestop' value  is smaller than the 'timestart' value, match this
-    as a  single  time  period  instead  distinct intervals.
-
-    Example:
-
-            weekdays=Mo&timestart=23:00&timestop=01:00
-
-        Will match Monday, for one hour from midnight  to 1 a.m., and
-  	then again for another hour from 23:00 onwards. If this is
-  	unwanted, e.g. if you would like 'match for two hours from
-  	Monday 23:00 onwards' you need to also specify the 'contiguous'
-  	option in the example above.
-
-    See http://www.shorewall.org/configuration_file_basics.htm#TIME for
-    additional TIME column examples.
+    2. Interface names are not permitted in the DEST column, so all of
+       the rules apply to the interface(s) specified when the action was
+       invoked.
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -316,6 +258,243 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 3
+----------------------------------------------------------------------------
+
+5.0.13.4
+
+1)  DETECT_DNAT_IPADDRS=Yes in shorewall6.conf previously resulted in
+    an incorrect test in the generated script (0.0.0.0 was used
+    rather than ::). That has been corrected.
+
+2)  Use of an inline mangle action could cause the compiler to fail
+    with the following diagnostic:
+
+    Use of uninitialized value in bitwise and (&) at
+    /usr/share/shorewall/Shorewall/Rules.pm line 4826, <$currentfile>
+    line 6.
+
+    That has been corrected.
+
+3)  Handling of ipsets in the tcfilters file has been corrected
+    (Luigi).
+
+4)  Previously, ipsets used in the tcfilters file were not
+    auto-created. That has been corrected.
+
+5)  Previously, the compiler would issue a Perl runtime diagnostic if a
+    tcclasses entry with the 'occurs' option appeared before the entry
+    with the 'default' option. That has been corrected (Luigi).
+
+5.0.13.3
+
+1)   When the effective verbosity was < 2 and the 'disconnect' option
+     was specified in DYNAMIC_BLACKLIST, a successful 'blacklist'
+     command would issue the following error message and would produce
+     no other output.
+
+         sed: -e expression #1, char 8: unknown command: `/'
+
+5.0.13.2
+
+1)   Fix number 1 in 5.0.13.1 uncovered a latent defect that was not
+     discovered until after release. The defect caused the compiler to
+     crash when all of the following were true:
+
+     1)  LOAD_HELPERS_ONLY=Yes and a capabilities file was not being
+         used.
+
+     2)  SAVE_IPSETS=Yes or SAVE_IPSETS=ipv4 in shorewall.conf.
+
+     3)  Ipset-based dynamic blacklisting was being used.
+
+     4)  No other ipset-based rules appeared in the configuration.
+
+     This defect has been corrected.
+
+5.0.13.1
+
+1)   Previously, Shorewall ipset creation could fail on older releases,
+     such as Centos 6, with a message similar to the following:
+
+      WARNING: ipset lvpn does not exist; creating it as an hash:net set
+      ipset v6.11: Unknown argument: `counters' Try `ipset help' for
+      more information.
+
+    That problem has been corrected so that the ipset is now created
+    successfully.
+
+2)  Another problem with the DEST column in inline mangle action bodies
+    has been corrected.
+
+5.0.13
+
+1)  This release contains defect repair from 5.0.12.1.
+
+2)  The compiler now detects shell metacharacters in interface names
+    defined in /etc/shorewall[6]/interfaces. Previously, such
+    characters could cause runtime failures in the generated script.
+
+3)  Previously, the compiler ignored DEST column entries in inline
+    mangle action bodies. That value is now used unless it is '-', in
+    which case the DEST column value in the action invocation is used.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 1 3
+----------------------------------------------------------------------------
+
+1)  A 'disconnect' option has been added to the DYNAMIC_BLACKLIST
+    setting. The option is only accepted for ipset-based dynamic
+    blacklisting and requires that the 'conntrack' utility be
+    installed. See shorewall[6].conf(5) for details.
+
+    With this option, when an address is blackliseted using the
+    'blacklist' command, the conntrack utility is used to break all
+    connections from that address. If the 'src-dst' option is also
+    specified in the BLACKLIST setting, then all connections to the
+    address are also broken. If the effective VERBOSITY is greater than
+    0, then a messages is displayed that indicated the number of flows
+    deleted by the command. If the effective VERBOSITY is 2, the
+    conntrack entries delected by the command are also displayed.
+
+    This option is more efficient for packet processing than including
+    the ESTABLISHED state in the BLACKLIST setting.
+
+2)  A 'timeout' option has been added to the DYNAMIC_BLACKLIST setting.
+    The option is only accepted for ipset-based dynamic blacklisting
+    and causes entries in the blacklist ipset to be automatically
+    deleted if they are not matched within a specified time. See
+    shorewall[6].conf(5) for details.
+
+3)  A new FIREWALL option has been added to shorewall[6].conf. This
+    option is intended to be used on an admisitrative system in
+    configurations of remote firewalls. It defines the DNS name or IP
+    address of the remote system so that the system name does not have
+    to be given in the remote-start, remote-reload and remote-restart
+    commmands. See shorewall[6](8) for details.
+
+4)  Shorewall6 now allows more that one provider to specify the
+    'balance' or 'fallback' options.
+
+5)  When using port numbers (as opposed to service names), the hyphen
+    ("-") is now accepted as the separator in port ranges. When service
+    names are used, the colon (":") must still be used.
+
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 2
+----------------------------------------------------------------------------
+1)  Minor cleanup, mostly commentary, in the Rules.pm module.
+
+2)  In Shorewall 5.0.7, The assumed 'use Shorewall::Config(shorewall)'
+    statement in ?PERL and ?BEGIN PERL...?END PERL handling was
+    inadvertently removed. This results in Perl compilation errors if
+    the 'shorewall' function is invoked. The statement has now been
+    restored.
+
+3)  Previously, the firewall would fail to start if the configuration
+    contained a CHECKSUM rule without a chain designator and
+    MARK_IN_FORWARD_CHAIN=No. Now, the compiler defaults these rules to
+    the POSTROUTING chain and forbids them in the PREROUTING chain.
+
+4)  Recently, a case was observed where certain incoming packets had a
+    non-zero packet mark in the raw PREROUTING chain, causing them to
+    be misrouted. To guard against this issue, packet marks are now
+    cleared at the top of the PREROUTING and OUTPUT mangle chains when
+    the new ZERO_MARKS option is set to yes. Note that ZERO_MARKS=Yes
+    can break IPSEC in multi-ISP configurations.
+
+5)  Two distinct problems have been corrected in the 'disable'
+    command logic:
+
+    a)  If a balanced or fallback interface was down or had been
+    	deleted, then the 'disable' command could fail.
+
+    b)  If a persistent optional interface was down, then the
+        generated script would fail when it attempted to add routes out
+        of the interface.
+
+6)  Previously, the generated script would attempt to reenable a
+    disabled persistent provider at each 'start', 'reload' or
+    'restart'. Now, disabled persistent providers are handled the same
+    as other providers and require the 'enable' or 'reenable' command
+    to enable them.
+
+7)  Previously, the generated script assumed that all
+    probability-balanced providers (those with the 'load' option
+    specified) were optional. That assumption has been removed.
+
+8)  Previously, the permissions of files created by the 'save' command
+    were more relaxed than necessary. This has been corrected. 
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 1 2
+----------------------------------------------------------------------------
+
+1)  You may now place comma-separated zone lists in the SOURCE and DEST
+    columns in /etc/shorewall[6]/policy.
+
+    Example:
+
+    #SOURCE		DEST		POLICY	...
+    loc,dmz		net		REJECT
+
+    That line is equivalent to:
+
+    #SOURCE		DEST		POLICY	...
+    loc			net		REJECT
+    dmz			net		REJECT
+
+    If the same zone appears in both columns, the default ACCEPT
+    intrazone policy is not overridden unless the list is followed
+    immediately by '+'.
+
+    Example:
+
+    #SOURCE		DEST		POLICY	...
+    dmz,loc		loc,dmz+	REJECT
+
+    That line is equivalent to:
+
+    #SOURCE		DEST		POLICY	...
+    dmz			loc		REJECT
+    dmz			dmz		REJECT
+    loc			loc		REJECT
+    loc			dmz		REJECT
+
+    Without the plus sine, it would be equivalent to
+
+    #SOURCE		DEST		POLICY	...
+    dmz			loc		REJECT
+    loc			dmz		REJECT
+
+2)  Distribution maintainers may now set a default pager via the
+    configure and configure.pl programs in Shorewall-core to set
+    DEFAULT_PAGER in the generated shorewallrc file. The
+    Shorewall-provided shorewallrc files for Debian currently specify
+    'less' for DEFAULT_PAGER. The other shorewallrc files do not
+    specify DEFAULT_PAGER.
+
+    If shorewall[6].conf does not specify PAGER then the DEFAULT_PAGER
+    setting is used.
+
+3)  The 'contiguous' option is now supported in TIME columns. When the
+    'timestop' value  is smaller than the 'timestart' value, match this
+    as a  single  time  period  instead  distinct intervals.
+
+    Example:
+
+            weekdays=Mo&timestart=23:00&timestop=01:00
+
+        Will match Monday, for one hour from midnight  to 1 a.m., and
+  	then again for another hour from 23:00 onwards. If this is
+  	unwanted, e.g. if you would like 'match for two hours from
+  	Monday 23:00 onwards' you need to also specify the 'contiguous'
+  	option in the example above.
+
+    See http://www.shorewall.org/configuration_file_basics.htm#TIME for
+    additional TIME column examples.
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 1
 ----------------------------------------------------------------------------
