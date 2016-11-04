@@ -1,11 +1,106 @@
-Changes in 5.0.12.1
+Changes in 5.0.14 Final
 
 1)  Update release documents.
 
-2)  Correct errors in the DYNAMIC_BLACKLISTING description in the
-    manpages.
+2)  Prevent multiple --to-source specifications in generated rules.
 
-3)  Fix a typo in lib.private.
+3)  Fix installer re: snat file in $CONFDIR.
+
+Changes in 5.0.14 RC 2
+
+1)  Update release documents.
+
+2)  Correct detection of use of address variables.
+
+Changes in 5.0.14 RC 1
+
+1)  Update release documents.
+
+2)  Correctly translate +INLINE(...)
+
+3)  Deprecate INLINE_MATCHES=Yes
+
+4)  Correct an error message and move its generation.
+
+5)  Diosallow '+' in inline SNAT action bodies
+
+6)  Be sure NAT is enabled before process an snat file.
+
+7)  More documentation snat file updates.
+
+Changes in 5.0.14 Beta 2
+
+1)  Update release documents.
+
+2)  Force a reload when an optional interface is enabled and its IP
+    address or gateway changed.
+
+3)  Correct MASQUERADE+ issue reported by Steven Springl.
+
+Changes in 5.0.14 Beta 1
+
+1)  Update release documents.
+
+2)  Supersede the 'masq' file with the 'snat' file.
+
+3)  Add SNAT action support
+
+4)  Merge 5.0.13 fixes.
+
+Changes in 5.0.13 Final
+
+1)  Update release documents.
+
+2)  Reverse ECN fix.
+
+3)  Restrict hypen in port ranges to numberic ports.
+
+4)  Correct typo in process_mangle_inline().
+
+Changes in 5.0.13 RC 2
+
+1)  Update release documents.
+
+2)  Accept '-' as a port-range separator.
+
+3)  Correct shorewall6-masq examples.
+
+4)  Add -exists to ADD command with timeout
+
+5)  ECN fix.
+
+Changes in 5.0.13 RC 1
+
+1)  Update release documents.
+
+2)  Merge fix from 5.0.12.
+
+3)  Make the output of 'blacklist' dependent on the verbosity and clean
+    up that output.
+
+4)  Detect bad characters in interface names.
+
+Changes in 5.0.13 Beta 2
+
+1)  Update release documents.
+
+2)  Add 'timeout' DYNAMIC_BLACKLISTING option
+
+3)  Add FIREWALL option in shorewall[6].conf.
+
+4)  Remove restrictions on IPv6 'balance' and 'fallback'.
+
+Changes in 5.0.13 Beta 1
+
+1)  Update release documents.
+
+2)  Roberto's typo fix in the mangle manpages.
+
+3)  Reorder the entries in the .conf files in ASCII collating sequence.
+
+4)  Correct DYNAMIC_BLACKLIST documentation.
+
+4)  Add 'disconnect' option to the DYNAMIC_BLACKLIST setting.
 
 Changes in 5.0.12 Final
 
