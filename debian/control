@@ -19,6 +19,7 @@ Depends: shorewall-core (>= ${shorewall:current}),
  bc,
  lsb-base (>= 3.0-6),
  ${misc:Depends}
+Recommends: libnetfilter-cthelper0
 Suggests: shorewall-doc, make
 Replaces: shorewall-common, shorewall-perl, shorewall-shell
 Description: Shoreline Firewall, netfilter configurator
