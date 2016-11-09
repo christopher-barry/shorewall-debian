@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	           S H O R E W A L L  5 . 0 . 1 4  R C 3
+		    S H O R E W A L L  5 . 0 . 1 4 . 1
                       ------------------------------
-                      N o v e m b e r  0 1,  2 0 1 6
+                      N o v e m b e r  0 7,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,18 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.14.1
+
+1)  The two-interface sample 'snat' file in 5.0.14 contained a typo (a
+    spurious '1' in the first column of the last line). That has been
+    removed.
+
+2)  Previously, when /proc/sys/net/xt_recent/ was empty, the 'show
+    events' and 'dump' commands would cause a shell syntax error. That
+    has been corrected.
+
+5.0.14
 
 1)  This release includes defect repair up through Shorewall 5.0.13.4.
 
