@@ -1,3 +1,12 @@
+Changes in 5.0.14.1
+
+1)  Update release documents.
+
+2)  Fix shell error in 'show events' and 'dump' when
+    /proc/sys/net/xt_recent/ is empty.
+
+3)  Correct typo in two-interface sample snat file.
+
 Changes in 5.0.14 Final
 
 1)  Update release documents.
