@@ -79,7 +79,7 @@ our %EXPORT_TAGS = ( Traffic => [ qw( process_tc_rule
 
 Exporter::export_ok_tags('Traffic');
 
-our $VERSION = '5.0_14';
+our $VERSION = '5.0_15';
 #
 # Globals are documented in the initialize() function
 #
@@ -5139,50 +5139,50 @@ sub process_tc_rule( ) {
     my ( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability , $dscp , $state );
     if ( $family == F_IPV4 ) {
 	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $probability, $dscp, $state ) =
-	    split_line2( 'tcrules file',
-			 { mark => 0,
-			   action => 0,
-			   source => 1,
-			   dest => 2,
-			   proto => 3,
-			   dport => 4,
-			   sport => 5,
-			   user => 6,
-			   test => 7,
-			   length => 8,
-			   tos => 9,
-			   connbytes => 10,
-			   helper => 11,
-			   probability => 12 , 
-			   scp => 13,
-			   state => 14 },
-			 {},
-			 15,
-	                 1 );
+	    split_rawline2( 'tcrules file',
+			    { mark => 0,
+			      action => 0,
+			      source => 1,
+			      dest => 2,
+			      proto => 3,
+			      dport => 4,
+			      sport => 5,
+			      user => 6,
+			      test => 7,
+			      length => 8,
+			      tos => 9,
+			      connbytes => 10,
+			      helper => 11,
+			      probability => 12 , 
+			      scp => 13,
+			      state => 14 },
+			    {},
+			    15,
+			    1 );
 	$headers = '-';
     } else {
 	( $originalmark, $source, $dest, $protos, $ports, $sports, $user, $testval, $length, $tos , $connbytes, $helper, $headers, $probability, $dscp, $state ) =
-	    split_line2( 'tcrules file',
-			 { mark => 0,
-			   action => 0,
-			   source => 1,
-			   dest => 2,
-			   proto => 3,
-			   dport => 4,
-			   sport => 5,
-			   user => 6,
-			   test => 7,
-			   length => 8,
-			   tos => 9,
-			   connbytes => 10,
-			   helper => 11,
-			   headers => 12,
-			   probability => 13,
-			   dscp => 14,
-			   state => 15 },
-			 {},
-			 16,
-	                 1 );
+	    split_rawline2( 'tcrules file',
+			    { mark => 0,
+			      action => 0,
+			      source => 1,
+			      dest => 2,
+			      proto => 3,
+			      dport => 4,
+			      sport => 5,
+			      user => 6,
+			      test => 7,
+			      length => 8,
+			      tos => 9,
+			      connbytes => 10,
+			      helper => 11,
+			      headers => 12,
+			      probability => 13,
+			      dscp => 14,
+			      state => 15 },
+			    {},
+			    16,
+			    1 );
     }
 
     for my $proto (split_list( $protos, 'Protocol' ) ) {

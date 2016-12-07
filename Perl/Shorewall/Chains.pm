@@ -298,7 +298,7 @@ our %EXPORT_TAGS = (
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_14';
+our $VERSION = '5.0_15';
 
 #
 # Chain Table
@@ -1218,6 +1218,7 @@ sub merge_rules( $$$ ) {
 	if ( exists $fromref->{$option} ) {
 	    push( @{$toref->{matches}}, $option ) unless exists $toref->{$option};
 	    $toref->{$option} = $fromref->{$option};
+	    $toref->{simple} = 0;
 	}
     }
 

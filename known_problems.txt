@@ -4,11 +4,3 @@
 2)  The 'enable', 'reenable' and 'disable' commands do not work
     correctly in configurations with USE_DEFAULT_RT=No and optional
     providers listed in the DUPLICATE column.
-
-3)  In 5.0.14, the two-interface sample snat file has a typo in the
-    last line. There is a spurious '1' in the last line.
-
-    Workaround: Edit the file and delete the leading '1' in the last
-    line.
-
-    Corrected in 5.0.14.1.

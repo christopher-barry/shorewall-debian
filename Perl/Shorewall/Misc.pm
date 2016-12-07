@@ -48,7 +48,7 @@ our @EXPORT = qw( process_tos
 		  generate_matrix
 		  );
 our @EXPORT_OK = qw( initialize );
-our $VERSION = '5.0_14';
+our $VERSION = '5.0_15';
 
 our $family;
 
@@ -216,6 +216,7 @@ sub convert_blacklist() {
     my $audit       = $disposition =~ /^A_/;
     my $target      = $disposition;
     my $orig_target = $target;
+    my $warnings    = 0;
     my @rules;
 
     if ( @$zones || @$zones1 ) {
@@ -237,12 +238,22 @@ sub convert_blacklist() {
 	    return 0;
 	}
 
+	directive_callback(
+	    sub ()
+	    {
+		warning_message "Omitted rules and compiler directives were not translated" unless $warnings++;
+	    }
+	    );
+
 	first_entry "Converting $fn...";
 
 	while ( read_a_line( NORMAL_READ ) ) {
 	    my ( $networks, $protocol, $ports, $options ) =
-		split_line( 'blacklist file',
-			    { networks => 0, proto => 1, port => 2, options => 3 } );
+		split_rawline2( 'blacklist file',
+				{ networks => 0, proto => 1, port => 2, options => 3 },
+				{},
+				4,
+		);
 
 	    if ( $options eq '-' ) {
 		$options = 'src';
@@ -300,6 +311,8 @@ sub convert_blacklist() {
 	    }
 	}
 
+	directive_callback(0);
+
 	if ( @rules ) {
 	    my $fn1 = find_writable_file( 'blrules' );
 	    my $blrules;
@@ -312,7 +325,7 @@ sub convert_blacklist() {
 		transfer_permissions( $fn, $fn1 );
 		print $blrules <<'EOF';
 #
-# Shorewall version 5.0 - Blacklist Rules File
+# Shorewall - Blacklist Rules File
 #
 # For information about entries in this file, type "man shorewall-blrules"
 #
@@ -394,7 +407,8 @@ sub convert_routestopped() {
     if ( my $fn = open_file 'routestopped' ) {
 	my ( @allhosts, %source, %dest , %notrack, @rule );
 
-	my $seq  = 0;
+	my $seq      = 0;
+	my $warnings = 0;
 	my $date = compiletime;
 
 	my ( $stoppedrules, $fn1 );
@@ -406,7 +420,7 @@ sub convert_routestopped() {
 	    transfer_permissions( $fn, $fn1 );
 	    print $stoppedrules <<'EOF';
 #
-# Shorewall version 5 - Stopped Rules File
+# Shorewall - Stopped Rules File
 #
 # For information about entries in this file, type "man shorewall-stoppedrules"
 #
@@ -422,6 +436,13 @@ sub convert_routestopped() {
 EOF
 	}
 
+	directive_callback(
+	    sub ()
+	    {
+		warning_message "Omitted rules and compiler directives were not translated" unless $warnings++;
+	    }
+	    );
+
 	first_entry(
 		    sub {
 			my $date = compiletime;
@@ -436,13 +457,16 @@ EOF
 	while ( read_a_line ( NORMAL_READ ) ) {
 
 	    my ($interface, $hosts, $options , $proto, $ports, $sports ) =
-		split_line( 'routestopped file',
-			    { interface => 0, hosts => 1, options => 2, proto => 3, dport => 4, sport => 5 } );
+		split_rawline2( 'routestopped file',
+				{ interface => 0, hosts => 1, options => 2, proto => 3, dport => 4, sport => 5 },
+				{},
+				6,
+				0,
+		);
 
 	    my $interfaceref;
 
 	    fatal_error 'INTERFACE must be specified' if $interface eq '-';
-	    fatal_error "Unknown interface ($interface)" unless $interfaceref = known_interface $interface;
 	    $hosts = ALLIP unless $hosts && $hosts ne '-';
 
 	    my $routeback = 0;
@@ -456,8 +480,6 @@ EOF
 	    $hosts = ALLIP if $hosts eq '-';
 
 	    for my $host ( split /,/, $hosts ) {
-		fatal_error "Ipsets not allowed with SAVE_IPSETS=Yes" if $host =~ /^!?\+/ && $config{SAVE_IPSETS};
-		validate_host $host, 1;
 		push @hosts, "$interface|$host|$seq";
 		push @rule, $rule;
 	    }
@@ -500,6 +522,8 @@ EOF
 
 	    push @allhosts, @hosts;
 	}
+
+	directive_callback(0);
 
 	for my $host ( @allhosts ) {
 	    my ( $interface, $h, $seq ) = split /\|/, $host;

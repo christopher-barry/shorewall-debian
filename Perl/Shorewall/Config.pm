@@ -133,6 +133,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       split_line
 				       split_line1
 				       split_line2
+				       split_rawline2
 				       first_entry
 				       open_file
 				       close_file
@@ -174,6 +175,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 				       $doing
 				       $done
 				       $currentline
+				       $rawcurrentline
 				       $currentfilename
 				       $debug
 				       $file_format
@@ -241,7 +243,7 @@ our %EXPORT_TAGS = ( internal => [ qw( create_temp_script
 
 Exporter::export_ok_tags('internal');
 
-our $VERSION = '5.0_14';
+our $VERSION = '5.0_145';
 
 #
 # describe the current command, it's present progressive, and it's completion.
@@ -564,6 +566,7 @@ our $usedcaller;
 our $inline_matches;
 
 our $currentline;            # Current config file line image
+our $rawcurrentline;         # Current config file line with no variable expansion
 our $currentfile;            # File handle reference
 our $currentfilename;        # File NAME
 our $currentlinenumber;      # Line number
@@ -744,7 +747,7 @@ sub initialize( $;$$) {
 		    TC_SCRIPT               => '',
 		    EXPORT                  => 0,
 		    KLUDGEFREE              => '',
-		    VERSION                 => "5.0.14.1",
+		    VERSION                 => "5.0.15",
 		    CAPVERSION              => 50004 ,
 		    BLACKLIST_LOG_TAG       => '',
 		    RELATED_LOG_TAG         => '',
@@ -2442,6 +2445,25 @@ sub split_line2( $$;$$$ ) {
     @line;
 }
 
+#
+# Same as above, only it splits the raw current line
+#
+sub split_rawline2( $$;$$$ ) {
+    my $savecurrentline = $currentline;
+
+    $currentline = $rawcurrentline;
+    #
+    # Delete trailing comment
+    #
+    $currentline =~ s/\s*#.*//;
+
+    my @result = &split_line2( @_ );
+
+    $currentline = $savecurrentline;
+
+    @result;
+}
+
 sub split_line1( $$;$$ ) {
     &split_line2( @_, undef );
 }
@@ -3026,9 +3048,9 @@ sub process_compiler_directive( $$$$ ) {
 
     if ( $directive_callback ) {
         $directive_callback->( $keyword, $line ) 
-    } else {
-        $omitting;
     }
+
+    $omitting;
 }
 
 #
@@ -3736,6 +3758,7 @@ sub read_a_line($) {
 
 	    if ( $omitting ) {
 		print "OMIT=> $_\n" if $debug;
+		$directive_callback->( 'OMITTED', $_ ) if ( $directive_callback );
 		next;
 	    }
 
@@ -3790,6 +3813,10 @@ sub read_a_line($) {
 	    #
 	    handle_first_entry if $first_entry;
 	    #
+	    # Save Raw Image
+	    #
+	    $rawcurrentline = $currentline;
+	    #
 	    # Expand Shell Variables using %params and %actparams
 	    #
 	    expand_variables( $currentline ) if $options & EXPAND_VARIABLES;
@@ -3818,7 +3845,7 @@ sub read_a_line($) {
 		fatal_error "Invalid SECTION name ($sectionname)" unless $sectionname =~ /^[-_\da-zA-Z]+$/;
 		fatal_error "This file does not allow ?SECTION" unless $section_function;
 		$section_function->($sectionname);
-		$directive_callback->( 'SECTION', $currentline ) if $directive_callback;
+		$directive_callback->( 'SECTION', $rawcurrentline ) if $directive_callback;
 		next LINE;
 	    } else {
 		fatal_error "Non-ASCII gunk in file" if ( $options && CHECK_GUNK ) && $currentline =~ /[^\s[:print:]]/;

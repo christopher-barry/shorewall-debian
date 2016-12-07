@@ -2,12 +2,12 @@
 .\"     Title: shorewall
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 11/04/2016
+.\"      Date: 12/02/2016
 .\"    Manual: Administrative Commands
 .\"    Source: Administrative Commands
 .\"  Language: English
 .\"
-.TH "SHOREWALL" "8" "11/04/2016" "Administrative Commands" "Administrative Commands"
+.TH "SHOREWALL" "8" "12/02/2016" "Administrative Commands" "Administrative Commands"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -1662,7 +1662,9 @@ Existing comments in the file being converted will not be transferred to the out
 .sp -1
 .IP "  3." 4.2
 .\}
-INCLUDEd files will be expanded inline in the output file\&.
+With the exception of the
+notrack\->conntrack
+conversion, INCLUDEd files will be expanded inline in the output file\&.
 .RE
 .sp
 .RS 4
@@ -1674,6 +1676,53 @@ INCLUDEd files will be expanded inline in the output file\&.
 .IP "  4." 4.2
 .\}
 Columns in the output file will be separated by a single tab character; there is no attempt made to otherwise align the columns\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 5.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  5." 4.2
+.\}
+Prior to Shorewall 5\&.0\&.15, shell variables will be expanded in the output file\&.
+.RE
+.sp
+.RS 4
+.ie n \{\
+\h'-04' 6.\h'+01'\c
+.\}
+.el \{\
+.sp -1
+.IP "  6." 4.2
+.\}
+Prior to Shorewall 5\&.0\&.15, lines omitted by compiler directives (?if \&.\&.\&.\&., etc\&.) will not appear in the output file\&.
+.if n \{\
+.sp
+.\}
+.RS 4
+.it 1 an-trap
+.nr an-no-space-flag 1
+.nr an-break-flag 1
+.br
+.ps +1
+\fBImportant\fR
+.ps -1
+.br
+Because the translation of the \*(Aqblacklist\*(Aq and \*(Aqroutestopped\*(Aq files is not 1:1, omitted lines and compiler directives are not transferred to the converted files\&. If either are present, the compiler issues a warning:
+.sp
+.if n \{\
+.RS 4
+.\}
+.nf
+ WARNING: "Omitted rules and compiler directives were not translated
+.fi
+.if n \{\
+.RE
+.\}
+.sp .5v
+.RE
 .RE
 .sp .5v
 .RE

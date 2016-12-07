@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-		    S H O R E W A L L  5 . 0 . 1 4 . 1
+	              S H O R E W A L L  5 . 0 . 1 5
                       ------------------------------
-                      N o v e m b e r  0 7,  2 0 1 6
+                      D e c e m b e r  0 5,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -14,59 +14,42 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-5.0.14.1
+1)  This release includes defect repair through Shorewall 5.0.14.1.
 
-1)  The two-interface sample 'snat' file in 5.0.14 contained a typo (a
-    spurious '1' in the first column of the last line). That has been
-    removed.
+2)  Previously, when the 'update' command transformed a superseded
+    file's contents into a newer file, with the exception of the
+    'notrack' -> 'conntrack' conversion, the transformation was
+    incomplete:
 
-2)  Previously, when /proc/sys/net/xt_recent/ was empty, the 'show
-    events' and 'dump' commands would cause a shell syntax error. That
-    has been corrected.
+    a)  All shell variables were expanded in the converted file.
 
-5.0.14
+    b)  Any lines omitted by compiler directives ( ?if.... etc. ) were
+	also omitted from the converted file.
 
-1)  This release includes defect repair up through Shorewall 5.0.13.4.
+    These deficiencies have been corrected. Now, shell variables are
+    preserved in the converted file and omitted lines are now
+    translated.
 
-2)  When the address variable for an optional interface was used, and
-    the interface did not have an IP address when the firewall was
-    started, then enabling the interface did not previously
-    create/alter the rules that use the address variable. Also, if the
-    IP address of a disabled interface changed, enabling the interface
-    did not update/add rules using the interface's gateway address
-    variable.
+    EXCEPTIONS: Because the translations of the 'blacklist' and
+    'routestopped' files are not 1:1, omitted lines and compiler
+    directives are not transferred to the converted files. If either
+    are present, the compiler issues a warning:
 
-    Now, if the IP address of a disabled optional interface
-    changes from its value (if any) when the netfilter ruleset was
-    instantiated, then after a successful 'enable', the  ruleset is
-    automatically reloaded if the interface's address variable was
-    used.
+       WARNING: "Omitted rules and compiler directives were not
+       translated
 
-    Similarly, if 'detect' is specified as the GATEWAY for an optional
-    provider, then if the gateway at the time that the provider is
-    successfully enabled is different from that (if any) when the
-    netfilter ruleset was instantiated, then the ruleset is
-    automatically reloaded if the provider interface's run-time gateway
-    variable was used.
+3)  In earlier versions, when USE_DEFAULT_RT=No in shorewall6.conf,
+    the generated script would attempt to copy fe80:* routes from the
+    DUPLICATE routing table to provider tables, which could fail.
+    Now, the generated script ignores these routes.
 
-    As part of this change, if an IP address is specified as the
-    GATEWAY for a provider, then the run-time gateway variable for the
-    provider's interface is expanded at compile time rather than at
-    runtime.
+4)  Previously, if the 'restore' command failed, the failure was not
+    corrected reflected in the exit status. The exit status now
+    correctly indicates the outcome of the command.
 
-    Example:
-
-        #PROVIDER  NUMBER MARK DUPLICATE INTRFACE GATEWAY OPTIONS COPY
-	foo	   1	  1    -	 eth0	  1.2.3.4 primary -
-
-    Then %eth0 will be expanded at compile time to '1.2.3.4'.
-
-3)  Previously, the ADDRESS column in /etc/shorewall[6]/masq was
-    documented as allowing a list of addresses and/or address ranges.
-    That feature depended on iptables support which is no longer
-    present in current distributions. The code now disallows more than
-    one address[-range] and the documentation has been changed
-    accordingly.
+5)  A defect in OPTIMIZE level 4 processing, could previously result in
+    the incorrect omission of a -i, -o, -s or -d rule option in an
+    optimized rules. That defect has been corrected.
 
 ----------------------------------------------------------------------------
            I I.  K N O W N   P R O B L E M S   R E M A I N I N G
@@ -79,38 +62,22 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
     correctly in configurations with USE_DEFAULT_RT=No and optional
     providers listed in the DUPLICATE column.
 
+3)  While the 'ip' utility now accepts IPv6 routes with multiple
+    'nexthop' destinations, these routes are not balanced. They are
+    rather instantiated as a sequence of single routes with different
+    metrics.  Furthermore,  the 'ip route replace' command fails on
+    such routes. Beginning with Shorewall6 5.0.15, the generated script
+    will use a "delete..add.." sequence on these routes rather than a
+    single "replace" command.
+
 ----------------------------------------------------------------------------
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
 
-1)  /etc/shorewall[6]/masq has been superseded by
-    /etc/shorewall[6]/snat. The new 'snat' file is similar to most of
-    the other configuration files in that the first column specifies
-    the ACTION to be performed, the second contains the SOURCE and so
-    on.
+1)  The 'show macro' command now uses the configured PAGER, if any.
 
-    The 'shorewall[6] update' command will convert an existing masq
-    file into the equivalent 'snat' file and will rename masq to
-    masq.bak.
-
-    See shorewall[6]-snat(5) for details.
-
-2)  Actions (both inline and regular) are now supported out of the new
-    snat file. Like other actions, these 'SNAT actions' must be
-    declared in the /etc/shorewall[6]/actions file where the new 'nat'
-    option must be specified.
-
-    Like other actions, the action rules are placed in a file named
-    action.<action>. Those rules have the same format as those in the
-    snat file with two restrictions:
-
-    1. The '+' is not allowed in the ACTION column to specify that the
-       rules should be applied before one-to-one NAT. It must rather be
-       specified when the action is invoked.
-
-    2. Interface names are not permitted in the DEST column, so all of
-       the rules apply to the interface(s) specified when the action was
-       invoked.
+2)  The PAGER may now be deactivated through use of the '-p' option
+    (e.g., "shorewall -p show" ).
 
 ----------------------------------------------------------------------------
                   I V.  M I G R A T I O N   I S S U E S
@@ -270,6 +237,85 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 
 ----------------------------------------------------------------------------
          V.  N O T E S  F R O M  O T H E R  5 . 0  R E L E A S E S
+----------------------------------------------------------------------------
+            P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 4
+----------------------------------------------------------------------------
+
+1)  This release includes defect repair up through Shorewall 5.0.13.4.
+
+2)  When the address variable for an optional interface was used, and
+    the interface did not have an IP address when the firewall was
+    started, then enabling the interface did not previously
+    create/alter the rules that use the address variable. Also, if the
+    IP address of a disabled interface changed, enabling the interface
+    did not update/add rules using the interface's gateway address
+    variable.
+
+    Now, if the IP address of a disabled optional interface
+    changes from its value (if any) when the netfilter ruleset was
+    instantiated, then after a successful 'enable', the  ruleset is
+    automatically reloaded if the interface's address variable was
+    used.
+
+    Similarly, if 'detect' is specified as the GATEWAY for an optional
+    provider, then if the gateway at the time that the provider is
+    successfully enabled is different from that (if any) when the
+    netfilter ruleset was instantiated, then the ruleset is
+    automatically reloaded if the provider interface's run-time gateway
+    variable was used.
+
+    As part of this change, if an IP address is specified as the
+    GATEWAY for a provider, then the run-time gateway variable for the
+    provider's interface is expanded at compile time rather than at
+    runtime.
+
+    Example:
+
+        #PROVIDER  NUMBER MARK DUPLICATE INTRFACE GATEWAY OPTIONS COPY
+	foo	   1	  1    -	 eth0	  1.2.3.4 primary -
+
+    Then %eth0 will be expanded at compile time to '1.2.3.4'.
+
+3)  Previously, the ADDRESS column in /etc/shorewall[6]/masq was
+    documented as allowing a list of addresses and/or address ranges.
+    That feature depended on iptables support which is no longer
+    present in current distributions. The code now disallows more than
+    one address[-range] and the documentation has been changed
+    accordingly.
+
+----------------------------------------------------------------------------
+               N E W   F E A T U R E S   I N   5 . 0 . 1 4
+----------------------------------------------------------------------------
+
+1)  /etc/shorewall[6]/masq has been superseded by
+    /etc/shorewall[6]/snat. The new 'snat' file is similar to most of
+    the other configuration files in that the first column specifies
+    the ACTION to be performed, the second contains the SOURCE and so
+    on.
+
+    The 'shorewall[6] update' command will convert an existing masq
+    file into the equivalent 'snat' file and will rename masq to
+    masq.bak.
+
+    See shorewall[6]-snat(5) for details.
+
+2)  Actions (both inline and regular) are now supported out of the new
+    snat file. Like other actions, these 'SNAT actions' must be
+    declared in the /etc/shorewall[6]/actions file where the new 'nat'
+    option must be specified.
+
+    Like other actions, the action rules are placed in a file named
+    action.<action>. Those rules have the same format as those in the
+    snat file with two restrictions:
+
+    1. The '+' is not allowed in the ACTION column to specify that the
+       rules should be applied before one-to-one NAT. It must rather be
+       specified when the action is invoked.
+
+    2. Interface names are not permitted in the DEST column, so all of
+       the rules apply to the interface(s) specified when the action was
+       invoked.
+
 ----------------------------------------------------------------------------
             P R O B L E M S  C O R R E C T E D  I N  5 . 0 . 1 3
 ----------------------------------------------------------------------------
