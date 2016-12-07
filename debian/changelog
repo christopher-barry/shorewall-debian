@@ -1,3 +1,9 @@
+shorewall-init (5.0.15-1) unstable; urgency=medium
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Wed, 07 Dec 2016 16:55:36 -0500
+
 shorewall-init (5.0.14.1-1) unstable; urgency=medium
 
   * New Upstream Version
