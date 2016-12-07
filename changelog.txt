@@ -1,11 +1,30 @@
-Changes in 5.0.14.1
+Changes in 5.0.15 Final
 
 1)  Update release documents.
 
-2)  Fix shell error in 'show events' and 'dump' when
-    /proc/sys/net/xt_recent/ is empty.
+2)  Correct 'restore' exit status
 
-3)  Correct typo in two-interface sample snat file.
+3)  Correct optimizer defect in merge_rules().
+
+Changes in 5.0.15 RC 2
+
+1)  Update release documents.
+
+2)  Correct syntax error in Providers.pm.
+
+Changes in 5.0.15 RC 1
+
+1)  Update release documents.
+
+2)  Use $PAGER in 'show macro'.
+
+3)  Implement the -p option
+
+Changes in 5.0.15 Beta 1
+
+1)  Update release documents.
+
+2)  Preserve shell variables over 'update'.
 
 Changes in 5.0.14 Final
 
