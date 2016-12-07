@@ -1161,6 +1161,11 @@ show_macros() {
     done
 }
 
+show_a_macro() {
+    echo "Shorewall $SHOREWALL_VERSION Macro $1 at $g_hostname - $(date)"
+    cat ${directory}/macro.$1
+}
+
 #
 # Show Command Executor
 #
@@ -1441,8 +1446,7 @@ show_command() {
 			    [ $# -ne 2 ] && too_many_arguments $2
 			    for directory in $(split $CONFIG_PATH); do
 				if [ -f ${directory}/macro.$2 ]; then
-				    echo "Shorewall $SHOREWALL_VERSION Macro $2 at $g_hostname - $(date)"
-				    cat ${directory}/macro.$2
+				    eval show_a_macro $2 $g_pager
 				    return
 				fi
 			    done
@@ -1805,6 +1809,7 @@ dump_command() {
 restore_command() {
     local finished
     finished=0
+    local result
 
     while [ $finished -eq 0 -a $# -gt 0 ]; do
 	option=$1
@@ -1869,8 +1874,11 @@ restore_command() {
 	progress_message3 "Restoring $g_product..."
 
 	run_it $g_restorepath restore && progress_message3 "$g_product restored from ${VARDIR}/$RESTOREFILE"
+	result=$?
 
 	[ -n "$g_nolock" ] || mutex_off
+
+	exit $result
     else
 	echo "File $g_restorepath: file not found"
 	[ -n "$g_nolock" ] || mutex_off
@@ -3992,24 +4000,26 @@ get_config() {
 
     g_loopback=$(find_loopback_interfaces)
 
-    [ -n "$PAGER" ] || PAGER=$DEFAULT_PAGER
+    if [ -z "$g_nopager" ]; then
+	[ -n "$PAGER" ] || PAGER=$DEFAULT_PAGER
 
-    if [ -n "$PAGER" -a -t 1 ]; then
-	case $PAGER in
-	    /*)
-		g_pager="$PAGER"
-		[ -f "$g_pager" ] || fatal_error "PAGER=$PAGER does not exist"
-		;;
-	    *)
-		g_pager=$(mywhich $PAGER 2> /dev/null)
-		[ -n "$g_pager" ] || fatal_error "PAGER=$PAGER does not exist"
-		;;
-	esac
+	if [ -n "$PAGER" -a -t 1 ]; then
+	    case $PAGER in
+		/*)
+		    g_pager="$PAGER"
+		    [ -f "$g_pager" ] || fatal_error "PAGER=$PAGER does not exist"
+		    ;;
+		*)
+		    g_pager=$(mywhich $PAGER 2> /dev/null)
+		    [ -n "$g_pager" ] || fatal_error "PAGER=$PAGER does not exist"
+		    ;;
+	    esac
 
-	[ -x "$g_pager" ] || fatal_error "PAGER $g_pager is not executable"
+	    [ -x "$g_pager" ] || fatal_error "PAGER $g_pager is not executable"
 
-	g_pager="| $g_pager"
-     fi
+	    g_pager="| $g_pager"
+	fi
+    fi
 
     if [ -n "$DYNAMIC_BLACKLIST" ]; then
 	setup_dbl
@@ -4357,6 +4367,7 @@ shorewall_cli() {
     g_loopback=
     g_compiled=
     g_pager=
+    g_nopager=
     g_blacklistipset=
     g_disconnect=
 
@@ -4453,6 +4464,11 @@ shorewall_cli() {
 			    g_timestamp=Yes
 			    option=${option#t}
 			    ;;
+			p*)
+			    g_nopager=Yes
+			    option=${option#p}
+			    ;;
+
 			-)
 			    finished=1
 			    option=
