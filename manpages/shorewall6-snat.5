@@ -2,12 +2,12 @@
 .\"     Title: shorewall6-masq
 .\"    Author: [FIXME: author] [see http://docbook.sf.net/el/author]
 .\" Generator: DocBook XSL Stylesheets v1.78.1 <http://docbook.sf.net/>
-.\"      Date: 12/02/2016
+.\"      Date: 12/11/2016
 .\"    Manual: Configuration Files
 .\"    Source: Configuration Files
 .\"  Language: English
 .\"
-.TH "SHOREWALL6\-MASQ" "5" "12/02/2016" "Configuration Files" "Configuration Files"
+.TH "SHOREWALL6\-MASQ" "5" "12/11/2016" "Configuration Files" "Configuration Files"
 .\" -----------------------------------------------------------------
 .\" * Define some portability stuff
 .\" -----------------------------------------------------------------
@@ -152,7 +152,7 @@ Normally Masq/SNAT rules are evaluated after those for one\-to\-one NAT (defined
 \m[blue]\fBshorewall6\-nat\fR\m[]\&\s-2\u[7]\d\s+2(5)\&.
 .RE
 .PP
-\fBSOURCE\fR (Optional) \- [\fIinterface\fR|\fIaddress\fR[\fB,\fR\fIaddress\fR][\fIexclusion\fR]]
+\fBSOURCE\fR (Optional) \- [\fIinterface\fR|\fIaddress\fR[\fB,\fR\fIaddress\fR\&.\&.\&.][\fIexclusion\fR]]
 .RS 4
 Set of hosts that you wish to SNAT; one or more host or network addresses separated by comma\&. You may use ipset names preceded by a plus sign (+) to specify a set of hosts\&.
 .RE
