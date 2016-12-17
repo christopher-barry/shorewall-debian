@@ -11,6 +11,7 @@ Vcs-Git: git://git.code.sf.net/p/shorewall/debian
 Package: shorewall6-lite
 Architecture: all
 Depends: shorewall-core (>= ${shorewall:current}),
+ shorewall-core (<< ${shorewall:next}),
  iptables (>= 1.4.1),
  iproute2 | iproute,
  lsb-base (>= 3.0-6),
