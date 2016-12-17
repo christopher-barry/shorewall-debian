@@ -96,7 +96,7 @@
 #     only be required if you need to insert rules in this file that preempt
 #     entries in shorewall-nat(5).
 # 
-# SOURCE (Optional) - [interface|address[,address][exclusion]]
+# SOURCE (Optional) - [interface|address[,address...][exclusion]]
 # 
 #     Set of hosts that you wish to masquerade. You can specify this as an 
 #     address (net or host) or as an interface (use of an interface is
