@@ -1,3 +1,11 @@
+Changes in 5.0.15.1
+
+1)  Update release documents.
+
+2)  Make NFQUEUE non-terminating
+
+3)  IPv6 mDNS macro from Michele Baldessari.
+
 Changes in 5.0.15 Final
 
 1)  Update release documents.
