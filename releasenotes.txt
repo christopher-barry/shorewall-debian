@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------
-	              S H O R E W A L L  5 . 0 . 1 5
+	            S H O R E W A L L  5 . 0 . 1 5 . 1
                       ------------------------------
-                      D e c e m b e r  0 5,  2 0 1 6
+                      D e c e m b e r  1 2,  2 0 1 6
 ----------------------------------------------------------------------------
 
 I.    PROBLEMS CORRECTED IN THIS RELEASE
@@ -13,6 +13,18 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
   I.  P R O B L E M S   C O R R E C T E D   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.15.1
+
+1)  Previously, rules in a chain that followed an unconditional NFQUEUE
+    rule were discarded with the warning:
+
+        WARNING: One or more unreachable rules in chain xxx have been
+	         discarded
+
+    That problem has been corrected and such rules are now retained.
+
+5.0.15
 
 1)  This release includes defect repair through Shorewall 5.0.14.1.
 
@@ -73,6 +85,13 @@ V.    PROBLEMS CORRECTED AND NEW FEATURES IN PRIOR RELEASES
 ----------------------------------------------------------------------------
       I I I.  N E W   F E A T U R E S   I N   T H I S  R E L E A S E
 ----------------------------------------------------------------------------
+
+5.0.15.1
+
+1)  An IPv6 bi-directional mDNS macro has been contributed by Michele
+    Baldessari.
+
+5.0.15
 
 1)  The 'show macro' command now uses the configured PAGER, if any.
 
