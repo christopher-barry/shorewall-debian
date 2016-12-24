@@ -26,8 +26,9 @@
 #       You may only use this script to uninstall the version
 #       shown below. Simply run this script to remove Shorewall Firewall
 
-VERSION=5.0.15.1
+VERSION=5.0.15.2
 PRODUCT=shorewall
+Product=Shorewall
 
 usage() # $1 = exit status
 {
