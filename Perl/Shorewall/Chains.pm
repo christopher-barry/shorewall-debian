@@ -1195,9 +1195,16 @@ sub compatible( $$ ) {
 	}
     }
     #
-    # Don't combine chains where each specifies '-m policy'
+    # Don't combine chains where each specifies
+    #    -m policy
+    # or when one specifies
+    #    -m multiport
+    # and the other specifies
+    #    --dport or --sport or -m multiport
     #
-    return ! ( $ref1->{policy} && $ref2->{policy} );
+    return ! ( $ref1->{policy} && $ref2->{policy} ||
+	       ( ( $ref1->{multiport} && ( $ref2->{dport} || $ref2->{sport} || $ref2->{multiport} ) ) ||
+		 ( $ref2->{multiport} && ( $ref1->{dport} || $ref1->{sport} ) ) ) );
 }
 
 #
