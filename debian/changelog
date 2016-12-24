@@ -1,3 +1,9 @@
+shorewall-lite (5.0.15.2-1) unstable; urgency=medium
+
+  * New Upstream Version
+
+ -- Roberto C. Sanchez <roberto@connexer.com>  Sat, 24 Dec 2016 17:17:44 -0500
+
 shorewall-lite (5.0.15.1-1) unstable; urgency=medium
 
   * New Upstream Version
