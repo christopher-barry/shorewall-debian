@@ -22,7 +22,7 @@
 #	along with this program; if not, see <http://www.gnu.org/licenses/>.
 #
 
-VERSION=5.0.15.1
+VERSION=5.0.15.2
 
 usage() # $1 = exit status
 {
