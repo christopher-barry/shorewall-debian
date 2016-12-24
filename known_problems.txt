@@ -4,3 +4,9 @@
 2)  The 'enable', 'reenable' and 'disable' commands do not work
     correctly in configurations with USE_DEFAULT_RT=No and optional
     providers listed in the DUPLICATE column.
+
+3)  When a list of zones appears in a policy file entry, intra-zone
+    traffic is affected even if neither the SOURCE nor DEST list ends
+    in '+'.
+
+    Corrected in Shorewall 5.0.15.2
